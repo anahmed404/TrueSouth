@@ -228,15 +228,12 @@
   font-weight: 600;
 }
 
+/* "best" is a plain word, not a pill: a pill with an outline is a provenance tag. */
 .cmp-best-mark {
   margin-left: 2px;
-  padding: 0 5px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-pill);
   color: var(--ink-2);
   font-size: var(--t-sm);
   font-weight: 400;
-  line-height: 16px;
 }
 
 .cmp-broken-value {
