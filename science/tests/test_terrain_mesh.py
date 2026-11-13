@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from truesouth.constants import MOON_RADIUS_M as R
-from truesouth.dem import DemStore, PreparedMap
+from truesouth.dem import DemStore, PreparedMap, site_tier
 from truesouth.derived_io import read_terrain, write_terrain
 from truesouth.frames import destination, polar_stereo_forward
 from truesouth.terrain_mesh import closeup_mesh, terrain_mesh
@@ -156,3 +156,64 @@ def test_defaults_and_closeup_mesh(tmp_path):
     assert full.window_km == 20.0
     assert full.east_km.shape == (257, 257)
     assert full.missing_count > 0
+
+
+class _TiltedPlane:
+    """Heights z = 20 + 0.2 E + 0.3 N on the section 13 grid, ignoring the walk."""
+
+    def __init__(self, size, window_km, missing=()):
+        east, north = offsets(size, window_km)
+        ee, nn = np.meshgrid(east, north)
+        self.height = 20.0 + 0.2 * ee + 0.3 * nn
+        if missing:
+            self.height = self.height.copy()
+            for row, col in missing:
+                self.height[row, col] = np.nan
+
+    def sample(self, lat, lon):
+        lat = np.asarray(lat, dtype=float)
+        if lat.ndim == 0:
+            return np.float64(20.0), 0
+        missing = int(np.count_nonzero(~np.isfinite(self.height)))
+        return self.height, missing
+
+
+def test_tilted_plane_slope_on_interior_and_rim():
+    size, window_km = 9, 20.0
+    mesh = terrain_mesh(_TiltedPlane(size, window_km), -89.0, 10.0, size=size, window_km=window_km)
+    expected = float(np.degrees(np.arctan(np.hypot(0.2, 0.3))))
+    assert expected == pytest.approx(19.827028653, abs=1e-9)
+    np.testing.assert_allclose(mesh.slope_deg[1:-1, 1:-1], expected, atol=1e-9)
+    np.testing.assert_allclose(mesh.slope_deg[0, :], expected, atol=1e-9)
+    np.testing.assert_allclose(mesh.slope_deg[-1, :], expected, atol=1e-9)
+    np.testing.assert_allclose(mesh.slope_deg[:, 0], expected, atol=1e-9)
+    np.testing.assert_allclose(mesh.slope_deg[:, -1], expected, atol=1e-9)
+
+
+def test_slope_is_nan_when_a_needed_height_is_missing():
+    size, window_km = 9, 20.0
+    mesh = terrain_mesh(_TiltedPlane(size, window_km, missing=((4, 4),)), -89.0, 10.0, size=size, window_km=window_km)
+    expected = float(np.degrees(np.arctan(np.hypot(0.2, 0.3))))
+    for row, col in ((4, 4), (4, 3), (4, 5), (3, 4), (5, 4)):
+        assert np.isnan(mesh.slope_deg[row, col])
+    assert mesh.slope_deg[1, 1] == pytest.approx(expected, abs=1e-9)
+    assert mesh.slope_deg[0, 0] == pytest.approx(expected, abs=1e-9)
+
+
+def test_sphere_tier_point_on_a_wide_map_still_returns_a_mesh(tmp_path):
+    # (-59°, 45° E) is sphere by site_tier. Part 2 must refuse the mesh; this function does not.
+    site = (-59.0, 45.0)
+    assert str(site_tier(np.asarray([site[0]]))[0]) == 'sphere'
+    mesh = terrain_mesh(DemStore(wide=prepared(tmp_path, 'wide', np.zeros((5, 5)), site, 240)), *site, size=5, window_km=0.4)
+    assert np.isfinite(mesh.height_m).all()
+
+
+def test_meshes_reject_latitudes_past_the_local_frame(tmp_path):
+    site = (-89.5, 10.0)
+    store = DemStore(prepared(tmp_path, 'core', np.zeros((7, 7)), site))
+    terrain = PreparedMap(prepared(tmp_path, 'close', np.zeros((7, 7)), site, pixel=5))
+    for lat in (-90.0, -91.0, 91.0):
+        with pytest.raises(ValueError, match='absolute value at most 89.999 degrees'):
+            terrain_mesh(store, lat, 0.0, size=5, window_km=0.2)
+        with pytest.raises(ValueError, match='absolute value at most 89.999 degrees'):
+            closeup_mesh(terrain, lat, 0.0, size=5, window_km=0.2)

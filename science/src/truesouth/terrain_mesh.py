@@ -15,17 +15,25 @@ are never filled with zero.
 the south polar stereographic projection. Real 5 m products are not read here;
 do not pass one until its projection is known and it can be opened that way.
 
-Per-vertex ``slope_deg`` is not given in section 13. The array holds the slope
-angle of the terrain height on this same (E, N) offset grid:
-``arctan`` of the size of its gradient, in degrees, with central differences
-in local metres (one-sided on the rim). It is the height ``z``, not the curved
-``up`` coordinate, and it is not the section 8 map-pixel slope. A vertex whose
-height is missing, or whose difference touches a missing neighbour, is NaN.
+Per-vertex ``slope_deg`` is the section 13 overlay slope: the angle of the
+gradient of sampled height ``z`` on the offset grid ``(E, N)``, in degrees.
+Interior vertices use central differences over ``2Δ`` and rim vertices use
+one-sided differences over ``Δ``. There is no projection scale factor. A
+vertex is NaN when its own height is missing or a height its differences need
+is missing. This baseline is not the site's section 8 slope.
+
+Part 2 must decide from the site's tier (``site_tier``), not from map
+coverage. At (−59°, 45° E) the tier is ``sphere``, but the wide map still
+covers the point, so ``terrain_mesh`` returns a mesh. A sphere-tier site
+must get no mesh; that gate is the caller's.
 
 Part 2 calls them like this::
 
-    mesh = terrain_mesh(store, lat_deg, lon_deg)
-    write_terrain(path, mesh.arrays, mesh.size)
+    if str(site_tier(lat_deg)) == 'sphere':
+        mesh = None
+    else:
+        mesh = terrain_mesh(store, lat_deg, lon_deg)
+        write_terrain(path, mesh.arrays, mesh.size)
     close = closeup_mesh(prepared_map, lat_deg, lon_deg)
     write_closeup(path, close.arrays, close.size)
 
@@ -75,6 +83,10 @@ def terrain_mesh(store, lat_deg, lon_deg, size=TERRAIN_SIZE, window_km=TERRAIN_W
     A vertex past the 80 m map uses the 240 m map. A vertex past both, or on a
     missing pixel, is NaN rather than zero. The core is never filled from the
     wide map; that rule lives in ``DemStore``.
+
+    The caller must gate on ``site_tier`` before calling. Coverage is not that
+    gate: a sphere-tier site at −59° can still lie on the wide map, and this
+    function then returns a mesh.
     """
     return _mesh(store.sample, lat_deg, lon_deg, size, window_km)
 
@@ -150,10 +162,12 @@ def _local_position_km(east_m, north_m, distance_m, height_m, site_height_m):
 
 def _slope_deg(height_m, north_axis, east_axis):
     """Slope angle of z on the (E, N) grid. Missing heights stay missing."""
+    # edge_order 1: central differences over 2Δ inside, one-sided over Δ on the rim.
     g_north, g_east = np.gradient(
         np.asarray(height_m, dtype=np.float64),
         np.asarray(north_axis, dtype=np.float64),
         np.asarray(east_axis, dtype=np.float64),
+        edge_order=1,
     )
     slope = np.degrees(np.arctan(np.hypot(g_east, g_north)))
     return np.where(np.isfinite(height_m), slope, np.nan)

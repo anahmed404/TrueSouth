@@ -39,10 +39,11 @@ CLOSEUP_SOURCE = 'close-up DEM, plane fit'
 def polar_slope(terrain, lat_deg, lon_deg):
     """Slope in degrees from one polar map, or None when it is not assessed.
 
-    The site pixel is the nearest pixel centre. Central differences then use
-    the pixels one step east, west, north and south of it, divided by ``2p``
-    (docs/science.md §8). The baseline is ``2p`` (160 m on the 80 m map, 480 m
-    on the 240 m map). ``k`` is the scale factor at the site latitude.
+    The site pixel is the nearest pixel centre, chosen separately in row and
+    column. An exact half-way tie goes to the even index (``np.rint``). The
+    differences use that pixel's grid neighbours and are not interpolated.
+    ``k`` is evaluated at the site latitude (docs/science.md §8). The baseline
+    is ``2p`` (160 m on the 80 m map, 480 m on the 240 m map).
 
     Not assessed (None) when the site is sphere-tier, when the site pixel or
     any of those four samples is off the map, or when any of them is missing.
@@ -52,6 +53,9 @@ def polar_slope(terrain, lat_deg, lon_deg):
     """
     lat = _finite_degree('latitude', lat_deg)
     lon = _finite_degree('longitude', lon_deg)
+    # Section 2.1: the local frame is undefined closer to a pole than this.
+    if abs(lat) > 89.999:
+        raise ValueError('site latitude must have absolute value at most 89.999 degrees')
     if str(site_tier(np.asarray([lat]))[0]) == 'sphere':
         return None
     pixel_x, pixel_y = _square_pixels(terrain.meta)
@@ -80,28 +84,27 @@ def polar_slope(terrain, lat_deg, lon_deg):
     return Slope(deg=deg, baseline_m=baseline_m, source=f'{name}, central difference')
 
 
-def closeup_slope(east_m, north_m, height_m, *, radius_m=CLOSEUP_RADIUS_M, source=CLOSEUP_SOURCE):
+def closeup_slope(east_m, north_m, height_m, *, source=CLOSEUP_SOURCE):
     """Slope in degrees from a plane fit in local metres, or None if not assessed.
 
     Fits ``z = a E + b N + c`` to every finite pixel whose local offset is
-    within ``radius_m`` of the origin (50 m, so the baseline is 100 m). The
-    slope is ``arctan(sqrt(a² + b²))`` in degrees (docs/science.md §8).
+    within 50 m of the origin, so the baseline is 100 m. The slope is
+    ``arctan(sqrt(a² + b²))`` in degrees (docs/science.md §8). The radius is
+    fixed there; it is not a parameter.
 
-    Pixels outside the radius are ignored. Missing heights and non-finite
-    offsets are ignored, not filled with zero. The result is None when fewer
-    than three valid pixels remain, or when those pixels do not determine a
-    unique plane (they are collinear or stacked on one spot). A determined fit
-    keeps the method baseline of 100 m even if holes have removed some pixels.
+    Pixels outside 50 m are ignored. Missing heights and non-finite offsets
+    are ignored, not filled with zero. The result is None when fewer than
+    three valid pixels remain, or when those pixels do not determine a unique
+    plane (they are collinear, including a line that misses the origin, or
+    stacked on one spot). A determined fit reports the method baseline of 100 m.
     """
-    if not np.isfinite(radius_m) or radius_m <= 0:
-        raise ValueError('close-up radius must be a positive number of metres')
     east = np.asarray(east_m, dtype=float)
     north = np.asarray(north_m, dtype=float)
     height = np.asarray(height_m, dtype=float)
     if east.shape != north.shape or east.shape != height.shape:
         raise ValueError('east_m, north_m and height_m must have the same shape')
     east, north, height = east.ravel(), north.ravel(), height.ravel()
-    valid = (np.hypot(east, north) <= radius_m) & np.isfinite(east) & np.isfinite(north) & np.isfinite(height)
+    valid = (np.hypot(east, north) <= CLOSEUP_RADIUS_M) & np.isfinite(east) & np.isfinite(north) & np.isfinite(height)
     if int(np.count_nonzero(valid)) < 3:
         return None
     east, north, height = east[valid], north[valid], height[valid]

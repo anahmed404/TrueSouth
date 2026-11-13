@@ -203,6 +203,22 @@ def test_closeup_too_few_or_collinear_is_not_assessed():
     assert result.baseline_m == pytest.approx(100.0)
 
 
+def test_closeup_plane_keeps_its_intercept():
+    """A plane that misses the origin. A fit forced through the origin is about 84°."""
+    east = np.array([0.0, 10.0, 0.0, 8.0])
+    north = np.array([0.0, 0.0, 10.0, 11.0])
+    height = 100.0 + 0.1 * east + 0.2 * north
+    result = closeup_slope(east, north, height)
+    assert result.deg == pytest.approx(12.604382648, abs=1e-9)
+    assert result.baseline_m == pytest.approx(100.0)
+    assert result.source == 'close-up DEM, plane fit'
+
+
+def test_closeup_affine_collinear_is_not_assessed():
+    # North is constant, so the points are a line that does not pass through the origin.
+    assert closeup_slope([0.0, 10.0, 20.0], [5.0, 5.0, 5.0], [1.0, 2.0, 3.0]) is None
+
+
 def test_methods_agree_on_smooth_surface(tmp_path):
     """One cubic surface, sampled at 5 m and at 80 m.
 
@@ -265,6 +281,7 @@ def test_methods_agree_on_smooth_surface(tmp_path):
     grid_shift = abs(predicted_close - np.degrees(np.arctan(alpha + delta * radius ** 2 / 2.0)))
     neighbour_height = abs(alpha) * pixel + abs(delta) * pixel ** 3
     rounding = float(np.degrees(np.spacing(np.float32(neighbour_height)) / pixel))
+    # This bound is derived for this fixture's surface only. It is not a general limit for real terrain.
     bound = curvature_gap + projection_shift + grid_shift + rounding
     gap = abs(measured_polar.deg - close.deg)
     print(
@@ -277,3 +294,34 @@ def test_methods_agree_on_smooth_surface(tmp_path):
     assert gap <= bound
     assert measured_polar.baseline_m == pytest.approx(160.0)
     assert close.baseline_m == pytest.approx(100.0)
+
+
+def test_half_pixel_tie_goes_to_the_even_index(tmp_path):
+    """A half-way column selects the even index: 4.5 -> 4 and 5.5 -> 6, not 5."""
+    centre = (-89.5, 0.0)
+    x, y = (float(np.asarray(v)) for v in polar_stereo_forward(*centre))
+    data = np.zeros(SHAPE, dtype=np.float32)
+    data[:, 3] = 100.0
+    data[:, 7] = 100.0
+    # Column 5's neighbours are both 0, so picking it would report 0°.
+    # Columns 4 and 6 each touch one of the raised columns.
+    for name, column in (('tie-low', 4.5), ('tie-high', 5.5)):
+        path = tmp_path / f'{name}.npy'
+        np.save(path, data)
+        meta = dict(
+            origin_x=x - (column + 0.5) * 80.0,
+            origin_y=y + 440.0,
+            pixel_x=80.0, pixel_y=-80.0, source='synthetic polar DEM')
+        path.with_suffix('.json').write_text(json.dumps(meta), encoding='utf-8', newline='\n')
+        terrain = PreparedMap(path)
+        row, col = terrain.coordinates(*centre)
+        assert float(col) == pytest.approx(column)
+        assert polar_slope(terrain, *centre).deg > 1.0
+
+
+def test_polar_slope_rejects_latitudes_past_the_local_frame(tmp_path):
+    terrain = PreparedMap(prepared(tmp_path, 'frame', np.zeros(SHAPE), NEAR_POLE))
+    for lat in (-90.0, -91.0, 90.0, 91.0):
+        with pytest.raises(ValueError, match='absolute value at most 89.999 degrees'):
+            polar_slope(terrain, lat, 0.0)
+    polar_slope(terrain, -89.999, NEAR_POLE[1])
