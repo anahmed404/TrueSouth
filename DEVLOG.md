@@ -581,6 +581,54 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-14 · MC shell feedback · No view sentence; the landing date joins the timeline; "Next GO"
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (a rearrangement
+  of the approved C2 shell, no redesign) — removed the view's sentence plate (its text now in
+  an "About" button inside the current tab and in the tab's accessible description), wrote
+  `LandingDateControl` and moved the landing date from the app bar to the head of the
+  bottom strip, wrote `nextGoDay` and the "Next GO" button with its states, Undo and polite
+  status line, updated the specs and DESIGN.md, and wrote 34 vitest tests (fixture tests of
+  `nextGoDay`, the button's states, the control's reads and writes, and a render-count test
+  that a scrub does not re-render the control, on a small fake DOM) — checked by the agent
+  with typecheck, the vitest suite, the build, `uv run pytest`, impeccable's detector (no
+  findings), and by eye on the real data at 1440 × 900, 1024 × 768 and 390 × 844 in the four
+  camera views and with Compare open, folded, by keyboard and in an accessibility snapshot;
+  then fixed the review of PR #83 (Cursor, approve with fixes): the window's end and the
+  duration's tag at every width, the note cleared on a site or profile change, a clamping
+  Undo test (fails without the restore), focusable reasons at the ends of the grid, the
+  scrubber's pill hiding the day labels under it, and a fake DOM that honours `disabled` —
+  checked again by eye at 1440 × 900, 1024 × 768 (open and folded) and 390 × 844, keyboard
+  only on the control and the picker sheet; a human has not reviewed it yet
+- **State:** verified (333 Python tests, 1,900 web tests, typecheck and build pass on the merge with main; reviewed by Cursor (Next GO equals the ordinary evaluation on three fixture sites and two profiles; time zones; two mutations caught); six findings fixed: the window's end and the duration's tag show at every width, the note clears on a site or profile change, Undo is tested where the time clamps, disabled buttons give a reason, the pill no longer covers day labels; the layout is not yet judged by the team lead)
+  build pass on the merge with main; the team lead has not judged the layout)
+- **Changed:** `web/src/app/mission/` (new `landing-date-control.tsx`, `next-go-button.tsx`,
+  `landing-control.ts`, `fake-dom.ts` and their tests; `view-bar.tsx`, `top-bar.tsx`,
+  `free-space.ts`, `timeline/timeline.tsx`, `timeline/axis.ts`, `timeline/timeline.css`),
+  `web/src/app/mission-screen.tsx` (three small lines), `web/src/app/shell.css`,
+  `web/src/lib/scoring/next-go.ts` (new), `docs/features/` (mission-control, site-detail,
+  local-terrain, polar-map, panorama, slip-planner), `DESIGN.md`,
+  `docs/design/c2/built-shell-feedback-*.png`
+- **Notes:**
+  - The free space now starts 8 px under the view bar: at 1440 × 900 it is 59 px taller,
+    and the camera's centre rises by half that.
+  - Changing the landing date keeps the current time's offset from the landing, clamped to
+    the timeline (window ± 3 days), as `moveLandingKeepingOffset` did before; each change
+    pushes one history entry, so Back undoes it.
+  - "Next GO" searches from the day after the landing date's day, over the sweep's 00:00 UTC
+    landings, and lands at 00:00 UTC. With Chandrayaan-3 and Malapert Massif from 2029-01-10
+    it says "No GO date before 2032".
+  - The Slip Planner can mount `LandingDateControl` in its panel's header as it is; it
+    reads and writes only the scenario store.
+  - The header shows, after the date, "→ 11 Mar · 10 d [sourced]": where the window ends,
+    its length and the duration's tag, in the open, folded and phone strips; screen readers
+    hear "Mission window ends 11 Mar 2028 00:00 UTC, 10 d after landing." To keep the open
+    header at one row at 1440, "Slip +7 d" and "+14 d" live in the date's picker.
+  - At the ends of the grid the day and slip buttons stay focusable, do nothing, and give
+    the reason with the real dates ("The data starts at 2026-01-01 00:00 UTC …").
+  - Not done: a draggable start of the window on the timeline (the timeline's range follows
+    the landing, so a handle would drag its own axis), and a "Previous GO" twin.
+
 #### 2026-11-14 · MC6b · Lander's eye: the horizon chart folds away, closed by default
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (keeping the

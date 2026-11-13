@@ -75,6 +75,41 @@
     margin-left: auto;
   }
 
+  /*
+    The landing date, at the left end of the head: the time axis starts where the mission
+    window begins. A narrow strip drops the words "Landing date" and the window end's time
+    first (the group keeps its name, screen readers the whole sentence); the head then wraps
+    the play controls to a second row.
+  */
+  .tl-landing {
+    display: flex;
+    flex: none;
+    min-width: 0;
+  }
+
+  .tl-message-head {
+    display: contents;
+  }
+
+  /* A day label the scrubber's pill would cover is hidden while the pill is there. */
+  .tl-day[data-covered] {
+    visibility: hidden;
+  }
+
+  /* Folded, the row also holds the time, play and both countdowns. */
+  @container strip (max-width: 1100px) {
+    .tl-folded .ldc-label {
+      display: none;
+    }
+  }
+
+  @container strip (max-width: 600px) {
+    .tl-head .ldc-label,
+    .tl-head .ldc-window-time {
+      display: none;
+    }
+  }
+
   /* Play: a moonlight circle with a dark triangle, the one filled control here. */
   .tl .tl-play,
   .tl .tl-play:hover:not(:disabled) {
@@ -742,8 +777,46 @@
   }
 
   .tl-compact-plot,
-  .tl-compact-message {
+  .tl-compact-message,
+  .tl-compact-landing {
     grid-column: 1 / -1;
+  }
+
+  /* The phone: the date with its day buttons, and "Next GO", on one 44 px row. */
+  .tl-compact-landing .ldc {
+    flex: 1;
+    justify-content: space-between;
+  }
+
+  /* No room for the words: the group is still named "Landing date", and so is the date. */
+  .tl-compact-landing .ldc-label {
+    display: none;
+  }
+
+  .tl-compact-landing .ldc-date {
+    height: 44px;
+  }
+
+  .tl-compact-landing .ldc-value {
+    height: 42px;
+  }
+
+  /* The window's end and length take their own line under the date. */
+  .tl-compact-landing .ldc {
+    flex-wrap: wrap;
+    row-gap: var(--s1);
+  }
+
+  .tl-compact-landing .ldc-window {
+    order: 1;
+    flex-basis: 100%;
+    font-size: var(--t-sm);
+  }
+
+  /* "Next GO" is at the right end on the phone: its note opens leftwards. */
+  .tl-compact-landing .ldc-note {
+    right: 0;
+    left: auto;
   }
 
   .tl-compact-plot {
