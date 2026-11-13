@@ -4,7 +4,7 @@ import errno
 import logging
 from pathlib import Path
 import re
-from threading import Condition, Lock, Thread
+from threading import Condition, Event, Lock, Thread
 from time import monotonic
 
 from truesouth_api.errors import Rejected
@@ -43,9 +43,12 @@ class Computer:
         self.global_data = None
         self.lock = Lock()
         self.budget = None
+        self.cancelled = Event()
 
     def tier(self, request):
         from truesouth.dem import DemStore, site_tier
+        if not (self.derived / 'system.bin').is_file():
+            raise Rejected(503, 'Custom sites need the global ephemeris, which is not installed on this server.')
         tier = site_tier(request.lat_deg).item()
         if tier == 'sphere':
             return tier
@@ -56,6 +59,17 @@ class Computer:
                         raise Rejected(503, NEED_MAPS)
                     self.store = DemStore(*(self.prepared / n for n in MAPS))
         return tier
+
+    def cancel(self):
+        with self.lock:
+            self.cancelled.set()
+
+    def publish(self, staging, target):
+        from truesouth.commands.build_sites import _publish_site
+        with self.lock:
+            if self.cancelled.is_set():
+                raise InterruptedError('custom site interrupted by shutdown')
+            (self.budget.publish if self.budget else _publish_site)(staging, target)
 
     def __call__(self, request, tier):
         from truesouth.commands.build_sites import build_site
@@ -70,7 +84,7 @@ class Computer:
             lat_deg=float(lat), lon_deg=float(lon), description='Coordinates entered by the user.',
             source_url='', outcome=None)
         return build_site(site, self.store or DemStore(), self.global_data,
-                          self.cache / identity, tier=tier, site_entry=True, publish=self.budget.publish if self.budget else None)
+                          self.cache / identity, tier=tier, site_entry=True, publish=self.publish, cancelled=self.cancelled.is_set)
 
 
 
@@ -192,7 +206,7 @@ class Jobs:
             full = (isinstance(error, Rejected) and error.status == 507) or (isinstance(error, OSError) and error.errno == errno.ENOSPC)
             state = dict(site_id=identity, status='failed', site=None,
                          error=dict(code='storage_full' if full else 'computation_failed',
-                                    message=FULL if full else 'The custom site could not be computed. Please try again.'))
+                                    message=FULL if full else ('The server stopped this job. Please submit it again.' if self.closed else 'The custom site could not be computed. Please try again.')))
         with self.condition:
             self.budget.release(identity)
             self._record(identity, state)
@@ -212,6 +226,13 @@ class Jobs:
     def close(self):
         with self.condition:
             self.closed = True
+            if isinstance(self.computer, Computer):
+                self.computer.cancel()
+            while self.waiting:
+                identity, _, _ = self.waiting.popleft()
+                self.budget.release(identity)
+                self._record(identity, dict(site_id=identity, status='failed', site=None,
+                    error=dict(code='computation_failed', message='The server stopped before this job ran. Please submit it again.')))
             self.condition.notify_all()
         if self.worker:
             self.worker.join()

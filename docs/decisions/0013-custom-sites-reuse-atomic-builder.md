@@ -9,8 +9,9 @@ request arrived first. Names are display text and the first successful name wins
 
 **Trade-offs.** Queued work is lost on restart and an id never expires automatically.
 This is intentionally a single-process service, not a multi-worker deployment.
-Custom coverage follows the actual prepared map footprints (core80 then wide240),
-including the square map corners; catalog latitude labels are unchanged. Custom
+Custom site tiers follow the catalog latitude rule, including at square raster
+corners. Ray sampling still follows actual coverage. This supersedes the initial
+S10b coverage-based site labels after PR review. Custom
 entries use the existing contrast group, an empty source_url and a description that
 identifies coordinates as entered by the user. No new group or terrain tier is added.
 

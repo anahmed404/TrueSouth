@@ -14,6 +14,7 @@ services:
         target: /app/data/prepared
         read_only: true
       - custom-cache:/app/data/cache
+    stop_grace_period: 90s
     restart: unless-stopped
 volumes:
   custom-cache:

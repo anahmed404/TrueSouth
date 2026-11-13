@@ -169,12 +169,15 @@ def health_report(derived: Path, prepared: Path) -> dict[str, object]:
     else:
         status = "incomplete"
 
-    available = all(_is_file(prepared / name) for name in PREPARED_MAPS)
+    maps_available = all(_is_file(prepared / name) for name in PREPARED_MAPS)
+    available = maps_available and files['system']
+    reason = ('Custom sites need the global ephemeris, which is not installed on this server.'
+              if not files['system'] else UNAVAILABLE)
     return {
         "status": status,
         "custom_sites": "available" if available else "not_available",
         "sensitivity_grid": "not_available",
-        "message": ("Custom sites are available. Sensitivity grids are not available in this version." if available else UNAVAILABLE),
+        "message": ("Custom sites are available. Sensitivity grids are not available in this version." if available else reason),
         "derived": {
             **files,
             "sites_json_readable": readable,

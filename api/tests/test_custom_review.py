@@ -183,6 +183,7 @@ def test_rejected_and_expired_addresses_are_not_retained(tmp_path):
 
 def test_storage_full_rejected_without_job_or_slot(empty_tree):
     derived, prepared, cache = empty_tree
+    derived.mkdir(); (derived/'system.bin').write_bytes(b'present')
     jobs = Jobs(cache, Computer(derived, prepared, cache), cache_limit_bytes=1)
     with TestClient(create_app(derived=derived, prepared=prepared, cache=cache, jobs=jobs)) as client:
         response = client.post('/api/sites/custom', json=dict(lat_deg=0, lon_deg=0))
@@ -275,3 +276,63 @@ def test_wide_square_corner_uses_catalog_sphere_rule(synthetic):
     assert not (cache/site_id(body)/'terrain.bin').exists()
     skyline = np.fromfile(cache/site_id(body)/'skyline.bin', dtype='<f4')[:1440]
     assert np.ptp(skyline) == 0
+
+
+def test_health_requires_ephemeris_and_post_explains_absence(empty_tree):
+    from truesouth_api.health import PREPARED_MAPS
+    derived, prepared, cache = empty_tree
+    prepared.mkdir()
+    for name in PREPARED_MAPS: (prepared/name).write_bytes(b'map-present')
+    jobs = Jobs(cache, Computer(derived, prepared, cache))
+    with TestClient(create_app(derived=derived, prepared=prepared, cache=cache, jobs=jobs)) as client:
+        health = client.get('/api/health').json()
+        assert health['custom_sites'] == 'not_available'
+        assert 'ephemeris' in health['message']
+        response = client.post('/api/sites/custom', json=dict(lat_deg=0, lon_deg=0))
+        assert response.status_code == 503
+        assert response.json() == {'message':'Custom sites need the global ephemeris, which is not installed on this server.'}
+        assert jobs.starts == {}
+
+
+def test_shutdown_cancels_staged_and_waiting_jobs(synthetic, monkeypatch):
+    from truesouth.commands import build_sites
+    derived, prepared, cache = synthetic
+    entered, release = Event(), Event()
+    original = build_sites.write_skyline
+    def hold(*args, **kwargs):
+        original(*args, **kwargs)
+        entered.set()
+        assert release.wait(5)
+    monkeypatch.setattr(build_sites, 'write_skyline', hold)
+    jobs = Jobs(cache, Computer(derived, prepared, cache))
+    first = jobs.submit(request(-89.99, 0), 'one')['site_id']
+    assert entered.wait(3)
+    second = jobs.submit(request(-89.99, 1), 'two')['site_id']
+    assert list(cache.glob('.c_*')), 'the interruption must happen after staging starts'
+    closer = Thread(target=jobs.close)
+    closer.start()
+    with jobs.condition:
+        assert jobs.condition.wait_for(lambda: jobs.closed, timeout=2)
+    release.set()
+    closer.join(5)
+    assert not closer.is_alive()
+    assert jobs.status(first)['status'] == 'failed'
+    assert jobs.status(second)['status'] == 'failed'
+    assert not list(cache.iterdir())
+    assert not jobs.budget.reservations
+
+
+def test_proxy_headers_cannot_reset_address_rate_limit(empty_tree):
+    derived, prepared, cache = empty_tree
+    jobs = Jobs(cache, Instant(), clock=lambda: 0.)
+    with TestClient(create_app(derived=derived, prepared=prepared, cache=cache, jobs=jobs)) as client:
+        for i in range(6):
+            response = client.post('/api/sites/custom', json=dict(lat_deg=0, lon_deg=i), headers={'X-Forwarded-For':f'198.51.100.{i}'})
+            assert response.status_code == 200
+        response = client.post('/api/sites/custom', json=dict(lat_deg=0, lon_deg=7), headers={'X-Forwarded-For':'203.0.113.8'})
+        assert response.status_code == 429
+        assert set(jobs.starts) == {'testclient'}
+    from pathlib import Path
+    dockerfile = Path('Dockerfile').read_text()
+    assert '--no-proxy-headers' in dockerfile
+    assert 'stop_grace_period: 90s' in Path('compose.yaml').read_text()

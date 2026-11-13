@@ -155,8 +155,10 @@ def run(args):
     _write_model(output/'manifest.json', manifest)
 
 
-def build_site(site, store, global_data, target, *, tier=None, site_entry=False, publish=None):
+def build_site(site, store, global_data, target, *, tier=None, site_entry=False, publish=None, cancelled=None):
     """Shared catalog/custom computation and atomic publication; no network calls."""
+    if cancelled and cancelled():
+        raise InterruptedError('site build interrupted')
     target = Path(target)
     target.parent.mkdir(parents=True, exist_ok=True)
     tier = tier or site_tier(site.lat_deg).item()
@@ -202,6 +204,8 @@ def build_site(site, store, global_data, target, *, tier=None, site_entry=False,
             read_terrain(staging/'terrain.bin', mesh.size)
         if site_entry:
             _write_model(staging/'site.json', derived_site)
+        if cancelled and cancelled():
+            raise InterruptedError('site build interrupted')
         (publish or _publish_site)(staging, target)
     finally:
         if staging.exists():

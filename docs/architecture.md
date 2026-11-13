@@ -212,8 +212,9 @@ Unknown or unfinished ids return a JSON 404 directing callers to POST.
 Each client address may start six new jobs per rolling hour. Cached, queued and running
 duplicates cost nothing. Queue/rate exhaustion returns 429; rate exhaustion includes
 Retry-After. A failed job exposes a plain error and can be retried; the worker survives.
-There is no job database. Shutdown finishes the running job; restarts forget waiting
-jobs. Complete atomic directories under data/cache/<id>/ survive. Internal site.json
+There is no job database. Shutdown cancels queued work and prevents interrupted
+running work from publishing; staging is cleaned before the worker joins. Restarts
+forget waiting jobs. Compose allows 90 seconds for graceful shutdown. Complete atomic directories under data/cache/<id>/ survive. Internal site.json
 preserves the Site entry and is not served. Names never enter paths. Coordinates are
 normalised and rounded before computing.
 
@@ -230,8 +231,8 @@ pole are rejected with 422 before admission. No close-up or apron is built.
 /api/health always returns 200. `status` is ok when manifest, readable sites.json and
 every listed site's meta, series and skyline exist; empty when no derived files exist;
 incomplete otherwise. Optional assets do not change it. `custom_sites` is available
-when both prepared arrays and sidecars exist, otherwise not_available with the missing
-maps reason. Sphere sites still work without maps. `sensitivity_grid` is not_available.
+when both prepared arrays, sidecars and derived/system.bin exist, otherwise
+not_available with the missing maps or global ephemeris reason. Sphere sites still work without maps. `sensitivity_grid` is not_available.
 The report includes top-level derived-file booleans, map files, each site's files,
 scene files and prepared-map file booleans. Health does not open arrays.
 
@@ -242,7 +243,7 @@ scene files and prepared-map file booleans. Health does not open arrays.
 ```bash
 uv sync
 uv run truesouth build-fixtures                 # or build-all for real data
-uv run uvicorn truesouth_api.main:app --reload --port 8000
+uv run uvicorn truesouth_api.main:app --reload --port 8000 --no-proxy-headers
 pnpm --dir web install
 pnpm --dir web dev
 ```
@@ -334,3 +335,13 @@ sites are recovered from disk. Address histories expire after the rolling hour. 
 most 4096 active address histories are kept; a new address at capacity receives 503
 and Retry-After, rather than evicting an active rate limit. Rejected jobs allocate no
 address history or storage reservation.
+
+### Client addresses and reverse proxies
+
+The client address is the socket peer address exposed in the ASGI scope, never an
+X-Forwarded-For value read by the application. Production starts uvicorn with
+`--no-proxy-headers`; use that flag in development and other deployments too. The
+application provides no trusted-proxy configuration. All people behind one reverse
+proxy therefore share that proxy's six-per-hour limit. Changing X-Forwarded-For or
+Forwarded headers cannot reset it. Do not enable uvicorn proxy-header processing for
+this service without separately implementing and reviewing trusted-proxy support.
