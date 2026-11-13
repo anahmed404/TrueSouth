@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { createValueEvaluator } from "../evaluator";
-import { fillPlaceholders, type WorkedExamples } from "../placeholders";
+import { formatNumber } from "../format-example";
+import { exampleText, fillPlaceholders, type WorkedExamples } from "../placeholders";
 import { numberReadoutAt } from "../readout";
 import { answerText, initialRunnerState, PANEL_STEP_KINDS, reduceRunner, type RunnerState } from "../runner";
 import { conversationFor, primaryAction } from "../step-view";
@@ -391,5 +392,61 @@ describe("playing lessons 1 to 4 on the real data", () => {
     expect(fillPlaceholders(step.preview?.reveal ?? "", real).text).toBe(
       "This month the Sun climbs only to 0.63°, and sinks to −0.25°. It skims my horizon.",
     );
+  });
+});
+
+/**
+ * A slider position the lesson accepts must be one whose own readout answers the question,
+ * and every position whose readout answers it must be accepted.
+ */
+describe("slider goals agree with their own readouts", () => {
+  const evaluator = createValueEvaluator();
+
+  function stops(step: Extract<Step, { kind: "tune-slider" }>): number[] {
+    if (step.slider.kind !== "number") throw new Error(`${step.id} is not a number slider`);
+    const { min, max, step: stride } = step.slider;
+    const count = Math.round((max - min) / stride);
+    return Array.from({ length: count + 1 }, (_, index) => min + index * stride);
+  }
+
+  function accepted(lesson: Lesson, step: Extract<Step, { kind: "tune-slider" }>, value: number): boolean {
+    const index = lesson.steps.indexOf(step);
+    const at: RunnerState = { ...initialRunnerState(), stepIndex: index };
+    const next = reduceRunner(at, { type: "submit", submission: { kind: "tune-slider", variant: "number", value } }, lesson, evaluator, real);
+    return next.phase === "correct";
+  }
+
+  function readoutText(step: Extract<Step, { kind: "tune-slider" }>, value: number): string {
+    if (step.slider.kind !== "number" || !step.slider.readout) throw new Error(`${step.id} has no readout`);
+    const reading = numberReadoutAt(step.slider.readout, value, real);
+    if (typeof reading !== "number") throw new Error(`${step.id} has no reading at ${value}`);
+    return formatNumber(reading, 0);
+  }
+
+  it("lesson 3: only the distance whose drop reads the asked-for metres is right; 19 and 21 km are misses", () => {
+    const step = lesson3.steps[2];
+    if (step?.kind !== "tune-slider") throw new Error("lesson 3 step 3 is the slider");
+    const asked = exampleText(real, "l3.drop_at_20km_m");
+    expect(asked).toBe("115");
+    for (const value of stops(step)) {
+      expect(accepted(lesson3, step, value), `${value} km reads ${readoutText(step, value)} m`).toBe(readoutText(step, value) === asked);
+    }
+    expect(accepted(lesson3, step, 19)).toBe(false);
+    expect(accepted(lesson3, step, 21)).toBe(false);
+  });
+
+  it("lesson 4: a margin is right exactly when its link-time readout is under 15%", () => {
+    const step = lesson4.steps[3];
+    if (step?.kind !== "tune-slider" || step.slider.kind !== "number" || !step.slider.readout) throw new Error("lesson 4 step 4 is the slider");
+    for (const value of stops(step)) {
+      const reading = numberReadoutAt(step.slider.readout, value, real);
+      expect(typeof reading).toBe("number");
+      expect(accepted(lesson4, step, value), `${value}° reads ${String(reading)}%`).toBe((reading as number) < 15);
+    }
+  });
+
+  it("every slider in lessons 1 to 4 is covered above", () => {
+    const sliders = lessons.flatMap((lesson) => lesson.steps.filter((step) => step.kind === "tune-slider").map((step) => step.id));
+    expect(sliders).toEqual(["l3-distance", "l4-margin"]);
   });
 });

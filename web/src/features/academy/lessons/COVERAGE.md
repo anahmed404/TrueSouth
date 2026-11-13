@@ -30,7 +30,7 @@ Placeholders in the doc are written `{{l1.sun_el_max_deg}}`. In lesson text they
 | 2 | 5 | choice | Near ridge or far mountain | Picks one | Index 0, "The near ridge" | none | none | none | Yes. `options`, `answer` |
 | 3 The Moon is round | 1 | predict | Flat-Moon height, three outcomes | One guess | Index 1, "Just the tip" | A side view of the curved Moon | none | none. Not a Mission Control panel | Yes. `reveal.kind: "illustration"`, `illustration: "curved-moon-side"` |
 | 3 | 2 | fill-formula | `distance² ÷ ( ? )` | Picks the denominator | Index 1, "2R" | none | none | none | Yes. `tex`, `options`, `answer` |
-| 3 | 3 | tune-slider | Distance, live drop | Slides to the drop of 115 m | `distance_km == 20`, within ±1 km | none | none (the drop is s²/2R, not a looked-up key) | none | Yes. `slider` 0 to 60 km, step 1, `goal.tolerance: 1`, `readout.kind: "curvature-drop"` |
+| 3 | 3 | tune-slider | Distance, live drop | Slides to the drop of 115 m | `distance_km == 20`, exactly | none | none (the drop is s²/2R, not a looked-up key) | none | Yes. `slider` 0 to 60 km, step 1, no tolerance, `readout.kind: "curvature-drop"` |
 | 3 | 4 | spot-bug | Four calculation lines | Picks the wrong line | `buggyLine` 2, the flat `atan` line | none | none (1,036 m is written out; `l3.drop_at_60km_m` exists) | none | Yes. `lines`, `buggyLine` |
 | 3 | 5 | choice | Why a third of a degree matters | Picks one | Index 0, "Because the Sun never gets above {{l1.sun_el_max_deg}}° this month" | none | none | none | Yes. `options`, `answer` |
 | 4 Phone home | 1 | choice | Three pictures of Earth from the pole | Picks one | Index 2, "It bobs up and down at the horizon" | none | none | none | Yes. `options`, `answer` |
@@ -73,9 +73,9 @@ The lesson doc and `docs/academy/overview.md` do not say which of these to pick.
 
 4. Decided. Lesson 2 step 4 drags the 48 hours centred on `l2.example_utc`, clamped to the time grid.
 
-5. Decided. Lesson 3 step 3 is 0 to 60 km, step 1 km, goal 20 km within ±1 km, and the readout is s²/2R.
+5. Decided. Lesson 3 step 3 is 0 to 60 km, step 1 km, goal exactly 20 km, and the readout is s²/2R.
 
-6. Decided. Lesson 4 step 4 is 0° to 8°, step 0.5°, goal 5° within ±1°, with a piecewise-linear link-time readout.
+6. Decided. Lesson 4 step 4 is 0° to 10°, step 0.5°, goal any margin at or above `{{example.l4.mask_for_15pct_deg}}`, with a link-time readout read from `l4.link_pct_by_mask`.
 
 7. Decided. Lesson 4 unlocks both the timeline and the countdowns. `unlocks` can be one panel or a list.
 

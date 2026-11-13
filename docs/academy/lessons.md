@@ -119,7 +119,7 @@ XP and does not count for the stars.
 4. Title: "A flat-Moon calculation, line by line". Hint: "Find the line that works out an angle. Did it remember that the ground curves away?" Explanation: "Line 3 forgot the drop: {{l3.drop_at_60km_m}} m at 60 km. The ridge is below Pip's horizon."
 5. Hint: "Compare a third of a degree with how high the Sun gets here this month." Explanation: Luna's line in the table.
 
-**Exact settings:** Step 3 slides distance from 0 to 60 km in steps of 1 km. The goal is 20 km, right within ±1 km. The live readout is the drop s²/2R from science.md §4, using the Moon's radius from the manifest.
+**Exact settings:** Step 3 slides distance from 0 to 60 km in steps of 1 km. The slider is labelled "Distance", in km. The goal is exactly 20 km, with no tolerance: at 19 km and 21 km the readout shows a different drop (about 104 m and 127 m), so those are misses. The live readout, labelled "Drop", is the drop s²/2R from science.md §4, using the Moon's radius from the manifest, in whole metres.
 
 **Card:** the exact formula and how the simple one follows from it (§4); the flat-Moon
 horizon dip; why 300 km is far enough (§5). Worked example: the blocker for one real bin,
@@ -159,7 +159,7 @@ XP and does not count for the stars.
 4. Hint: "The higher the margin, the less often Earth clears it. Keep raising it and watch the link time." Explanation: "From {{l4.mask_for_15pct_deg}}° up, Pip can talk less than 15% of the time. A bigger margin is kinder to the radio, but it costs link time."
 5. Title: "The early link rules". Hint: "Which rule asks for more than Earth can give? Think about how long Earth stays high in a month." Explanation: Luna's line in the table.
 
-**Exact settings:** Step 4 slides the margin from 0° to 10° in steps of 0.5°. The goal is any margin at or above `{{l4.mask_for_15pct_deg}}`, the first at which link time is under 15%; a lower margin is a miss, because link time there is still 15% or more. Link time at each step is read from `l4.link_pct_by_mask`. Pip's link meter follows that readout. The lesson unlocks both the timeline and the countdowns.
+**Exact settings:** Step 4 slides the margin from 0° to 10° in steps of 0.5°. The slider is labelled "Margin", in °, and its readout "Link time", in whole percent. The goal is any margin at or above `{{l4.mask_for_15pct_deg}}`, the first at which link time is under 15%; a lower margin is a miss, because link time there is still 15% or more. Link time at each step is read from `l4.link_pct_by_mask`. Pip's link meter follows that readout. The lesson unlocks both the timeline and the countdowns.
 
 **Card:** sub-Earth point, libration and distance (§3.1); the exact direction to Earth,
 including the 0.26° shift from standing off-centre (§3.2); link and antenna mask (§9).

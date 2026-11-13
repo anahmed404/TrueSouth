@@ -62,7 +62,8 @@ export const lesson3 = {
         label: "Distance",
         readout: { kind: "curvature-drop", label: "drop", radiusM: MOON_RADIUS_M },
       },
-      goal: { metric: "distance_km", op: "==", value: 20, tolerance: 1 },
+      // Exactly 20 km: at 19 km and 21 km the readout itself shows a different drop.
+      goal: { metric: "distance_km", op: "==", value: 20 },
       answerLabel: "20 km",
     },
     {
