@@ -3,7 +3,6 @@
 import json
 from pathlib import Path
 
-import numpy as np
 import pytest
 
 from truesouth.horizons import fetch_response, global_request, parse_global, parse_site, site_request
@@ -39,7 +38,9 @@ def test_unknown_or_contradictory_conventions_fail():
     response = (DATA / 'horizons_global.json').read_text(encoding='utf-8')
     for broken in [response.replace('MOON_ME', 'UNKNOWN_FRAME'),
                    response.replace('{East-longitude positive}', '{unknown sign}', 1),
-                   response.replace('to the EAST', 'to the WEST', 1)]:
+                   response.replace('to the EAST', 'to the WEST', 1),
+                   response.replace('1737.4, 1737.4, 1737.4 km', '1738.0, 1738.0, 1738.0 km'),
+                   response.replace('Units: AU and KM/S', 'Units: KM and KM/S', 1)]:
         with pytest.raises(ValueError):
             parse_global(broken)
 
@@ -54,6 +55,15 @@ def test_site_values_and_local_frame(body, az, el):
     assert table.columns['az_deg'][0] == az
     assert table.columns['el_deg'][0] == el
     assert len(table.times) == 73
+
+
+def test_site_rejects_refraction_or_unconfirmed_frame():
+    response = (DATA / 'horizons_connecting_ridge_sun.json').read_text(encoding='utf-8')
+    for broken in [response.replace('NO (AIRLESS)', 'YES (REFRACTED)'),
+                   response.replace('MEAN_ME (high precision)', 'PRINCIPAL_AXES'),
+                   response.replace('clockwise from north', 'clockwise from south')]:
+        with pytest.raises(ValueError):
+            parse_site(broken)
 
 
 def test_request_grid_is_inclusive_and_site_height_is_two_metres():

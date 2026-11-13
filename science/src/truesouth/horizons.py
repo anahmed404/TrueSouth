@@ -10,7 +10,6 @@ from datetime import datetime
 import hashlib
 import io
 import json
-from pathlib import Path
 import re
 import ssl
 import time
@@ -20,7 +19,7 @@ import numpy as np
 import truststore
 
 from truesouth.constants import (
-    OBSERVER_HEIGHT_M, TIME_GRID_COUNT, TIME_GRID_START_UTC, TIME_GRID_STEP_S,
+    MOON_RADIUS_M, OBSERVER_HEIGHT_M, TIME_GRID_COUNT, TIME_GRID_START_UTC, TIME_GRID_STEP_S,
 )
 from truesouth.paths import raw_dir
 
@@ -145,6 +144,12 @@ def _lunar_frame(header, which):
     return frame.strip(), sign.lower()
 
 
+def _lunar_sphere(header, which):
+    radii = re.search(rf'^{which} radii\s*:\s*([\d.]+),\s*([\d.]+),\s*([\d.]+) km', header, re.M)
+    if radii is None or any(float(value) != MOON_RADIUS_M / 1000 for value in radii.groups()):
+        raise ValueError('Lunar reference sphere must have radius 1737.4 km')
+
+
 def parse_global(response):
     header, footer, times, raw = _table(response)
     if not re.search(r'Target body name: Moon \(301\)', header) or not re.search(r'Center body name: Earth \(399\)', header):
@@ -152,6 +157,7 @@ def parse_global(response):
     if 'Center-site name: GEOCENTRIC' not in header:
         raise ValueError('Global table must use Earth centre')
     frame, sign = _lunar_frame(header, 'Target')
+    _lunar_sphere(header, 'Target')
     # Check the actual column definitions as well as the cartographic header.
     definitions = footer.split("'ObsSub-LON, ObsSub-LAT,' =")[-1]
     if len(re.findall(rf'longitude is\s+to the {sign.upper()} for this target', definitions)) != 2:
@@ -178,6 +184,7 @@ def parse_site(response):
     if 'Center body name: Moon (301)' not in header:
         raise ValueError('Site table must be centred on Moon')
     frame, sign = _lunar_frame(header, 'Center')
+    _lunar_sphere(header, 'Center')
     if 'Atmos refraction: NO (AIRLESS)' not in header or 'clockwise from north' not in footer:
         raise ValueError('Site table must establish airless, north-through-east azimuth')
     try:

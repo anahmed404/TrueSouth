@@ -74,6 +74,7 @@ def run(args):
         'ground_height_m': 0, 'observer_height_m': 2,
         'catalog_source': 'TEMPORARY docs/site-catalog.md coordinates; S1 not yet on main',
         'comparison': 'science.md §3.3: azimuth separation at reference elevation, absolute elevation, full sky separation',
+        'expected_comparisons': 2 * len(sites), 'complete': False, 'passed': False,
         'results': [],
     }
     print('site body az_max_deg az_rms_deg az_max_utc el_max_deg el_rms_deg el_max_utc sky_max_deg', flush=True)
@@ -90,7 +91,8 @@ def run(args):
             print(f"{site_id} {body} {result['az_max_deg']:.9f} {result['az_rms_deg']:.9f} {result['az_max_utc']} "
                   f"{result['el_max_deg']:.9f} {result['el_rms_deg']:.9f} {result['el_max_utc']} {result['sky_max_deg']:.9f}", flush=True)
             report['elapsed_s'] = time.monotonic() - started
-            report['passed'] = all(item['passed'] for item in report['results'])
+            report['complete'] = len(report['results']) == report['expected_comparisons']
+            report['passed'] = report['complete'] and all(item['passed'] for item in report['results'])
             report_path.parent.mkdir(parents=True, exist_ok=True)
             temporary = report_path.with_suffix('.part')
             temporary.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8', newline='\n')

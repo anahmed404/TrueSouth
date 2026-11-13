@@ -49,12 +49,12 @@ each integration checkpoint.
 
 ## Science
 
-#### 2026-11-13 · S4 · Global Horizons ephemeris; G2 in progress
+#### 2026-11-13 · S4 · Global ephemeris passes G1 and full-grid G2
 - **Who:** Codex agent, for the orchestrator
-- **AI use:** Codex, gpt-6.1-sol — wrote Horizons parser, vector geometry, pipeline and tests — agent ran offline pytest; orchestrator and cross-provider review pending
+- **AI use:** Codex, gpt-6.1-sol — wrote parser, vector geometry, pipeline, fixtures and tests — agent ran offline pytest and real Horizons comparisons; orchestrator, Academy and cross-provider review pending
 - **State:** built, not verified
 - **Changed:** `horizons.py`, `ephemeris.py`, `commands/fetch_ephemeris.py`, science tests and saved responses, `data/derived/system.bin`, science.md §3
-- **Notes:** G1 and binary round trip pass. Full global response: 52,584 UTC hours; 1,262,016-byte system.bin. Headers confirm east-positive MOON_ME / MEAN_ME (high precision), the DE421 mean-Earth frame. Connecting Ridge three-day probe: Sun azimuth 0.000170°, Earth azimuth 0.005623°. Full-grid G2 in progress; no fitted corrections. Terrain height is zero plus 2 m observer height. Catalog bridge temporarily uses the documented coordinates because S1 is not on main yet.
+- **Notes:** G1 passes. G2 passes all 20 documented sites × both bodies × 52,584 UTC hours (2,103,360 directions), using values read back from Float32 system.bin. Largest gated component: 0.006007249421°, Earth sky azimuth at IM-1, 2027-01-07T22:00:00Z. Largest elevation difference: 0.006006374417°, Earth at Apollo 11, 2027-02-06T15:00:00Z. Largest full sky separation: 0.006029212609°, Earth at Apollo 11, 2027-01-07T22:00:00Z. Full run: 305.7 s (38 fresh serial site/body requests; global and Connecting Ridge cached); complete offline replay: 23.3 s, identical result rows and binary SHA256. Offline pytest: 77 passed. No fitted correction or tolerance change. Both methods use ground height zero plus 2 m observer height. Headers confirm east-positive MOON_ME / MEAN_ME (high precision), the DE421 mean-Earth frame. Three-day offline G2 samples cover Connecting Ridge, Apollo 11 and Chang'e 4. S1 remains absent from main; a clearly marked temporary list uses the exact docs/site-catalog.md coordinates. Full per-site/body maxima, RMS values and UTC hours are in PR #27 and shared raw/horizons/g2-report.json. Binary: 1,262,016 bytes, SHA256 a6752add11ba5786437688145f09c2435ca92e23ec6a9e6d2ecaf93a4be42e8b.
 
 #### 2026-11-13 · S3 · Site-centred frames and polar projection
 - **Who:** Codex agent, for the orchestrator
