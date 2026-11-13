@@ -87,11 +87,19 @@ export function parseSeriesColumns(series: unknown, fileName: string): SeriesCol
         `${fileName} series column ${index} is ${String(item.name)}; expected ${expected?.name ?? "a column"}`,
       );
     }
-    return {
-      name: expected.name,
-      scale: expectNumber(item.scale, fileName, `${expected.name} scale`),
-      offset: expectNumber(item.offset, fileName, `${expected.name} offset`),
-    };
+    const scale = expectNumber(item.scale, fileName, `${expected.name} scale`);
+    const offset = expectNumber(item.offset, fileName, `${expected.name} offset`);
+    if (scale !== expected.scale) {
+      throw new Error(
+        `${fileName} series column ${expected.name} scale is ${scale}; expected ${expected.scale}`,
+      );
+    }
+    if (offset !== expected.offset) {
+      throw new Error(
+        `${fileName} series column ${expected.name} offset is ${offset}; expected ${expected.offset}`,
+      );
+    }
+    return { name: expected.name, scale, offset };
   });
 }
 
@@ -141,11 +149,64 @@ export function parseSites(value: unknown): Sites {
   });
 }
 
+type ProfileFieldKind = "string" | "number" | "boolean" | "number-or-null" | "object";
+
+/** MissionProfile.required from web/src/contracts/schema.json, in that order. */
+const PROFILE_FIELDS: readonly { name: string; kind: ProfileFieldKind }[] = [
+  { name: "id", kind: "string" },
+  { name: "name", kind: "string" },
+  { name: "based_on", kind: "string" },
+  { name: "duration_days", kind: "number" },
+  { name: "min_sun_fraction", kind: "number" },
+  { name: "ops_sun_el_min_deg", kind: "number-or-null" },
+  { name: "max_dark_h", kind: "number" },
+  { name: "relay_available", kind: "boolean" },
+  { name: "antenna_mask_deg", kind: "number" },
+  { name: "max_blackout_h", kind: "number" },
+  { name: "max_slope_deg", kind: "number" },
+  { name: "slope_ideal_deg", kind: "number" },
+  { name: "landing_sun_el_min_deg", kind: "number-or-null" },
+  { name: "landing_sun_el_max_deg", kind: "number-or-null" },
+  { name: "weights", kind: "object" },
+  { name: "provenance", kind: "object" },
+];
+
+function expectProfileField(
+  record: Record<string, unknown>,
+  index: number,
+  field: string,
+  kind: ProfileFieldKind,
+): void {
+  const label = `profiles.json item ${index}`;
+  if (!(field in record)) throw new Error(`${label} is missing ${field}`);
+  const value = record[field];
+  if (kind === "number-or-null") {
+    if (value === null) return;
+    expectNumber(value, label, field);
+    return;
+  }
+  if (kind === "string") {
+    expectString(value, label, field);
+    return;
+  }
+  if (kind === "number") {
+    expectNumber(value, label, field);
+    return;
+  }
+  if (kind === "boolean") {
+    if (typeof value !== "boolean") throw new Error(`${label} ${field} must be a boolean`);
+    return;
+  }
+  if (!isRecord(value)) throw new Error(`${label} ${field} must be an object`);
+}
+
 export function parseProfiles(value: unknown): Profiles {
   const profiles = expectArray(value, "profiles.json");
   return profiles.map((profile, index) => {
     const record = expectObject(profile, `profiles.json item ${index}`);
-    expectString(record.id, "profiles.json", `item ${index} id`);
+    for (const field of PROFILE_FIELDS) {
+      expectProfileField(record, index, field.name, field.kind);
+    }
     return record as unknown as Profiles[number];
   });
 }

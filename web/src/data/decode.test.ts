@@ -12,6 +12,7 @@ import {
   decodeSkyline,
   decodeSystem,
   decodeTerrain,
+  decodeTerrainGrid,
   lookupFraction,
   type SeriesColumnSpec,
 } from "./decode/index.ts";
@@ -300,6 +301,68 @@ describe("clearance consistency", () => {
       if (error > worst) worst = error;
     }
     expect(worst).toBeLessThanOrEqual(0.011);
+  });
+});
+
+describe("series column scale and offset", () => {
+  function ridgeMeta(): { series: { columns: { name: string; scale: number; offset: number }[] } } {
+    return structuredClone(readJson("sites/fixture_ridge/meta.json")) as {
+      series: { columns: { name: string; scale: number; offset: number }[] };
+    };
+  }
+
+  function column(
+    meta: { series: { columns: { name: string; scale: number; offset: number }[] } },
+    name: string,
+  ): { name: string; scale: number; offset: number } {
+    const found = meta.series.columns.find((item) => item.name === name);
+    if (!found) throw new Error(`fixture meta has no ${name}`);
+    return found;
+  }
+
+  it("rejects an azimuth offset of 0", () => {
+    const meta = ridgeMeta();
+    column(meta, "sun_az").offset = 0;
+    expect(() => parseSiteMeta(meta)).toThrow("meta.json series column sun_az offset is 0; expected 180");
+  });
+
+  it("rejects a series scale that is not the contract value", () => {
+    const meta = ridgeMeta();
+    column(meta, "sun_az").scale = 1;
+    expect(() => parseSiteMeta(meta)).toThrow("meta.json series column sun_az scale is 1; expected 0.01");
+  });
+});
+
+describe("terrain row and column order", () => {
+  it("keeps each cell of a 3 by 5 mesh", () => {
+    const rows = 3;
+    const columns = 5;
+    const length = rows * columns;
+    const buffer = new ArrayBuffer(TERRAIN_ARRAYS.length * length * 4);
+    const view = new DataView(buffer);
+    for (let arrayIndex = 0; arrayIndex < TERRAIN_ARRAYS.length; arrayIndex += 1) {
+      for (let row = 0; row < rows; row += 1) {
+        for (let column = 0; column < columns; column += 1) {
+          const index = row * columns + column;
+          view.setFloat32((arrayIndex * length + index) * 4, arrayIndex * 100 + row * 10 + column, true);
+        }
+      }
+    }
+    const mesh = decodeTerrainGrid(buffer, rows, columns, "terrain.bin");
+    expect(mesh.east_km[0 * columns + 4]).toBe(4);
+    expect(mesh.east_km[2 * columns + 0]).toBe(20);
+    expect(mesh.east_km[1 * columns + 3]).toBe(13);
+    expect(mesh.north_km[2 * columns + 4]).toBe(124);
+  });
+
+  it("matches two off-diagonal cells from the Python reader", () => {
+    // fixture_ridge/terrain.bin, size 33. Values from
+    // uv run python: truesouth.derived_io.read_terrain(..., 33)["east_km"][0, 1]
+    // and [1, 0], which printed -9.375 and -10.0. Flat index is row * size + column.
+    const size = 33;
+    const terrain = decodeTerrain(readBytes("sites/fixture_ridge/terrain.bin"), size, "terrain.bin");
+    expect(terrain.east_km[0 * size + 1]).toBe(-9.375);
+    expect(terrain.east_km[1 * size + 0]).toBe(-10);
   });
 });
 

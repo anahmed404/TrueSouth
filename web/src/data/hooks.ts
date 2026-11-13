@@ -48,11 +48,13 @@ function toResult<T>(entry: ResourceEntry | undefined): HookResult<T> {
 function useResource<T>(key: string): HookResult<T> {
   const entry = useStore(dataStore, (state) => state.entries[key]);
   const ensure = useStore(dataStore, (state) => state.ensure);
+  const absent = entry === undefined;
   useEffect(() => {
+    if (!absent) return;
     // The store keeps the error on the entry. Swallow the rejection so a missing
     // file does not surface as an unhandled promise from the effect.
     void ensure(key).catch(() => undefined);
-  }, [ensure, key]);
+  }, [ensure, key, absent]);
   return toResult<T>(entry);
 }
 

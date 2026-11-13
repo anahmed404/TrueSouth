@@ -13,9 +13,20 @@ export function decodeSkyline(buffer: ArrayBuffer, bins: number, fileName: strin
   return readFloat32Arrays(buffer, SKYLINE_ARRAYS, bins, fileName);
 }
 
+/** File order is row-major: index = row * columns + column. Row 0 is north, column 0 is west. */
+export function decodeTerrainGrid(
+  buffer: ArrayBuffer,
+  rows: number,
+  columns: number,
+  fileName: string,
+): DecodedTerrain {
+  assertCount(fileName, rows);
+  assertCount(fileName, columns);
+  return readFloat32Arrays(buffer, TERRAIN_ARRAYS, rows * columns, fileName);
+}
+
 export function decodeTerrain(buffer: ArrayBuffer, size: number, fileName: string): DecodedTerrain {
-  assertCount(fileName, size);
-  return readFloat32Arrays(buffer, TERRAIN_ARRAYS, size * size, fileName);
+  return decodeTerrainGrid(buffer, size, size, fileName);
 }
 
 export function decodeSystem(buffer: ArrayBuffer, count: number, fileName: string): DecodedSystem {
