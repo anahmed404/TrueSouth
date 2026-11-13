@@ -131,7 +131,7 @@ def test_health_everything_present(tmp_path: Path) -> None:
     assert body["status"] == "ok"
     assert body["custom_sites"] == "available"
     assert body["sensitivity_grid"] == "not_available"
-    assert "terrain maps" in body["message"]
+    assert "Custom sites are available" in body["message"]
     derived = body["derived"]
     for key in (
         "manifest",
