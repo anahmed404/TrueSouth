@@ -215,7 +215,8 @@ describe("the decided readouts and the lesson 2 drag window", () => {
       throw new Error("lesson 4 step 4");
     }
     expect(step.slider).toMatchObject({ min: 0, max: 10, step: 0.5 });
-    expect(step.goal).toMatchObject({ value: "{{example.l4.mask_for_15pct_deg}}", tolerance: 1 });
+    // Any margin at or above the first one under 15% answers "less than 15% of the time".
+    expect(step.goal).toEqual({ metric: "antenna_mask_deg", op: ">=", value: "{{example.l4.mask_for_15pct_deg}}" });
     expect(step.slider.follow).toEqual({ link: "link-up", source: "readout" });
     expect(step.slider.readout.key).toBe("l4.link_pct_by_mask");
     shares.forEach((share, index) => {

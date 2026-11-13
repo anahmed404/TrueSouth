@@ -726,7 +726,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   `lessons.md` and in `l1.ts`–`l4.ts` against `worked_examples.json`, and read the
   existing tests that tie the code strings to the document — checked by the agent with
   pytest, vitest and typecheck. A human has not read or played the lessons.
-- **State:** built, not verified
+- **State:** verified (322 Python tests and 1,581 web tests and the typecheck pass on the merge with main; the orchestrator read every changed line against the built numbers and changed lesson 4's slider goal to any margin at or above the first under 15%; not yet played in a browser)
 - **Changed:** `docs/academy/lessons.md` (lessons 1 to 4, the intro note, and the
   "Lesson text that must change to match" list marked done), `web/src/features/academy/lessons/l1.ts`–`l4.ts`
   (string literals only)
