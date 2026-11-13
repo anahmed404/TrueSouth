@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lander's eye · Direction C2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── Direction C2 tokens (see design/variants/direction-c2.md). Same block on every C2 page. ── */
+:root{
+  color-scheme:dark;
+  --bg:#0b0b0c; --surface:#141415; --raised:#1b1b1d; --hover:#232326;
+  --line:#262629; --line-strong:#37373b;
+  --ink:#ececee; --ink-2:#b3b3b8; --ink-3:#8c8c93; --ink-4:#5c5c63;
+  --accent:#f3efe6; --accent-ink:#141414;
+  --sun:#ffe2a0; --sun-core:#fff4d8; --earth:#6cc4ff; --earth-core:#9fdbff;
+  --status-go:#45c98b; --status-caution:#f2a33a; --status-nogo:#f0646d;
+  --plot:#0e0e0f; --terrain:#1d1d20; --terrain-rim:#a8a8af; --grid:rgba(255,255,255,.06);
+  --font:"Jost","Futura","Century Gothic","Avenir Next","Trebuchet MS",system-ui,sans-serif;
+  --t-xs:11px; --t-sm:12px; /* --t-xs is for SVG axis ticks only; HTML text floor is --t-sm */ --t-md:13px; --t-lg:15px; --t-xl:18px; --t-2xl:24px; --t-3xl:32px; --t-display:44px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px;
+  --r-sm:6px; --r-md:10px; --r-lg:14px; --r-pill:999px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:var(--t-md);line-height:1.4;
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+::selection{background:var(--accent);color:var(--accent-ink)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-sm)}
+svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tag{display:inline-flex;align-items:center;gap:2px;height:18px;padding:0 6px;border-radius:var(--r-pill);font-size:var(--t-sm);color:var(--ink-3);white-space:nowrap;vertical-align:1px;line-height:1}
+.tag.src{border:1px solid var(--line-strong)} .tag.src::after{content:"↗"}
+.tag.asm{border:1px dashed var(--line-strong)}
+
+.page{max-width:1440px;margin:0 auto;padding:var(--s6) var(--s6) var(--s7)}
+.hdr{display:flex;align-items:flex-start;gap:var(--s5);margin-bottom:var(--s5)}
+.hdr h1{font-size:var(--t-3xl);font-weight:600;line-height:1.1}
+.hdr .ctx{font-size:var(--t-md);color:var(--ink-2);margin-top:var(--s2)}
+.what{font-size:var(--t-lg);color:var(--ink);line-height:1.5;max-width:72ch}
+.hdr .what{margin-top:var(--s3)}
+.proto{margin-left:auto;font-size:var(--t-sm);color:var(--ink-3);border:1px solid var(--line-strong);border-radius:var(--r-pill);padding:0 8px;line-height:18px;white-space:nowrap}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--s4) var(--s5) var(--s5)}
+.ph{display:flex;align-items:center;gap:var(--s3);min-height:32px;flex-wrap:wrap}
+.ph h2{font-size:var(--t-lg);font-weight:600}
+.ph .sub{font-size:var(--t-md);color:var(--ink-2)}
+.ctl{display:flex;align-items:center;gap:var(--s3);margin-left:auto;font-size:var(--t-sm);color:var(--ink-3)}
+.mseg{display:flex;padding:3px;border-radius:var(--r-pill);background:var(--raised);border:1px solid var(--line)}
+.mseg button{height:24px;padding:0 11px;border-radius:var(--r-pill);font-size:var(--t-sm);color:var(--ink-2)}
+.mseg button[aria-pressed="true"]{background:var(--hover);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line-strong)}
+.btn{height:30px;padding:0 12px;border-radius:var(--r-sm);font-size:var(--t-sm);color:var(--ink-2);border:1px solid var(--line-strong);display:inline-flex;align-items:center;gap:6px}
+.btn:hover{color:var(--ink);background:var(--hover)}
+.plotwrap{position:relative;margin-top:var(--s3);border-radius:var(--r-md);overflow:hidden;border:1px solid var(--line);background:var(--plot)}
+svg.plot{display:block;width:100%;height:auto}
+.readout{position:absolute;width:248px;padding:var(--s3) 14px;border-radius:var(--r-md);background:var(--raised);border:1px solid var(--line-strong);box-shadow:0 8px 20px rgba(0,0,0,0.45)}
+.readout h3{font-size:var(--t-sm);font-weight:400;color:var(--ink-3)}
+.readout .big{font-size:var(--t-xl);font-weight:500;margin-top:1px}
+.readout dl{display:grid;grid-template-columns:1fr auto;gap:4px var(--s3);margin-top:var(--s2);font-size:var(--t-md)}
+.readout dt{color:var(--ink-2)} .readout dd{text-align:right;font-weight:500}
+.readout .hint{margin-top:var(--s2);padding-top:var(--s2);border-top:1px solid var(--line);font-size:var(--t-sm);color:var(--ink-3)}
+.legend{display:flex;gap:var(--s2) var(--s5);flex-wrap:wrap;align-items:center;margin-top:var(--s3);font-size:var(--t-sm);color:var(--ink-3)}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.legend .hint2{margin-left:auto}
+.sw{width:22px;height:0;border-top:2px dashed var(--sun)}
+.sw.e{border-top:2px solid var(--earth)} .sw.m{border-top:1.5px dashed var(--earth)}
+.sw.r{height:10px;border:0;border-top:1.5px solid var(--terrain-rim);background:var(--terrain)}
+.below{display:grid;grid-template-columns:1fr 400px;gap:var(--s4);margin-top:var(--s6);align-items:start}
+.cap{margin:0 0 var(--s3)}
+.cap h2{font-size:var(--t-xl);font-weight:600}
+.cap p{color:var(--ink-2);font-size:var(--t-md);margin-top:2px}
+.note{display:flex;gap:var(--s3);align-items:flex-start;padding:var(--s3) var(--s4);border-radius:var(--r-md);background:var(--raised);border:1px solid var(--line);margin-top:var(--s3)}
+.note .i{color:var(--ink-2);margin-top:2px}
+.note b{font-size:var(--t-md);font-weight:600;display:block}
+.note p{font-size:var(--t-md);color:var(--ink-2)}
+.side h3{font-size:var(--t-lg);font-weight:600}
+.side > p{font-size:var(--t-md);color:var(--ink-2);margin-top:4px}
+.loupes{display:flex;gap:var(--s5);margin:var(--s4) 0}
+.loupe{display:flex;flex-direction:column;align-items:center;gap:var(--s2);text-align:center}
+.loupe svg{width:120px;height:120px;border-radius:50%;border:1px solid var(--line-strong)}
+.loupe b{font-size:var(--t-md);font-weight:500}
+.loupe span{font-size:var(--t-sm);color:var(--ink-3);margin-top:-6px}
+.side dl{display:grid;grid-template-columns:1fr auto;gap:6px var(--s3);font-size:var(--t-md);border-top:1px solid var(--line);padding-top:var(--s3)}
+.side dt{color:var(--ink-2)} .side dd{text-align:right;font-weight:500}
+.footer{text-align:center;font-size:var(--t-sm);color:var(--ink-3);margin-top:var(--s5)}
+text{font-family:var(--font)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.2"/></symbol>
+</svg>
+<div class="page">
+  <header class="hdr">
+    <div>
+      <h1>Lander's eye</h1>
+      <p class="ctx">Direction C2 close study · Connecting Ridge · IM-2 Athena <span class="tag src">sourced</span> · scrubber 2028-03-03 15:00 UTC, mission day 3</p>
+      <p class="what">What you would see standing at the site and turning in a full circle: the outline of the horizon, with the Sun and Earth drawn at their real height above it.</p>
+    </div>
+    <span class="proto">prototype · mock data</span>
+  </header>
+
+  <section class="panel" aria-label="Lander's eye, Connecting Ridge">
+    <div class="ph">
+      <h2>Connecting Ridge</h2>
+      <span class="sub">−89.4555°, 222.6192° E · core80 terrain</span>
+      <div class="ctl">
+        <span>Centre on</span>
+        <span class="mseg"><button aria-pressed="true">Earth</button><button aria-pressed="false">Sun</button><button aria-pressed="false">North</button></span>
+        <span>Heights stretched ×12; discs stay true in angle</span>
+        <button class="btn"><svg class="i" style="width:14px;height:14px" viewBox="0 0 20 20"><path d="M3 10a7 7 0 1 0 2-5"/><path d="M3 3v4h4"/></svg>Re-centre</button>
+      </div>
+    </div>
+    <div class="plotwrap">
+      <svg class="plot" id="pano" viewBox="0 0 1326 446" role="img" aria-label="360 degree skyline from Connecting Ridge. The Sun is just behind a ridge at azimuth 266 degrees; Earth is clear of the antenna mask at azimuth 136 degrees."></svg>
+      <div class="readout" id="readout" role="tooltip">
+        <h3>Skyline at the pointer</h3>
+        <div class="big">265.98° <span style="font-size:var(--t-md);color:var(--ink-2);font-weight:400">azimuth</span></div>
+        <dl>
+          <dt>Skyline elevation</dt><dd>1.33°</dd>
+          <dt>Distance to blocker</dt><dd>12.4 km</dd>
+          <dt>Blocker height</dt><dd>2,081 m</dd>
+          <dt>Nearest named feature</dt><dd>de Gerlache</dd>
+        </dl>
+        <p class="hint">Click to mark this blocker in Local terrain and the Polar map</p>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i class="sw r"></i>Skyline</span>
+      <span><i class="sw"></i>Sun's path, one dot a day</span>
+      <span><i class="sw e"></i>Earth's path</span>
+      <span><i class="sw m"></i>Antenna mask, 1.00° above the skyline <span class="tag asm">assumed</span></span>
+      <span>A disc's faded part is below the skyline</span>
+      <span class="hint2">Drag to turn · scroll to change the stretch</span>
+    </div>
+  </section>
+
+  <div class="below">
+    <div>
+      <div class="cap"><h2>Sphere-tier site</h2><p>Apollo 11 at the same hour. There is no terrain data, so the skyline is a smooth Moon and the vertical scale grows to fit a high Sun.</p></div>
+      <section class="panel" aria-label="Lander's eye, Apollo 11">
+        <div class="ph">
+          <h2>Apollo 11</h2>
+          <span class="sub">0.6742°, 23.4731° E · sphere terrain</span>
+          <div class="ctl"><span>Centre on</span><span class="mseg"><button aria-pressed="true">Earth</button><button aria-pressed="false">Sun</button><button aria-pressed="false">North</button></span><span>No stretch</span></div>
+        </div>
+        <div class="plotwrap"><svg class="plot" id="sphere" viewBox="0 0 918 292" role="img" aria-label="Smooth Moon skyline from Apollo 11. The Sun is 34 degrees up, Earth 66 degrees up."></svg></div>
+        <div class="note"><svg class="i" viewBox="0 0 24 24"><use href="#i-info"/></svg><div><b>Terrain not modelled. Showing a smooth Moon.</b><p>The skyline is flat at −0.087°, the dip of a smooth horizon seen from 2 m. Slope not assessed.</p></div></div>
+      </section>
+    </div>
+    <aside class="panel side" aria-label="True-shape close-ups">
+      <h3>True-shape close-ups</h3>
+      <p>Stretched 12 times, the discs become thin slivers. These close-ups show the same disc against the same skyline with no stretch.</p>
+      <div class="loupes">
+        <div class="loupe"><svg id="lsun" viewBox="0 0 116 116" role="img" aria-label="Sun close-up: almost all of the disc is behind the ridge"></svg><b>Sun</b><span>disc fraction 0.01</span></div>
+        <div class="loupe"><svg id="learth" viewBox="0 0 116 116" role="img" aria-label="Earth close-up: the whole disc is above the skyline"></svg><b>Earth</b><span>clearance 2.46°</span></div>
+      </div>
+      <dl>
+        <dt>Sun at the scrubber</dt><dd>265.98°, 1.08° up</dd>
+        <dt>Earth at the scrubber</dt><dd>135.66°, 2.97° up</dd>
+        <dt>View centre, Earth's mean</dt><dd>137.0°</dd>
+        <dt>Vertical range</dt><dd>−2.5° to +6.5°</dd>
+      </dl>
+    </aside>
+  </div>
+  <p class="footer">Planning aid, not flight certification. Limits marked assumed are our estimates.</p>
+</div>
+
+<script>
+/* ── Mock model: the same invented series for Connecting Ridge under im2_athena as every Direction C page. ── */
+const M=(()=>{
+const P=[[0,-0.40],[12,-0.12],[25,0.35],[34,0.12],[48,0.62],[58,0.92],[66,0.50],[80,-0.25],[95,-0.95],[108,-1.25],[120,-0.62],[128,0.18],[133,0.38],[137,0.55],[140,0.95],[142.5,1.32],[146,1.02],[152,0.48],[165,0.06],[180,-0.32],[195,0.18],[210,0.62],[222,0.92],[228,1.18],[231.2,1.47],[234,1.08],[240,0.70],[248,0.62],[256,0.86],[263.6,0.90],[265.9,1.30],[267.2,0.92],[274,0.70],[282,0.25],[292,-0.50],[305,-1.05],[318,-0.70],[332,-0.18],[345,0.10],[360,-0.40]];
+function base(a){a=((a%360)+360)%360;for(let i=0;i<P.length-1;i++){const[a0,e0]=P[i],[a1,e1]=P[i+1];if(a>=a0&&a<=a1){const t=(a-a0)/(a1-a0);return e0+(e1-e0)*(1-Math.cos(Math.PI*t))/2;}}return P[0][1];}
+const sky=a=>{const r=a*Math.PI/180;return base(a)+0.045*Math.sin(r*37)+0.03*Math.sin(r*91+1.3)+0.02*Math.sin(r*173+.4);};
+const SUN_R=0.2665,EARTH_R=0.95;
+const sunAz=h=>(((298-0.5083*h)%360)+360)%360, sunEl=h=>0.80+0.0046*h-0.0000025*h*h;
+const earthAz=h=>133+8*h/240+0.6*Math.sin(2*Math.PI*h/327), earthEl=h=>3.399-0.0068*h;
+return{sky,SUN_R,EARTH_R,sun:h=>[sunAz(h),sunEl(h)],earth:h=>[earthAz(h),earthEl(h)]};})();
+/* Apollo 11, sphere tier: smooth horizon; Sun from local morning past noon; Earth near 66° in the west */
+const A11=(()=>{const d2r=Math.PI/180,phi=0.6742*d2r,dec=-1.1*d2r;
+  const sun=h=>{const H=(-87.6+0.5079*h)*d2r;const el=Math.asin(Math.sin(phi)*Math.sin(dec)+Math.cos(phi)*Math.cos(dec)*Math.cos(H));
+    let az=Math.atan2(-Math.sin(H),Math.tan(dec)*Math.cos(phi)-Math.sin(phi)*Math.cos(H))/d2r;return[(az+360)%360,el/d2r];};
+  const earth=h=>{const t=2*Math.PI*h/655;return[268.4+5.8*Math.sin(t+1.1),66.3+4.9*Math.sin(t+2.6)];};
+  return{sky:()=>-0.087,SUN_R:0.2665,EARTH_R:0.95,sun,earth};})();
+
+const NS='http://www.w3.org/2000/svg';
+function E(tag,a,p){const e=document.createElementNS(NS,tag);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C={ink:css('--ink'),ink2:css('--ink-2'),ink3:css('--ink-3'),line:css('--line'),sun:css('--sun'),sunCore:css('--sun-core'),earth:css('--earth'),earthCore:css('--earth-core'),
+  plot:css('--plot'),terrain:css('--terrain'),rim:css('--terrain-rim'),grid:css('--grid')};
+const wrap=d=>((d+180)%360+360)%360-180;
+
+function pano(svg,o){
+  const px=o.pw/360, py=(o.plotBottom-o.plotTop)/(o.hi-o.lo);
+  const cx=o.x0+o.pw/2, X=a=>cx+wrap(a-o.az0)*px, Y=e=>o.plotTop+(o.hi-e)*py, id=svg.id;
+  const xl=o.x0, xr=o.x0+o.pw;
+  const defs=E('defs',{},svg);
+  for(let e=Math.ceil(o.lo/o.step)*o.step;e<=o.hi;e+=o.step){if(e===0)continue;const y=Y(e);E('line',{x1:xl,x2:xr,y1:y,y2:y,stroke:C.grid},svg);
+    E('text',{x:xl-8,y:y+4,'text-anchor':'end','font-size':11,fill:C.ink3},svg).textContent=(e>0?'+':'−')+Math.abs(e)+'°';}
+  for(let a=0;a<360;a+=30)E('line',{x1:X(a),x2:X(a),y1:o.plotTop,y2:o.plotBottom,stroke:C.grid},svg);
+  let d='';for(let i=0;i<=1440;i++){const a=o.az0-180+i*.25;d+=(i?'L':'M')+(xl+i*.25*px).toFixed(1)+','+Y(o.m.sky(a)).toFixed(1);}
+  E('clipPath',{id:id+'c'},defs).appendChild(E('path',{d:d+`L${xr},0L${xl},0Z`}));
+  if(o.mask){let md='';for(let a=o.mask[0];a<=o.mask[1];a+=.25)md+=(a===o.mask[0]?'M':'L')+X(a).toFixed(1)+','+Y(o.m.sky(a)+1).toFixed(1);
+    E('path',{d:md,fill:'none',stroke:C.earth,'stroke-width':1.4,'stroke-dasharray':'6 4',opacity:.8},svg);
+    E('text',{x:X(o.mask[0])-6,y:Y(o.m.sky(o.mask[0])+1)+4,'text-anchor':'end','font-size':12,fill:C.earth},svg).textContent='antenna mask';}
+  function track(fn,col,dash,labels){const segs=[[]];let prev=null;
+    for(let h=0;h<=240;h++){const[a,e]=fn(h),x=X(a),y=Y(e);if(prev!==null&&Math.abs(x-prev)>o.pw/2)segs.push([]);segs[segs.length-1].push([x,y]);prev=x;}
+    segs.forEach(s=>E('path',{d:s.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(''),fill:'none',stroke:col,'stroke-width':1.6,'stroke-dasharray':dash||'none','stroke-linecap':'round',opacity:.9},svg));
+    for(let k=0;k<=10;k++){const[a,e]=fn(k*24);const x=X(a),y=Y(e);
+      if(dash)E('circle',{cx:x,cy:y,r:2.4,fill:col},svg);
+      const L=labels&&labels(k,x,y);if(L)E('text',{x:L[0],y:L[1],'text-anchor':L[2]||'middle','font-size':12,fill:C.ink3},svg).textContent=k<10?'day '+(k+1):'window end';}}
+  track(o.m.sun,C.sun,'2 4',o.sunLabels);
+  track(o.m.earth,C.earth,null,o.earthLabels);
+  E('path',{d:d+`L${xr},${o.plotBottom}L${xl},${o.plotBottom}Z`,fill:C.terrain},svg);
+  E('path',{d,fill:'none',stroke:C.rim,'stroke-width':1.3,'stroke-linejoin':'round'},svg);
+  E('line',{x1:xl,x2:xr,y1:Y(0),y2:Y(0),stroke:C.ink2,'stroke-opacity':.55,'stroke-dasharray':'1 3'},svg);
+  E('text',{x:xl-8,y:Y(0)+4,'text-anchor':'end','font-size':11,fill:C.ink2},svg).textContent='0°';
+  const cy=o.plotBottom, names={0:'N',90:'E',180:'S',270:'W',45:'NE',135:'SE',225:'SW',315:'NW'};
+  E('line',{x1:xl,x2:xr,y1:cy,y2:cy,stroke:C.ink3,'stroke-opacity':.5},svg);
+  for(let a=0;a<360;a+=5){const x=X(a),big=a%45===0,mid=a%15===0;if(x<xl-1||x>xr+1)continue;
+    E('line',{x1:x,x2:x,y1:cy,y2:cy+(big?8:mid?5:3),stroke:C.ink3,'stroke-opacity':big?1:.5},svg);
+    if(big)E('text',{x,y:cy+23,'text-anchor':'middle','font-size':a%90===0?14:12,'font-weight':a%90===0?600:500,fill:a%90===0?C.ink:C.ink2},svg).textContent=names[a];
+    else if(mid&&o.degLabels)E('text',{x,y:cy+21,'text-anchor':'middle','font-size':11,fill:C.ink3},svg).textContent=a+'°';}
+  function disc(fn,R,core){const[a,e]=fn(o.hour),x=X(a),y=Y(e),rx=Math.max(R*px,1.2),ry=R*py;
+    E('ellipse',{cx:x,cy:y,rx,ry,fill:core,'fill-opacity':.3},svg);
+    E('ellipse',{cx:x,cy:y,rx,ry,fill:core,'clip-path':`url(#${id}c)`},svg);return[x,y,rx,ry];}
+  const s=disc(o.m.sun,o.m.SUN_R,C.sunCore), e=disc(o.m.earth,o.m.EARTH_R,C.earthCore);
+  return{X,Y,px,py,s,e};
+}
+/* a label on a plate so it stays readable over grid lines */
+function label(svg,x,y,t1,t2,anchor,col){const g=E('g',{},svg);
+  const a=E('text',{x,y,'text-anchor':anchor,'font-size':14,'font-weight':500,fill:col},g);a.textContent=t1;
+  if(t2){const b=E('text',{x,y:y+16,'text-anchor':anchor,'font-size':12,fill:C.ink2},g);b.textContent=t2;}
+  const bb=g.getBBox();g.insertBefore(E('rect',{x:bb.x-6,y:bb.y-3,width:bb.width+12,height:bb.height+6,rx:5,fill:C.plot,'fill-opacity':.88}),a);}
+
+/* ── full panel ── */
+const HOUR=63;
+const P1=pano(document.getElementById('pano'),{m:M,x0:52,pw:1256,az0:137,lo:-2.5,hi:6.5,plotTop:20,plotBottom:20+1256/360*12*9,
+  hour:HOUR,step:1,mask:[122,152],degLabels:true,
+  sunLabels:(k,x,y)=>k===0?[x+8,y-8,'start']:k===10?[x-8,y-8,'end']:null,
+  earthLabels:null});
+(function(){const svg=document.getElementById('pano'),[sx,sy]=P1.s,[ex,ey,,ery]=P1.e;
+  label(svg,ex-14,ey-ery+8,'Earth, in view','2.97° up · clearance 2.46° · disc fraction 1.00','end',C.earth);
+  const a=265.98,hx=P1.X(a),hy=P1.Y(M.sky(a));
+  E('line',{x1:hx,x2:hx,y1:20,y2:P1.Y(-2.5),stroke:C.ink,'stroke-opacity':.45,'stroke-dasharray':'2 3'},svg);
+  E('circle',{cx:hx,cy:hy,r:6,fill:'none',stroke:C.ink,'stroke-width':1.5},svg);
+  label(svg,sx+14,sy+44,'Sun, behind the ridge','1.08° up · disc fraction 0.01','start',C.sun);
+  E('line',{x1:sx+10,y1:sy+30,x2:sx+2,y2:sy+10,stroke:C.sun,'stroke-opacity':.6},svg);
+  // the hover readout sits beside the pointer, in screen pixels
+  const ro=document.getElementById('readout'),k=svg.getBoundingClientRect().width/1326;
+  ro.style.left=(hx*k-248-24)+'px';ro.style.top=(hy*k-236)+'px';
+})();
+
+/* ── close-ups: the same disc and skyline at true shape ── */
+function loupe(id,a,e,R,scale,core){const svg=document.getElementById(id),c=58,X=v=>c+(v-a)*scale,Y=v=>c-(v-e)*scale;
+  E('rect',{x:0,y:0,width:116,height:116,fill:C.plot},svg);
+  let d='';for(let i=0;i<=116;i++){const az=a+(i-c)/scale;d+=(i?'L':'M')+i+','+Y(M.sky(az)).toFixed(2);}
+  const cp=E('clipPath',{id:id+'c'},svg);E('path',{d:d+'L116,0L0,0Z'},cp);
+  E('circle',{cx:c,cy:c,r:R*scale,fill:core,'fill-opacity':.25},svg);
+  E('circle',{cx:c,cy:c,r:R*scale,fill:core,'clip-path':`url(#${id}c)`},svg);
+  E('path',{d:d+'L116,116L0,116Z',fill:C.terrain,'fill-opacity':.85},svg);
+  E('path',{d,fill:'none',stroke:C.rim,'stroke-width':1.3},svg);
+  E('circle',{cx:c,cy:c,r:R*scale,fill:'none',stroke:core,'stroke-opacity':.6,'stroke-dasharray':'2 2'},svg);}
+loupe('lsun',265.98,1.08,M.SUN_R,95,C.sunCore);
+loupe('learth',135.66,2.97,M.EARTH_R,26,C.earthCore);
+
+/* ── sphere-tier panel ── */
+const P2=pano(document.getElementById('sphere'),{m:A11,x0:44,pw:858,az0:268.4,lo:-6,hi:92,plotTop:14,plotBottom:14+858/360*98,
+  hour:HOUR,step:15,degLabels:false,
+  sunLabels:(k,x,y)=>k===0?[x+10,y-4,'start']:null,earthLabels:null});
+(function(){const svg=document.getElementById('sphere'),[sx,sy]=P2.s,[ex,ey]=P2.e;
+  label(svg,sx+12,sy+5,'Sun, 34.37° up',null,'start',C.sun);label(svg,ex+12,ey+5,'Earth, 65.99° up',null,'start',C.earth);})();
+</script>
+</body>
+</html>
