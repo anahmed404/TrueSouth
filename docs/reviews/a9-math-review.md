@@ -829,4 +829,3 @@ The score table is a compact view of the comparisons. Each scenario also
 compared all seven metrics, all six veto records, all utilities, slope
 assessment, full lit/link arrays, four countdowns, and every landing in its
 hourly slip sweep. All Python/TypeScript values matched exactly.
-
