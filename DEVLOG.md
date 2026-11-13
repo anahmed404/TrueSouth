@@ -654,8 +654,8 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - Frame time at 1440 × 900, pixel ratio 1, RTX 2060: 4.2 ms median and 4.3 ms 95th
     percentile both orbiting and during a flight (capped by the 240 Hz display). A still
     scene draws 0 frames in 2 s. A weak laptop is still not measured.
-  - Bundles: the first page's `index` chunk is 700.5 kB (223.6 kB gzipped) with no three.js
-    in it; the lazy `scene-root` chunk is 973.1 kB (261.7 kB gzipped).
+  - Bundles: the first page's `index` chunk is 704.3 kB (224.7 kB gzipped) with no three.js
+    in it; the lazy `scene-root` chunk is 973.2 kB (261.7 kB gzipped).
   - Pip is drawn 300 times larger than life in Local terrain, with a "Lander not to scale"
     plate. As the camera drops to Lander's eye it shrinks away and is hidden, so it never
     blocks the horizon.
