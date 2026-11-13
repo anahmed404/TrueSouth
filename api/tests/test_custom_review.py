@@ -336,3 +336,23 @@ def test_proxy_headers_cannot_reset_address_rate_limit(empty_tree):
     dockerfile = Path('Dockerfile').read_text()
     assert '--no-proxy-headers' in dockerfile
     assert 'stop_grace_period: 90s' in Path('compose.yaml').read_text()
+
+
+@pytest.mark.parametrize('body', [b'\xff', b'{"lat_deg":\xff}', b'['*1500+b']'*1500])
+def test_unparseable_bytes_are_safe_422(empty_tree, body):
+    derived, prepared, cache = empty_tree
+    with TestClient(create_app(derived=derived, prepared=prepared, cache=cache), raise_server_exceptions=False) as client:
+        response = client.post('/api/sites/custom', content=body, headers={'Content-Type':'application/json'})
+        assert response.status_code == 422
+        assert response.json()['fields'][0]['field'] == 'body'
+
+
+def test_health_size_tolerates_staging_rename():
+    from truesouth_api.storage import CacheBudget
+    class Vanished:
+        def is_symlink(self): return False
+        def is_file(self): return True
+        def stat(self): raise FileNotFoundError('staging was published between is_file and stat')
+    class Root:
+        def rglob(self, pattern): return iter([Vanished()])
+    assert CacheBudget(Root(), 100).size() == 0

@@ -17,7 +17,15 @@ class CacheBudget:
         self.reservations = {}
 
     def size(self):
-        return sum(p.stat().st_size for p in self.root.rglob('*') if not p.is_symlink() and p.is_file())
+        total = 0
+        for path in self.root.rglob('*'):
+            try:
+                if not path.is_symlink() and path.is_file():
+                    total += path.stat().st_size
+            except FileNotFoundError:
+                # Publication renames a complete staging directory in one step.
+                continue
+        return total
 
     def reserve(self, identity, tier):
         required = TIME_GRID_COUNT*8*2 + SKYLINE_BINS*5*4 + 32768

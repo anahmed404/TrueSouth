@@ -46,7 +46,13 @@ export interface TrueSouthContracts {
  * via the `definition` "APIValidationError".
  */
 export interface APIValidationError {
+  /**
+   * Safe field identifiers and validation advice.
+   */
   fields: ValidationField[];
+  /**
+   * Plain request validation summary.
+   */
   message: string;
 }
 /**
@@ -56,7 +62,13 @@ export interface APIValidationError {
  * via the `definition` "ValidationField".
  */
 export interface ValidationField {
+  /**
+   * Safe field identifier; body covers malformed JSON and unknown fields.
+   */
   field: "lat_deg" | "lon_deg" | "name" | "body";
+  /**
+   * Plain validation advice without submitted values.
+   */
   message: string;
 }
 /**

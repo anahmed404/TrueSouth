@@ -594,14 +594,14 @@ class CustomSiteRequest(Contract):
 
 class ValidationField(Contract):
     """A safe field identifier and plain validation advice; never the submitted value."""
-    field: Literal['lat_deg', 'lon_deg', 'name', 'body']
-    message: str
+    field: Literal['lat_deg', 'lon_deg', 'name', 'body'] = Field(description='Safe field identifier; body covers malformed JSON and unknown fields.')
+    message: str = Field(description='Plain validation advice without submitted values.')
 
 
 class APIValidationError(Contract):
     """HTTP 422 body, without client values or internal validator details."""
-    message: str
-    fields: list[ValidationField]
+    message: str = Field(description='Plain request validation summary.')
+    fields: list[ValidationField] = Field(description='Safe field identifiers and validation advice.')
 
 
 class CustomSiteQueued(Contract):

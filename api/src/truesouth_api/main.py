@@ -10,6 +10,8 @@ from truesouth_api.settings import cache_dir
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import http_exception_handler
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
 from starlette.datastructures import Headers
 
@@ -75,6 +77,15 @@ def create_app(
         service.close()
 
     app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None, redirect_slashes=False)
+
+    @app.exception_handler(StarletteHTTPException)
+    async def parsing_error(request: Request, error: StarletteHTTPException):
+        if request.url.path == '/api/sites/custom' and error.status_code == 400:
+            return JSONResponse({'message': 'Please check the request fields.', 'fields': [{
+                'field': 'body',
+                'message': 'Send a JSON object with latitude, longitude and an optional name. Only these fields are allowed.',
+            }]}, status_code=422)
+        return await http_exception_handler(request, error)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, error: RequestValidationError):

@@ -5,6 +5,7 @@
       "description": "HTTP 422 body, without client values or internal validator details.",
       "properties": {
         "fields": {
+          "description": "Safe field identifiers and validation advice.",
           "items": {
             "$ref": "#/$defs/ValidationField"
           },
@@ -12,6 +13,7 @@
           "type": "array"
         },
         "message": {
+          "description": "Plain request validation summary.",
           "title": "Message",
           "type": "string"
         }
@@ -2720,6 +2722,7 @@
       "description": "A safe field identifier and plain validation advice; never the submitted value.",
       "properties": {
         "field": {
+          "description": "Safe field identifier; body covers malformed JSON and unknown fields.",
           "enum": [
             "lat_deg",
             "lon_deg",
@@ -2730,6 +2733,7 @@
           "type": "string"
         },
         "message": {
+          "description": "Plain validation advice without submitted values.",
           "title": "Message",
           "type": "string"
         }
