@@ -40,7 +40,7 @@ import { sceneContent, type LoadState } from "./plates";
 import { southPolePose } from "./navigate";
 import { Rig } from "./rig";
 import { sightState, type SightState } from "./sight";
-import { FrameMeter, STEP_DOWN_MS, WINDOW_FRAMES, drawDpr, judgeWindow, median, moonSegments, qualityStages } from "./perf";
+import { FrameMeter, MOON_SEGMENTS_FULL, STEP_DOWN_MS, WINDOW_FRAMES, drawDpr, judgeWindow, median, moonSegments, qualityStages } from "./perf";
 import { Stars, starExposure } from "./stars";
 import { mul, type V3 } from "./vec";
 import { World, type WorldInputs, type WorldSite } from "./world";
@@ -917,18 +917,18 @@ function Director(props: DirectorProps) {
   // Render on demand: a frame is drawn only when something changed, and only while visible.
   useFrame(({ camera: frameCamera, size }) => {
     const now = performance.now();
+    // A frame within 250 ms of the one before is a moving frame; the one frame drawn after a
+    // rest, to put back the full picture, is not.
+    const resting = quality.resting;
+    quality.resting = false;
+    const sinceLast = now - quality.lastFrame;
+    quality.lastFrame = now;
+    const inMotion = !latest.current.capture && !resting && sinceLast > 0 && sinceLast <= 250;
     if (!latest.current.capture && !measuring.current) {
-      // A frame within 250 ms of the one before is a moving frame; the one frame drawn to
-      // restore full resolution after a rest is not.
-      const resting = quality.resting;
-      quality.resting = false;
-      const sinceLast = now - quality.lastFrame;
-      quality.lastFrame = now;
-      const gap = !resting && sinceLast > 0 && sinceLast <= 250 ? sinceLast : 0;
       // Only flight frames judge the stage: they are drawn back to back, so the time between
       // them is the frame's cost. A drag's frames follow the pointer, and a pause in a drag
-      // must not look like a slow frame.
-      // The meter keeps its frames from one flight to the next (a gap over a second is dropped).
+      // must not look like a slow frame. The meter keeps its frames from one flight to the
+      // next (a gap over a second is dropped).
       if (rig.flying) quality.meter.tick(now);
       const enough = quality.meter.count >= WINDOW_FRAMES || (quality.meter.count >= 6 && quality.meter.median() > 3 * STEP_DOWN_MS);
       if (enough) {
@@ -940,21 +940,20 @@ function Director(props: DirectorProps) {
           latest.current.onStatus("slow", NO_FLAT_VIEWS);
         }
       }
-      // Dynamic resolution: fewer pixels while moving, the full stage resolution at rest.
-      const stage = quality.stages[quality.stage]!;
-      if (stage.movingScale < 1) {
-        const want = drawDpr(stage, gap > 0);
-        if (Math.abs(gl.getPixelRatio() - want) > 1e-3) gl.setPixelRatio(want);
-        window.clearTimeout(quality.restTimer);
-        if (gap > 0) {
-          // When nothing has moved for 160 ms, draw one frame at the full resolution. The
-          // canvas is resized inside that frame, so a cleared canvas is never shown.
-          quality.restTimer = window.setTimeout(() => {
-            quality.resting = true;
-            invalidate();
-          }, 160);
-        }
-      }
+      // Dynamic resolution (stages 1 and up): fewer pixels while moving, the full stage
+      // resolution at rest. The canvas is resized inside the frame, so a cleared canvas is
+      // never shown.
+      const want = drawDpr(quality.stages[quality.stage]!, inMotion);
+      if (Math.abs(gl.getPixelRatio() - want) > 1e-3) gl.setPixelRatio(want);
+    }
+    // When nothing has moved for 160 ms, draw one more frame with the full picture: full
+    // resolution and the full Moon mesh. Then nothing is drawn until something changes.
+    window.clearTimeout(quality.restTimer);
+    if (inMotion) {
+      quality.restTimer = window.setTimeout(() => {
+        quality.resting = true;
+        invalidate();
+      }, 160);
     }
     const moving = rig.update(now);
     world.draw = rig.draw;
@@ -971,13 +970,14 @@ function Director(props: DirectorProps) {
       exposure = starExposure((Math.PI * moonRadius * moonRadius) / (fovY * fovY * cam.aspect));
     }
     stars.update(gl.getPixelRatio(), exposure, inputs.bodies ? inputs.sunDir : null);
-    // The Moon's level of detail from its radius on screen, in device pixels (perf.ts).
+    // The Moon's level of detail from its radius on screen, in device pixels (perf.ts),
     const moonDistance = cam.position.length();
     const moonPixels =
       moonDistance > 1.0001
         ? (Math.tan(Math.asin(1 / moonDistance)) / Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2)) * (size.height / 2) * gl.getPixelRatio()
         : Number.POSITIVE_INFINITY;
-    world.setMoonSegments(moonSegments(moonPixels));
+    // Only while moving: at rest the full mesh, so a still picture is exactly today's.
+    world.setMoonSegments(inMotion ? moonSegments(moonPixels) : MOON_SEGMENTS_FULL);
     const overlayStart = devMeter ? performance.now() : 0;
     latest.current.bus.current.overlay?.(anchors, frameCamera as THREE.PerspectiveCamera, size);
     if (devMeter) devMeter.parts.overlay += performance.now() - overlayStart;
