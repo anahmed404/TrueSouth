@@ -6,7 +6,7 @@ import react from "@vitejs/plugin-react";
 import type { ServerResponse } from "node:http";
 import { loadEnv, type Plugin } from "vite";
 import { defineConfig } from "vitest/config";
-import { resolveDataFile, type DataSource } from "./src/app/resolve-data-path.ts";
+import { resolveDataFile, type DataSource } from "./dev/resolve-data-path.ts";
 
 const webRoot = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(webRoot, "..");
@@ -92,7 +92,7 @@ export default defineConfig(({ mode }) => {
     },
     test: {
       environment: "node",
-      include: ["src/**/*.test.ts"],
+      include: ["src/**/*.test.ts", "dev/**/*.test.ts"],
     },
   };
 });
