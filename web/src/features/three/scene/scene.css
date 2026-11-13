@@ -156,14 +156,27 @@
     text-wrap: balance;
   }
 
+  /* In the stack a plate is an ordinary flex item: shell.css's absolute position and
+     translate would centre it twice, and stacked plates would overlap. */
+  .scene-plate-stack > .scene-plate-top {
+    position: relative;
+    transform: none;
+  }
+
   .scene-plate-top p {
     margin: 0;
     color: var(--ink);
   }
 
+  /* A plate with a second line stacks its lines; the note's measure sets the plate's width. */
+  .scene-plate-top:has(.scene-plate-note) {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 2px;
+  }
+
   .scene-plate-top .scene-plate-note {
-    flex-basis: 100%;
-    max-width: 72ch;
+    max-width: 58ch;
     color: var(--ink-2);
     font-size: var(--t-sm);
   }
