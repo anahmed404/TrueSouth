@@ -812,6 +812,26 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Academy
 
+#### 2026-11-13 · A9 · Math review of all fifteen science sections
+- **Who:** Codex review agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — read the science document against Python and
+  TypeScript, wrote independent numerical probes, checked saved Horizons responses
+  and read-only prepared terrain, and wrote the review report. No human or owning
+  track has checked the report yet.
+- **State:** built, not verified
+- **Changed:** `docs/reviews/a9-math-review.md`, the short reproducer in
+  `docs/reviews/a9-scripts/boundaries.py`, and two wrong TypeScript file paths in
+  `docs/science.md`. No formulas, code or derived data changed.
+- **Notes:**
+  - Reviewed all 15 numbered sections and inventoried 40 formula groups. Recorded
+    128 case-level numerical checks, including 36 additional Python/TypeScript
+    scoring scenarios. Found 1 A, 11 B and 5 C findings. The A finding is a shared
+    prefix-sum rounding error that can turn an exact score of 70 into CAUTION.
+  - Full saved-response G2 passes at all 20 sites over 52,584 hours. Rebuilt one
+    real skyline and checked four bins independently. The report states the
+    unimplemented paths and every material verification limit.
+  - Required final pytest and web suite results are recorded in the report.
+
 #### 2026-11-13 · A5b · Lessons 1 to 4 reworded to the real numbers
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-sonnet-5-5 — rewrote the text of lessons 1 to 4 in
