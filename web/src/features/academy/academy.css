@@ -860,6 +860,34 @@
   font-size: var(--t-ac-min);
 }
 
+.ac-pending .ac-pending-answer {
+  width: 100%;
+  text-align: left;
+}
+
+.ac-pending .ac-pending-answer p {
+  color: var(--ink);
+  font-size: var(--t-ac);
+}
+
+.ac-pending .ac-pending-note {
+  color: var(--ink-3);
+}
+
+/* A slider's live readout: the number it sets off, in a Fill box. */
+.ac-readout {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 4px 0 0;
+  font-size: var(--t-lg);
+  color: var(--ink-2);
+}
+
+.ac-readout output {
+  font-size: var(--t-xl);
+}
+
 /* ── Lesson: the conversation panel ──────────────────────────────────────── */
 
 .ac-talk {
@@ -1491,6 +1519,11 @@
   fill: var(--ink-3);
 }
 
+/* A lesson that is not written yet: quieter than the four that are. */
+.ac-map-label--soon {
+  fill: var(--ink-2);
+}
+
 .ac-pick {
   display: none;
 }
@@ -1542,20 +1575,6 @@
   width: 100%;
 }
 
-.ac-sample {
-  margin: 14px 0 0;
-  font-size: var(--t-lg);
-  color: var(--ink-3);
-}
-
-.ac-sample a {
-  display: inline-block;
-  padding: 12px 0;
-  margin: -12px 0;
-  color: var(--ink);
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
 
 .ac-sum {
   margin-top: auto;
@@ -1768,6 +1787,12 @@
 
 .ac-cf-in .ac-btn--primary {
   margin-left: auto;
+}
+
+.ac-cf-note {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--t-ac-min);
 }
 
 /* A lesson that is not written yet: a plain, honest page. */
@@ -2093,6 +2118,11 @@
     transition:
       background-color var(--dur-fast) var(--ease-ac),
       color var(--dur-fast) var(--ease-ac);
+  }
+
+  .ac-pick button[data-soon] span {
+    border-style: dashed;
+    color: var(--ink-3);
   }
 
   .ac-pick button[aria-pressed="true"] span {

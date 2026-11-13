@@ -2,7 +2,11 @@
 
 One row per step in [`docs/academy/lessons.md`](../../../../../docs/academy/lessons.md).
 "Expressible" is after the type change in `web/src/features/academy/types.ts`.
-Lessons 1 to 4 have typed skeletons in `l1.ts` to `l4.ts`. Lessons 5 to 8 are not written yet.
+Lessons 1 to 4 are written in `l1.ts` to `l4.ts` and open from the path (`lessons/index.ts`).
+Their panel steps (`drag-body`, `draw-skyline`, `drop-pin`) wait for work package A3; until
+then each shows its `preview`: Luna says what the learner will do there, the stage shows the
+real answer, and Continue moves on for no XP and no effect on the stars. Lessons 5 to 8 are
+not written yet.
 37 of the 40 steps can be expressed. Lesson 8 steps 3, 4 and 5 cannot: each right answer
 depends on the site and the date the learner chose earlier, and a goal is a fixed value or a
 fixed comparison, not a value computed from earlier answers. The types would need a goal
@@ -55,7 +59,7 @@ Placeholders in the doc are written `{{l1.sun_el_max_deg}}`. In lesson text they
 | 8 | 4 | predict | Yes or no for a link all mission | One guess | Whichever option equals the link result for the learner's own choice | Timeline for that choice | none static | Timeline | No. Right and wrong depend on the earlier site and date. The reveal can name a panel; the goal cannot follow the choice |
 | 8 | 5 | predict | Did you rediscover NASA's regions | The doc gives no options and no bold answer | The honest line, from whether the learner's site overlaps a region | Polar map with the learner's site, the average-sunlight map, and the Artemis regions | `l8.region_overlap.*` is one fixed site, not the pin the learner dropped | PolarMap | No. The overlap has to be computed from the site the learner dropped. The contract key is not that function |
 
-40 steps. 5 per lesson. 37 can be expressed with the fields above. Lesson 8 steps 3, 4 and 5 cannot, because each goal depends on the learner's earlier site and date. A goal today is a fixed value, a tolerance, or a comparison of two metrics. It can name an earlier answer as `prior`, but it cannot compute the expected countdown, link, or region overlap from that answer. The types would need a goal whose expected value is derived from those earlier answers. Lessons 1 to 4 are exported from `l1.ts` to `l4.ts` and are not in the catalog.
+40 steps. 5 per lesson. 37 can be expressed with the fields above. Lesson 8 steps 3, 4 and 5 cannot, because each goal depends on the learner's earlier site and date. A goal today is a fixed value, a tolerance, or a comparison of two metrics. It can name an earlier answer as `prior`, but it cannot compute the expected countdown, link, or region overlap from that answer. The types would need a goal whose expected value is derived from those earlier answers.
 
 ## Questions
 
@@ -93,6 +97,6 @@ The lesson doc and `docs/academy/overview.md` do not say which of these to pick.
 
 16. Lesson 2 step 5, lesson 3 step 1 and lesson 3 step 4 write distances and heights as design numbers. Quote: "a 300 m ridge 12 km away, or a 3,000 m mountain 150 km away". Quote: "A mountain 5 km tall stands 130 km from Pip. On a flat Moon it would look 2.2° tall." The skeletons copy them. Some of the same facts have keys (`l3.drop_at_130km_m`, `l3.drop_at_60km_m`) and the doc still writes the number.
 
-17. The landing day and "a month" are being defined in another pull request. Quote: "Story scenario for every lesson unless stated: Pip, profile `im2_athena`, at Connecting Ridge, in 2028." Every story date stays in `lessons/story.ts`, marked `PROVISIONAL(story-date)`. This file does not choose them.
+17. Decided. The story landing is the first GO midnight in 2028 at `connecting_ridge` for `im2_athena`, read from `story.landing_utc`; the story month is the 720 hours from it.
 
-18. `overview.md` says a predict step has no hint. The step type still requires `hint`, and the lesson doc does not write hints. The skeletons put the step's answer cell in `TODO(words):` until a writer replaces it. Luna's mood is not in the lesson doc; the skeletons use `thinking`.
+18. Decided. Every hint and explanation is written, and quoted in the lesson doc's "Words" lists. A predict step still carries a hint, which is never shown (one guess). Luna's mood is not in the lesson doc; questions use `thinking`.

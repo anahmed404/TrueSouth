@@ -1,21 +1,16 @@
 import type { Lesson } from "../types";
-import { oneMonth, storyScene, todo } from "./story";
+import { oneMonth, storyScene } from "./story";
 
 /**
- * Lesson 1, "Where's the Sun?". Typed skeleton. Not registered in the catalog:
- * the panel steps are not playable until those panels exist.
- * Wording in quotes is copied from docs/academy/lessons.md. A `TODO(words):` string
- * is the doc's description, for a writer to replace.
+ * Lesson 1, "Where's the Sun?". Every line is copied from docs/academy/lessons.md, section
+ * 1 and its "Words" list; change the words there first. Numbers from the data are
+ * `{{example.…}}` placeholders. The 1.54° tilt and its 2.08° result are the doc's rule of
+ * thumb, not worked-example values.
  */
 const flatMonth = storyScene("flat", oneMonth("{{example.l1.example_utc}}"));
 
-const highest =
-  "Lander's eye view with a flat skyline. The best the learner can find is {{example.l1.sun_el_max_deg}}°. Luna: \"This month the Sun climbs only to {{example.l1.sun_el_max_deg}}°, and sinks to {{example.l1.sun_el_min_deg}}°. It skims my horizon.\"";
 const highestLuna =
   "This month the Sun climbs only to {{example.l1.sun_el_max_deg}}°, and sinks to {{example.l1.sun_el_min_deg}}°. It skims my horizon.";
-const directions = "Only east and west / **All the way round** / Only north. Reveal: the System view plays one month.";
-const formula =
-  "**1.54°, my tilt** / 23.4° / 5.1°. At Pip's latitude that gives 2.08°. Luna: \"That 2.08° is the most my Sun can reach here, in the best season. This month it only gets to {{example.l1.sun_el_max_deg}}°. Both numbers are true.\"";
 const formulaLuna =
   "That 2.08° is the most my Sun can reach here, in the best season. This month it only gets to {{example.l1.sun_el_max_deg}}°. Both numbers are true.";
 
@@ -34,8 +29,8 @@ export const lesson1 = {
         mood: "thinking",
         says: "At my equator the midday Sun is almost overhead. How high does it get at my south pole?",
       },
-      hint: todo("Overhead / About 45° / **Under 3°**"),
-      explain: todo("Overhead / About 45° / **Under 3°**"),
+      hint: "My south pole is as far from my equator as you can go. Picture the Sun near the edge of the sky.",
+      explain: "At my south pole the Sun stays low, skimming the horizon. Pip sees it side-on, never overhead.",
       kind: "choice",
       options: ["Overhead", "About 45°", "Under 3°"],
       answer: 2,
@@ -43,7 +38,7 @@ export const lesson1 = {
     {
       id: "l1-highest",
       luna: { mood: "thinking", says: "Drag the Sun through a whole month. Find its highest moment." },
-      hint: todo(highest),
+      hint: "The Sun's height changes slowly. Drag back and forth near the top of its path.",
       explain: highestLuna,
       kind: "drag-body",
       body: "sun",
@@ -51,19 +46,24 @@ export const lesson1 = {
       scene: flatMonth,
       goal: { metric: "sun_el_deg", op: "==", value: "{{example.l1.sun_el_max_deg}}" },
       answerLabel: "{{example.l1.sun_el_max_deg}}°",
+      preview: {
+        says: "Soon you'll drag the Sun through a whole month here, to find its highest moment. For now, here's what you would find.",
+        reveal: highestLuna,
+      },
     },
     {
       id: "l1-directions",
       luna: { mood: "thinking", says: "Over that month, which directions does the Sun visit?" },
-      hint: todo(directions),
-      explain: todo(directions),
+      hint: "The Sun is low all month long. Where can a low Sun go?",
+      explain: "All the way round. Here the Sun circles the whole horizon about once a month, and stays low the whole time.",
       kind: "predict",
       options: ["Only east and west", "All the way round", "Only north"],
       answer: 1,
       reveal: {
         kind: "panel",
         panel: "SystemView",
-        caption: todo("the System view plays one month."),
+        caption:
+          "Over the month the Sun goes all the way round Pip's compass, while its height stays between {{example.l1.sun_el_min_deg}}° and {{example.l1.sun_el_max_deg}}°.",
         scene: flatMonth,
         when: oneMonth("{{example.l1.example_utc}}"),
       },
@@ -71,7 +71,7 @@ export const lesson1 = {
     {
       id: "l1-formula",
       luna: { mood: "thinking", says: "Highest Sun ≈ 90° − latitude + ( ? )" },
-      hint: todo(formula),
+      hint: "The missing piece is a small angle of my own: how far my spin axis leans.",
       explain: formulaLuna,
       kind: "fill-formula",
       tex: "90° − latitude + ( ? )",
@@ -81,8 +81,8 @@ export const lesson1 = {
     {
       id: "l1-north",
       luna: { mood: "thinking", says: "If you stood exactly on my south pole, which way is north?" },
-      hint: todo('East / Up / **Every direction**. Luna: "That is why this tool is called TrueSouth."'),
-      explain: "That is why this tool is called TrueSouth.",
+      hint: "Stand on the very point I spin around. Every step you take leads away from it.",
+      explain: "Every step away from my south pole is a step north. That is why this tool is called TrueSouth.",
       kind: "choice",
       options: ["East", "Up", "Every direction"],
       answer: 2,

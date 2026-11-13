@@ -1,10 +1,12 @@
-import { Construction } from "lucide-react";
+import { Hourglass } from "lucide-react";
 import { LayoutGroup, motion } from "motion/react";
 import { useLunaReducedMotion } from "../../../components/luna";
+import { formatNumber, unitRuleFor } from "../format-example";
 import { resolveDegrees, type WorkedExamples } from "../placeholders";
+import { numberReadoutAt } from "../readout";
 import type { RunnerState } from "../runner";
-import { isAnswered, type Draft, type OptionView } from "../step-view";
-import type { PanelId, RevealSpec, Step } from "../types";
+import { isAnswered, panelPreview, type Draft, type OptionView } from "../step-view";
+import type { NumberReadout, PanelId, RevealSpec, Step } from "../types";
 import { AnswerOption, OptionGroup, optionTabStop } from "../ui/answer-option";
 import { filledText } from "../ui/filled";
 import { CorrectMark } from "../ui/marks";
@@ -112,14 +114,14 @@ function StageBody({ step, runner, draft, views, examples, celebrate, onDraft }:
     case "tune-slider":
       return (
         <>
-          <SliderStage step={step} runner={runner} draft={draft} answered={answered} onDraft={onDraft} />
+          <SliderStage step={step} runner={runner} draft={draft} answered={answered} examples={examples} onDraft={onDraft} />
           {dust}
         </>
       );
     case "drag-body":
     case "draw-skyline":
     case "drop-pin":
-      return <PendingStep kind={step.kind} />;
+      return <PendingStep step={step} examples={examples} />;
   }
 }
 
@@ -186,7 +188,7 @@ export function PanelBox({ panel, caption }: { panel: PanelId; caption?: string 
   return (
     <div className="ac-mcbox">
       <div className="ac-mcbox-h">{panelName(panel)}</div>
-      <div className="ac-mcbox-body">The {panelName(panel)} panel appears here once Mission Control builds it.</div>
+      <div className="ac-mcbox-body">The {panelName(panel)} will play this here once the lesson can show it.</div>
       {caption ? <div className="ac-mcbox-f">{caption}</div> : null}
     </div>
   );
@@ -291,12 +293,14 @@ function SliderStage({
   runner,
   draft,
   answered,
+  examples,
   onDraft,
 }: {
   step: Extract<Step, { kind: "tune-slider" }>;
   runner: RunnerState;
   draft: Draft;
   answered: boolean;
+  examples: WorkedExamples;
   onDraft: (draft: Draft) => void;
 }) {
   const { slider } = step;
@@ -345,6 +349,7 @@ function SliderStage({
           {slider.max} {slider.unit}
         </span>
       </div>
+      {slider.readout ? <SliderReadout readout={slider.readout} at={value} examples={examples} /> : null}
       {right ? <CorrectMark label="Goal reached" /> : null}
       <p className="ac-keys ac-keys-desk">
         <span className="ac-kbd">←</span>
@@ -354,18 +359,61 @@ function SliderStage({
   );
 }
 
-/** A step kind that embeds a Mission Control panel: built in A3, so said plainly here. */
-function PendingStep({ kind }: { kind: "drag-body" | "draw-skyline" | "drop-pin" }) {
-  const pending = PENDING_STEPS[kind];
-  const panel = pending ? panelName(pending.panel) : "Mission Control";
+/**
+ * A slider's live readout, such as the curvature drop or the link time. The number comes
+ * from `numberReadoutAt` (a looked-up worked example, or s²/2R for the drop); this only
+ * writes it, by the one rounding rule.
+ */
+function SliderReadout({ readout, at, examples }: { readout: NumberReadout; at: number; examples: WorkedExamples }) {
+  const value = numberReadoutAt(readout, at, examples);
+  let text: string;
+  if (value === null) text = "not built yet";
+  else if (typeof value === "string") text = value;
+  else if (readout.kind === "curvature-drop") text = `${formatNumber(value, 0)} m`;
+  else if (readout.kind === "example-list") {
+    const rule = unitRuleFor(readout.key);
+    text = `${formatNumber(value, rule?.decimals ?? 2)}${rule?.unit === "pct" ? "%" : ""}`;
+  } else text = formatNumber(value, 2);
+  return (
+    <p className="ac-readout" aria-live="polite">
+      <span>{readout.label.charAt(0).toUpperCase() + readout.label.slice(1)}</span>
+      <output className="ac-fill">{text}</output>
+    </p>
+  );
+}
+
+/** What the learner will do on a panel step, by kind. */
+function pendingAction(step: Extract<Step, { kind: "drag-body" | "draw-skyline" | "drop-pin" }>): string {
+  if (step.kind === "drag-body") return step.body === "sun" ? "Dragging the Sun" : "Dragging Earth";
+  return PENDING_STEPS[step.kind]?.action ?? "This step";
+}
+
+/**
+ * A step kind that embeds a Mission Control panel, built in A3. Until then it shows the
+ * real answer from the worked examples, and Continue moves on for no XP.
+ */
+function PendingStep({
+  step,
+  examples,
+}: {
+  step: Extract<Step, { kind: "drag-body" | "draw-skyline" | "drop-pin" }>;
+  examples: WorkedExamples;
+}) {
+  const panelId = step.kind === "drag-body" ? step.panel : PENDING_STEPS[step.kind]?.panel;
+  const panel = panelId ? panelName(panelId) : "Mission Control";
+  const preview = panelPreview(step);
   return (
     <div className="ac-pending">
-      <Construction size={32} strokeWidth={1.6} aria-hidden="true" color="var(--ink-3)" />
-      <h2>{pending?.action ?? "This step"} is coming</h2>
-      <p>
-        This step works inside Mission Control's {panel} panel, which the lesson cannot show yet. Until it can, skip
-        the step. A skipped step earns no XP and does not count against your stars.
-      </p>
+      <Hourglass size={28} strokeWidth={1.6} aria-hidden="true" color="var(--ink-3)" />
+      <h2>{pendingAction(step)} comes later</h2>
+      <p>This step will work inside the {panel} view. For now, here is what you would find.</p>
+      {preview ? (
+        <div className="ac-reveal-card ac-pending-answer" role="status">
+          <h3>What you would find</h3>
+          <p>{filledText(preview.reveal, examples)}</p>
+        </div>
+      ) : null}
+      <p className="ac-pending-note">No XP for this step, and it does not count for your stars.</p>
     </div>
   );
 }

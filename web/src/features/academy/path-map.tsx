@@ -4,7 +4,7 @@ import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { Luna, useLunaReducedMotion } from "../../components/luna";
 import { LESSONS, PATCH_SHELF } from "./catalog";
-import { sampleLesson } from "./lessons/sample";
+import { isWritten, WRITTEN_LESSONS } from "./lessons";
 import { useAcademyStore } from "./store";
 import { ConfirmDialog } from "./ui/dialog";
 import { Stars } from "./ui/marks";
@@ -68,12 +68,18 @@ const TERRAIN = (() => {
 
 type Saved = Record<string, { stars: number; xp: number; patch: boolean }>;
 
+/** "Lessons 1 to 4": the written lessons, which are the first ones on the path. */
+const READY = `Lessons 1 to ${WRITTEN_LESSONS.length}`;
+
 function lunaLine(selected: number, saved: Saved, nextIndex: number, fresh: boolean) {
   const lesson = LESSONS[selected];
+  if (lesson && !isWritten(lesson.id)) {
+    return { mood: "thinking" as const, text: `I'm still writing this one. ${READY} are ready for you.` };
+  }
   if (lesson && saved[lesson.id]?.patch) return { mood: "proud" as const, text: "Back for another go? Your best stars are kept." };
   if (fresh && selected === 0) return { mood: "happy" as const, text: "Fresh start. Let's find the Sun." };
   if (selected === nextIndex) return { mood: "happy" as const, text: "This is the next stop. I'll wait for you here." };
-  return { mood: "happy" as const, text: "Jump in anywhere. Every lesson is open." };
+  return { mood: "happy" as const, text: `Jump in anywhere: ${READY.toLowerCase()} are open.` };
 }
 
 export function PathMap() {
@@ -84,7 +90,9 @@ export function PathMap() {
   const saved = useAcademyStore((state) => state.lessons);
   const reset = useAcademyStore((state) => state.reset);
 
-  const nextIndex = LESSONS.findIndex((lesson) => !saved[lesson.id]?.patch);
+  // The next stop is the first written lesson without its patch. Lessons 5 to 8 are not written yet.
+  const nextIndex = LESSONS.findIndex((lesson) => isWritten(lesson.id) && !saved[lesson.id]?.patch);
+  const lastWritten = LESSONS.reduce((last, lesson, index) => (isWritten(lesson.id) ? index : last), 0);
   const [selected, setSelected] = useState(() => Math.max(0, nextIndex));
   const [resetOpen, setResetOpen] = useState(false);
   const [fresh, setFresh] = useState(false);
@@ -98,7 +106,8 @@ export function PathMap() {
   const stop = STOPS[selected] ?? STOPS[0];
   if (!lesson || !stop) return null;
   const lessonSaved = saved[lesson.id];
-  const walkedT = nextIndex < 0 ? 1 : nextIndex / 7;
+  const walkedT = (nextIndex < 0 ? lastWritten : nextIndex) / 7;
+  const lessonWritten = isWritten(lesson.id);
   const line = lunaLine(selected, saved, nextIndex, fresh);
 
   const choose = (index: number, focus: boolean) => {
@@ -142,7 +151,7 @@ export function PathMap() {
         <section className="ac-panel ac-map" aria-label="Lesson map">
           <p className="ac-map-cap">
             <b>Land Pip at the south pole</b>
-            Eight short lessons spiral in to the pole. Start anywhere.
+            Eight short lessons spiral in to the pole. {READY} are ready; start anywhere.
           </p>
           <svg className="ac-map-svg" viewBox={`0 0 ${R * 2} ${R * 2}`} role="presentation">
             <defs>
@@ -203,6 +212,7 @@ export function PathMap() {
                 const point = STOPS[index];
                 if (!point) return null;
                 const done = saved[item.id];
+                const ready = isWritten(item.id);
                 const isNext = index === nextIndex;
                 const isSelected = index === selected;
                 const offset = isSelected ? 42 : 34;
@@ -216,7 +226,9 @@ export function PathMap() {
                     role="button"
                     tabIndex={isSelected ? 0 : -1}
                     aria-pressed={isSelected}
-                    aria-label={`Lesson ${index + 1}, ${item.title}${done?.patch ? `, done, ${done.stars} of 3 stars` : isNext ? ", next up" : ""}`}
+                    aria-label={`Lesson ${index + 1}, ${item.title}${
+                      !ready ? ", not written yet" : done?.patch ? `, done, ${done.stars} of 3 stars` : isNext ? ", next up" : ""
+                    }`}
                     onClick={() => choose(index, true)}
                   >
                     <circle className="ac-stop-focus" cx={point.x} cy={point.y} r={46} fill="transparent" stroke="none" />
@@ -231,7 +243,8 @@ export function PathMap() {
                           cy={point.y}
                           r={26}
                           fill={isNext ? "var(--raised)" : "var(--surface)"}
-                          stroke={isNext ? "var(--accent)" : "var(--line-strong)"}
+                          stroke={isNext ? "var(--accent)" : ready ? "var(--line-strong)" : "var(--line)"}
+                          strokeDasharray={ready ? undefined : "4 4"}
                           strokeWidth={isNext ? 2 : 1}
                         />
                         <text
@@ -240,16 +253,20 @@ export function PathMap() {
                           textAnchor="middle"
                           fontSize="22"
                           fontWeight="600"
-                          fill={isNext ? "var(--ink)" : "var(--ink-2)"}
+                          fill={isNext ? "var(--ink)" : ready ? "var(--ink-2)" : "var(--ink-3)"}
                         >
                           {index + 1}
                         </text>
                       </>
                     )}
-                    <text x={labelX} y={point.y - 2} textAnchor={anchor} className="ac-map-label">
+                    <text x={labelX} y={point.y - 2} textAnchor={anchor} className={ready ? "ac-map-label" : "ac-map-label ac-map-label--soon"}>
                       {item.title}
                     </text>
-                    {done?.patch ? (
+                    {!ready ? (
+                      <text x={labelX} y={point.y + 17} textAnchor={anchor} className="ac-map-label-2">
+                        Not written yet
+                      </text>
+                    ) : done?.patch ? (
                       <text x={labelX} y={point.y + 17} textAnchor={anchor} className="ac-map-label-2">
                         {done.stars} of 3 stars · {done.xp} XP
                       </text>
@@ -278,8 +295,9 @@ export function PathMap() {
               <button
                 key={item.id}
                 type="button"
-                aria-label={`Lesson ${index + 1}, ${item.title}`}
+                aria-label={`Lesson ${index + 1}, ${item.title}${isWritten(item.id) ? "" : ", not written yet"}`}
                 aria-pressed={index === selected}
+                data-soon={isWritten(item.id) ? undefined : ""}
                 onClick={() => choose(index, false)}
               >
                 <span>{index + 1}</span>
@@ -312,18 +330,18 @@ export function PathMap() {
                 <span>
                   <Stars count={lessonSaved.stars} size={16} /> {lessonSaved.xp} XP · {lesson.patchName} patch
                 </span>
+              ) : lessonWritten ? (
+                <span>Five short steps. Earns the {lesson.patchName} patch.</span>
               ) : (
-                <span>Earns the {lesson.patchName} patch. This lesson is still being written.</span>
+                <span>Not written yet. It will earn the {lesson.patchName} patch.</span>
               )}
             </div>
-            <Link className="ac-btn ac-btn--primary" to={`/academy/${lesson.id}`}>
-              {lessonSaved?.patch ? "Replay lesson" : "Start lesson"} {selected + 1}
-              <ArrowRight aria-hidden="true" />
-            </Link>
-            <p className="ac-sample">
-              Until the eight lessons are written, <Link to={`/academy/${sampleLesson.id}`}>the sample lesson</Link>{" "}
-              shows every kind of step.
-            </p>
+            {lessonWritten ? (
+              <Link className="ac-btn ac-btn--primary" to={`/academy/${lesson.id}`}>
+                {lessonSaved?.patch ? "Replay lesson" : "Start lesson"} {selected + 1}
+                <ArrowRight aria-hidden="true" />
+              </Link>
+            ) : null}
           </section>
 
           <section className="ac-sum" aria-labelledby="ac-sum-title">

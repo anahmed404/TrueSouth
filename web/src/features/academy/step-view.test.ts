@@ -179,7 +179,7 @@ describe("tune-slider step states", () => {
 describe("panel steps before A3", () => {
   it("offer a skip instead of Check", () => {
     const step: Step = { ...base, id: "pin", kind: "drop-pin", map: { view: "polar", siteIds: [], sitesKey: null, aside: null } };
-    expect(primaryAction(step, initialRunnerState(), null, false)).toEqual({ kind: "skip", label: "Skip this step" });
+    expect(primaryAction(step, initialRunnerState(), null, false)).toEqual({ kind: "skip", label: "Continue" });
   });
 });
 

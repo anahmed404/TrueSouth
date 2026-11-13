@@ -25,8 +25,21 @@ describe("academy screens", () => {
     expect(html).toContain("True South patch, not earned yet");
     expect(html).toContain("Reset progress");
     expect(html).toContain("Start lesson 1");
-    expect(html).toContain("/academy/sample");
     expect(html).toContain("Skip to Mission Control");
+  });
+
+  it("opens lessons 1 to 4 from the path, keeps 5 to 8 marked not written, and no longer sends people to the sample", () => {
+    const html = render();
+    expect(html).not.toContain("/academy/sample");
+    expect(html).not.toContain("the sample lesson");
+    expect(html).toContain("Lessons 1 to 4 are ready");
+    expect(html).toContain("Five short steps. Earns the Sun Chaser patch.");
+    for (const [index, lesson] of LESSONS.entries()) {
+      const label = `Lesson ${index + 1}, ${lesson.title.replaceAll("'", "&#x27;")}`;
+      if (index < 4) expect(html).not.toContain(`${label}, not written yet`);
+      else expect(html).toContain(`${label}, not written yet`);
+    }
+    expect(html.match(/Not written yet</g)?.length).toBe(4);
   });
 
   it("opens the sample lesson on its first step with placeholders filled", () => {
@@ -43,9 +56,16 @@ describe("academy screens", () => {
   });
 
   it("says plainly when a catalog lesson is not written yet", () => {
-    const html = render("l1_sun");
-    expect(html).toContain("Where&#x27;s the Sun?");
+    const html = render("l5_slope");
+    expect(html).toContain("Don&#x27;t tip over");
     expect(html).toContain("This lesson is not written yet.");
+  });
+
+  it("opens a written lesson once its numbers have loaded, and says so plainly while they load", () => {
+    const html = render("l1_sun");
+    expect(html).toContain("1 · Where&#x27;s the Sun?");
+    expect(html).toContain("Getting this lesson&#x27;s numbers ready…");
+    expect(html).not.toContain("This lesson is not written yet.");
   });
 
   it("says when there is no such lesson", () => {
