@@ -1034,6 +1034,29 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Planning
 
+#### 2026-11-13 · A11 · Submission materials (drafts)
+- **Who:** team lead
+- **AI use:** Claude Code, claude-sonnet-5-5 — wrote the project description (three
+  lengths), the objective-to-feature map, the three-minute demo script with its
+  one-minute version and judge questions, the AI-use disclosure, the links checklist and a
+  proposed README, from the repository's own documents and `data/derived/validation.json`;
+  ran the Python scoring reference on the stored series to check the demo's dates — not yet
+  read by the team lead; every number is footnoted to a file and every unsure point is
+  marked "CHECK:"
+- **State:** built, not verified
+- **Changed:** `docs/submission/` (new), this entry
+- **Notes:**
+  - States in the objective map were checked against `origin/main` and the open pull
+    requests, and must be checked again on the day: #81 (Academy lessons 1 to 4), #79 (validation page),
+    #77 (sunlit-peak variants) and #80 (custom-site server) were open. The Slip Planner, the
+    Compare window, the flat Polar map and the custom-coordinates form are not built and
+    have no pull request, so the demo script reaches the slip story with the landing-date
+    buttons instead.
+  - Two gaps are written down plainly: sunlight at Connecting Ridge is well below the
+    published 92.27% (different point spans; not closed), and `docs/orchestration/status.md`
+    totals do not match its own ledger table.
+  - The README is not changed. A proposed version is `docs/submission/README-proposed.md`.
+
 #### 2026-11-13 · MC7 (spec) · The Slip Planner spec rewritten as a view on the Moon
 - **Who:** team lead
 - **AI use:** Claude Code (Sonnet 5.5) — rewrote `docs/features/slip-planner.md` and the
