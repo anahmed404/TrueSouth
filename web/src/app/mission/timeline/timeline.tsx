@@ -46,6 +46,7 @@ import {
   PLOT,
   bandLayers,
   clearanceSummary,
+  coveredLabels,
   plotLayout,
   rectsPath,
   segmentRects,
@@ -607,6 +608,20 @@ function ScrubPill({ x, top, width, text }: { x: number; top: number; width: num
     if (w > 0 && Math.abs(w - pillWidth) > 0.5) setPillWidth(w);
   }, [text, pillWidth]);
   const left = Math.min(Math.max(0, x - pillWidth / 2), Math.max(0, width - pillWidth));
+
+  // The pill shares the day labels' row: hide the labels it would cover, rather than draw
+  // over half of them. The band layer is memoised and does not re-render on a scrub, so this
+  // marks its labels directly; it runs after every render, since the labels can change too.
+  useLayoutEffect(() => {
+    const labels = ref.current?.parentElement?.querySelectorAll<SVGTextElement>("text.tl-day");
+    if (!labels || labels.length === 0) return;
+    const boxes = Array.from(labels, (label) => {
+      const box = label.getBBox();
+      return { left: box.x, right: box.x + box.width };
+    });
+    const covered = coveredLabels(boxes, { left, right: left + pillWidth });
+    labels.forEach((label, index) => label.toggleAttribute("data-covered", covered[index] ?? false));
+  });
   return (
     <span ref={ref} className="tl-pill tabular" style={{ transform: `translate(${left}px, ${top}px)` }} aria-hidden="true">
       {text}

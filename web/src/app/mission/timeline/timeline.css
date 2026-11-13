@@ -90,6 +90,11 @@
     display: contents;
   }
 
+  /* A day label the scrubber's pill would cover is hidden while the pill is there. */
+  .tl-day[data-covered] {
+    visibility: hidden;
+  }
+
   @container strip (max-width: 600px) {
     .tl-head .ldc-slip-word {
       display: none;
