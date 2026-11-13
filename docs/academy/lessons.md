@@ -106,10 +106,10 @@ formula at long range.
 | 1 | `choice` | "From Apollo 11's site, Earth hangs high in the sky all the time. From my south pole?" | It is always overhead / It never appears / **It bobs up and down at the horizon** |
 | 2 | `drag-body` (Earth) | "Drag Earth through a month. Find its highest moment." | Readouts: highest {{l4.earth_el_max_deg}}°, lowest {{l4.earth_el_min_deg}}°. |
 | 3 | `predict` | "Over a month, how much of the time is Earth above Pip's horizon?" | Always / Almost never / **About {{l4.earth_up_pct}}%**. Reveal: the timeline's Earth band. |
-| 4 | `tune-slider` | "Pip's antenna needs Earth to clear the ground by some margin. Raise the margin until Pip can talk less than 15% of the time." | Goal: about {{l4.mask_for_15pct_deg}}°. Readout: link time. Pip's link meter follows. |
+| 4 | `tune-slider` | "Pip's antenna needs Earth to clear the ground by some margin. Raise the margin until Pip can talk less than 15% of the time." | Goal: {{l4.mask_for_15pct_deg}}° or more. Readout: link time. Pip's link meter follows. |
 | 5 | `spot-bug` | "An early TrueSouth used these rules and called every polar site NO-GO. Which rule can never be met here?" | Lines: (1) Earth must clear the skyline; (2) by at least 5°; **(3) for at least half of every month**; (4) or the site is NO-GO. Luna: "A 5° margin held for half of every month can never be met: with a 5° margin Pip can talk only {{l4.link_pct_mask5}}% of the time. Judge the mission's own days, not the whole month. Lesson 7." |
 
-**Exact settings:** Step 4 slides the margin from 0° to 10° in steps of 0.5°. The goal is `{{l4.mask_for_15pct_deg}}`, right within ±1°. Link time at each step is read from `l4.link_pct_by_mask`. Pip's link meter follows that readout. The lesson unlocks both the timeline and the countdowns.
+**Exact settings:** Step 4 slides the margin from 0° to 10° in steps of 0.5°. The goal is any margin at or above `{{l4.mask_for_15pct_deg}}`, the first at which link time is under 15%; a lower margin is a miss, because link time there is still 15% or more. Link time at each step is read from `l4.link_pct_by_mask`. Pip's link meter follows that readout. The lesson unlocks both the timeline and the countdowns.
 
 **Card:** sub-Earth point, libration and distance (§3.1); the exact direction to Earth,
 including the 0.26° shift from standing off-centre (§3.2); link and antenna mask (§9).

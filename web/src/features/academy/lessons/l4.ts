@@ -10,7 +10,7 @@ const month = storyScene("smooth", oneMonth("{{example.l4.example_utc}}"));
 const bob = "It is always overhead / It never appears / **It bobs up and down at the horizon**";
 const readouts = "Readouts: highest {{example.l4.earth_el_max_deg}}°, lowest {{example.l4.earth_el_min_deg}}°.";
 const share = "Always / Almost never / **About {{example.l4.earth_up_pct}}%**. Reveal: the timeline's Earth band.";
-const margin = "Goal: about {{example.l4.mask_for_15pct_deg}}°. Readout: link time. Pip's link meter follows.";
+const margin = "Goal: {{example.l4.mask_for_15pct_deg}}° or more. Readout: link time. Pip's link meter follows.";
 const rulesLuna =
   "A 5° margin held for half of every month can never be met: with a 5° margin Pip can talk only {{example.l4.link_pct_mask5}}% of the time. Judge the mission's own days, not the whole month. Lesson 7.";
 const rules = `Lines: (1) Earth must clear the skyline; (2) by at least 5°; **(3) for at least half of every month**; (4) or the site is NO-GO. Luna: "${rulesLuna}"`;
@@ -89,7 +89,8 @@ export const lesson4 = {
         },
         follow: { link: "link-up", source: "readout" },
       },
-      goal: { metric: "antenna_mask_deg", op: "==", value: "{{example.l4.mask_for_15pct_deg}}", tolerance: 1 },
+      // Any margin at or above the first one under 15% answers the question as asked.
+      goal: { metric: "antenna_mask_deg", op: ">=", value: "{{example.l4.mask_for_15pct_deg}}" },
       answerLabel: "{{example.l4.mask_for_15pct_deg}}°",
     },
     {
