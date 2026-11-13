@@ -36,13 +36,18 @@ function bodyNow(series: DecodedSeries, body: "sun" | "earth", hour: number): Bo
  * series and the skyline file; the same for Earth in a blackout. When the site is lit and
  * linked, one short line says so.
  */
-export function WhyDarkCard({ scenario }: PanelProps) {
+export function WhyDarkCard({ scenario, hideWhenLit = false }: PanelProps & { hideWhenLit?: boolean }) {
   const siteId = scenario.focusedSiteId ?? scenario.siteIds[0] ?? null;
   if (!siteId) return null;
-  return <SiteWhyDark siteId={siteId} scenario={scenario} />;
+  return <SiteWhyDark siteId={siteId} scenario={scenario} hideWhenLit={hideWhenLit} />;
 }
 
-function SiteWhyDark({ siteId, scenario }: { siteId: string; scenario: PanelProps["scenario"] }) {
+/**
+ * `hideWhenLit`: draw nothing when the site is lit and linked. Over the scene the card
+ * appears only on a dark or blackout hour (docs/features/site-detail.md, "Where the card
+ * sits").
+ */
+function SiteWhyDark({ siteId, scenario, hideWhenLit }: { siteId: string; scenario: PanelProps["scenario"]; hideWhenLit: boolean }) {
   const manifest = useManifest();
   const sites = useSites();
   const features = useFeatures();
@@ -73,6 +78,7 @@ function SiteWhyDark({ siteId, scenario }: { siteId: string; scenario: PanelProp
 
   const shown = [sun, earth].filter((e) => !e.ok);
   if (shown.length === 0) {
+    if (hideWhenLit) return null;
     const words = wordExplanation(sun, ruleOf(profile));
     return (
       <section className="why why-ok" aria-label="Sunlight now">

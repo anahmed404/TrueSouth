@@ -286,6 +286,20 @@ describe("scenario store", () => {
 });
 
 describe("shareable scenario link", () => {
+  it("round-trips every view: the four camera views and the two windows", () => {
+    for (const view of ["system", "map", "terrain", "panorama", "slip", "compare"] as const) {
+      const store = createScenarioStore(catalog);
+      store.getState().setView(view);
+      const query = writeScenarioQuery(store.getState());
+      expect(query).toContain(`view=${view}`);
+      const read = readScenarioQuery(query, catalog);
+      expect(read.view).toBe(view);
+      expect(read.notices).toEqual([]);
+      // Reloading the link gives the same view.
+      expect(createScenarioStore(catalog, `?${query}`).getState().view).toBe(view);
+    }
+  });
+
   it("round-trips a preset scenario", () => {
     const store = createScenarioStore(catalog);
     store.getState().setView("compare");

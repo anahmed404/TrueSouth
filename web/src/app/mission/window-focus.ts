@@ -25,12 +25,14 @@ export function escapeCloses(state: {
 }
 
 /**
- * Where focus goes when a window opens: its first control (the close button), or the window
- * itself. Focus moves in, so a keyboard user lands in what they opened.
+ * Where focus goes when a window opens: the window itself, which is labelled by its title and
+ * described by its sentence, so a screen reader reads both, and Tab then reaches its close
+ * button. Focusing the close button instead would open its tooltip, and the first Escape
+ * would close only that. If the window cannot take focus, its first control does.
  */
-export function focusOnOpen(firstControl: Focusable | null, windowElement: Focusable | null): Focusable | null {
-  if (firstControl?.isConnected) return firstControl;
+export function focusOnOpen(windowElement: Focusable | null, firstControl: Focusable | null): Focusable | null {
   if (windowElement?.isConnected) return windowElement;
+  if (firstControl?.isConnected) return firstControl;
   return null;
 }
 
@@ -39,19 +41,14 @@ export function focusOnOpen(firstControl: Focusable | null, windowElement: Focus
  *
  * - Closed by the user, with Escape or the close button: focus returns to the window's
  *   button in the view bar, the button that opened it.
- * - Closed some other way (another view picked, Back pressed): focus returns there only if it
- *   was inside the window or was lost with it. If the user clicked something else, focus
- *   stays on what they clicked.
+ * - Closed some other way (another view or window picked, Back pressed): focus returns there
+ *   only if it was lost with the window. If it is already somewhere (the button the user
+ *   clicked, or the window that replaced this one), it stays.
  *
  * A button that has left the page (a resize can move the view bar) cannot take focus.
  */
-export function focusAfterClose(state: {
-  closedByUser: boolean;
-  focusWasInWindow: boolean;
-  focusIsLost: boolean;
-  button: Focusable | null;
-}): Focusable | null {
-  if (!state.closedByUser && !state.focusWasInWindow && !state.focusIsLost) return null;
+export function focusAfterClose(state: { closedByUser: boolean; focusIsLost: boolean; button: Focusable | null }): Focusable | null {
+  if (!state.closedByUser && !state.focusIsLost) return null;
   if (state.button?.isConnected) return state.button;
   return null;
 }

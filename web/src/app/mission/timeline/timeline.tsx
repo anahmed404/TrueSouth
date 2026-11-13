@@ -60,6 +60,11 @@ export type TimeWrite = "push" | "replace";
 export type TimelineProps = PanelProps & {
   /** Folded to one row: the time, play, and both countdowns. */
   folded?: boolean;
+  /**
+   * The phone strip (docs/features/site-detail.md): play, the current time with both
+   * countdowns on one line, and a 44 px scrubber with the two bands. It does not fold.
+   */
+  compact?: boolean;
   onToggleFold?: () => void;
   /**
    * Sets the scenario's current time. "push" adds one history entry; "replace" does not, for
@@ -105,7 +110,7 @@ export function Timeline(props: TimelineProps) {
 
 type SiteTimelineProps = TimelineProps & { siteId: string; grid: TimeGrid; hours: NonNullable<Hours> };
 
-function SiteTimeline({ scenario, siteId, grid, hours, folded = false, onToggleFold, onTimeChange, onScenarioChange }: SiteTimelineProps) {
+function SiteTimeline({ scenario, siteId, grid, hours, folded = false, compact = false, onToggleFold, onTimeChange, onScenarioChange }: SiteTimelineProps) {
   const profile = scenario.profile;
   const range = useMemo(() => timelineRange(grid.count, hours.landing, profile.duration_days), [grid.count, hours.landing, profile.duration_days]);
   const gridStartMs = useMemo(() => Date.parse(grid.start_utc), [grid.start_utc]);
@@ -153,6 +158,48 @@ function SiteTimeline({ scenario, siteId, grid, hours, folded = false, onToggleF
   );
 
   const foldButton = onToggleFold ? <FoldButton folded={folded} onToggle={onToggleFold} /> : null;
+
+  if (compact) {
+    return (
+      <div className="tl tl-compact">
+        <h2 className="sr-only">Timeline</h2>
+        {playButton}
+        <p className="tl-compact-now">
+          <span className="tl-compact-time tabular">{pillText(range, current, gridStartMs)} UTC</span>
+          <span className="tl-compact-counts tabular">
+            {cards ? (
+              <>
+                <span className="sr-only">Sun: </span>
+                {cards.sun.sentence}
+                <span aria-hidden="true"> · </span>
+                <span className="sr-only">Earth: </span>
+                {cards.earth.sentence}
+              </>
+            ) : (
+              "Countdowns load with the site's data…"
+            )}
+          </span>
+        </p>
+        {flags.status === "ready" && series.status === "ready" ? (
+          <CompactScrubber
+            range={range}
+            gridStartMs={gridStartMs}
+            current={current}
+            flags={flags.data}
+            sunFrac={series.data.sun_frac}
+            relay={profile.relay_available}
+            setHour={setHour}
+            pausePlay={playback.pause}
+            flagsNow={flagsNow}
+          />
+        ) : (
+          <p className="tl-message tl-compact-message" role="status">
+            {flags.status === "error" || series.status === "error" ? "This site's hourly data could not load." : "Loading the hourly data…"}
+          </p>
+        )}
+      </div>
+    );
+  }
 
   if (folded) {
     return (
@@ -305,17 +352,18 @@ function useWidth<T extends HTMLElement>(): [RefObject<T | null>, number] {
 const SLIDER_KEYS =
   "ArrowLeft ArrowRight ArrowUp ArrowDown Shift+ArrowLeft Shift+ArrowRight Shift+ArrowUp Shift+ArrowDown PageUp PageDown Home End";
 
-function Plot(props: PlotProps) {
-  const { range, gridStartMs, current, flags, series, evaluation, profile, chartOpen, setHour, pausePlay, flagsNow } = props;
-  const [ref, width] = useWidth<HTMLDivElement>();
-  const narrow = width > 0 && width < NARROW_PLOT;
-  const x0 = narrow ? PLOT.gutterNarrow : PLOT.gutter;
-  const scale = useMemo(() => hourScale(range, x0, Math.max(0, width - x0 - PLOT.right)), [range, x0, width]);
-  const list = useMemo(() => stretches(range, flags, evaluation, profile), [range, flags, evaluation, profile]);
-  const layout = useMemo(() => plotLayout(chartOpen), [chartOpen]);
-  const summary = useMemo(() => (chartOpen ? clearanceSummary(series, range, profile) : ""), [chartOpen, series, range, profile]);
-
-  // One drag adds one history entry at its first change of hour (see drag.ts).
+/**
+ * The scrubber's pointer and key handling, shared by the full plot and the phone strip.
+ * A drag adds one history entry at its first change of hour (see drag.ts); a held key adds
+ * one for its first step.
+ */
+function useScrubber(
+  scale: HourScale,
+  range: TimelineRange,
+  current: number,
+  setHour: (hour: number, write: TimeWrite) => void,
+  pausePlay: () => void,
+) {
   const drag = useRef<{ state: DragState; frame: number | null; x: number; left: number } | null>(null);
   const currentRef = useRef(current);
   currentRef.current = current;
@@ -390,6 +438,28 @@ function Plot(props: PlotProps) {
     setHour(target, event.repeat ? "replace" : "push");
   };
 
+  return {
+    onPointerDown,
+    onPointerMove,
+    onPointerUp: endDrag,
+    onPointerCancel: endDrag,
+    onLostPointerCapture: endDrag,
+    onKeyDown,
+  };
+}
+
+function Plot(props: PlotProps) {
+  const { range, gridStartMs, current, flags, series, evaluation, profile, chartOpen, setHour, pausePlay, flagsNow } = props;
+  const [ref, width] = useWidth<HTMLDivElement>();
+  const narrow = width > 0 && width < NARROW_PLOT;
+  const x0 = narrow ? PLOT.gutterNarrow : PLOT.gutter;
+  const scale = useMemo(() => hourScale(range, x0, Math.max(0, width - x0 - PLOT.right)), [range, x0, width]);
+  const list = useMemo(() => stretches(range, flags, evaluation, profile), [range, flags, evaluation, profile]);
+  const layout = useMemo(() => plotLayout(chartOpen), [chartOpen]);
+  const summary = useMemo(() => (chartOpen ? clearanceSummary(series, range, profile) : ""), [chartOpen, series, range, profile]);
+
+  const handlers = useScrubber(scale, range, current, setHour, pausePlay);
+
   const x = hourToX(scale, current);
   const valueText = sliderValueText({
     range,
@@ -416,12 +486,7 @@ function Plot(props: PlotProps) {
         aria-valuenow={current - range.landing}
         aria-valuetext={valueText}
         aria-keyshortcuts={SLIDER_KEYS}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        onLostPointerCapture={endDrag}
-        onKeyDown={onKeyDown}
+        {...handlers}
       >
         {width > 0 ? (
           <>
@@ -447,6 +512,64 @@ function Plot(props: PlotProps) {
       </div>
       {width > 0 ? (
         <StretchLabels scale={scale} list={list} width={width} fits={range.fits} landing={range.landing} flow={narrow} />
+      ) : null}
+    </div>
+  );
+}
+
+type CompactScrubberProps = {
+  range: TimelineRange;
+  gridStartMs: number;
+  current: number;
+  flags: HourFlags;
+  sunFrac: Float64Array;
+  relay: boolean;
+  setHour: (hour: number, write: TimeWrite) => void;
+  pausePlay: () => void;
+  flagsNow: { lit: boolean; link: boolean } | null;
+};
+
+/** The phone strip's scrubber: 44 px tall, the Sun band over the Earth band, no labels. */
+const COMPACT = { height: 44, sunY: 6, earthY: 24, bandH: 14 } as const;
+
+function CompactScrubber({ range, gridStartMs, current, flags, sunFrac, relay, setHour, pausePlay, flagsNow }: CompactScrubberProps) {
+  const [ref, width] = useWidth<HTMLDivElement>();
+  const scale = useMemo(() => hourScale(range, 0, Math.max(0, width)), [range, width]);
+  const handlers = useScrubber(scale, range, current, setHour, pausePlay);
+  const bands = useMemo(() => bandLayers(flags, sunFrac, range), [flags, sunFrac, range]);
+  const sunRects = useMemo(() => segmentRects(bands.sun, scale, COMPACT.sunY, COMPACT.bandH), [bands.sun, scale]);
+  const earthRects = useMemo(() => segmentRects(bands.earth, scale, COMPACT.earthY, COMPACT.bandH), [bands.earth, scale]);
+  const x = hourToX(scale, current);
+  const valueText = sliderValueText({ range, hour: current, gridStartMs, lit: flagsNow?.lit ?? null, link: flagsNow?.link ?? null, relay });
+
+  return (
+    <div
+      ref={ref}
+      className="tl-plot tl-compact-plot"
+      role="slider"
+      tabIndex={0}
+      aria-label="Scrubber: the current time"
+      aria-valuemin={range.start - range.landing}
+      aria-valuemax={range.end - range.landing}
+      aria-valuenow={current - range.landing}
+      aria-valuetext={valueText}
+      aria-keyshortcuts={SLIDER_KEYS}
+      {...handlers}
+    >
+      {width > 0 ? (
+        <>
+          <svg className="tl-svg" width={width} height={COMPACT.height} viewBox={`0 0 ${width} ${COMPACT.height}`} aria-hidden="true" focusable="false">
+            <rect className="tl-well" x={0.5} y={COMPACT.sunY + 0.5} width={Math.max(0, width - 1)} height={COMPACT.bandH - 1} rx={4} />
+            <rect className="tl-well" x={0.5} y={COMPACT.earthY + 0.5} width={Math.max(0, width - 1)} height={COMPACT.bandH - 1} rx={4} />
+            <path className="tl-band-sun tl-context" d={rectsPath(sunRects, false)} />
+            <path className="tl-band-sun" d={rectsPath(sunRects, true)} />
+            <path className="tl-band-earth tl-context" d={rectsPath(earthRects, false)} />
+            <path className="tl-band-earth" d={rectsPath(earthRects, true)} />
+          </svg>
+          <div className="tl-scrub" style={{ transform: `translateX(${x}px)`, height: COMPACT.earthY + COMPACT.bandH + 2 }} aria-hidden="true">
+            <span className="tl-scrub-knob" />
+          </div>
+        </>
       ) : null}
     </div>
   );

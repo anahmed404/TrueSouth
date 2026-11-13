@@ -210,6 +210,44 @@ each integration checkpoint.
 
 ## Mission Control
 
+#### 2026-11-13 · MC4c · The space-first shell
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (question
+  round skipped, as briefed) — wrote the floating layout, the scene slot and its contract
+  (`SceneProps`), the free-space calculation and hook, the view bar and view sentence, the
+  floating-window frame with its focus and Escape rules, folding with announcements, the
+  phone layout (sites sheet, focused-site sheet, compact timeline with a 44 px scrubber),
+  and vitest tests for the views, the free space, the window focus rules, the still
+  picture, the link round trip of every view and the contrast of panels and plates —
+  checked by the agent with typecheck, the vitest suite and the build, impeccable's
+  detector (no findings), and by eye in a browser on the real data and the fixtures at
+  1440 × 900, 1024 × 768 and 390 × 844; a human has not reviewed it yet
+- **State:** built, not verified
+- **Changed:** `web/src/app/mission-screen.tsx`, `web/src/app/shell.css`,
+  `web/src/app/scene.ts` (new), `web/src/app/mission/` (new: `free-space.ts`,
+  `shell-hooks.ts`, `view-bar.tsx`, `floating-window.tsx`, `window-focus.ts`,
+  `scene-slot.tsx`, `scene-status.ts`, and their tests; changed: `views.ts`,
+  `shell-layout.ts`, `focused-site-panel.tsx`, `top-bar.tsx`, `timeline/timeline.tsx`,
+  `timeline/timeline.css`, `timeline/why-dark-card.tsx`), `web/src/app/theme.css` (tokens
+  `--space`, `--float-gap`, `--plate`), `web/src/components/` (`Panel.tsx` comment, the
+  3D badge's CSS removed), `web/src/state/scenario.ts` (the first-visit view is now the
+  System view), `DESIGN.md`, `docs/design/c2/built-space-shell*.png`, this entry
+- **Notes:**
+  - The scene is a placeholder: a near-black background and one line in the free space. T1
+    plugs in by passing its component to `<SceneSlot Scene={…}>` in `mission-screen.tsx`;
+    the props are `SceneProps` in `web/src/app/scene.ts`.
+  - The link keeps one `view`: a camera view, or the open window (`slip`, `compare`). A
+    window in a link or on reload opens over the System view; the camera view under a
+    window opened in the page is kept in the page only.
+  - The free space is the measured gap cell of the layout grid, less an open window or phone
+    sheet (the largest uncovered strip). It can be empty while a window is open; the spec
+    keeps the camera still then.
+  - Dev only: `sessionStorage["truesouth.scene.status"] = "slow"` (or `"no-webgl"`) makes
+    the placeholder report that status, to see the still picture and "Try 3D anyway".
+  - The "why is it dark" card floats at the foot of the free space only on a dark or
+    blackout hour, with "See it from Lander's eye"; it is hidden while a window is open and
+    on the phone.
+
 #### 2026-11-13 · specs · Mission Control specs rewritten for the space-first layout
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-sonnet-5-5 — rewrote the Mission Control, System view, Polar map, Local terrain, Lander's eye, Slip Planner, Compare and site-detail specs, `DESIGN.md`, the build plan and two track guides, and wrote decision 0013, from the team lead's decision and the designer's notes and prototype — read back against the prototype's code and notes; the "Proposed:" items are listed in the pull request for the team lead to accept or change; no human has reviewed it yet

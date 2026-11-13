@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { freeSpace, sameFreeSpace, type FreeSpace, type Rect } from "./free-space";
 
 /** The phone layout's breakpoint, the same as every other phone rule in the CSS. */
@@ -47,24 +47,32 @@ const NO_SPACE: FreeSpace = { x: 0, y: 0, width: 0, height: 0, viewport: { width
 
 /**
  * The free space, kept up to date. `gap` is the empty box the layout leaves between the
- * panels; `cover` is the open floating window, if any. It is measured again when either
- * changes size (a panel folding resizes the gap frame by frame), when the browser window
- * resizes, and when a window opens or closes.
+ * panels; `covers` are the panels open over it (the floating window, an open phone sheet).
+ * It is measured again when any of them changes size (a panel folding resizes the gap frame
+ * by frame), when the browser window resizes, and when `coverKey` changes (a window or a
+ * sheet opening or closing).
  */
-export function useFreeSpace(gap: RefObject<HTMLElement | null>, cover: RefObject<HTMLElement | null>, windowOpen: boolean): FreeSpace {
+export function useFreeSpace(
+  gap: RefObject<HTMLElement | null>,
+  covers: readonly RefObject<HTMLElement | null>[],
+  windowOpen: boolean,
+  coverKey: string,
+): FreeSpace {
   const [space, setSpace] = useState<FreeSpace>(NO_SPACE);
+  const coversRef = useRef(covers);
+  coversRef.current = covers;
 
   useLayoutEffect(() => {
     let frame = 0;
+    const nodes = () => coversRef.current.map((ref) => ref.current).filter((node): node is HTMLElement => node !== null);
     const measure = () => {
       frame = 0;
       const gapNode = gap.current;
       if (!gapNode) return;
-      const coverNode = windowOpen ? cover.current : null;
       const next = freeSpace({
         viewport: { width: window.innerWidth, height: window.innerHeight },
         gap: rectOf(gapNode),
-        covers: coverNode ? [rectOf(coverNode)] : [],
+        covers: nodes().map(rectOf),
         windowOpen,
       });
       setSpace((current) => (sameFreeSpace(current, next) ? current : next));
@@ -76,7 +84,7 @@ export function useFreeSpace(gap: RefObject<HTMLElement | null>, cover: RefObjec
     measure();
     const observer = new ResizeObserver(schedule);
     if (gap.current) observer.observe(gap.current);
-    if (windowOpen && cover.current) observer.observe(cover.current);
+    for (const node of nodes()) observer.observe(node);
     window.addEventListener("resize", schedule);
     // A panel that slides without changing the gap's size still moves it.
     document.addEventListener("transitionend", schedule, true);
@@ -86,7 +94,7 @@ export function useFreeSpace(gap: RefObject<HTMLElement | null>, cover: RefObjec
       window.removeEventListener("resize", schedule);
       document.removeEventListener("transitionend", schedule, true);
     };
-  }, [gap, cover, windowOpen]);
+  }, [gap, windowOpen, coverKey]);
 
   return space;
 }

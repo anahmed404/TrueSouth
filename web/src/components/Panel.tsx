@@ -11,8 +11,9 @@ type PanelProps = HTMLAttributes<HTMLElement> & {
 };
 
 /**
- * A docked panel: flat --surface, a 1 px hairline, 14 px corners. No shadow; depth is
- * tonal. Panels sit 8 px apart and never float over the main view.
+ * A panel: flat, opaque --surface, a 1 px hairline, 14 px corners. No shadow; depth is
+ * tonal. In Mission Control it floats over the scene with a Control Edge border (shell.css);
+ * in the Academy panels sit 8 px apart.
  */
 export function Panel({ as: Element = "section", className, children, ref, ...rest }: PanelProps) {
   return (
