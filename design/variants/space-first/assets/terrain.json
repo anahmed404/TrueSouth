@@ -1,0 +1,58 @@
+{
+ "cr": {
+  "lat": -89.4555,
+  "lon": 222.6192,
+  "z0_m": 1950.3,
+  "patch": [
+   257,
+   20000
+  ],
+  "apron": [
+   161,
+   300000
+  ],
+  "encoding": "uint16 LE, (height_m + 12000) * 2, rows north to south"
+ },
+ "mal": {
+  "lat": -85.9948,
+  "lon": 359.7642,
+  "z0_m": 4784.8,
+  "patch": [
+   257,
+   20000
+  ],
+  "apron": [
+   161,
+   300000
+  ],
+  "encoding": "uint16 LE, (height_m + 12000) * 2, rows north to south"
+ },
+ "mou": {
+  "lat": -85.4266,
+  "lon": 31.7428,
+  "z0_m": 6398.2,
+  "patch": [
+   257,
+   20000
+  ],
+  "apron": [
+   161,
+   300000
+  ],
+  "encoding": "uint16 LE, (height_m + 12000) * 2, rows north to south"
+ },
+ "dgr": {
+  "lat": -88.23,
+  "lon": 295.3716,
+  "z0_m": -88.8,
+  "patch": [
+   257,
+   20000
+  ],
+  "apron": [
+   161,
+   300000
+  ],
+  "encoding": "uint16 LE, (height_m + 12000) * 2, rows north to south"
+ }
+}
