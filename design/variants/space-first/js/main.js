@@ -1,5 +1,6 @@
 /* Space-first Mission Control: wiring. One clock (hour + landing offset) drives every view. */
-import { SITES, siteById, series, bodies, detail, status, LANDING0, WINDOW_H, FEATURES, polarXY, polarLatLon, fmtISO, fmtDayY, fmtDay, STATUS_WORD, minus, R_MOON_M, unit, toScene } from './data.js';
+import { SITES, siteById, series, bodies, detail, LANDING0, WINDOW_H, FEATURES, polarXY, polarLatLon, fmtISO, fmtDayY, fmtDay, STATUS_WORD, minus, R_MOON_M, unit, toScene, setScenario, SITE_SETS, D2R } from './data.js';
+import { vAt, bestAt, startSweep, createDates, G0, GN, RANK, pendingDays, sweepProgress } from './slip.js';
 import { createScene, easeInOut } from './scene.js';
 import { createMap } from './polar.js';
 import { readColors, C, drawTimeline, countdowns, dur, drawPanorama, drawHeat, compareTable, H0, H1, longest } from './charts.js';
@@ -14,8 +15,12 @@ const S = {
   view: 'system', win: null, focus: 'cr', off: 0, hour: 63, playing: false, speed: 1,
   col: { l: false, r: false, t: false }, opt: { surface: 'solid', pole: 'flight', tex: '4k', motion: 'full', state: 'live' },
   preset: 'home', trueScale: false, colour: 0, exag: 1, centre: 'earth', overlay: 'none', opacity: .7, names: true, chart: true, slipSpan: 548, slipFrom: null,
+  dateSpan: 548, dateD0: null, avg: true, prevView: 'system',
 };
-try { const c = JSON.parse(localStorage.getItem('ts-space-col') || 'null'); if (c) S.col = c; } catch (e) { /* storage blocked */ }
+S.opt.slip = 'a'; S.opt.tl = 'replace'; S.opt.sites = 'default';
+try { const c = JSON.parse(localStorage.getItem('ts-space-col') || 'null'); if (c) S.col = { d: false, ...c }; } catch (e) { /* storage blocked */ }
+S.col.d = !!S.col.d;
+const onMoon = () => S.view === 'slip';   // the Slip Planner as a camera view (variants a and b)
 const reduced = () => S.opt.motion === 'reduce' || sysReduce.matches;
 const absMs = () => LANDING0 + S.off * 864e5 + S.hour * 36e5;
 const lampHTML = st => `<span class="lamp ${st}"><svg><use href="#g-${st === 'none' ? 'none' : st}"/></svg></span>`;
@@ -24,19 +29,25 @@ const statusHTML = st => `<span class="status ${st}">${lampHTML(st)}${STATUS_WOR
 /* ── layout: where the free space for the scene is ── */
 function insets() {
   const W = innerWidth, H = innerHeight, gap = phone.matches ? 8 : 16;
-  if (phone.matches) return { l: 0, r: 0, t: 8 + 44 + 8 + 52 + 8 + 66, b: 74 + 8 + 104 + 72 + 60, W, H };
+  const dh = onMoon() ? datesH() : 0;
+  if (phone.matches) return onMoon() ? { l: 0, r: 0, t: 8 + 44 + 8 + 52 + 8 + 66, b: 74 + 8 + dh + 8 + 64 + 8 + ($('#bot-c').offsetHeight || 96), W, H, tlB: 74 + 8 + dh } : { l: 0, r: 0, t: 8 + 44 + 8 + 52 + 8 + 66, b: 74 + 8 + 104 + 72 + 60, W, H };
   const l = gap + (S.col.l ? 48 : 256) + gap, r = gap + (S.col.r ? 48 : 328) + gap;
-  const tlH = S.col.t ? 52 : 196, tlB = 20 + gap + tlH;
-  return { l, r, t: 12 + 44 + gap + 44 + 8 + 30, b: tlB + gap + 48, W, H, tlB };
+  const tlH = onMoon() ? dh + (S.opt.tl === 'stack' ? 52 + gap : 0) : (S.col.t ? 52 : 196), tlB = 20 + gap + tlH;
+  return { l, r, t: 12 + 44 + gap + 44 + 8 + 30, b: tlB + gap + (onMoon() ? 92 : 48), W, H, tlB };
 }
 function applyLayout(animate = true) {
   const i = insets(), gap = phone.matches ? 8 : 16;
   root.style.setProperty('--col-l', i.l + 'px'); root.style.setProperty('--col-r', i.r + 'px');
   root.style.setProperty('--tl-b', (i.tlB || 0) + 'px');
   root.style.setProperty('--side-b', ((i.tlB || 0) + gap) + 'px');
+  document.body.classList.toggle('slipview', onMoon()); document.body.classList.toggle('stacktl', onMoon() && S.opt.tl === 'stack');
+  document.body.classList.toggle('n8', SITES.length >= 7); document.body.classList.toggle('n1', SITES.length <= 1);
+  $('#dates').hidden = !onMoon();
+  $('#strip').hidden = onMoon() && S.opt.tl !== 'stack';
+  if (onMoon()) root.style.setProperty('--dates-h', datesH() + 'px');
   $('#rail').classList.toggle('collapsed', S.col.l && !phone.matches);
   $('#focus').classList.toggle('collapsed', S.col.r && !phone.matches);
-  $('#strip').classList.toggle('collapsed', S.col.t && !phone.matches);
+  $('#strip').classList.toggle('collapsed', (S.col.t || (onMoon() && S.opt.tl === 'stack')) && !phone.matches);
   $('#tgl-l').setAttribute('aria-expanded', !S.col.l); $('#tgl-r').setAttribute('aria-expanded', !S.col.r); $('#tgl-t').setAttribute('aria-expanded', !S.col.t);
   $('#tgl-t').innerHTML = `<svg class="i"><use href="#i-${S.col.t ? 'up' : 'down'}"/></svg>`;
   $('#tgl-t').setAttribute('aria-label', S.col.t ? 'Open the timeline' : 'Fold the timeline');
@@ -44,7 +55,8 @@ function applyLayout(animate = true) {
   scene && scene.setInsets(ins, animate && !reduced() ? 200 : 0);
   map && map.setInsets(ins);
   try { localStorage.setItem('ts-space-col', JSON.stringify(S.col)); } catch (e) { /* storage blocked */ }
-  setTimeout(() => { renderTimeline(); if (scene && S.view === 'system' && S.preset === 'home' && !S.trueScale && !scene.tweening) scene.flyTo(scene.poses().home, reduced() ? 0 : 450, buildOverlay); }, animate ? 210 : 0);
+  setTimeout(() => { renderTimeline(); if (scene && S.view === 'system' && S.preset === 'home' && !S.trueScale && !scene.tweening) scene.flyTo(scene.poses().home, reduced() ? 0 : 450, buildOverlay);
+    if (onMoon() && !(scene && scene.tweening)) refitSlip(animate && !reduced() ? 450 : 0); }, animate ? 210 : 0);
   schedProbe();
 }
 
@@ -65,10 +77,10 @@ if (!scene) setTimeout(() => map.load(), 1500);
 map = createMap($('#map'), {
   colors: { space: '#0b0b0c', sun: [255, 226, 160], earth: [108, 196, 255] }, features: FEATURES,
   pins: () => SITES.filter(p => p.tier !== 'sphere').map(p => polarXY(p.lat, p.lon)),
-  onDraw: () => { if (S.view === 'polar') drawOverlay(); },
+  onDraw: () => { if (S.view === 'polar') drawOverlay(); if (S.view === 'slip') updateSpots(); },
   onHover: m => { if (S.view !== 'polar') return; const [la, lo] = polarLatLon(m.x, m.y); const v = S.overlay !== 'none' ? map.lookup(S.overlay, m.x, m.y) : null;
     const t = $('#hover-read'); if (t) t.textContent = `${minus(la.toFixed(4))}°, ${lo.toFixed(4)}° E${v != null ? ` · ${S.overlay === 'sun' ? 'average sunlight' : 'Earth visible'} ${Math.round(v * 100)} %` : ''}`; },
-  onClick: (m, e) => openPop(m, e),
+  onClick: (m, e) => { if (S.view === 'polar') openPop(m, e); },
 });
 
 function updateBodies() {
@@ -83,17 +95,36 @@ function updateBodies() {
 const SENT = {
   system: () => 'A 3D model of the Moon, Earth and Sun at the current time, showing where your site is, where daylight falls and which way Earth lies.',
   polar: () => 'A flat map of the Moon\'s south pole seen from straight above, where you choose sites and see how much a small move changes them.',
-  terrain: s => s.tier === 'sphere' ? `No terrain data for ${s.name}. It is far from the pole, so TrueSouth treats the ground there as a smooth sphere.` : `The ground for 10 km on every side of ${s.name}, set in the land around it and lit by the Sun as it is at the current time.`,
+  terrain: s => s.noPatch ? `This prototype has no terrain patch for ${s.name}, so the camera shows it on the globe. The app will have one.` : s.tier === 'sphere' ? `No terrain data for ${s.name}. It is far from the pole, so TrueSouth treats the ground there as a smooth sphere.` : `The ground for 10 km on every side of ${s.name}, set in the land around it and lit by the Sun as it is at the current time.`,
+  slip: () => 'Your sites at the south pole, each showing whether a landing on the date below would be GO, CAUTION or NO-GO.',
   eye: s => s.tier === 'sphere' ? `No terrain data for ${s.name}, so its horizon is flat: the Moon there is a smooth sphere.` : `What you would see standing at ${s.name} and turning in a full circle: the horizon, with the Sun and Earth at their real height above it.`,
 };
 function go(view, opts = {}) {
   const prev = S.view; S.view = view;
+  if (prev !== view && prev !== 'slip') S.prevView = prev;
+  if (prev === 'slip' && view !== 'slip') { S.slipFrom = null; datesUI.hideTip(); leaveFlat(); }
   $$('.vt[data-view]').forEach(b => b.setAttribute('aria-current', b.dataset.view === view));
+  if ((view === 'slip') !== (prev === 'slip')) { applyLayout(false); renderFocus(); }
   renderSentence(); renderControls(); renderPcard();
+  if (view === 'slip') { if (phone.matches && !S.dateSet) { S.dateSpan = 91; S.dateD0 = null; } S.dateSet = true; renderDates(); kickSweep(); }
   $('#mapctl').hidden = view !== 'polar'; $('#scalebar').hidden = view !== 'polar';
   closePop();
-  const site = siteById(S.focus), sphere = site.tier === 'sphere';
+  const site = siteById(S.focus), sphere = site.tier === 'sphere' || !!site.noPatch;
+  if (view === 'slip' && (!scene || stage.classList.contains('fallback'))) { flatSlip(); return; }
   if (!scene) { buildOverlay(); return; }
+  if (view === 'slip') {
+    // fly to the sites, then hold the Moon's light fixed so the ground never changes with the date
+    const P = slipPose(), fromMap = prev === 'polar';
+    scene.setOrbit(P.C, P.U); scene.setMode('slip'); scene.setAvg(S.avg); buildOverlay();
+    if (fromMap) { scene.applyPose(poleFromMap()); scene.setDraw(1); stage.dataset.layer = 'gl'; }
+    const k0 = scene.st.slipK || 0, ms = opts.instant || opts.ms === 0 ? 0 : opts.ms || 1400;
+    const done = () => { scene.setSlip(1, P.L); scene.setDraw(0); buildOverlay(); };
+    if (reduced() && ms > 0) { dip(() => { scene.setDraw(0); scene.flyTo(P, 0, done); }); return; }
+    scene.flyTo(P, ms, done, t => { scene.setSlip(k0 + (1 - k0) * smooth01(.25, .95, t), P.L); if (fromMap) scene.setDraw(1 - smooth01(0, .45, t)); });
+    return;
+  }
+  const k0 = scene.st.slipK || 0, unslip = k0 > 0 ? (t => scene.setSlip(k0 * (1 - smooth01(0, .6, t)))) : (() => {});
+  if (k0 > 0 && (reduced() || opts.instant)) scene.setSlip(0);
   const P = scene.poses();
   let target, ms;
   if (view === 'system') { target = S.trueScale ? truePose() : (S.preset && S.preset !== 'home' ? P[S.preset] : P.home) || P.home; ms = 1300; }
@@ -114,12 +145,13 @@ function go(view, opts = {}) {
     return;
   }
   if (toMap && (S.opt.pole === 'fade' || reduced() || ms === 0)) {
+    scene.setSlip(0);
     // cross-fade: the map fades in over the globe, then the camera is set under it
     $('#map').style.transitionDuration = reduced() ? '120ms' : '400ms';
     showMap(); scene.flyTo(target, 0, () => { scene.setDraw(1); done(); }); return;
   }
-  if (reduced() && ms > 0) { dip(() => scene.flyTo(target, 0, done)); return; }
-  scene.flyTo(target, ms, done, toMap ? (t => scene.setDraw(smooth01(.55, 1, t))) : (prev === 'polar' ? null : (t => scene.setDraw(0))));
+  if (reduced() && ms > 0) { dip(() => { scene.setSlip(0); scene.flyTo(target, 0, done); }); return; }
+  scene.flyTo(target, ms, () => { scene.setSlip(0); done(); }, toMap ? (t => { unslip(t); scene.setDraw(smooth01(.55, 1, t)); }) : (prev === 'polar' ? null : (t => { unslip(t); scene.setDraw(0); })));
 }
 const smooth01 = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 function dip(fn) { const d = $('#dip'); d.classList.add('on'); setTimeout(() => { fn(); requestAnimationFrame(() => d.classList.remove('on')); }, 130); }
@@ -155,7 +187,7 @@ function centreAz() { const s = series(S.focus, S.hour, S.off); return S.centre 
 function renderSentence() { $('#what').textContent = SENT[S.view](siteById(S.focus)); }
 function segHTML(name, items, cur) { return `<span class="mseg" data-seg="${name}" role="group">${items.map(([v, t]) => `<button data-v="${v}" aria-pressed="${String(v) === String(cur)}">${t}</button>`).join('')}</span>`; }
 function renderControls() {
-  const el = $('#vctl'), site = siteById(S.focus), sphere = site.tier === 'sphere';
+  const el = $('#vctl'), site = siteById(S.focus), sphere = site.tier === 'sphere' || !!site.noPatch;
   let h = '';
   if (S.view === 'system') {
     h += S.trueScale ? '<span class="honest">True scale: Earth is 384,400 km away.</span>' : '<span class="honest">Distances not to scale. Every direction is true.</span>';
@@ -177,8 +209,13 @@ function renderControls() {
   } else if (S.view === 'eye') {
     if (sphere) h += `<button class="btn" data-act="tosystem">Show ${site.name} in the System view</button>`;
     else if (!S.chart) h += eyeCtl();
+  } else if (S.view === 'slip') {
+    h += `<button class="toggle" data-act="avg" aria-pressed="${S.avg}"><i></i>Ground shading</button>`;
+    if (S.avg) h += `<span class="ramp" aria-hidden="true">${[0, .25, .5, .75, 1].map(v => `<i style="--v:${v * 100}%"></i>`).join('')}</span><span class="lbl">0–100 %</span><span>NASA's average sunlight over 18.6 years, not for your date</span>`;
+    h += `<span class="vr" aria-hidden="true"></span>` + (S.opt.slip === 'b' ? `<span class="key-b" aria-hidden="true"><i></i><i></i></span><span>Brighter: higher score</span><span class="tag asm">assumed weights</span>` : `<svg class="key-a" viewBox="-16 -16 32 32" aria-hidden="true"><circle r="12" class="trk"/><circle r="12" class="arc" pathLength="100" stroke-dasharray="70 100" transform="rotate(-90)"/><circle r="8" class="disc"/></svg><span>Ring: score</span><span class="tag asm">assumed weights</span>`);
   }
   el.innerHTML = h;
+  renderSlipSum();
 }
 $('#bot-c').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
@@ -197,6 +234,8 @@ $('#bot-c').addEventListener('click', e => {
   if (a === 'names') { S.names = !S.names; map.setNames(S.names); renderControls(); }
   if (a === 'toeye') go('eye');
   if (a === 'tosystem') { S.preset = 'follow'; go('system'); }
+  if (a === 'avg') { S.avg = !S.avg; renderControls(); if (scene) scene.setAvg(S.avg); if (S.fbMap) { map.setOverlay(S.avg ? 'sun' : 'none'); map.setDim(S.avg ? .62 : 0); } (document.querySelector('[data-act="avg"]') || {}).focus?.(); }
+  if (a === 'clearslip') { S.slipFrom = null; renderSlipSum(); buildOverlay(); renderDates(); }
   if (a === 'chart') { S.chart = !S.chart; renderControls(); renderPcard(); (document.querySelector('[data-act="chart"]') || {}).focus?.(); }
 });
 $('#bot-c').addEventListener('input', e => { if (e.target.dataset.act === 'opacity') { S.opacity = +e.target.value; map.setOpacity(S.opacity); } });
@@ -230,18 +269,20 @@ function renderPcard() {
 /* ── panels ── */
 function renderRail() {
   $('#rail-sub').textContent = `Status if landing ${fmtISO(LANDING0 + S.off * 864e5).slice(0, 16)} UTC`;
+  $('#rail .cnt').textContent = `${SITES.length} of 8`;
   $('#sites').innerHTML = SITES.map(s => {
     const d = detail(s.id, S.off), fact = d.broken ? `${d.broken.name === 'Longest blackout' ? 'Blackout' : 'Dark'} ${d.broken.value} h` : `Score ${d.score}`;
-    return `<li><button class="site" data-site="${s.id}" aria-current="${s.id === S.focus}"><span class="nm">${s.name}</span><span class="ln">${statusHTML(d.st)}${fact}</span>${s.tier === 'sphere' ? '<span class="ln lbl">Terrain not modelled</span>' : ''}</button></li>`;
+    return `<li><button class="site" data-site="${s.id}" aria-current="${s.id === S.focus}"><span class="nm">${s.name}</span><span class="ln">${statusHTML(d.st)}${fact}</span>${s.tier === 'sphere' ? '<span class="ln lbl">Terrain not modelled</span>' : ''}${s.variantOf ? `<span class="ln lbl">${s.variantM} m from the listed point <span class="tag var">chosen by TrueSouth</span></span>` : ''}</button></li>`;
   }).join('');
   $('#rail-mini').innerHTML = SITES.map(s => `<button data-site="${s.id}" aria-current="${s.id === S.focus}" aria-label="${s.name}, ${STATUS_WORD[detail(s.id, S.off).st]}" title="${s.name}">${lampHTML(detail(s.id, S.off).st)}</button>`).join('') +
     '<button aria-label="Add site" title="Add site"><svg class="i"><use href="#i-plus"/></svg></button>';
 }
 function renderFocus() {
   const s = siteById(S.focus), d = detail(S.focus, S.off), sphere = s.tier === 'sphere';
-  $('#f-h').innerHTML = `<h2>${s.name}</h2><p class="coords">${minus(s.lat.toFixed(4))}°, ${s.lon.toFixed(4)}° E · ${sphere ? 'sphere, no terrain' : s.tier + ' terrain'}</p><p class="sum" style="display:none">${statusHTML(d.st)}<span>${d.broken ? `${d.broken.name} ${d.broken.value} h, limit ${d.broken.limit} h` : 'Score ' + d.score}</span></p>`;
-  const verdict = d.st === 'nogo' ? `One rule is broken, so this landing date fails. Score <s>${d.score}</s> is not used.` : d.st === 'caution' ? `Every rule passes, but the score is ${d.score}, under the 70 needed for GO.` : `Every rule passes. Score ${d.score}.`;
-  let h = `<div class="verdict" role="status">${statusHTML(d.st)}<p>${verdict}</p></div>`;
+  $('#f-h').innerHTML = `<h2>${s.name}</h2><p class="coords">${minus(s.lat.toFixed(4))}°, ${s.lon.toFixed(4)}° E · ${sphere ? 'sphere, no terrain' : s.tier + ' terrain'}</p>${s.variantOf ? `<p class="coords">${s.variantM} m from ${siteById(s.variantOf).name}'s listed point <span class="tag var">chosen by TrueSouth</span> Its sunlight is an upper reading.</p>` : ''}<p class="sum" style="display:none">${statusHTML(d.st)}<span>${d.broken ? `${d.broken.name} ${d.broken.value} h, limit ${d.broken.limit} h` : 'Score ' + d.score}</span></p>`;
+  const verdict = d.st === 'none' ? 'No data: the mission window runs past the end of 2031.' : d.st === 'nogo' ? `One rule is broken, so this landing date fails. Score <s>${d.score}</s> is not used.` : d.st === 'caution' ? `Every rule passes, but the score is ${d.score}, under the 70 needed for GO.` : `Every rule passes. Score ${d.score}.`;
+  let h = `<div class="verdict" role="status">${statusHTML(d.st)}<p>${onMoon() ? `Landing ${fmtDay(LANDING0 + S.off * 864e5)}. ` : ''}${verdict}</p></div>`;
+  if (d.st === 'none') { $('#f-body').innerHTML = h; $('#focus-mini').innerHTML = `${lampHTML(d.st)}<span class="vline"><b>${s.name}</b> · No data</span>`; return; }
   if (d.broken) { const b = d.broken, pct = Math.min(100, b.value / Math.max(b.value, b.limit) * 100), lim = b.limit / Math.max(b.value, b.limit) * 100;
     h += `<section><h3 class="h3">Broken rule</h3><div class="broken"><div class="row"><span class="t">${lampHTML('nogo')}${b.name}</span><span class="m">${b.value}<span class="unit">h</span></span></div>
       <p class="l">Limit ${b.limit} h <span class="tag asm">assumed</span>. ${b.text}</p><div class="meter" aria-hidden="true"><i style="width:${pct}%"></i><u style="left:${lim}%"></u></div>
@@ -274,7 +315,7 @@ function renderTimeline() {
     <div class="ev">${s.link ? 'Earthset in' : 'Earthrise in'}</div><div class="cnt">${dur(c.he)}</div><div class="flag"></div>
     <div class="vals"><span>Elevation<b>${s.ee.toFixed(2)}°</b></span><span>Clearance<b>${s.ec.toFixed(2)}°</b></span></div></div>`;
 }
-function renderAll() { renderRail(); renderFocus(); renderTimeline(); renderSentence(); renderControls(); renderPcard(); if (S.win) renderWin(); }
+function renderAll() { renderRail(); renderFocus(); renderTimeline(); renderSentence(); renderControls(); renderPcard(); if (S.win) renderWin(); if (onMoon()) renderDates(); }
 
 /* ── time ── */
 function setHour(h) {
@@ -309,16 +350,18 @@ $('#speed').addEventListener('click', () => { const i = (SPEEDS.findIndex(s => s
 /* ── landing date ── */
 function setOff(off) {
   S.off = off; updateBodies(); renderAll();
+  if (onMoon()) buildOverlay();
   $('#landing').innerHTML = `<span class="d-long">${fmtISO(LANDING0 + off * 864e5)} <small>UTC</small></span><span class="d-short">${fmtDayY(LANDING0 + off * 864e5)}</span>`;
   if (scene) scene.invalidate();
 }
-$$('[data-slip]').forEach(b => b.addEventListener('click', () => { if (!S.slipFrom) S.slipFrom = { off: S.off }; setOff(S.off + +b.dataset.slip); }));
+$$('[data-slip]').forEach(b => b.addEventListener('click', () => { if (!S.slipFrom) S.slipFrom = { off: S.off }; setOff(Math.max(G0, Math.min(G0 + GN - 11, S.off + +b.dataset.slip))); }));
 
 /* ── focus ── */
 async function setFocus(id) {
   if (!id || id === S.focus && scene && scene.terr && scene.terr.site.id === id) { if (id === S.focus) return; }
   S.focus = id; const site = siteById(id);
   renderAll();
+  if (onMoon()) { buildOverlay(); if (scene) { scene.setSite(site); updateBodies(); scene.setGround(site, S.exag).then(() => scene.setSite(site)); } return; }
   if (scene) {
     scene.setSite(site); updateBodies();
     await scene.setGround(site, S.exag);
@@ -353,7 +396,7 @@ function closeWin(refocus = true) {
 }
 $$('.vt[data-win]').forEach(b => b.addEventListener('click', () => openWin(b.dataset.win)));
 $$('[data-close]').forEach(b => b.addEventListener('click', () => closeWin()));
-$$('.vt[data-view]').forEach(b => b.addEventListener('click', () => { if (S.win) closeWin(false); go(b.dataset.view); }));
+$$('.vt[data-view]').forEach(b => b.addEventListener('click', () => { if (S.win) closeWin(false); if (b.dataset.view === S.view && b.dataset.view === 'slip') return; go(b.dataset.view); }));
 $('.vt[data-view="polar"]').addEventListener('pointerenter', () => map.load());
 let slipCentre = null;
 function renderWin() {
@@ -391,7 +434,8 @@ const ov = $('#ov');
 let ovItems = [];
 function el(html, cls) { const d = document.createElement('div'); d.className = cls; d.innerHTML = html; ov.appendChild(d); return d; }
 function buildOverlay() {
-  ov.textContent = ''; ovItems = [];
+  ov.textContent = ''; ovItems = []; ov._map = false;
+  if (onMoon()) { buildSpots(); return; }
   if (stage.classList.contains('fallback')) return;
   const site = siteById(S.focus), s = series(S.focus, S.hour, S.off), v = S.view;
   if (v === 'polar') { drawOverlay(); return; }
@@ -436,6 +480,7 @@ function buildOverlay() {
   updateOverlay();
 }
 function updateOverlay() {
+  if (onMoon()) { updateSpots(); return; }
   if (!scene || S.view === 'polar' || stage.classList.contains('fallback')) return;
   const P = scene.project, st = scene.st, { W, H } = scene.size;
   const ins = insets();
@@ -578,12 +623,20 @@ $('#dopt').addEventListener('click', e => {
   const b = e.target.closest('button'), g = b && b.closest('[data-opt]'); if (!g) return;
   const k = g.dataset.opt, v = b.dataset.v; S.opt[k] = v;
   g.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  if (k === 'slip') {
+    setSlipEntry();
+    if (v === 'grid') { if (S.view === 'slip') go(S.prevView || 'system'); if (S.win !== 'slip') openWin('slip'); }
+    else { if (S.win === 'slip') closeWin(false); if (S.view !== 'slip') go('slip'); else { buildOverlay(); renderControls(); } }
+    b.focus(); return;
+  }
+  if (k === 'tl') { applyLayout(true); return; }
+  if (k === 'sites') { setScenario(SITE_SETS[v]); if (!SITES.some(q => q.id === S.focus)) S.focus = SITES[0].id; S.slipFrom = null; renderAll(); if (scene) { scene.setSite(siteById(S.focus)); updateBodies(); } kickSweep(); applyLayout(false); if (onMoon()) { if (stage.classList.contains('fallback') || !scene) flatSlip(); else refitSlip(reduced() ? 0 : 600); } else buildOverlay(); return; }
   if (k === 'surface') { document.body.classList.toggle('seethrough', v === 'see'); if (v === 'see') schedProbe(); else $$('.panel').forEach(p => p.style.removeProperty('--a')); }
   if (k === 'motion') document.body.classList.toggle('reduce', v === 'reduce');
   if (k === 'tex' && scene) scene.setMoonRes(v);
   if (k === 'state') {
-    if (v === 'still') showStill('Still picture: this is what a phone or a slow laptop sees when 3D is off.', true);
-    else hideStill();
+    if (v === 'still') { showStill('Still picture: this is what a phone or a slow laptop sees when 3D is off.', true); if (onMoon()) flatSlip(); }
+    else { const was = stage.classList.contains('fallback'); hideStill(); if (was && onMoon() && scene) go('slip', { instant: true }); }
     if (scene) scene.forceGrey(v === 'loading');
     $('#loading').classList.toggle('on', v === 'loading');
   }
@@ -594,11 +647,12 @@ function showStill(msg, demo) {
   stage.classList.add('fallback');
   let n = $('#still-note');
   if (!n) { n = document.createElement('div'); n.id = 'still-note'; n.className = 'note'; n.style.cssText = 'position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--bar-top) + var(--app-h) + 142px);max-width:min(640px,calc(100vw - 32px));pointer-events:auto;text-align:center'; $('#ui').appendChild(n); }
-  n.innerHTML = `${msg} The panels, timeline and windows still work. <span class="lbl">Picture taken at 03 Mar 15:00 UTC.</span>${scene && !demo ? ' <button class="btn" id="try3d" style="margin-left:6px">Try 3D anyway</button>' : ''}`;
+  n.innerHTML = onMoon() ? `3D is off, so your sites are shown on the flat Polar map. The spots, the landing dates and the panels work as in 3D.${scene && !demo ? ' <button class="btn" id="try3d" style="margin-left:6px">Try 3D anyway</button>' : ''}` : `${msg} The panels, timeline and windows still work. <span class="lbl">Picture taken at 03 Mar 15:00 UTC.</span>${scene && !demo ? ' <button class="btn" id="try3d" style="margin-left:6px">Try 3D anyway</button>' : ''}`;
   const t = $('#try3d'); if (t) t.addEventListener('click', hideStill);
   ov.textContent = '';
+  if (onMoon()) flatSlip();
 }
-function hideStill() { stage.classList.remove('fallback'); const n = $('#still-note'); if (n) n.remove(); buildOverlay(); scene && scene.invalidate(); }
+function hideStill() { stage.classList.remove('fallback'); const n = $('#still-note'); if (n) n.remove(); leaveFlat(); buildOverlay(); scene && scene.invalidate(); }
 
 /* ── keys ── */
 document.addEventListener('keydown', e => {
@@ -606,7 +660,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { if (popEl) { closePop(); return; } if (!$('#dopt').hidden) { $('#dopt').hidden = true; $('#dopt-b').setAttribute('aria-expanded', 'false'); $('#dopt-b').focus(); return; } if (S.win) { closeWin(); return; } }
   if (e.key === '[') { S.col.l = !S.col.l; applyLayout(); }
   if (e.key === ']') { S.col.r = !S.col.r; applyLayout(); }
-  if (S.win === 'slip' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && document.activeElement.closest('#win-slip')) { e.preventDefault(); if (!S.slipFrom) S.slipFrom = { off: S.off }; setOff(S.off + (e.key === 'ArrowRight' ? 1 : -1)); }
+  if (S.win === 'slip' && S.opt.slip === 'grid' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && document.activeElement.closest('#win-slip')) { e.preventDefault(); if (!S.slipFrom) S.slipFrom = { off: S.off }; setOff(S.off + (e.key === 'ArrowRight' ? 1 : -1)); }
 });
 
 /* ── keyboard on the 3D scene ── */
@@ -621,6 +675,210 @@ $('#gl').addEventListener('keydown', e => {
 $('#sites-btn').addEventListener('click', () => { const r = $('#rail'), open = !r.classList.contains('sheet-open'); r.classList.toggle('sheet-open', open); $('#sites-btn').setAttribute('aria-expanded', open); $('#focus').classList.remove('expanded'); });
 document.addEventListener('click', e => { if (phone.matches && e.target.closest('#rail .site')) { $('#rail').classList.remove('sheet-open'); $('#sites-btn').setAttribute('aria-expanded', 'false'); } });
 $('#focus').addEventListener('click', e => { if (phone.matches && e.target.closest('.f-h')) $('#focus').classList.toggle('expanded'); });
+
+/* ── the Slip Planner on the Moon ── */
+const datesUI = createDates($('#dates'), { S, setOff, setFocus: (id, o) => setFocus(id, o), lampHTML, statusHTML, relayout: () => applyLayout(true) });
+function datesH() {
+  if (S.col.d) return 52;
+  const el = $('#dates'); if (el.hidden) { el.hidden = false; datesUI.render(); const h = el.offsetHeight; el.hidden = true; return h; }
+  return el.offsetHeight || 220;
+}
+let dRaf = 0;
+function renderDates() { if (!onMoon()) return; datesUI.render(); const h = datesH(); if (Math.abs(h - (parseFloat(root.style.getPropertyValue('--dates-h')) || 0)) > 1) applyLayout(false); }
+function kickSweep() {
+  const n = S.dateSpan, d0 = S.dateD0 == null ? S.off - Math.round(n * .25) : S.dateD0;
+  startSweep(d0, d0 + n, () => { if (!onMoon() && S.win !== 'slip') return; cancelAnimationFrame(dRaf); dRaf = requestAnimationFrame(() => { if (onMoon()) datesUI.render(); else if (S.win === 'slip') renderWin(); }); });
+}
+/* which entry the view bar shows: the camera view (a, b) or the earlier floating window */
+function setSlipEntry() {
+  const grid = S.opt.slip === 'grid';
+  $('.vt[data-view="slip"]').hidden = grid; $('.vt[data-win="slip"]').hidden = !grid;
+}
+
+/* the camera for the Slip Planner: over the selected polar sites, tilted so the Moon's curve shows */
+function slipPose() {
+  const T = scene.THREE, polar = SITES.filter(s => s.tier !== 'sphere');
+  const pts = (polar.length ? polar : [siteById('cr')]).map(s => polarXY(s.lat, s.lon));
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const [x, y] of pts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, [cla, clo] = polarLatLon(cx, cy);
+  const C = scene.surfPoint(cla, clo, 0), U = C.clone().normalize();
+  // the camera stands on the pole's side of the sites, so the crowded sites near the pole are nearest
+  const pole = new T.Vector3(0, -1, 0);
+  let hp = pole.clone().sub(U.clone().multiplyScalar(pole.dot(U)));
+  if (hp.lengthSq() < 1e-10 || Math.hypot(cx, cy) < 2000) hp = scene.frameOf(U).n.clone().negate(); hp.normalize();
+  const el = 30 * D2R, dir = U.clone().multiplyScalar(Math.sin(el)).add(hp.clone().multiplyScalar(Math.cos(el))).normalize();
+  const look0 = dir.clone().negate(), right = look0.clone().cross(U).normalize(), up0 = right.clone().cross(look0).normalize();
+  // aim a little above the sites, so they sit low in the free space and the Moon's curve shows above them
+  const ins0 = insets(), pa = .2 * (ins0.H - ins0.t - ins0.b) / ins0.H * 30 * D2R, look = look0.clone().multiplyScalar(Math.cos(pa)).add(up0.clone().multiplyScalar(Math.sin(pa))), up = up0.clone().multiplyScalar(Math.cos(pa)).sub(look0.clone().multiplyScalar(Math.sin(pa)));
+  // fit: the sites and 30 km around them inside the free space, with room for the labels
+  const ring = [];
+  const rr = polar.length <= 2 ? 70000 : 16000;
+  for (const [x, y] of pts) for (let a = 0; a < 8; a++) { const q = polarLatLon(x + rr * Math.cos(a * Math.PI / 4), y + rr * Math.sin(a * Math.PI / 4)); ring.push(scene.surfPoint(q[0], q[1], 0)); }
+  const saved = scene.pose(), ins = insets(), { W, H } = scene.size;
+  const fits = D => { scene.applyPose({ pos: C.clone().add(dir.clone().multiplyScalar(D)), look, up, fov: 30 });
+    return ring.every(p => { const q = scene.project(p); return q.front && q.x > ins.l + 90 && q.x < W - ins.r - 90 && q.y > ins.t + 40 && q.y < H - ins.b - 16; }); };
+  let lo = 60000 / R_MOON_M, hi = 2400000 / R_MOON_M;
+  for (let i = 0; i < 22; i++) { const m = Math.sqrt(lo * hi); if (fits(m)) hi = m; else lo = m; }
+  scene.applyPose(saved);
+  const D = hi;
+  // a fixed light from the top left of this view, 55° up: a drawing light, never the real Sun
+  const L = U.clone().multiplyScalar(1).add(right.clone().multiplyScalar(-.55)).add(hp.clone().multiplyScalar(-.45)).normalize();
+  return { pos: C.clone().add(dir.clone().multiplyScalar(D)), look, up, fov: 30, C, U, L };
+}
+function refitSlip(ms) {
+  if (!onMoon()) return;
+  if (!scene || stage.classList.contains('fallback')) { flatSlip(); return; }
+  const P = slipPose(); scene.setOrbit(P.C, P.U); scene.flyTo(P, ms, () => { scene.setSlip(1, P.L); buildOverlay(); });
+}
+
+/* when 3D is off: the same spots on the flat Polar map, which needs no WebGL */
+function flatSlip() {
+  if (!onMoon()) return;
+  S.fbMap = true; stage.classList.add('flatok'); stage.dataset.layer = 'map';
+  map.setNames(false); map.setOverlay(S.avg ? 'sun' : 'none'); map.setOpacity(1); map.setDim(S.avg ? .62 : 0);
+  const note = $('#still-note');
+  if (note) note.innerHTML = `3D is off, so your sites are shown on the flat Polar map. The spots, the landing dates and the panels work as in 3D.${scene && !S.opt.state.startsWith('still') && S.opt.state !== 'still' ? ' <button class="btn" id="try3d" style="margin-left:6px">Try 3D anyway</button>' : ''}`;
+  const t3 = $('#try3d'); if (t3) t3.addEventListener('click', hideStill);
+  map.load().then(() => {
+    const ins = sceneInsets(), W = innerWidth, H = innerHeight, polar = SITES.filter(s => s.tier !== 'sphere');
+    const nb = $('#still-note'); if (nb) ins.t = Math.max(ins.t, nb.getBoundingClientRect().bottom + 24);
+    const pts = (polar.length ? polar : [siteById('cr')]).map(s => polarXY(s.lat, s.lon));
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const [x, y] of pts) { x0 = Math.min(x0, x - 30000); x1 = Math.max(x1, x + 30000); y0 = Math.min(y0, y - 30000); y1 = Math.max(y1, y + 30000); }
+    const sc = Math.max(Math.min((W - ins.l - ins.r - 180) / (x1 - x0), (H - ins.t - ins.b - 60) / (y1 - y0)), (W - ins.l - ins.r + 32) / 608000);
+    map.setInsets(ins); map.setView((x0 + x1) / 2, (y0 + y1) / 2, sc); buildOverlay(); setTimeout(() => map.draw(), 50);
+  });
+}
+function leaveFlat() { if (!S.fbMap) return; S.fbMap = false; stage.classList.remove('flatok'); map.setOverlay(S.overlay); map.setOpacity(S.opacity); map.setDim(0); map.setNames(S.names); stage.dataset.layer = S.view === 'polar' ? 'map' : 'gl'; }
+
+/* spots: one per selected site, its look says its status on the slider's date */
+let spots = [];
+const SVGNS = 'http://www.w3.org/2000/svg';
+const glyph = st => `<use href="#g-${st === 'none' ? 'none' : st}" x="-6" y="-6" width="12" height="12" class="gl"/>`;
+function spotSVG(v, foc) {
+  if (S.opt.slip === 'b') return `<svg class="sg" viewBox="-16 -16 32 32" aria-hidden="true"><circle r="8" class="core"/>${glyph(v.st)}${foc ? '<circle r="11" class="foc"/>' : ''}</svg>`;
+  const arc = v.st === 'go' || v.st === 'caution' ? `<circle r="12" class="arc" pathLength="100" stroke-dasharray="${v.score} 100" transform="rotate(-90)"/>` : '';
+  return `<svg class="sg" viewBox="-16 -16 32 32" aria-hidden="true"><circle r="${foc ? 18.6 : 13.5}" class="back"/><circle r="12" class="trk"/>${arc}<circle r="8" class="disc"/>${glyph(v.st)}${foc ? '<circle r="17.5" class="foc"/>' : ''}</svg>`;
+}
+function buildSpots() {
+  spots = [];
+  const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'ovsvg'); svg.setAttribute('aria-hidden', 'true');
+  svg.innerHTML = `<g class="patches"></g><g class="leaders"></g>`;
+  ov.appendChild(svg);
+  const from = S.slipFrom && S.slipFrom.off !== S.off ? S.slipFrom.off : null;
+  const best = bestAt(S.off), isBest = s => best && best.s.id === s.id && best.v.st !== 'nogo';
+  const off = [];
+  for (const s of SITES) {
+    const v = vAt(s.id, S.off), prev = from != null ? vAt(s.id, from) : null, changed = !!prev && prev.st !== v.st, foc = s.id === S.focus;
+    if (s.tier === 'sphere') { off.push({ s, v, prev, changed, foc }); continue; }
+    const b = document.createElement('button');
+    b.className = `spot v${S.opt.slip === 'b' ? 'b' : 'a'} ${v.st}${foc ? ' on' : ''}`; b.dataset.site = s.id; b.tabIndex = -1;
+    const why = v.broken ? `${v.broken.name === 'Longest dark' ? 'Dark' : 'Blackout'} ${v.broken.value} h, limit ${v.broken.limit} h` : v.st === 'none' ? 'No data' : `Score ${v.score}`;
+    const lines = [], loud = foc || changed || isBest(s);
+    if (s.variantOf) lines.push(`${s.variantM} m from ${siteById(s.variantOf).name} <span class="tag var">chosen by TrueSouth</span>`);
+    if (foc || changed) lines.push(why);
+    if (changed) lines.push(`was ${statusHTML(prev.st)}`);
+    b.setAttribute('aria-label', `${s.name}, ${STATUS_WORD[v.st]}, ${why}${changed ? `, was ${STATUS_WORD[prev.st]}` : ''}${isBest(s) ? ', best on this date' : ''}`);
+    b.innerHTML = spotSVG(v, foc) + `<span class="pl plate"><span class="l1"><b>${s.short || s.name}</b>${loud ? ` <span class="status ${v.st}">${STATUS_WORD[v.st]}</span>` : ''}${isBest(s) ? '<span class="best">best</span>' : ''}</span>${lines.map(l => `<small>${l}</small>`).join('')}</span>`;
+    ov.appendChild(b);
+    const sp = { s, v, prev, changed, foc, el: b, pl: b.querySelector('.pl'), pri: (foc ? 8 : 0) + (isBest(s) ? 4 : 0) + (changed ? 2 : 0) + (s.variantOf ? 0 : 1) };
+    if (S.opt.slip === 'b') { const e = document.createElementNS(SVGNS, 'ellipse'); e.setAttribute('rx', 1); e.setAttribute('ry', 1); e.setAttribute('fill', `var(--status-${v.st === 'none' ? 'nogo' : v.st})`); e.style.fill = `var(--status-${v.st === 'none' ? 'nogo' : v.st})`; e.setAttribute('opacity', v.st === 'go' || v.st === 'caution' ? (.15 + .55 * v.score / 100).toFixed(2) : v.st === 'nogo' ? .22 : 0); svg.querySelector('.patches').appendChild(e); sp.patch = e; }
+    spots.push(sp);
+  }
+  // sites far from the pole: a note in the corner of the free space
+  for (const o of off) {
+    const b = document.createElement('button'); b.className = 'offview plate' + (o.foc ? ' on' : ''); b.dataset.site = o.s.id; b.tabIndex = -1;
+    b.innerHTML = `${lampHTML(o.v.st)}<span><b>${o.s.name}</b> <span class="status ${o.v.st}">${STATUS_WORD[o.v.st]}</span>${o.changed ? ` <small class="inl">was ${STATUS_WORD[o.prev.st]}</small>` : ''}<small>Near the equator, far off this view</small></span>`;
+    b.setAttribute('aria-label', `${o.s.name}, ${STATUS_WORD[o.v.st]}. Near the equator, far off this view.`);
+    ov.appendChild(b); spots.push({ s: o.s, el: b, offview: true });
+  }
+  updateSpots();
+}
+/* where a site is on screen, in 3D or on the flat map */
+function projector() {
+  if (S.fbMap || !scene) return (lat, lon) => { const [x, y] = polarXY(lat, lon), q = map.toScr(x, y); return { x: q.x, y: q.y, ok: true }; };
+  return (lat, lon) => { const p = scene.surfPoint(lat, lon, 0), q = scene.project(p); return { x: q.x, y: q.y, ok: q.front && scene.facing(p) }; };
+}
+function updateSpots() {
+  if (!onMoon() || !spots.length) return;
+  const P = projector(), ins = sceneInsets(), W = innerWidth, H = innerHeight;
+  const lead = ov.querySelector('.ovsvg .leaders'); if (lead) lead.innerHTML = '';
+  const pts = spots.filter(q => !q.offview);
+  for (const q of pts) { const p = P(q.s.lat, q.s.lon); q.ax = p.x; q.ay = p.y; q.ok = p.ok; q.x = p.x; q.y = p.y; q.moved = false; }
+  // spots closer than 26 px: the lower one in priority steps aside, with a leader back to its true place
+  const order = [...pts].sort((a, b) => b.pri - a.pri), placed = [];
+  const R = 15, MIN = 2 * R - 2;
+  for (const q of order) {
+    if (!q.ok) continue;
+    const near = placed.find(o => Math.hypot(o.x - q.ax, o.y - q.ay) < MIN);
+    if (near) {
+      const base = Math.atan2(q.ay - near.ay, q.ax - near.ax) || -Math.PI / 4;
+      const tries = [0, -.6, .6, -1.2, 1.2, -1.9, 1.9, Math.PI].map(d => base + d);
+      for (const dist of (q.s.variantOf ? [40, 52, 64] : [34, 46, 58])) { const t = tries.find(a => { const x = near.x + Math.cos(a) * dist, y = near.y + Math.sin(a) * dist; return placed.every(o => Math.hypot(o.x - x, o.y - y) >= MIN); }); if (t != null) { q.x = near.x + Math.cos(t) * dist; q.y = near.y + Math.sin(t) * dist; q.moved = true; break; } }
+    }
+    placed.push(q);
+  }
+  // leaders and true-position dots for spots that stepped aside
+  if (lead) lead.innerHTML = pts.filter(q => q.ok && q.moved).map(q => { const a = Math.atan2(q.y - q.ay, q.x - q.ax), ex = q.x - Math.cos(a) * (R - 1), ey = q.y - Math.sin(a) * (R - 1);
+    return `<line x1="${q.ax.toFixed(1)}" y1="${q.ay.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" class="ldh"/><line x1="${q.ax.toFixed(1)}" y1="${q.ay.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" class="ld"/><circle cx="${q.ax.toFixed(1)}" cy="${q.ay.toFixed(1)}" r="2.6" class="ldot"/>`; }).join('');
+  // patches (variant b), foreshortened like a circle lying on the ground
+  if (S.opt.slip === 'b') for (const q of pts) {
+    if (!q.patch) continue;
+    if (!q.ok) { q.patch.setAttribute('visibility', 'hidden'); continue; }
+    const la = q.s.lat, lo = q.s.lon, dLat = 1 / 1737.4 / D2R, dLon = dLat / Math.max(.004, Math.cos(la * D2R));
+    const e = P(la, lo + dLon), n = P(la + dLat, lo), ex = e.x - q.ax, ey = e.y - q.ay, nx = n.x - q.ax, ny = n.y - q.ay;
+    const k = 26 / Math.max(1e-6, Math.max(Math.hypot(ex, ey), Math.hypot(nx, ny)));
+    q.patch.setAttribute('visibility', 'visible');
+    q.patch.setAttribute('transform', `matrix(${ex * k} ${ey * k} ${nx * k} ${ny * k} ${q.x} ${q.y})`);
+  }
+  // labels: right, left, above or below, never over another spot or label; else the lamp alone
+  const nt = $('#still-note'), topLim = Math.max(ins.t - 10, nt ? nt.getBoundingClientRect().bottom + 4 : 0);
+  const boxes = placed.filter(q => q.ok).map(q => ({ l: q.x - R, r: q.x + R, t: q.y - R, b: q.y + R }));
+  const hit = bx => boxes.some(o => bx.l < o.r && bx.r > o.l && bx.t < o.b && bx.b > o.t) || bx.l < Math.max(6, ins.l - 8) || bx.r > Math.min(W - 6, W - ins.r + 8) || bx.t < topLim || bx.b > H - ins.b + 2;
+  for (const q of order) {
+    const el = q.el;
+    if (!q.ok) { el.style.visibility = 'hidden'; continue; }
+    el.style.visibility = 'visible'; el.style.left = q.x.toFixed(1) + 'px'; el.style.top = q.y.toFixed(1) + 'px';
+    q.pl.hidden = false; const w = q.pl.offsetWidth || 120, h = q.pl.offsetHeight || 22, g = R + 4; // measure while shown
+    const cands = { r: { l: q.x + g, r: q.x + g + w, t: q.y - h / 2, b: q.y + h / 2 }, l: { l: q.x - g - w, r: q.x - g, t: q.y - h / 2, b: q.y + h / 2 },
+      t: { l: q.x - w / 2, r: q.x + w / 2, t: q.y - g - h, b: q.y - g }, b: { l: q.x - w / 2, r: q.x + w / 2, t: q.y + g, b: q.y + g + h } };
+    q.pl.style.removeProperty('--cx'); q.pl.style.removeProperty('--cy');
+    const side = ['r', 'l', 'b', 't'].find(k => !hit(cands[k]));
+    if (side) { el.dataset.side = side; boxes.push(cands[side]); q.pl.hidden = false; continue; }
+    // no room beside the spot: a callout further out, with a hairline back to the spot
+    let co = null;
+    for (const d of [56, 84, 112]) { for (const a of [-30, 30, -150, 150, -60, 60, -120, 120]) {
+      const r = a * D2R, cx = q.x + Math.cos(r) * d, cy = q.y + Math.sin(r) * d, right = Math.cos(r) >= 0;
+      const bx = { l: right ? cx : cx - w, r: right ? cx + w : cx, t: cy - h / 2, b: cy + h / 2 };
+      if (!hit(bx)) { co = { bx, cx, cy, right }; break; } } if (co) break; }
+    if (co) {
+      el.dataset.side = 'c'; boxes.push(co.bx); q.pl.hidden = false;
+      q.pl.style.setProperty('--cx', `${(co.right ? co.bx.l : co.bx.l) - q.x}px`); q.pl.style.setProperty('--cy', `${co.bx.t - q.y}px`);
+      const ex = co.right ? co.bx.l : co.bx.r, a = Math.atan2(co.cy - q.y, ex - q.x);
+      const ln = `x1="${(q.x + Math.cos(a) * (R + 1)).toFixed(1)}" y1="${(q.y + Math.sin(a) * (R + 1)).toFixed(1)}" x2="${ex.toFixed(1)}" y2="${co.cy.toFixed(1)}"`;
+      if (lead) lead.insertAdjacentHTML('beforeend', `<line ${ln} class="ldh"/><line ${ln} class="ld co"/>`);
+    }
+    else if (q.foc) { el.dataset.side = 'r'; boxes.push(cands.r); q.pl.hidden = false; }
+    else { q.pl.hidden = true; el.title = q.pl.textContent.replace(/\s+/g, ' ').trim(); }
+  }
+  // the far sites' note sits in the top left of the free space
+  const sn = $('#still-note'), wb = Math.max($('#what').getBoundingClientRect().bottom, sn ? sn.getBoundingClientRect().bottom : 0); let oy = Math.max(ins.t + 6, wb + 10);
+  for (const q of spots.filter(o => o.offview)) { q.el.style.left = (ins.l + 4) + 'px'; q.el.style.top = oy + 'px'; oy += q.el.offsetHeight + 8; }
+}
+
+/* before and after a slip, at the foot of the free space */
+function renderSlipSum() {
+  const el = $('#slipsum'); if (!el) return;
+  el.hidden = !onMoon(); if (!onMoon()) return;
+  const from = S.slipFrom && S.slipFrom.off !== S.off ? S.slipFrom.off : null;
+  if (from == null) { el.hidden = true; el.innerHTML = ''; return; }
+  const dd = S.off - from, changed = SITES.filter(s => vAt(s.id, from).st !== vAt(s.id, S.off).st);
+  const b1 = bestAt(S.off), b0 = bestAt(from);
+  const bestTxt = b1 && b1.v.st !== 'nogo' ? `Best now: <b>${b1.s.name}</b>, ${statusHTML(b1.v.st)} score ${b1.v.score}${b0 && b0.s.id !== b1.s.id && b0.v.st !== 'nogo' ? ` <span class="was">(was ${b0.s.name})</span>` : ''}.` : 'No site is GO or CAUTION on this date.';
+  el.classList.add('on');
+  el.innerHTML = `<span><b>Slipped ${dd > 0 ? '+' : '−'}${Math.abs(dd)} d</b>, ${fmtDay(LANDING0 + from * 864e5)} → ${fmtDayY(LANDING0 + S.off * 864e5)}. ${changed.length ? `${changed.length} of ${SITES.length} sites changed.` : 'No site changed.'} ${bestTxt}</span><button class="ib" data-act="clearslip" aria-label="Clear the before and after"><svg class="i"><use href="#i-x"/></svg></button>`;
+}
 
 /* ── start ── */
 const loadingEl = document.createElement('div'); loadingEl.id = 'loading'; loadingEl.className = 'loading note'; loadingEl.textContent = 'Loading NASA\'s Moon and Earth maps…'; $('#ui').appendChild(loadingEl);
@@ -645,9 +903,11 @@ if (scene) {
   if (params.has('still')) showStill('Still picture: this is what a phone or a slow laptop sees when 3D is off.', true);
   if (params.get('surface') === 'see') $('[data-opt="surface"] [data-v="see"]').click();
   if (params.has('collapsed')) { S.col = { l: true, r: true, t: true }; applyLayout(false); }
+  if (params.get('sites') && SITE_SETS[params.get('sites')]) $(`[data-opt="sites"] [data-v="${params.get('sites')}"]`).click();
+  if (params.get('slip')) { const ob = $(`[data-opt="slip"] [data-v="${params.get('slip')}"]`); if (ob) { S.opt.slip = params.get('slip'); $$('[data-opt="slip"] button').forEach(x => x.setAttribute('aria-pressed', x === ob)); setSlipEntry(); } }
   if (params.get('win')) openWin(params.get('win'));
   if (params.has('clean')) { $('#ui').style.display = 'none'; ov.style.display = 'none'; scene.flyTo(scene.poses().home, 0); scene.st.noSight = true; }
 }
-window.__ts = { S, scene, map, go, setHour, setFocus, setOff, openWin, runProbe };
+window.__ts = { S, scene, map, go, setHour, setFocus, setOff, openWin, runProbe, vAt, detail, bestAt, SITES, datesUI: () => datesUI, slipPose: () => scene && slipPose(), buildOverlay, pendingDays, sweepProgress };
 phone.addEventListener('change', () => { applyLayout(false); renderAll(); });
 window.addEventListener('resize', () => { applyLayout(false); if (S.win) renderWin(); });
