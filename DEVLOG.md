@@ -264,7 +264,7 @@ each integration checkpoint.
   checked by the agent with the tests, typecheck and build, the impeccable detector
   (0 findings), and by eye in a browser at 1440 × 900 and 390 × 844 with reduce motion
   on and off. A human has not played it yet.
-- **State:** built, not verified
+- **State:** verified (orchestrator ran typecheck, 1,145 tests and build on the merge with main and looked at the screens; Antigravity, gemini-4-hydrogen reviewed the rules, ran eight mutations and measured the screens in a browser; its three must-fix findings were fixed by the orchestrator)
 - **Changed:** `web/src/features/academy/`, `web/src/components/luna/` (no-bounce mood
   change; proud, cheering and worried extras recoloured to the C2 rules),
   `docs/academy/overview.md`, the Academy block in `web/src/app/theme.css`, `DESIGN.md`,
