@@ -210,6 +210,13 @@ each integration checkpoint.
 
 ## Mission Control
 
+#### 2026-11-13 · specs · Mission Control specs rewritten for the space-first layout
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-sonnet-5-5 — rewrote the Mission Control, System view, Polar map, Local terrain, Lander's eye, Slip Planner, Compare and site-detail specs, `DESIGN.md`, the build plan and two track guides, and wrote decision 0013, from the team lead's decision and the designer's notes and prototype — read back against the prototype's code and notes; the "Proposed:" items are listed in the pull request for the team lead to accept or change; no human has reviewed it yet
+- **State:** built, not verified
+- **Changed:** `docs/decisions/0013-space-first-mission-control.md`, `docs/features/` (mission-control, system-view, polar-map, local-terrain, panorama, slip-planner, compare, site-detail), `DESIGN.md`, `docs/build-plan.md`, `docs/tracks/mission-control.md`, `docs/tracks/3d-and-map.md`, `docs/data-contracts.md` (a "Proposed: scene image files" section), `CONTEXT.md` (new terms), this entry
+- **Notes:** Documents only. New work packages: MC4c (the floating shell) and S16 (the scene's image files; its contract is not written yet). T8, the custom-site job queue in S10, S11 and A6 are marked out of scope for the deadline. No code, no `contracts.py`, no prototype changes.
+
 #### 2026-11-13 · MC7a · Slip sweep in a Web Worker
 - **Who:** Cursor agent, for the orchestrator
 - **AI use:** Cursor, grok-4.7 — wrote the sweep worker, the message handler, the client and `useSweeps`, with vitest tests — agent ran `pnpm --dir web typecheck`, `pnpm --dir web test` and `pnpm --dir web build`; a human has not reviewed it yet
