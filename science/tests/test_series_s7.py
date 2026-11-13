@@ -79,3 +79,24 @@ def test_series_preserves_hourly_radius_changes():
     columns = build_series(0, 0, 0, np.full(1440, .1), data).columns
     assert np.all(np.diff(columns['sun_frac']) < 0)
     assert np.all(np.diff(columns['earth_frac']) < 0)
+
+
+def test_clearance_interpolates_between_bins():
+    # A skyline that alternates 0 and 2 degrees from bin to bin, so every point between two
+    # bin centres has a different value from its nearest bin. Two of the synthetic hours sit
+    # off the bin centres: azimuth 359.9 is 0.6 of the way from bin 1439 (2 degrees) to
+    # bin 0 (0 degrees), so the skyline there is 0.8; azimuth 0.1 is 0.4 of the way from
+    # bin 0 (0 degrees) to bin 1 (2 degrees), so it is 0.8 as well. The nearest bin to both
+    # is bin 0, which would give 0. The expected values are worked out by hand here, not by
+    # calling an interpolation routine.
+    global_data, az, el = synthetic_ephemeris()
+    skyline = (np.arange(1440) % 2) * 2.
+    result = build_series(0., 0., 4321., skyline, global_data)
+    assert az[9] == 359.9 and az[10] == .1
+    for body in ('sun', 'earth'):
+        clear = result.columns[body+'_clear']
+        np.testing.assert_allclose(clear[9], el[9] - .8, atol=1e-9)
+        np.testing.assert_allclose(clear[10], el[10] - .8, atol=1e-9)
+        # On a bin centre the skyline is the bin's own value: 0 at azimuth 0 (bin 0) and at
+        # azimuth 90 (bin 360).
+        np.testing.assert_allclose(clear[[0, 2]], el[[0, 2]], atol=1e-9)
