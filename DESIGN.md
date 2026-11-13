@@ -194,8 +194,9 @@ A grey instrument whose only hues are data.
 
 ### Tertiary
 - **GO Green** (`status-go`), **CAUTION Amber** (`status-caution`), **NO-GO Red**
-  (`status-nogo`): statuses only, plus the amber "under 6 h" countdown and red
-  broken-rule outlines. Always paired with a word or a glyph.
+  (`status-nogo`): statuses only, plus the amber "under 6 h" countdown, red
+  broken-rule outlines, and the Academy's green "Correct" check (see "Academy scale").
+  Always paired with a word or a glyph.
 
 ### Neutral
 - **Night** (`bg`): the page and the gutters between panels.
@@ -307,6 +308,32 @@ not in the scenario or the URL.
 
 Close-study and Academy pages use a 1440px maximum width with 32px page padding and 24px
 panel padding. Spacing follows the scale: 4, 8, 12, 16, 24, 32 and 48px.
+
+### Academy scale
+
+The Academy uses the same colours and the same Mission Control shell grid (panels 8px
+apart, 14px corners), with more air. These tokens are in the "Academy" block of
+`web/src/app/theme.css`. They come from the designer's notes,
+`design/variants/c2-academy.md`.
+
+| Token | Value | Use |
+| :--- | :--- | :--- |
+| `--t-ac` | 18px | Lesson body and answers |
+| `--t-ac-min` | 16px | The floor for lesson text on a phone |
+| `--t-ac-say` | 20px | Luna's current bubble |
+| `--t-ac-title` | 28px | Path and lesson titles |
+| `--r-xl` | 20px | Academy cards and bubbles |
+| `--s8` | 64px | Large Academy spacing |
+| `--h-xl` | 56px | Big buttons: Check, Continue, Start, Next |
+| `--h-opt` | 64px | Answer options (56px in the lesson's conversation panel) |
+| `--ease-ac` | `cubic-bezier(.16,1,.3,1)` | All Academy motion. An ease-out with no bounce. |
+
+`--ease-ac` has its own name because `--ease-out` is already Mission Control's curve.
+
+**The Academy's "correct" mark** is a GO Green check glyph with the word "Correct". It is a
+bare check, never a filled disc, so it cannot be read as a status lamp. A miss is never
+red: the missed answer is dashed and crossed out. An answer that had to be shown gets a
+grey ring with an eye.
 
 ## Elevation & Depth
 

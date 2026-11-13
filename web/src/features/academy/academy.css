@@ -1,0 +1,1892 @@
+/*
+  The Academy, direction C2, in the forms the team lead picked on 2026-11-13:
+  the path is variant b (a spiral to the pole), the lesson is variant b (a split stage),
+  and lesson complete is variant a (one column).
+  Specs: design/variants/c2-academy.md and the academy-path, academy-lesson and
+  academy-complete prototypes in design/variants.
+  Tokens only: every colour, size and curve is a var() from web/src/app/theme.css.
+  Phone rules apply under 600px.
+*/
+
+/* ── The screen ──────────────────────────────────────────────────────────── */
+
+.ac-screen {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--t-ac);
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.ac-screen--fixed {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.ac-screen :focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.ac-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  min-height: 0;
+  position: relative;
+}
+
+.ac-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.ac-btn {
+  height: var(--h-xl);
+  padding: 0 28px;
+  border-radius: var(--r-pill);
+  font-size: var(--t-xl);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  text-decoration: none;
+  transition:
+    background-color var(--dur-fast) var(--ease-ac),
+    color var(--dur-fast) var(--ease-ac),
+    transform 100ms var(--ease-ac);
+}
+
+.ac-btn svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.ac-btn--primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.ac-btn--primary:hover:not(:disabled) {
+  background: var(--sun-core);
+}
+
+.ac-btn--primary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.ac-btn--secondary {
+  background: var(--surface);
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.ac-btn--secondary:hover:not(:disabled) {
+  background: var(--hover);
+}
+
+.ac-btn--compact {
+  height: 48px;
+  padding: 0 20px;
+  font-size: var(--t-lg);
+}
+
+.ac-btn:disabled {
+  background: var(--raised);
+  color: var(--ink-4);
+  border-color: var(--line);
+  cursor: not-allowed;
+}
+
+.ac-quiet {
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--r-md);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-2);
+  font-size: var(--t-lg);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-fast) var(--ease-ac),
+    color var(--dur-fast) var(--ease-ac);
+}
+
+.ac-quiet:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.ac-quiet svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.ac-icon-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-pill);
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+  flex: none;
+  transition:
+    background-color var(--dur-fast) var(--ease-ac),
+    color var(--dur-fast) var(--ease-ac);
+}
+
+.ac-icon-btn:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.ac-icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.ac-kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: var(--r-sm);
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+  line-height: 1;
+  background: var(--surface);
+}
+
+.ac-keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--t-md);
+  color: var(--ink-3);
+}
+
+/* ── Marks: correct, retry, shown ────────────────────────────────────────── */
+
+/* A bare GO-green check: a mark, never a filled disc, so it is not a status lamp. */
+.ac-correct {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--status-go);
+  flex: none;
+}
+
+.ac-correct svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 3;
+}
+
+.ac-ring {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-2);
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  color: var(--ink-2);
+}
+
+.ac-ring svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.2;
+}
+
+/* ── Stars ───────────────────────────────────────────────────────────────── */
+
+.ac-stars {
+  display: inline-flex;
+  gap: 3px;
+  vertical-align: middle;
+}
+
+.ac-stars svg {
+  display: block;
+}
+
+/* ── Luna's bubbles and the learner's replies ───────────────────────────── */
+
+.ac-say {
+  position: relative;
+  margin: 0;
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-xl);
+  padding: 14px 20px;
+  font-size: var(--t-ac);
+  line-height: 1.4;
+  color: var(--ink);
+  max-width: 560px;
+  overflow-wrap: anywhere;
+  transition:
+    font-size 200ms var(--ease-ac),
+    color 200ms var(--ease-ac),
+    background-color 200ms var(--ease-ac),
+    border-color 200ms var(--ease-ac);
+}
+
+.ac-msg {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.ac-msg .ac-say {
+  border-bottom-left-radius: var(--r-sm);
+}
+
+.ac-msg--new .ac-say {
+  font-size: var(--t-ac-say);
+}
+
+.ac-msg--old .ac-say {
+  color: var(--ink-2);
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+.ac-msg--old .ac-msg-luna {
+  visibility: hidden;
+}
+
+.ac-msg-luna {
+  flex: none;
+}
+
+.ac-me {
+  align-self: flex-end;
+  margin: 0;
+  border: 1.5px solid var(--accent);
+  border-radius: var(--r-xl);
+  border-bottom-right-radius: var(--r-sm);
+  padding: 10px 18px;
+  font-size: var(--t-ac);
+  color: var(--ink);
+  max-width: 420px;
+  overflow-wrap: anywhere;
+}
+
+.ac-me--miss {
+  border-style: dashed;
+  border-color: var(--ink-3);
+  color: var(--ink-2);
+}
+
+/* ── Answer options ──────────────────────────────────────────────────────── */
+
+.ac-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ac-opt {
+  width: 100%;
+  min-height: var(--h-opt);
+  padding: 10px 18px 10px 14px;
+  border-radius: var(--r-lg);
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: var(--t-ac);
+  line-height: 1.3;
+  color: var(--ink);
+  text-align: left;
+  transition:
+    background-color var(--dur-fast) var(--ease-ac),
+    box-shadow var(--dur-fast) var(--ease-ac),
+    opacity var(--dur-fast) var(--ease-ac);
+}
+
+.ac-opt:hover:not(:disabled) {
+  background: var(--hover);
+}
+
+.ac-opt-key {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line-strong);
+  display: grid;
+  place-items: center;
+  font-size: var(--t-md);
+  color: var(--ink-3);
+  flex: none;
+  transition:
+    background-color var(--dur-fast) var(--ease-ac),
+    color var(--dur-fast) var(--ease-ac);
+}
+
+.ac-opt-label {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ac-opt-note {
+  font-size: var(--t-lg);
+  color: var(--ink-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.ac-opt[data-state="selected"],
+.ac-opt[data-state="answer"] {
+  box-shadow: inset 0 0 0 2px var(--accent);
+  background: var(--hover);
+}
+
+.ac-opt[data-state="selected"] .ac-opt-key {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+.ac-opt[data-state="answer"] .ac-opt-note {
+  color: var(--ink);
+}
+
+.ac-opt[data-state="missed"] {
+  background: var(--surface);
+  border-style: dashed;
+  color: var(--ink-2);
+}
+
+.ac-opt[data-state="missed"] .ac-opt-label {
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-3);
+}
+
+.ac-opt[data-state="dimmed"] {
+  opacity: 0.55;
+}
+
+.ac-opt:disabled {
+  cursor: default;
+}
+
+/* In the conversation panel the options are 56px. */
+.ac-answers .ac-opt {
+  min-height: 56px;
+}
+
+/* ── Lesson: top bar ─────────────────────────────────────────────────────── */
+
+.ac-lt {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 64px;
+  padding: 0 16px 0 10px;
+  flex: none;
+}
+
+.ac-lt-a {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ac-lt-b {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ac-lt-title {
+  font-size: var(--t-lg);
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+  margin: 0;
+  font-weight: 400;
+}
+
+.ac-prog {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+  max-width: 320px;
+  min-width: 80px;
+}
+
+.ac-prog i {
+  flex: 1;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--hover);
+  transition: background-color var(--dur-panel) var(--ease-ac);
+}
+
+.ac-prog i[data-done="true"] {
+  background: var(--accent);
+}
+
+.ac-prog i[data-now="true"] {
+  background: var(--ink-3);
+}
+
+.ac-stepn {
+  font-size: var(--t-lg);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.ac-pip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ac-pip-name {
+  font-size: var(--t-lg);
+  color: var(--ink-3);
+}
+
+.ac-meter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--t-lg);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.ac-meter svg {
+  width: 18px;
+  height: 18px;
+}
+
+.ac-meter b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.ac-meter-bar {
+  width: 64px;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--hover);
+  overflow: hidden;
+}
+
+.ac-meter-bar i {
+  display: block;
+  height: 100%;
+  background: var(--sun);
+  border-radius: var(--r-pill);
+  transition: width 800ms var(--ease-ac);
+}
+
+.ac-meter--link b,
+.ac-meter--link svg {
+  color: var(--earth);
+}
+
+/* ── Lesson: the split ───────────────────────────────────────────────────── */
+
+.ac-split {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 520px;
+  gap: var(--gutter);
+  padding: 0 var(--gutter) var(--gutter);
+}
+
+.ac-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.ac-stage--scene {
+  padding: 0;
+  justify-content: flex-end;
+}
+
+.ac-stage-hint {
+  position: absolute;
+  left: 20px;
+  bottom: 16px;
+}
+
+/* A scene fills the stage; Pip stands at the bottom left. */
+.ac-scene {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.ac-scene text {
+  font-family: var(--font);
+}
+
+.ac-dust {
+  position: absolute;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+.ac-dust i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* The reveal of a predict step, on the stage. */
+.ac-reveal {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  top: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.ac-reveal-card {
+  max-width: 560px;
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-xl);
+  padding: 16px 20px;
+}
+
+.ac-reveal-card h3 {
+  margin: 0;
+  font-size: var(--t-lg);
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.ac-reveal-card p {
+  margin: 6px 0 0;
+  font-size: var(--t-ac);
+}
+
+/* A Mission Control panel that is not built yet, in its 360px box. */
+.ac-mcbox {
+  width: 360px;
+  max-width: 100%;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  overflow: hidden;
+  flex: none;
+}
+
+.ac-mcbox-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--t-md);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.ac-mcbox-body {
+  height: 180px;
+  background: var(--plot);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  text-align: center;
+  font-size: var(--t-md);
+  color: var(--ink-3);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-sm);
+  margin: 8px;
+}
+
+.ac-mcbox-f {
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+  font-size: var(--t-ac-min);
+  color: var(--ink-2);
+}
+
+/* fill-formula */
+.ac-formula {
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-xl);
+  padding: 28px 36px;
+  font-size: var(--t-display);
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
+}
+
+.ac-formula-part {
+  overflow-wrap: anywhere;
+}
+
+.ac-slot {
+  min-width: 112px;
+  height: 76px;
+  border-radius: var(--r-lg);
+  border: 2px dashed var(--ink-3);
+  display: inline-grid;
+  place-items: center;
+  padding: 0 16px;
+}
+
+.ac-slot-tile {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.ac-slot[data-full="true"] {
+  border: 0;
+  box-shadow: inset 0 0 0 2px var(--accent);
+  background: var(--hover);
+}
+
+.ac-tiles {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.ac-tile {
+  min-width: 112px;
+  height: 72px;
+  border-radius: var(--r-lg);
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+  font-size: var(--t-3xl);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 18px;
+  color: var(--ink);
+  transition: background-color var(--dur-fast) var(--ease-ac);
+}
+
+.ac-tile:hover:not(:disabled) {
+  background: var(--hover);
+}
+
+.ac-tile .ac-opt-key {
+  width: 24px;
+  height: 24px;
+  font-size: var(--t-sm);
+}
+
+.ac-tile[data-state="selected"],
+.ac-tile[data-state="answer"] {
+  background: transparent;
+  border-style: dashed;
+  color: var(--ink-4);
+}
+
+.ac-tile[data-state="missed"] {
+  background: var(--surface);
+  border-style: dashed;
+  color: var(--ink-2);
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-3);
+}
+
+.ac-tile[data-state="dimmed"] {
+  opacity: 0.55;
+}
+
+/* spot-bug */
+.ac-calc {
+  width: 640px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ac-calc h2 {
+  margin: 0 0 2px;
+  font-size: var(--t-xl);
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+/* tune-slider */
+.ac-slider {
+  width: 420px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ac-slider-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: var(--t-lg);
+  color: var(--ink-2);
+}
+
+.ac-slider-row output {
+  color: var(--ink);
+  font-weight: 500;
+  font-size: var(--t-3xl);
+  line-height: 1.1;
+}
+
+.ac-slider-ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--t-md);
+  color: var(--ink-3);
+}
+
+.ac-range {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 44px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.ac-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--hover);
+}
+
+.ac-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-top: -11px;
+  border: 0;
+}
+
+.ac-range::-moz-range-track {
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--hover);
+}
+
+.ac-range::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 0;
+}
+
+.ac-range:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* A step whose panel is not built yet. */
+.ac-pending {
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.ac-pending h2 {
+  margin: 0;
+  font-size: var(--t-2xl);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.ac-pending p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--t-ac-min);
+}
+
+/* ── Lesson: the conversation panel ──────────────────────────────────────── */
+
+.ac-talk {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The shared Tabs component, drawn as the Academy's pill switch. */
+.ac-tabs.tabs {
+  display: flex;
+  gap: 0;
+  padding: 3px;
+  margin: 16px 16px 0;
+  border-radius: var(--r-pill);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  flex: none;
+}
+
+.ac-tabs .tab {
+  flex: 1;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--ink-2);
+}
+
+.ac-tabs .tab .tab-name {
+  font-size: var(--t-lg);
+  font-weight: 400;
+  gap: 8px;
+}
+
+.ac-tabs .tab .tab-name svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ac-tabs .tab[aria-selected="true"] {
+  background: var(--hover);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.ac-tabs .tab[aria-selected="true"] .tab-name {
+  font-weight: 500;
+}
+
+.ac-tabs .tab[aria-selected="true"]::after {
+  display: none;
+}
+
+.ac-tabs .tab:focus-visible {
+  outline-offset: 2px;
+}
+
+.ac-tabpanel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ac-log {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 20px 20px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Keeps the newest line at the bottom, as in a chat. */
+.ac-log::before {
+  content: "";
+  flex: 1;
+}
+
+.ac-answers {
+  padding: 4px 20px 0;
+  flex: none;
+}
+
+.ac-act {
+  padding: 16px 20px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+}
+
+.ac-act .ac-btn {
+  min-width: 180px;
+  margin-left: auto;
+}
+
+.ac-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--t-xl);
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+}
+
+.ac-result-text {
+  overflow-wrap: anywhere;
+}
+
+.ac-result-xp {
+  font-size: var(--t-lg);
+  font-weight: 500;
+  color: var(--ink-2);
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.ac-hood {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 20px;
+}
+
+/* ── The Under-the-hood card (A4 replaces its inside) ───────────────────── */
+
+.ac-card h2 {
+  margin: 0;
+  font-size: var(--t-2xl);
+  font-weight: 600;
+}
+
+.ac-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ac-card-free {
+  margin-left: auto;
+  font-size: var(--t-md);
+  color: var(--ink-3);
+}
+
+.ac-card h3 {
+  margin: 24px 0 0;
+  font-size: var(--t-xl);
+  font-weight: 600;
+}
+
+.ac-card p {
+  margin: 6px 0 0;
+  font-size: var(--t-ac-min);
+  color: var(--ink-2);
+  line-height: 1.55;
+  max-width: 68ch;
+}
+
+.ac-card-formula {
+  margin-top: 10px;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: var(--plot);
+  border: 1px solid var(--line);
+  font-size: var(--t-xl);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.ac-card-cite {
+  display: block;
+  margin-top: 6px;
+  font-size: var(--t-md);
+  color: var(--ink-3);
+}
+
+.ac-card code {
+  font-family: var(--font);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+/* ── Dialogs ─────────────────────────────────────────────────────────────── */
+
+.ac-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-width: none;
+  margin: auto;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-popover);
+  color: var(--ink);
+}
+
+.ac-dialog::backdrop {
+  background: color-mix(in oklab, var(--bg), transparent 28%);
+}
+
+.ac-dialog h2 {
+  margin: 0;
+  font-size: var(--t-2xl);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ac-dialog p {
+  margin: 12px 0 0;
+  font-size: var(--t-ac);
+  color: var(--ink-2);
+}
+
+.ac-dialog-acts {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  flex-wrap: wrap-reverse;
+}
+
+/* ── Path: the spiral to the pole ────────────────────────────────────────── */
+
+.ac-at {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 64px;
+  padding: 0 16px 0 10px;
+  flex: none;
+}
+
+.ac-at h1 {
+  margin: 0;
+  font-size: var(--t-xl);
+  font-weight: 600;
+}
+
+.ac-spacer {
+  flex: 1;
+}
+
+.ac-path {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 520px;
+  gap: var(--gutter);
+  padding: 0 var(--gutter) var(--gutter);
+}
+
+.ac-map {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 16px;
+}
+
+.ac-map-svg {
+  width: min(100%, calc(100dvh - 120px));
+  max-width: 776px;
+  aspect-ratio: 1;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.ac-map-cap {
+  position: absolute;
+  left: 24px;
+  top: 20px;
+  max-width: 240px;
+  margin: 0;
+  font-size: var(--t-lg);
+  color: var(--ink-2);
+}
+
+.ac-map-cap b {
+  display: block;
+  font-size: var(--t-ac-title);
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.15;
+  margin-bottom: 6px;
+}
+
+.ac-map-keys {
+  position: absolute;
+  left: 24px;
+  bottom: 20px;
+  max-width: 260px;
+}
+
+.ac-stop {
+  cursor: pointer;
+  outline: none;
+}
+
+.ac-stop:focus-visible .ac-stop-focus {
+  stroke: var(--focus-ring);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+}
+
+.ac-map-label {
+  font-size: var(--t-lg);
+  fill: var(--ink);
+}
+
+.ac-map-label-2 {
+  font-size: var(--t-sm);
+  fill: var(--ink-3);
+}
+
+.ac-pick {
+  display: none;
+}
+
+.ac-side {
+  display: flex;
+  flex-direction: column;
+  padding: 28px 28px 20px;
+  overflow: auto;
+}
+
+.ac-who {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.ac-lesson {
+  margin-top: 24px;
+  padding: 22px;
+  border-radius: var(--r-xl);
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+}
+
+.ac-lesson h2 {
+  margin: 0;
+  font-size: var(--t-ac-title);
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.ac-lesson-tag {
+  margin: 8px 0 0;
+  color: var(--ink-2);
+}
+
+.ac-lesson-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  font-size: var(--t-lg);
+  color: var(--ink-2);
+}
+
+.ac-lesson .ac-btn {
+  margin-top: 20px;
+  width: 100%;
+}
+
+.ac-sample {
+  margin: 14px 0 0;
+  font-size: var(--t-lg);
+  color: var(--ink-3);
+}
+
+.ac-sample a {
+  display: inline-block;
+  padding: 12px 0;
+  margin: -12px 0;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.ac-sum {
+  margin-top: auto;
+  padding-top: 24px;
+}
+
+.ac-sum h2 {
+  margin: 0;
+  font-size: var(--t-xl);
+  font-weight: 600;
+}
+
+.ac-nums {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin: 8px 0 0;
+  font-size: var(--t-lg);
+  color: var(--ink-2);
+}
+
+.ac-nums b {
+  font-size: var(--t-2xl);
+  color: var(--ink);
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.ac-shelf {
+  display: flex;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  flex-wrap: wrap;
+}
+
+.ac-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  font-size: var(--t-md);
+  color: var(--ink-3);
+}
+
+/* ── Lesson complete: one column ─────────────────────────────────────────── */
+
+.ac-ct {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 64px;
+  padding: 0 16px 0 10px;
+  border-bottom: 1px solid var(--line);
+  flex: none;
+}
+
+.ac-ct-title {
+  margin: 0;
+  font-size: var(--t-lg);
+  color: var(--ink-2);
+  font-weight: 400;
+}
+
+.ac-col-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.ac-col {
+  max-width: 768px;
+  margin: 0 auto;
+  padding: 40px 24px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.ac-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+}
+
+.ac-hero .ac-dust {
+  left: 62%;
+  top: 70%;
+}
+
+.ac-col h1 {
+  margin: 20px 0 0;
+  font-size: var(--t-3xl);
+  font-weight: 600;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.ac-col-sub {
+  margin: 6px 0 0;
+  color: var(--ink-2);
+}
+
+.ac-score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  margin-top: 24px;
+}
+
+.ac-score-xp {
+  font-size: var(--t-3xl);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.ac-score-xp small {
+  font-size: var(--t-xl);
+  color: var(--ink-2);
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.ac-score-rule {
+  width: 1px;
+  height: 40px;
+  background: var(--line-strong);
+}
+
+.ac-score-label {
+  margin: 6px 0 0;
+  font-size: var(--t-lg);
+  color: var(--ink-2);
+}
+
+.ac-recap {
+  margin-top: 28px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+  text-align: left;
+  max-width: 600px;
+}
+
+.ac-built {
+  margin-top: 28px;
+  width: 100%;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  text-align: left;
+  padding: 16px;
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+}
+
+.ac-built-art {
+  width: 232px;
+  height: 156px;
+  flex: none;
+  border-radius: var(--r-md);
+  background: var(--plot);
+  border: 1px dashed var(--line-strong);
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  text-align: center;
+  font-size: var(--t-md);
+  color: var(--ink-3);
+}
+
+.ac-built h2 {
+  margin: 0;
+  font-size: var(--t-xl);
+  font-weight: 600;
+}
+
+.ac-built p {
+  margin: 4px 0 0;
+  font-size: var(--t-lg);
+  color: var(--ink-2);
+}
+
+.ac-built .ac-btn {
+  margin-top: 14px;
+}
+
+.ac-cf {
+  border-top: 1px solid var(--line);
+  flex: none;
+}
+
+.ac-cf-in {
+  max-width: 768px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ac-cf-in .ac-btn--primary {
+  margin-left: auto;
+}
+
+/* A lesson that is not written yet: a plain, honest page. */
+.ac-plain {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 48px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.ac-plain h1 {
+  margin: 0;
+  font-size: var(--t-ac-title);
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.ac-plain p {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+/* ── Phone ───────────────────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .ac-btn {
+    white-space: normal;
+    text-align: center;
+    height: auto;
+    min-height: var(--h-xl);
+    padding: 10px 22px;
+    line-height: 1.25;
+  }
+
+  .ac-btn--compact {
+    min-height: 48px;
+  }
+
+  .ac-keys-desk,
+  .ac-only-desk {
+    display: none;
+  }
+
+  /* Lesson: the top bar takes two lines. */
+  .ac-lt {
+    flex-direction: column;
+    align-items: stretch;
+    height: auto;
+    padding: 4px 8px;
+    gap: 0;
+  }
+
+  .ac-lt-a {
+    gap: 8px;
+  }
+
+  .ac-lt-title,
+  .ac-pip-name {
+    display: none;
+  }
+
+  .ac-lt-b {
+    justify-content: space-between;
+    gap: 8px;
+    padding-left: 8px;
+  }
+
+  .ac-meter-bar {
+    width: 40px;
+  }
+
+  .ac-pip {
+    gap: 12px;
+  }
+
+  /* Lesson: the stage becomes a band, the conversation a sheet over it. */
+  .ac-split {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    gap: 0;
+  }
+
+  .ac-stage {
+    flex: none;
+    height: 300px;
+    border-radius: 0;
+    border-width: 1px 0;
+    padding: 12px 16px 24px;
+    gap: 10px;
+  }
+
+  .ac-stage--scene {
+    height: 240px;
+    padding: 0 0 12px;
+  }
+
+  .ac-stage--tall {
+    height: 360px;
+  }
+
+  .ac-stage-hint {
+    display: none;
+  }
+
+  .ac-talk {
+    flex: 1;
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    border-width: 1px 0 0;
+    margin-top: -12px;
+    z-index: 1;
+  }
+
+  .ac-tabs.tabs {
+    margin: 12px 16px 0;
+  }
+
+  .ac-log {
+    padding: 12px 16px 4px;
+    gap: 10px;
+  }
+
+  .ac-msg--new .ac-say,
+  .ac-say {
+    font-size: var(--t-ac-min);
+    padding: 12px 16px;
+  }
+
+  .ac-msg--old .ac-msg-luna {
+    display: none;
+  }
+
+  .ac-me {
+    font-size: var(--t-ac-min);
+  }
+
+  .ac-answers {
+    padding: 4px 16px 0;
+  }
+
+  .ac-answers .ac-options {
+    gap: 8px;
+  }
+
+  .ac-answers .ac-opt {
+    min-height: 52px;
+    font-size: var(--t-ac-min);
+  }
+
+  /* Once a step is answered its misses are already in the conversation. */
+  .ac-answers[data-answered="true"] .ac-opt[data-state="missed"] {
+    display: none;
+  }
+
+  .ac-act {
+    padding: 12px 16px 16px;
+    flex-wrap: wrap;
+  }
+
+  .ac-result {
+    flex-basis: 100%;
+    font-size: var(--t-ac);
+  }
+
+  .ac-act .ac-btn {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .ac-hood {
+    padding: 12px 16px;
+  }
+
+  .ac-formula {
+    font-size: var(--t-2xl);
+    padding: 16px;
+    gap: 8px;
+  }
+
+  .ac-slot {
+    min-width: 72px;
+    height: 52px;
+  }
+
+  .ac-tiles {
+    width: 100%;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .ac-tile {
+    min-width: 0;
+    flex: 1;
+    font-size: var(--t-2xl);
+    height: 52px;
+    padding: 0 8px;
+  }
+
+  .ac-tile .ac-opt-key {
+    display: none;
+  }
+
+  .ac-calc {
+    gap: 6px;
+  }
+
+  .ac-calc h2 {
+    display: none;
+  }
+
+  .ac-calc .ac-opt {
+    min-height: 44px;
+    font-size: var(--t-ac-min);
+    padding: 6px 10px;
+    gap: 10px;
+  }
+
+  .ac-calc .ac-opt-key {
+    width: 24px;
+    height: 24px;
+  }
+
+  .ac-calc .ac-opt-note {
+    display: none;
+  }
+
+  .ac-slider-row output {
+    font-size: var(--t-2xl);
+  }
+
+  .ac-reveal {
+    left: 12px;
+    right: 12px;
+    top: 12px;
+  }
+
+  .ac-reveal-card {
+    padding: 10px 14px;
+  }
+
+  .ac-reveal-card p {
+    font-size: var(--t-ac-min);
+  }
+
+  .ac-pending h2 {
+    font-size: var(--t-xl);
+  }
+
+  /* Path: the map is the width; the panel is the page under it. */
+  .ac-screen--path {
+    height: auto;
+    overflow: visible;
+  }
+
+  .ac-at {
+    padding: 0 4px;
+    gap: 4px;
+  }
+
+  .ac-path {
+    display: block;
+    padding: 0;
+  }
+
+  .ac-map {
+    border: 0;
+    background: transparent;
+    padding: 4px 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ac-map-svg {
+    width: 100%;
+    max-width: 374px;
+  }
+
+  .ac-map-cap,
+  .ac-map-keys,
+  .ac-map-label,
+  .ac-map-label-2 {
+    display: none;
+  }
+
+  .ac-pick {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    width: 100%;
+    max-width: 374px;
+    margin-top: 4px;
+  }
+
+  .ac-pick button {
+    height: 44px;
+    display: grid;
+    place-items: center;
+  }
+
+  .ac-pick span {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line-strong);
+    font-size: var(--t-lg);
+    font-weight: 600;
+    color: var(--ink-2);
+    transition:
+      background-color var(--dur-fast) var(--ease-ac),
+      color var(--dur-fast) var(--ease-ac);
+  }
+
+  .ac-pick button[aria-pressed="true"] span {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-color: var(--accent);
+  }
+
+  .ac-side {
+    overflow: visible;
+    padding: 0 16px 24px;
+    border: 0;
+    background: transparent;
+  }
+
+  .ac-lesson {
+    margin-top: 16px;
+    padding: 18px;
+  }
+
+  .ac-lesson h2 {
+    font-size: var(--t-2xl);
+  }
+
+  .ac-sum {
+    margin-top: 8px;
+  }
+
+  /* Complete */
+  .ac-ct-title {
+    display: none;
+  }
+
+  .ac-col {
+    padding: 20px 16px 32px;
+  }
+
+  .ac-col h1 {
+    font-size: var(--t-2xl);
+  }
+
+  .ac-score {
+    gap: 16px;
+  }
+
+  .ac-score-xp {
+    font-size: var(--t-2xl);
+  }
+
+  .ac-recap .ac-msg-luna {
+    display: none;
+  }
+
+  .ac-built {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  .ac-built-art {
+    width: 100%;
+  }
+
+  .ac-built .ac-btn {
+    width: 100%;
+  }
+
+  .ac-cf-in {
+    padding: 12px 16px 16px;
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .ac-cf-in .ac-btn--primary {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .ac-cf-in .ac-quiet {
+    justify-content: center;
+  }
+
+  .ac-plain {
+    padding: 24px 16px;
+  }
+}
+
+/* Reduced motion: nothing moves; state still changes at once. */
+@media (prefers-reduced-motion: reduce) {
+  .ac-say,
+  .ac-opt,
+  .ac-prog i,
+  .ac-meter-bar i,
+  .ac-btn,
+  .ac-tile {
+    transition: none;
+  }
+}
+
+.ac-act .ac-btn--wide {
+  margin-left: 0;
+  flex: 1;
+}
+
+/* The step area takes focus between steps, so it draws no ring of its own. */
+.ac-split:focus {
+  outline: none;
+}
+
+.ac-range:focus-visible {
+  outline-offset: 2px;
+  border-radius: var(--r-md);
+}

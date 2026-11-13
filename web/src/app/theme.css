@@ -115,6 +115,22 @@
   --dur-fast: 150ms;
   --dur-panel: 200ms;
 
+  /*
+    ── Academy ──────────────────────────────────────────────────────────────
+    The Academy's scale: the same tokens as Mission Control, with more air.
+    Proposed in design/variants/c2-academy.md, recorded in DESIGN.md ("Academy scale").
+    The motion curve is named --ease-ac because --ease-out above is Mission Control's.
+  */
+  --t-ac: 18px; /* lesson body and answers */
+  --t-ac-min: 16px; /* the floor for lesson text on a phone */
+  --t-ac-say: 20px; /* Luna's current bubble */
+  --t-ac-title: 28px; /* path and lesson titles */
+  --r-xl: 20px; /* Academy cards and bubbles */
+  --s8: 64px; /* large Academy spacing */
+  --h-xl: 56px; /* big buttons: Check, Continue, Start, Next */
+  --h-opt: 64px; /* answer options (56px in the conversation panel) */
+  --ease-ac: cubic-bezier(0.16, 1, 0.3, 1); /* all Academy motion; no bounce */
+
   /* ── Mission Control shell ─────────────────────────────────────────────── */
   --shell-rail: 256px;
   --shell-focus: 328px;

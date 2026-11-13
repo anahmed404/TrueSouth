@@ -204,6 +204,33 @@ each integration checkpoint.
 
 ## Academy
 
+#### 2026-11-13 · A2 · Academy screens in the picked form and the five step kinds
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the path (variant b), the lesson
+  screen (variant b, split stage), lesson complete (variant a), the five step kinds
+  (`choice`, `predict`, `fill-formula`, `spot-bug`, `tune-slider`), the widened lesson
+  types, the draw-skyline closeness rule, the Academy tokens and their vitest tests —
+  checked by the agent with the tests, typecheck and build, the impeccable detector
+  (0 findings), and by eye in a browser at 1440 × 900 and 390 × 844 with reduce motion
+  on and off. A human has not played it yet.
+- **State:** built, not verified
+- **Changed:** `web/src/features/academy/`, `web/src/components/luna/` (no-bounce mood
+  change; proud, cheering and worried extras recoloured to the C2 rules),
+  `docs/academy/overview.md`, the Academy block in `web/src/app/theme.css`, `DESIGN.md`,
+  screenshots `docs/design/c2/built-academy-*.png`
+- **Notes:**
+  - New rules in `docs/academy/overview.md`: predict gets one guess (10 or 2 XP);
+    draw-skyline XP by closeness, `round(10 − 8 × clamp((gap − 0.25) / 1.75, 0, 1))`;
+    leaving part-way drops the lesson's progress; the ninth patch is "True South".
+  - The Academy's motion curve is `--ease-ac`, not `--ease-out`, because `--ease-out`
+    already exists for Mission Control.
+  - The three panel step kinds (A3) show a placeholder that says the step is coming,
+    and offer "Skip this step" (no XP, left out of the stars). A3 removes the skip.
+  - Panels at the end of a lesson and in a predict reveal are grey boxes until Mission
+    Control's panels have a `"lesson"` mode.
+  - `UnderTheHoodCard` in `card/index.tsx` renders plain text; A4 replaces its inside.
+  - The sound toggle is not shown: there are no sounds yet, so a toggle would do nothing.
+
 #### 2026-11-13 · A7 · `explain.ts`: a plain-language entry for every term a user meets
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-sonnet-5-5 — wrote the 113 entries in
