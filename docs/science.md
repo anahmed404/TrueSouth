@@ -111,8 +111,20 @@ Horizons request (observer table):
 
 The time grid has 52,584 rows. Horizons allows 90,000 per request.
 
-The parser must confirm from the response header that longitudes are east-positive, and
-convert if they are not.
+The saved real response confirms `Target pole/equ : MOON_ME` and
+`{East-longitude positive}`. Both sub-point column descriptions independently say
+longitude is positive east. The site tables say `Center pole/equ : MEAN_ME (high
+precision)`, also east-positive. These are the high-precision lunar **DE421 mean-Earth**
+frame, not the principal-axes frame; the latter is not available in Horizons. See JPL's
+[lunar frame definition](https://ssd.jpl.nasa.gov/horizons/manual.html#lunar-mean-earth-frame-of-de421).
+The parser checks those words on every response, rejects an unknown frame or an
+inconsistent sign, and converts west-positive sub-points to east longitude if encountered.
+No rotation between lunar frames is applied.
+
+The response gives `r` and `delta` in AU and prints its AU-to-kilometre conversion.
+The parser applies that conversion once; `system.bin` stores kilometres. `STOP_TIME`
+is the last included hour, 2031-12-31T23:00:00Z. The step requests `TIME_TYPE='UT'`
+(UTC after 1962), `APPARENT='AIRLESS'` and `EXTRA_PREC='YES'` explicitly.
 
 `horizons.py`, `ephemeris.py::load_global`
 
@@ -130,7 +142,13 @@ $$\rho_b = \arcsin\left(\frac{R_b}{|\vec b - \vec r|}\right)$$
 
 The Sun's disc is about 0.53° wide. Earth's is about 1.9° wide.
 
-This is exact geometry. It needs no per-site Horizons call, so custom sites work without
+The vector subtraction is exact for the supplied body positions. The observer-table
+sub-points are **apparent**, not simultaneous geometric positions: quantity 14 includes
+Moon-to-Earth down-leg light-time; quantity 15 includes Sun-to-Moon and Moon-to-Earth
+light-time. Quantities 19 and 20 are light-time-aberrated ranges. Thus agreement with
+a lunar observer's apparent direction must be measured by §3.3; it is not a claim of
+identical light-time or aberration conventions. No fitted offset or extra light-time
+correction is applied. It needs no per-site Horizons call, so custom sites work without
 network access. See
 [`decisions/0004-one-global-ephemeris.md`](decisions/0004-one-global-ephemeris.md).
 
@@ -140,9 +158,33 @@ network access. See
 
 For every catalog site we also pull Horizons' own site table (`CENTER='coord@301'`,
 `COORD_TYPE='GEODETIC'`, `SITE_COORD='lonE,lat,alt_km'`, `QUANTITIES='4'`, targets `'10'`
-and `'399'`). Quantity 4 is azimuth and elevation with no atmosphere. Section 3.2 must
+and `'399'`). Quantity 4 is **airless apparent** azimuth and elevation, not geometric
+elevation: its column description includes light-time, gravitational light deflection,
+stellar aberration, precession and nutation. Its azimuth is clockwise from north through
+east and elevation is relative to the plane perpendicular to the local surface zenith.
+Section 3.2 must
 match it within 0.02° at every hour. This is a hard test; see
 [`validation.md`](validation.md).
+
+For G2 before terrain is available, use ground height $z_0=0$ plus the 2 m observer
+height in both methods: `SITE_COORD='lonE,lat,0.002'` and $R_0=1{,}737{,}402$ m.
+The site response confirms a spherical lunar reference surface of radius 1737.4 km.
+Compare directions calculated from the **Float32 values read back from `system.bin`**,
+including its quantisation error, against all 52,584 site-table hours.
+
+Let $\Delta A$ be the azimuth difference wrapped into $[-180°,180°)$ and $e_H$ the
+Horizons elevation. Compare azimuth as the angular separation of the two azimuths at
+that same elevation on the sky:
+
+$$\delta_A = 2\arcsin\left(\left|\cos e_H\sin\tfrac{\Delta A}{2}\right|\right)
+\qquad \delta_e = |e-e_H|$$
+
+This approaches $|\Delta A\cos e_H|$ for small differences and tends to zero at the
+zenith; neither a 360° wrap nor undefined azimuth at the zenith causes a false failure.
+For each component, report the maximum, its UTC hour, and
+$\operatorname{RMS}(\delta)=\sqrt{\operatorname{mean}(\delta^2)}$. Also report the full
+direction separation, computed from local east/north/up unit vectors $\hat d$ and
+$\hat d_H$ as $2\arcsin(\min(1,|\hat d-\hat d_H|/2))$, as an additional diagnostic.
 
 A first check from real data: at Connecting Ridge (longitude 222.6°E, 0.54° from the
 pole), Earth's azimuth in December 2026 ranged from 129.5° to 144.9°. Earth sits near
