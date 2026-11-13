@@ -22,11 +22,18 @@ export type PlateInput = {
   terrain: LoadState;
   /** The focused site's apron. Ignored for a sphere-tier site. */
   apron: LoadState;
+  /**
+   * The series' answer for the Sun at the current hour (its hour flag and disc fraction), or
+   * null while it is not in. Optional: without it the decoration plate says only what is drawn.
+   */
+  sun?: { lit: boolean; discFraction: number } | null;
 };
 
 export type Plate = {
   id: string;
   text: string;
+  /** A second, quieter line. */
+  note?: string;
   /** A button on the plate: back to the System view. */
   action?: "show-system";
   /** Announced politely, for a state that will change by itself. */
@@ -91,9 +98,29 @@ export function sceneContent(input: PlateInput): SceneContent {
     else if (input.terrain === "ready") ground = "terrain";
   }
 
+  // Wherever the ground is drawn with shading and shadows, the series' answer and what the
+  // drawing is (docs/features/local-terrain.md, "Shadows are decoration").
+  if (groundView(view) && ground !== "none") plates.push(decorationPlate(input.sun ?? null));
+
   if (site && input.series === "error" && view !== "map") {
     plates.push({ id: "series-error", text: `The Sun and Earth series for ${site.name} could not be loaded, so its sight-lines are not drawn.` });
   }
 
   return { bodies, sightLines, ground, plates };
+}
+
+/**
+ * The plate that keeps the drawing honest. The drawn ground is coarser and nearer than the
+ * 300 km skyline the series used, so its shadow at the lander can differ from the series;
+ * the plate says which one is right in every case, without the browser judging the drawing.
+ */
+export function decorationPlate(sun: { lit: boolean; discFraction: number } | null): Plate {
+  const note =
+    "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right.";
+  if (!sun || !Number.isFinite(sun.discFraction)) return { id: "decoration", text: note };
+  const fraction = Math.min(1, Math.max(0, sun.discFraction));
+  const text = sun.lit
+    ? `The series says: lit. ${Math.round(fraction * 100)} % of the Sun's disc is above the skyline.`
+    : `The series says: dark. Sun disc fraction ${fraction.toFixed(2)} above the skyline.`;
+  return { id: "decoration", text, note };
 }

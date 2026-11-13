@@ -320,8 +320,9 @@ function Scene3D(props: SceneProps) {
         series: focusReady?.states.series ?? "loading",
         terrain: focusReady?.states.terrain ?? "loading",
         apron: focusReady?.states.apron ?? "loading",
+        sun: sight?.state ? { lit: sight.state.sun === "lit", discFraction: sight.sunFrac } : null,
       }),
-    [view, trueScale, systemState, worldSite, focusReady?.states.series, focusReady?.states.terrain, focusReady?.states.apron],
+    [view, trueScale, systemState, worldSite, focusReady?.states.series, focusReady?.states.terrain, focusReady?.states.apron, sight],
   );
 
   const inputs = useMemo((): WorldInputs => {

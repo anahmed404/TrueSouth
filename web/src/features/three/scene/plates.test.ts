@@ -54,6 +54,8 @@ describe("what the scene draws for each load state", () => {
       expect(content.ground).toBe("smooth");
       expect(content.plates.map((p) => p.text)).toEqual([
         "The terrain for Connecting Ridge could not be loaded. Showing the smooth Moon.",
+        // No series answer passed in this input: the plate says only what the drawing is.
+        "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right.",
       ]);
     }
   });
@@ -61,7 +63,7 @@ describe("what the scene draws for each load state", () => {
   it("a failed apron keeps the patch and says the wider terrain is missing", () => {
     const content = sceneContent(input({ view: "terrain", apron: "error" }));
     expect(content.ground).toBe("terrain");
-    expect(content.plates.map((p) => p.id)).toEqual(["apron-error"]);
+    expect(content.plates.map((p) => p.id)).toEqual(["apron-error", "decoration"]);
   });
 
   it("terrain still loading says so, as a status", () => {
@@ -75,6 +77,7 @@ describe("what the scene draws for each load state", () => {
     expect(content.ground).toBe("smooth");
     expect(content.plates).toEqual([
       { id: "sphere", text: "No terrain data for Apollo 11. This is the smooth Moon.", action: "show-system" },
+      { id: "decoration", text: "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right." },
     ]);
   });
 
@@ -82,5 +85,42 @@ describe("what the scene draws for each load state", () => {
     const content = sceneContent(input({ view: "terrain", site: null }));
     expect(content.plates.map((p) => p.text)).toEqual(["Pick a site in the sites rail to see its ground."]);
     expect(content.sightLines).toBe(false);
+  });
+});
+
+describe("the plate that says the drawn ground is decoration", () => {
+  const plate = (change: Partial<PlateInput>) => sceneContent(input(change)).plates.find((p) => p.id === "decoration");
+
+  it("is shown wherever the ground is drawn: Local terrain and Lander's eye", () => {
+    expect(plate({ view: "terrain" })).toBeDefined();
+    expect(plate({ view: "panorama" })).toBeDefined();
+    expect(plate({ view: "panorama", site: apollo })).toBeDefined();
+  });
+
+  it("is not shown where no ground is drawn", () => {
+    expect(plate({ view: "system" })).toBeUndefined();
+    expect(plate({ view: "map" })).toBeUndefined();
+    expect(plate({ view: "terrain", terrain: "loading" })).toBeUndefined();
+    expect(plate({ view: "terrain", site: null })).toBeUndefined();
+  });
+
+  it("gives the series' answer first, in the words of local-terrain.md", () => {
+    expect(plate({ view: "terrain", sun: { lit: true, discFraction: 0.6243 } })).toEqual({
+      id: "decoration",
+      text: "The series says: lit. 62 % of the Sun's disc is above the skyline.",
+      note: "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right.",
+    });
+    expect(plate({ view: "panorama", sun: { lit: false, discFraction: 0.1234 } })?.text).toBe(
+      "The series says: dark. Sun disc fraction 0.12 above the skyline.",
+    );
+  });
+
+  it("follows the series' flag, never the drawing: a dark hour with part of the disc up still says dark", () => {
+    expect(plate({ view: "terrain", sun: { lit: false, discFraction: 0.59 } })?.text).toMatch(/^The series says: dark\./);
+  });
+
+  it("without the series' answer says only what the drawing is", () => {
+    expect(plate({ view: "terrain", sun: null })).toEqual({ id: "decoration", text: "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right." });
+    expect(plate({ view: "terrain", sun: { lit: true, discFraction: Number.NaN } })?.note).toBeUndefined();
   });
 });

@@ -290,6 +290,7 @@ export function Overlay(props: OverlayProps) {
             role={plate.status ? "status" : undefined}
           >
             <p>{plate.text}</p>
+            {plate.note ? <p className="scene-plate-note">{plate.note}</p> : null}
             {plate.action === "show-system" ? <Button onClick={() => props.onViewChange("system")}>Show it in the System view</Button> : null}
           </div>
         ))}

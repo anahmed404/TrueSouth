@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { DecodedApron, DecodedTerrain } from "../../../data";
 import {
   apronCellLocalKm,
+  apronCellOffsetM,
   localKmToSceneOffset,
   sceneToMoonFixed,
   siteGroundScene,
@@ -17,7 +18,9 @@ import { smooth } from "./vec";
  * float32 stays precise near the camera; the group sits at the ground point.
  *
  * Each vertex also carries its Moon-fixed position (`aM`), so the ground takes the Moon's
- * colour map at the same place as the globe.
+ * colour map and the polar cap's slope maps at the same place as the globe, and its local
+ * position in kilometres from the site's ground point (`aL`: east, north, up), which the
+ * ground's shader uses for the shadow march and the near-ground texture (ground-material.ts).
  */
 
 export type GroundSite = { latDeg: number; lonDeg: number; groundHeightM: number };
@@ -36,11 +39,15 @@ function gridGeometry(
   const count = rows * columns;
   const position = new Float32Array(count * 3);
   const moonFixed = new Float32Array(count * 3);
+  const local = new Float32Array(count * 3);
   const ground = siteGroundScene(site.latDeg, site.lonDeg, site.groundHeightM);
   for (let row = 0; row < rows; row += 1) {
     for (let column = 0; column < columns; column += 1) {
       const k = row * columns + column;
       const { eastKm, northKm, upKm } = localKm(row, column);
+      local[k * 3] = eastKm;
+      local[k * 3 + 1] = northKm;
+      local[k * 3 + 2] = upKm;
       const offset = localKmToSceneOffset(eastKm, northKm, upKm, site.latDeg, site.lonDeg);
       position[k * 3] = offset[0];
       position[k * 3 + 1] = offset[1];
@@ -65,6 +72,7 @@ function gridGeometry(
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.BufferAttribute(position, 3));
   geometry.setAttribute("aM", new THREE.BufferAttribute(moonFixed, 3));
+  geometry.setAttribute("aL", new THREE.BufferAttribute(local, 3));
   geometry.setIndex(index);
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
@@ -95,6 +103,41 @@ export function patchGeometry(terrain: DecodedTerrain, size: number, windowKm: n
 }
 
 /**
+ * An apron cell's drawn height in metres: its height from the file (the site's own where it
+ * has none), eased down to the reference sphere toward the outer edge, where the globe takes
+ * over. Drawing only.
+ */
+function apronDrawnHeightM(apron: DecodedApron, grid: ApronGrid, row: number, column: number, site: GroundSite): number {
+  const halfM = grid.windowM / 2;
+  const { eastM, northM } = apronCellOffsetM(row, column, grid);
+  const edge = Math.max(Math.abs(eastM), Math.abs(northM)) / halfM;
+  return finite(apron.heights[row * grid.columns + column], site.groundHeightM) * (1 - smooth(0.8, 0.98, edge));
+}
+
+/**
+ * The heights the shadow march reads (ground-material.ts), as drawn: each grid point's local
+ * "up" in kilometres (science.md §13, so the Moon's curvature is in it), row 0 north and
+ * column 0 west. The patch's missing points are at the site's height, as in `patchGeometry`.
+ * The apron's are not lowered under the patch: the march reads the patch there.
+ */
+export function patchUpGrid(terrain: DecodedTerrain, size: number): Float32Array {
+  const out = new Float32Array(size * size);
+  for (let k = 0; k < size * size; k += 1) out[k] = finite(terrain.up_km[k], 0);
+  return out;
+}
+
+export function apronUpGrid(apron: DecodedApron, grid: ApronGrid, site: GroundSite): Float32Array {
+  const out = new Float32Array(grid.rows * grid.columns);
+  for (let row = 0; row < grid.rows; row += 1) {
+    for (let column = 0; column < grid.columns; column += 1) {
+      const height = apronDrawnHeightM(apron, grid, row, column, site);
+      out[row * grid.columns + column] = apronCellLocalKm(row, column, height, site.groundHeightM, grid).upKm;
+    }
+  }
+  return out;
+}
+
+/**
  * The apron, with a hole where the patch is. Apron vertices under the patch sit 30 m lower so
  * the patch covers the cells across its edge, and the outer edge eases down to the reference sphere,
  * where the globe takes over. Both changes are drawing only.
@@ -110,9 +153,7 @@ export function apronGeometry(apron: DecodedApron, grid: ApronGrid, patchHalfKm:
     site,
     (row, column) => {
       const { east, north } = offsetKm(row, column);
-      const edge = Math.max(Math.abs(east), Math.abs(north)) / halfKm;
-      let height = finite(apron.heights[row * grid.columns + column], site.groundHeightM);
-      height *= 1 - smooth(0.8, 0.98, edge);
+      let height = apronDrawnHeightM(apron, grid, row, column, site);
       // Only vertices strictly under the patch: the patch hides them, and nothing outside it moves.
       if (Math.max(Math.abs(east), Math.abs(north)) < patchHalfKm) height -= 30;
       return apronCellLocalKm(row, column, height, site.groundHeightM, grid);
