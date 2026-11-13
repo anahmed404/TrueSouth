@@ -103,7 +103,7 @@ formula at long range.
 | 4 | `tune-slider` | "Pip's antenna needs Earth to clear the ground by some margin. Raise the margin until Pip can talk less than 15% of the time." | Goal: about 5°. Readout: link time. Pip's link meter follows. |
 | 5 | `spot-bug` | "An early TrueSouth used these rules and called every polar site NO-GO. Which rule can never be met here?" | Lines: (1) Earth must clear the skyline; (2) by at least 5°; **(3) for at least half of every month**; (4) or the site is NO-GO. Even with no margin, Earth is up only 38% of the time. Luna: "Judge the mission's own days, not the whole month. Lesson 7." |
 
-**Exact settings:** Step 4 slides the margin from 0° to 8° in steps of 0.5°. The goal is 5°, right within ±1°. Link time is piecewise linear through (0°, `l4.link_pct_mask0`), (1°, `l4.link_pct_mask1`), (5°, `l4.link_pct_mask5`) and 0% at `l4.earth_el_max_deg`. Pip's link meter follows that readout. The lesson unlocks both the timeline and the countdowns.
+**Exact settings:** Step 4 slides the margin from 0° to 10° in steps of 0.5°. The goal is `{{l4.mask_for_15pct_deg}}`, right within ±1°. Link time at each step is read from `l4.link_pct_by_mask`. Pip's link meter follows that readout. The lesson unlocks both the timeline and the countdowns.
 
 **Card:** sub-Earth point, libration and distance (§3.1); the exact direction to Earth,
 including the 0.26° shift from standing off-centre (§3.2); link and antenna mask (§9).
@@ -226,11 +226,69 @@ If a rule finds nothing, the build stops and names the rule. Then either the sto
 changes or an assumed profile value is tuned, as described in
 [`../mission-profiles.md`](../mission-profiles.md).
 
-## Worked examples: exact definitions (proposed)
+## Worked examples: exact definitions
 
-This section is a proposal for review. It does not change the lessons above yet.
-Lessons 5 to 8 are outside the deadline. No worked-example file is built by S12.
-The readings below use the stored derived data, without changing a site or a profile.
+**Status.** Final for lessons 1 to 4, with the changes listed under "Decided on
+2026-11-13" below, which replace the matching rules and rows. For lessons 5 to 8, which
+are outside the deadline, the rules and rows remain a proposal.
+The readings use the stored derived data, without changing a site or a profile.
+
+### Decided on 2026-11-13
+
+The lessons were written with design values before the real data existed. Where the real
+data does not support a lesson's story, the lesson changes; the data, the sites and the
+mission profile do not. The team lead agreed these on 2026-11-13.
+
+1. **Lesson 2's example needs a ridge that stands above Pip.** The lesson says "The Sun
+   is … up. A ridge … stands … above Pip." The rule becomes: the first hour in 2028 with
+   `sun_el` above 0, `sun_clear` from −0.5 to −0.1 degrees inclusive, and the nearest
+   bin's blocker more than 5 km away and higher than the observer. Search the story site
+   first, then the other catalog sites in the group `sunlit_peak` in order of id, never a
+   best-lit variant; take the first site where such an hour exists. Two new keys record
+   the choice: `l2.site_id` and `l2.site_name`. Every other `l2.*` key is read at that
+   site and hour. On today's data the story site has no such hour in 2028: from a high
+   ridge, distant ground is below Pip, so a Sun above level is hidden only by ground
+   close by. `shackleton_rim` and `malapert_peak` both have one (for example
+   2028-01-21T19:00:00Z at `shackleton_rim`: the Sun 0.18° up, a ridge 10.0 km away and
+   82 m above Pip). Luna's lines for lesson 2 name the site with `{{l2.site_name}}`.
+   If no site has such an hour, the build stops and names this rule.
+2. **Lesson 3's worked example is the most distant blocker.** The Lesson 3 bin is the
+   story site's skyline bin whose blocker is farthest away; a tie goes to the lowest
+   azimuth. On today's data that is azimuth 259.00°, 89.3 km away. The rows for
+   `l3.example_*` are otherwise unchanged. A blocker's height above the observer may be
+   negative: from a high ridge the far ground is below Pip, and the card says so.
+3. **Lesson 4 takes all its numbers from the data.** Earth is above the horizon for
+   about 60% of the story month, not 38%, and a 5° margin still leaves about 26% link
+   time. Two new keys: `l4.link_pct_by_mask`, a list of 21 percentages, the direct-link
+   share of the story month for antenna masks of 0°, 0.5°, … 10° (science section 9, no
+   relay); and `l4.mask_for_15pct_deg`, the smallest of those masks whose share is below
+   15 percent (today 6.5°). If no mask up to 10° gets below 15 percent, the build stops
+   and names this rule. Step 4's slider reads its link time from the list and its goal
+   from the new key (see lesson 4's "Exact settings").
+4. **Keys that cannot be computed are null.** The `WorkedExamples` contract allows null
+   for every key of lessons 5 to 8 that the table marks "No" under "Can be computed
+   today". No key of lessons 1 to 4 may be null. The web app shows a null as "value not
+   built yet".
+5. **The story landing rule and the story month stand as written below:** the first GO
+   midnight in 2028 at `connecting_ridge` for `im2_athena` (today 2028-01-01T00:00:00Z),
+   and the 720 hours from it. The story site is the catalog site, not its best-lit
+   variant.
+
+**Lesson text that must change to match** (wording is the lesson writer's job):
+
+- Lesson 1: the design value "2.0°" for the highest Sun is replaced by
+  `{{l1.sun_el_max_deg}}` wherever it appears.
+- Lesson 2, steps 1 and 3: Luna says which site Pip is looking from.
+- Lesson 4, step 2: the readouts' design values (6.0°, −7.3°) are examples only; the
+  placeholders carry the real ones.
+- Lesson 4, step 3: the wrong option "About two-thirds" is too close to the real answer
+  and is replaced by one that is clearly wrong, such as "Almost never".
+- Lesson 4, step 5: the explanation "Even with no margin, Earth is up only 38% of the
+  time" is false on the real data. The rule that can never be met is the 5° margin for
+  half of every month: with a 5° margin Pip can talk `{{l4.link_pct_mask5}}`% of the
+  time.
+
+### The rules and the table
 
 **One story scenario.** The site is `connecting_ridge` and the profile is `im2_athena`.
 Those choices come from this document, [the overview](overview.md) and
