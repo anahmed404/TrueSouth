@@ -11,7 +11,8 @@ import { sampleExamples, sampleLesson } from "./lessons/sample";
 import { PathMap } from "./path-map";
 import type { WorkedExamples } from "./placeholders";
 import type { Lesson } from "./types";
-import { lessonCheck, lessonScreenKind } from "./validate";
+import type { HookResult } from "../../data/hooks";
+import { lessonCheck, lessonScreenKind, missingExampleKeys } from "./validate";
 
 type AcademyRoutesProps = {
   lessonId?: string;
@@ -25,20 +26,31 @@ function summaryFrom(lesson: Lesson): LessonSummary {
 }
 
 /** Every Academy animation reads the reduce-motion setting itself (useLunaReducedMotion). */
+/**
+ * A written lesson, or the plain page that says why it cannot start: its numbers are still
+ * loading, failed to load, are not all built, or do not match the lesson.
+ */
+export function WrittenLesson({ lesson, worked }: { lesson: Lesson; worked: HookResult<unknown> }) {
+  const values = useMemo<WorkedExamples>(
+    () => (worked.data && typeof worked.data === "object" ? { ...(worked.data as Record<string, unknown>) } : {}),
+    [worked.data],
+  );
+  const summary = summaryFrom(lesson);
+  if (worked.status === "loading") return <LoadingLesson lesson={summary} />;
+  if (worked.status === "error") return <FailedLesson lesson={summary} />;
+  if (missingExampleKeys(lesson, values).length > 0) return <UnbuiltLesson lesson={summary} />;
+  if (lessonScreenKind(lesson, lessonCheck(values)) === "unwritten") return <BrokenLesson lesson={summary} />;
+  return <LessonScreen key={lesson.id} lesson={lesson} examples={values} />;
+}
+
 export default function AcademyRoutes({ lessonId, playable = sampleLesson }: AcademyRoutesProps) {
   const worked = useWorkedExamples();
   // The real worked examples, with the sample's own toy values on top, for the sample only.
   const sampleValues = useMemo<WorkedExamples>(() => ({ ...(worked.data ?? {}), ...sampleExamples }), [worked.data]);
-  const realValues = useMemo<WorkedExamples>(() => ({ ...(worked.data ?? {}) }), [worked.data]);
   if (!lessonId) return <PathMap />;
 
   const written = writtenLesson(lessonId);
-  if (written) {
-    if (worked.status === "loading") return <LoadingLesson lesson={summaryFrom(written)} />;
-    if (worked.status === "error") return <FailedLesson lesson={summaryFrom(written)} />;
-    if (lessonScreenKind(written, lessonCheck(realValues)) === "unwritten") return <BrokenLesson lesson={summaryFrom(written)} />;
-    return <LessonScreen key={written.id} lesson={written} examples={realValues} />;
-  }
+  if (written) return <WrittenLesson lesson={written} worked={worked} />;
 
   if (lessonId === playable.id) {
     const examplesForCheck = playable.id === sampleLesson.id ? sampleExamples : {};
@@ -125,6 +137,18 @@ function FailedLesson({ lesson }: { lesson: LessonSummary }) {
       <Link className="ac-quiet" to="/academy">
         Back to the path
       </Link>
+    </PlainPage>
+  );
+}
+
+/** A number the lesson quotes is missing from `worked_examples.json`, or has no usable value. */
+function UnbuiltLesson({ lesson }: { lesson: LessonSummary }) {
+  return (
+    <PlainPage>
+      <Luna mood="thinking" size={88} decorative />
+      <h1>{lessonHeading(lesson)}</h1>
+      <p role="alert">Some of this lesson's numbers are not built yet, so it cannot start. Please try another lesson.</p>
+      <BackToPath />
     </PlainPage>
   );
 }
