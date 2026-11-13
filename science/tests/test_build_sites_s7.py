@@ -30,6 +30,7 @@ def tree(tmp_path, monkeypatch):
     monkeypatch.setattr(paths, 'derived_dir', lambda: output)
     monkeypatch.setattr(paths, 'prepared_dir', lambda: prepared)
     monkeypatch.setattr(paths, 'catalog_dir', lambda: catalog)
+    monkeypatch.setattr(paths, 'cache_dir', lambda: tmp_path / 'cache')
     x, y = polar_stereo_forward(-89.4555, 222.6192)
     core = prepared / 'LDEM_80S_80MPP_ADJ.npy'
     np.save(core, np.full((11, 11), 1234., dtype=np.float32))
@@ -81,7 +82,7 @@ def test_build_contracts_repeatability_and_second_site(tree, capsys):
     assert snapshot(output) == first
     build('apollo11')
     sites = Sites.model_validate_json((output/'sites.json').read_bytes()).root
-    assert {s.id for s in sites} == {'connecting_ridge', 'apollo11'}
+    assert {s.id for s in sites} == {'connecting_ridge', 'connecting_ridge_best_lit', 'apollo11'}
     sphere = next(s for s in sites if s.id == 'apollo11')
     assert sphere.terrain_tier == 'sphere' and sphere.elevation_m is None
     assert sphere.slope is None
