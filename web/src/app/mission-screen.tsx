@@ -27,7 +27,7 @@ import {
 import { rectOf, useFreeSpace, usePhone, useReducedMotion, useViewportWidth } from "./mission/shell-hooks";
 import { SitesRail } from "./mission/sites-rail";
 import { TopBar } from "./mission/top-bar";
-import { ViewBar, ViewSentence, windowElementId, type WindowButtons } from "./mission/view-bar";
+import { ViewBar, ViewNotices, windowElementId, type WindowButtons } from "./mission/view-bar";
 import { windowView, type CameraViewId, type WindowViewId } from "./mission/views";
 import { useViewCommands, useViewState } from "./mission/view-state";
 import { escapeCloses } from "./mission/window-focus";
@@ -273,7 +273,7 @@ function MissionShell() {
       <TopBar />
 
       <ViewBar state={state} onPick={pick} windowButtons={windowButtons} />
-      <ViewSentence ref={topRef} camera={state.camera} />
+      <ViewNotices ref={topRef} />
 
       <SitesRail
         collapsed={railCollapsed}

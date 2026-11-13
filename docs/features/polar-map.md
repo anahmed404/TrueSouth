@@ -34,8 +34,8 @@ map is flat, and the globe lives in the [System view](system-view.md).
 
 - **Behind the interface:** the flat map, filling the window. Its drawing is the relief
   image below, with latitude rings, pins and labels.
-- **Floating above it:** the app bar, the view bar and its one-sentence plate, the sites
-  rail, the focused-site panel and the timeline, as in every view. The map's own controls
+- **Floating above it:** the app bar, the view bar, the sites rail, the focused-site panel
+  and the timeline, as in every view. The map's own controls
   float at the foot of the free space: zoom in, zoom out and reset, the overlay choice with
   its opacity slider, and the scale bar.
 - The map's centre is the middle of the free space between the panels, so a panel does not

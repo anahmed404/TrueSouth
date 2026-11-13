@@ -42,7 +42,6 @@ them.
 │  ┌───────────────────────────────────────────────────────────────────────────┐    │
 │  │ System · Polar map · Slip Planner · Terrain · Lander's eye │ Compare ▭    │    │
 │  └───────────────────────────────────────────────────────────────────────────┘    │
-│                   one sentence saying what this view shows                        │
 │ ┌──────────────┐                                              ┌───────────────┐   │
 │ │ SITES        │                 ◖ the Moon ◗                 │ FOCUSED SITE  │   │
 │ │ ● Connecting…│       Earth ○                    ☀ Sun       │ status        │   │
@@ -61,7 +60,7 @@ them.
 | :--- | :--- |
 | **App bar** | Mode switch, profile picker, landing-date picker, share menu. Four floating blocks along the top, 44 px tall. |
 | **View bar** | A floating bar under the app bar that picks the view. See "The view bar". |
-| **View sentence** | One plain sentence on a plate under the view bar, saying what the current view shows. At most 72 characters wide. |
+| **About the view** | The current view's tab carries a small info button, "About System view" and so on. Its tip holds the plain-language text from `explain.ts`, whose first sentence says what the view shows. Nothing is drawn under the view bar, so the scene keeps that room. The same first sentence is the current tab's accessible description and is read out politely when the view changes. |
 | **Sites rail** | Selected sites, each with a status chip for the current landing date. Click to focus. Up to 8 sites. 256 px wide, or 48 px folded. |
 | **Focused-site panel** | Status, the broken rule, passing rules, metrics, slope with its baseline, links out to Quickmap and Moon Trek. 328 px wide, or 48 px folded. Content below. |
 | **Timeline** | A floating bar along the bottom with the countdowns. 196 px tall, or one row (52 px) folded. Spec: [`site-detail.md`](site-detail.md). In the Slip Planner its slot holds the landing-date panel instead (see [`slip-planner.md`](slip-planner.md)). |
@@ -94,7 +93,13 @@ The window entry carries a small window icon and `aria-expanded`.
 
 - The selected camera view has a Raised fill and a Moonlight underline. An open window's
   button shows `aria-expanded="true"`.
-- The bar has no "what it is for" lines. The view sentence under the bar does that job.
+- The bar has no "what it is for" lines. The current tab's info button does that job: it
+  opens on hover, focus or a tap, and holds the view's text from `explain.ts`. It is a 28 px
+  target on a wide screen and 44 px on a phone, inside the current tab's Raised fill, so it
+  never reads as part of the next tab.
+- The free space starts just under the view bar (and under any notice about the link). An
+  earlier build put the view's sentence on a plate there; it was removed at the team lead's
+  request because it took too much room.
 - A pick during a camera move interrupts the move and starts a new one from where the
   camera is. A drag or scroll in the scene does the same.
 - Compare is a table, not a place. That is why it is a window. The Slip Planner is a place,

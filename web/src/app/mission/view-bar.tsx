@@ -1,5 +1,5 @@
 import { AppWindow } from "lucide-react";
-import { memo, useEffect, useRef, type Ref, type RefObject } from "react";
+import { memo, useEffect, useId, useRef, type Ref, type RefObject } from "react";
 import { Explain } from "../../components/Explain";
 import { firstSentence } from "../../components/format";
 import { explanations } from "../../lib/explain";
@@ -19,13 +19,24 @@ type ViewBarProps = {
   windowButtons: WindowButtons;
 };
 
+/** The camera view's one sentence: the first sentence of its entry in explain.ts. */
+export function viewSentence(camera: ViewState["camera"]): string {
+  return firstSentence(explanations[cameraView(camera).term]?.text ?? "");
+}
+
 /**
- * The view bar: the four camera views, a hairline, then the two floating windows with their
- * window icon (docs/features/mission-control.md, "The view bar"). The selected camera view
- * has a Raised fill and a Moonlight underline; an open window's button is `aria-expanded`.
+ * The view bar: the four camera views, the current view's "About" button, a hairline, then
+ * the floating windows with their window icon (docs/features/mission-control.md, "The view
+ * bar"). The selected camera view has a Raised fill and a Moonlight underline; an open
+ * window's button is `aria-expanded`.
+ *
+ * The view's sentence is not drawn on screen: it is the "About" button's text and the current
+ * tab's accessible description, and it is read out politely when the view changes.
  */
 export const ViewBar = memo(function ViewBar({ state, onPick, windowButtons }: ViewBarProps) {
   const barRef = useRef<HTMLElement>(null);
+  const descriptionId = `view-description-${useId()}`;
+  const current = cameraView(state.camera);
 
   // On a phone the bar scrolls sideways: keep the selected view in sight.
   useEffect(() => {
@@ -38,17 +49,31 @@ export const ViewBar = memo(function ViewBar({ state, onPick, windowButtons }: V
 
   return (
     <nav ref={barRef} className="panel view-bar" aria-label="Views">
-      {CAMERA_VIEWS.map((view) => (
-        <button
-          key={view.id}
-          type="button"
-          className="view-bar-item"
-          aria-current={state.camera === view.id ? "true" : undefined}
-          onClick={() => onPick(view.id)}
-        >
-          {view.name}
-        </button>
-      ))}
+      {CAMERA_VIEWS.map((view) =>
+        state.camera === view.id ? (
+          <span key={view.id} className="view-bar-current">
+            <button
+              type="button"
+              className="view-bar-item"
+              aria-current="true"
+              aria-describedby={descriptionId}
+              onClick={() => onPick(view.id)}
+            >
+              {view.name}
+            </button>
+            <span className="view-bar-about">
+              <Explain term={current.term} label={current.name} />
+            </span>
+          </span>
+        ) : (
+          <button key={view.id} type="button" className="view-bar-item" onClick={() => onPick(view.id)}>
+            {view.name}
+          </button>
+        ),
+      )}
+      <p id={descriptionId} className="sr-only" aria-live="polite">
+        {viewSentence(state.camera)}
+      </p>
       <span className="view-bar-rule" aria-hidden="true" />
       {WINDOW_VIEWS.map((view) => (
         <button
@@ -71,16 +96,12 @@ export const ViewBar = memo(function ViewBar({ state, onPick, windowButtons }: V
 });
 
 /**
- * The camera view's one sentence, on a plate under the view bar, then any notices about the
- * link. The sentence is the first sentence of the view's entry in explain.ts.
+ * Any notices about the link, under the view bar. The view's sentence used to sit here on a
+ * plate; it now lives in the view bar's "About" button, so the scene keeps the room.
  */
-export const ViewSentence = memo(function ViewSentence({ camera, ref }: { camera: ViewState["camera"]; ref?: Ref<HTMLDivElement> }) {
-  const view = cameraView(camera);
+export const ViewNotices = memo(function ViewNotices({ ref }: { ref?: Ref<HTMLDivElement> }) {
   return (
-    <div ref={ref} className="view-sentence-stack">
-      <p className="plate view-sentence" aria-live="polite">
-        {firstSentence(explanations[view.term]?.text ?? "")} <Explain term={view.term} label={view.name} />
-      </p>
+    <div ref={ref} className="view-notices">
       <NoticeStrip />
     </div>
   );

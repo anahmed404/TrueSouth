@@ -36,8 +36,8 @@
   /*
     One grid over the whole window. The scene slot is fixed behind it; every other child
     floats with a --float-gap margin. The empty row in the middle is the free space the scene
-    reads (free-space.ts). Rows: app bar, view bar, sentence, free space, foot stack,
-    timeline, footer line. Columns: sites rail, the middle, focused-site panel.
+    reads (free-space.ts). Rows: app bar, view bar, notices (the row keeps its old name,
+    "sentence"), free space, foot stack, timeline, footer line. Columns: sites rail, the middle, focused-site panel.
     DESIGN.md, "Layout"; docs/features/mission-control.md, "Layout".
   */
   .mc {
@@ -142,7 +142,7 @@
     }
   }
 
-  /* ── View bar and the view's sentence ───────────────────────────────────── */
+  /* ── View bar and its notices ─────────────────────────────────────────────── */
   .view-bar {
     grid-row: vbar;
     grid-column: 2;
@@ -217,32 +217,56 @@
     background: var(--line-strong);
   }
 
-  .view-sentence-stack {
+  /*
+    The current view's tab and its "About" button share one Raised fill, so the info icon
+    reads as part of the tab. The view's sentence lives in the button's tip.
+  */
+  .view-bar-current {
+    display: inline-flex;
+    flex: none;
+    align-items: stretch;
+    border-radius: var(--r-md);
+    background: var(--raised);
+  }
+
+  .view-bar-current > .view-bar-item {
+    padding-right: 4px;
+  }
+
+  .view-bar-current > .view-bar-item::after {
+    right: 4px;
+  }
+
+  .view-bar-about {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+  }
+
+  .view-bar-about .explain-button {
+    width: 28px;
+    height: 36px;
+    margin: 0;
+    border-radius: var(--r-md);
+    color: var(--ink-3);
+  }
+
+  .view-bar-about .explain-button:hover,
+  .view-bar-about .explain-button[aria-expanded="true"] {
+    background: var(--hover);
+    color: var(--ink);
+  }
+
+  /* Notices about the link, under the view bar. The free space starts below this stack. */
+  .view-notices {
     grid-row: sentence;
     grid-column: 2;
     justify-self: center;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--s2);
     max-width: 100%;
     margin-top: var(--s2);
-  }
-
-  .view-sentence {
-    max-width: 72ch;
-    margin: 0;
-    padding: 7px 14px 8px;
-    border-radius: var(--r-md);
-    color: var(--ink);
-    font-size: var(--t-lg);
-    line-height: 1.45;
-    text-align: center;
-    text-wrap: pretty;
-  }
-
-  .view-sentence .explain-button {
-    vertical-align: -3px;
   }
 
   /* A plate: the backing behind text drawn over the scene (DESIGN.md, "The scene"). */
@@ -255,13 +279,13 @@
     color: var(--ink-2);
   }
 
-  .view-sentence-stack .notices {
+  .view-notices .notices {
     margin: 0;
   }
 
-  /* Too narrow between the side panels: the bar and sentence sit above them instead. */
+  /* Too narrow between the side panels: the bar and its notices sit above them instead. */
   .mc[data-top="span"] .view-bar,
-  .mc[data-top="span"] .view-sentence-stack {
+  .mc[data-top="span"] .view-notices {
     grid-column: 1 / -1;
   }
 
@@ -1991,9 +2015,9 @@
       min-height: 44px;
     }
 
-    .view-sentence {
-      padding: 6px 10px;
-      font-size: var(--t-md);
+    .view-bar-about .explain-button {
+      width: 44px;
+      height: 44px;
     }
 
     .mc-foot-stack {

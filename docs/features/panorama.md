@@ -97,8 +97,8 @@ share of the Sun's disc above the skyline when the Sun is up.
 ## States
 
 - **Sphere-tier site (Apollo 11):** in Mission Control, the camera does not descend. The
-  view sentence reads "No terrain data for Apollo 11, so its horizon is flat: the Moon
-  there is a smooth sphere." A button offers "Show Apollo 11 in the System view". In the
+  plate at the top of the free space reads "No terrain data for Apollo 11, so its horizon is
+  flat: the Moon there is a smooth sphere." A button offers "Show Apollo 11 in the System view". In the
   Academy's lesson mode, the chart still draws a flat skyline with the note "Terrain not
   modelled. Showing a smooth Moon."
 - **Loading:** an empty frame with axes.
