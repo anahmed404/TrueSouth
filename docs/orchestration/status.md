@@ -8,21 +8,25 @@ The prompt that drives the orchestrator is [`orchestrator-prompt.md`](orchestrat
 - **Milestone:** M0 Foundations, in progress. Started 2026-11-13.
 - **Checkpoint C0 (kickoff):** sent 2026-11-13. It needs no answer.
 - **Last checkpoint the team lead answered:** none yet. C1 is the first that needs one.
-- **Running:** five children, listed under "Running now".
+- **On `main`:** MC0 (web scaffold), design directions B and C.
+- **Running:** see "Running now".
 - **Next step:** review and merge each child as it finishes, then start the next wave
   (see "What to do next").
+- **Watch out:** a child's completion does not always wake the orchestrator. Whenever you
+  are active, check `gh pr list` and each running worktree, and do not assume silence means
+  "still working". S0's first run quit after 18 seconds and sat unnoticed for 20 minutes.
 
 ## Running now
 
-Started 2026-11-13. Each child works in its own worktree and opens a pull request.
+Each child works in its own worktree and opens a pull request.
 
 | Task | Branch | Provider, model, effort | State |
 | :--- | :--- | :--- | :--- |
-| S0 Python workspace, contracts, `export-schema` | `science/s0-workspace` | Codex, `gpt-6.1-terra`, medium | running |
-| MC0 web scaffold with placeholders | `mc/mc0-scaffold` | Cursor, `grok-4.7`, high | running |
-| C1 design direction A, "Flight console", and the Mission Control flow | `design/c1-direction-a` | Claude Code, `claude-opus-5-5`, high | running |
-| C1 design direction B, "Lunar atlas" | `design/c1-direction-b` | Claude Code, `claude-opus-5-5`, high | running |
-| C1 design direction C, "Night-sky instrument" | `design/c1-direction-c` | Claude Code, `claude-opus-5-5`, high | running |
+| S0 Python workspace, contracts, `export-schema` | `science/s0-workspace` | Codex, `gpt-6.1-terra`, medium | running (second run; the first quit without building anything) |
+| C1 design direction A, "Flight console", and the Mission Control flow | `design/c1-direction-a` | Claude Code, `claude-opus-5-5`, high | running; all files drafted, no pull request yet |
+| T0 `lib/geo/` helpers and tests | `map/t0-geo-helpers` | Cursor, `grok-4.7`, high | running |
+| A0 lesson types, step runner, `academy` store | `academy/a0-lesson-runner` | Cursor, `grok-4.7`, high | running |
+| A1 Luna with placeholder art | `academy/a1-luna-placeholder` | Claude Code, `claude-opus-5-5`, medium | running |
 
 ## What to do next
 
@@ -30,23 +34,26 @@ M0 order. A package starts when what it needs is merged and a slot is free (five
 
 | Wave | Packages | Needs | Agent |
 | :--- | :--- | :--- | :--- |
-| 1 (running) | S0, MC0, C1 design directions A, B, C | — | see above |
+| 1 | S0 (running), MC0 (merged), C1 design B and C (merged), C1 design A (running) | — | see above |
+| 2 (running) | T0, A0, A1 | MC0 | see above |
 | 2 | S1 catalog files | S0 | Codex `gpt-6.1-terra`, medium |
 | 2 | S3 frames (M1 science, started early because Science is the critical path) | S0 | Codex `gpt-6.1-terra`, medium |
-| 2 | T0 `lib/geo/` helpers and tests | MC0 | Cursor `grok-4.7`, high |
-| 2 | A0 lesson types, step runner logic, `academy` store; path map behind a plain placeholder | MC0 | Cursor `grok-4.7`, high |
-| 2 | A1 Luna and LunaSays with placeholder art | MC0 | Claude Code `claude-opus-5-5`, medium |
 | 3 | S2 scoring reference and fixtures | S0, S1 | Codex `gpt-6.1-terra`, medium |
 | 4 | MC1 loaders, decoders, data hooks | MC0, S2 | Cursor `grok-4.7`, high |
 | 4 | MC2 scoring and gate G10 | MC0, S2 | Cursor `grok-4.7`, high |
-| end | Integration check on `main`, screenshots of the variants, checkpoint C1 | all | orchestrator |
+| end | Integration check on `main`, the C1 comparison, checkpoint C1 | all | orchestrator |
 
-After S0 and MC0 are both on `main`: run `pnpm --dir web gen:types` and commit
-`web/src/contracts/generated.ts` if MC0 could not (MC0 was told to do it only if S0 had
-already merged).
+When S0 is on `main`: run `pnpm --dir web gen:types`, commit
+`web/src/contracts/generated.ts`, and replace the temporary `MissionProfile` type in
+`web/src/app/panel.ts` with the generated one.
 
-When the three design pull requests are merged: open each prototype at 1440 × 900, save
-the screenshots in `docs/design/c1/`, and build the side-by-side comparison for C1.
+Design screenshots for C1 are in `docs/design/c1/`, named `<screen>-<direction>.png`, taken
+at 1440 px wide (full page). B and C are done. When direction A merges, take its four
+screenshots and the Mission Control flow the same way: serve `design/` with
+`python -m http.server` and use the browser tool, since it refuses `file:` addresses.
+
+If Codex quits early again on a Science package, raise its effort to high; if that also
+fails, move the package to `gpt-6.1-sol`.
 
 ## Decisions the orchestrator made
 
@@ -59,6 +66,8 @@ the screenshots in `docs/design/c1/`, and build the side-by-side comparison for 
 | 2026-11-13 | C1 prototypes are static HTML with mock data, not fixture data. | Fixtures (S2) do not exist yet and the prototypes are thrown away. |
 | 2026-11-13 | Design-prototype pull requests get the orchestrator's visual check but no cross-provider review. | They are throwaway and never ship. |
 | 2026-11-13 | Status and orchestration docs reach `main` through small pull requests, like everything else. | Keeps `main` history uniform and never needs a direct push. |
+| 2026-11-13 | MC0: removed the agent's exception to pnpm's release-age check and resolved `motion` to 14.12.0. | The check refuses packages published in the last day. Children are now told not to relax it. |
+| 2026-11-13 | MC0: the dev-server path helper lives in `web/dev/`, not `web/src/app/`. | It imports Node modules and must not sit in the browser source tree. |
 
 ## Model tiers
 
@@ -85,10 +94,10 @@ Ids are from [`../build-plan.md`](../build-plan.md). Anything not listed is not 
 | Track | Verified | In review | In progress |
 | :--- | :--- | :--- | :--- |
 | Science (S0–S14) | — | — | S0 |
-| Mission Control (MC0–MC7, MC9, MC11) | — | — | MC0 |
-| 3D and Map (T0–T8) | — | — | — |
-| Academy (A0–A11) | — | — | — |
-| Design for C1 | — | — | directions A, B, C; Mission Control flow |
+| Mission Control (MC0–MC7, MC9, MC11) | MC0 | — | — |
+| 3D and Map (T0–T8) | — | — | T0 |
+| Academy (A0–A11) | — | — | A0, A1 |
+| Design for C1 | directions B, C (merged, screenshots taken) | — | direction A; Mission Control flow |
 
 ## Waiting on the team lead
 
@@ -108,13 +117,18 @@ One line per delegated task: date, work package, provider, model, effort, outcom
 
 | Date | Task | Provider | Model | Effort | Outcome |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| 2026-11-13 | S0 | Codex | `gpt-6.1-terra` | medium | running |
-| 2026-11-13 | MC0 | Cursor | `grok-4.7` | high | running |
+| 2026-11-13 | S0, first run | Codex | `gpt-6.1-terra` | medium | failed: quit after 18 s with nothing built and no reason |
+| 2026-11-13 | S0, second run (same thread) | Codex | `gpt-6.1-terra` | medium | running |
+| 2026-11-13 | MC0 | Cursor | `grok-4.7` | high | merged (#5) after three small fixes by the orchestrator; about 15 minutes |
+| 2026-11-13 | Review of MC0 | Antigravity | `gemini-3.8-flash` | medium | done; three findings, two fixed, one dismissed (placeholder labels) |
 | 2026-11-13 | C1 design A and Mission Control flow | Claude Code | `claude-opus-5-5` | high | running |
-| 2026-11-13 | C1 design B | Claude Code | `claude-opus-5-5` | high | running |
-| 2026-11-13 | C1 design C | Claude Code | `claude-opus-5-5` | high | running |
+| 2026-11-13 | C1 design B | Claude Code | `claude-opus-5-5` | high | merged (#6); about 25 minutes |
+| 2026-11-13 | C1 design C | Claude Code | `claude-opus-5-5` | high | merged (#7); about 25 minutes |
+| 2026-11-13 | T0 | Cursor | `grok-4.7` | high | running |
+| 2026-11-13 | A0 | Cursor | `grok-4.7` | high | running |
+| 2026-11-13 | A1 | Claude Code | `claude-opus-5-5` | medium | running |
 
-Totals so far: Claude Code 3 (all Opus), Codex 1, Cursor 1, Antigravity 0.
+Totals so far: Claude Code 4 (all Opus), Codex 2, Cursor 3, Antigravity 1.
 No provider has hit a limit.
 
 ## Open questions for the team lead
