@@ -147,11 +147,6 @@
   stroke-opacity: 0.8;
 }
 
-.pano-mask-label {
-  fill: var(--earth);
-  font-size: 11px;
-}
-
 .pano-track {
   fill: none;
   stroke-width: 1.5;
@@ -177,8 +172,9 @@
 }
 
 /* A path or dot behind the skyline is drawn faded, as a disc's hidden part is. */
+/* 0.5 keeps a faded path at least 3:1 on the ground: Sun 4.31:1, Earth 3.19:1. */
 .pano-faded {
-  opacity: 0.32;
+  opacity: 0.5;
 }
 
 .pano-disc-sun {
@@ -189,8 +185,10 @@
   fill: var(--earth-core);
 }
 
+/* The faded part of a disc: 4.15:1 (Sun) and 3.34:1 (Earth) on the ground, and 3.70:1 and
+   3.37:1 against the clear part, so faded and clear stay distinct. */
 .pano-disc-hidden {
-  fill-opacity: 0.3;
+  fill-opacity: 0.45;
 }
 
 .pano-locator {
@@ -393,18 +391,9 @@
   gap: 6px;
 }
 
-.pano-sw {
-  display: inline-block;
-  width: 18px;
-  height: 0;
-}
-
-.pano-sw-sun {
-  border-top: 2px dashed var(--sun);
-}
-
-.pano-sw-earth {
-  border-top: 2px solid var(--earth);
+.pano-sw-svg {
+  flex: none;
+  overflow: visible;
 }
 
 .pano-note {

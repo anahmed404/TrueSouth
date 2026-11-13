@@ -85,7 +85,6 @@ export type Drawing = {
   tracks: { body: BodyId; d: string }[];
   ticks: Tick[];
   maskD: string | null;
-  maskLabel: { x: number; y: number; anchor: "start" | "end" } | null;
   compass: CompassTick[];
 };
 
@@ -139,17 +138,6 @@ export function buildDrawing(
   }
 
   const runs = maskDeg !== null && vertices.length ? maskRuns(vertices, earthAz, maskDeg, scales.centreDeg) : [];
-  // The mask's word goes at an end of its longest piece, wherever it stays inside the plot.
-  const longest = runs.reduce<SkylineVertex[] | null>((best, run) => (!best || run.length > best.length ? run : best), null);
-  let maskLabel: Drawing["maskLabel"] = null;
-  if (longest) {
-    const start = longest[0] as SkylineVertex;
-    const end = longest[longest.length - 1] as SkylineVertex;
-    const sx = x(start.offset) - 6;
-    const ex = x(end.offset) + 6;
-    if (sx - MASK_WORD_PX >= frame.left) maskLabel = { x: sx, y: y(start.el), anchor: "end" };
-    else if (ex + MASK_WORD_PX <= frame.right) maskLabel = { x: ex, y: y(end.el), anchor: "start" };
-  }
   return {
     vertices,
     skylineD: vertices.length ? edge(vertices) : null,
@@ -158,16 +146,12 @@ export function buildDrawing(
     tracks,
     ticks,
     maskD: runs.length ? runs.map((run) => edge(run) ?? "").join("") : null,
-    maskLabel,
     compass: compassTicks(scales),
   };
 }
 
-/** Below this chart width the readout hangs under the chart and the mask's word is left out. */
+/** Below this chart width the readout sits in the flow under the chart. */
 const NARROW_PX = 520;
-
-/** The room the words "antenna mask" take at 11 px. */
-const MASK_WORD_PX = 72;
 
 // ── The layers ───────────────────────────────────────────────────────────────
 
@@ -239,11 +223,6 @@ const StaticLayer = memo(function StaticLayer({
         {zeroInside ? <line x1={frame.left} x2={frame.right} y1={zeroY} y2={zeroY} className="pano-zero" /> : null}
         {drawing.maskD ? <path d={drawing.maskD} className="pano-mask" /> : null}
       </g>
-      {drawing.maskLabel && frame.width >= NARROW_PX ? (
-        <text x={drawing.maskLabel.x} y={drawing.maskLabel.y - 5} textAnchor={drawing.maskLabel.anchor} className="pano-mask-label">
-          antenna mask
-        </text>
-      ) : null}
 
       <rect
         x={frame.left}

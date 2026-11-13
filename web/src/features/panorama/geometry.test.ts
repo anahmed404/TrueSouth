@@ -340,15 +340,9 @@ describe("the antenna mask and the discs at the chart's edge", () => {
       }
       expect(bins.size).toBeLessThan(1440 / 4);
 
-      // Its word stays inside the plot.
+      // The drawn path has one piece per run.
       const scales = chartScales(chartFrame(720), centre, { lo: -10, hi: 10 });
       const drawing = buildDrawing(scales, ridge.skyline, ridge.series, { from, to }, 1);
-      if (drawing.maskLabel) {
-        const { x, anchor } = drawing.maskLabel;
-        const [l, r] = anchor === "end" ? [x - 72, x] : [x, x + 72];
-        expect(l).toBeGreaterThanOrEqual(scales.frame.left);
-        expect(r).toBeLessThanOrEqual(scales.frame.right);
-      }
       expect((drawing.maskD?.match(/M/g) ?? []).length).toBe(pieces);
     });
   }

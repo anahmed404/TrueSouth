@@ -92,6 +92,16 @@ function useWidth() {
   return [ref, width] as const;
 }
 
+/** A legend line, drawn with the same classes (and so the same dashes) as the chart. */
+function Swatch({ className, dot = false }: { className: string; dot?: boolean }) {
+  return (
+    <svg className="pano-sw-svg" width="22" height="8" viewBox="0 0 22 8" aria-hidden="true">
+      <path d="M1 4H21" className={className} />
+      {dot ? <circle cx="11" cy="4" r="2.4" className="pano-dot-sun" /> : null}
+    </svg>
+  );
+}
+
 function safeHour(grid: Parameters<typeof utcToHourIndex>[0], utc: string): number | null {
   try {
     return utcToHourIndex(grid, utc);
@@ -310,15 +320,24 @@ function SiteLandersEye({ siteId, scenario, mode, marker, onMarkerChange, onShow
 
       {sphere ? <p className="pano-note">Terrain not modelled. Showing a smooth Moon.</p> : null}
 
+      {/* The legend's lines are drawn with the chart's own strokes, so each reads by its dash
+          pattern as well as its colour: dots for the Sun, solid for Earth, long dashes for the
+          antenna mask. */}
       <p className="pano-legend">
         <span>
-          <i className="pano-sw pano-sw-sun" aria-hidden="true" />
+          <Swatch className="pano-track pano-track-sun" dot />
           Sun's path, one dot a day
         </span>
         <span>
-          <i className="pano-sw pano-sw-earth" aria-hidden="true" />
+          <Swatch className="pano-track pano-track-earth" />
           Earth's path
         </span>
+        {scenario.profile.relay_available ? null : (
+          <span>
+            <Swatch className="pano-mask" />
+            Antenna mask above the skyline
+          </span>
+        )}
         <span>A disc's faded part is below the skyline</span>
         {ringWords ? (
           <span>
