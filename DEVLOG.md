@@ -136,7 +136,7 @@ each integration checkpoint.
   **AI-generated images:** the two start-screen porthole drawings (inline SVG in
   `web/src/app/start/portholes.tsx`), ported by Claude Code, claude-opus-5-5 from the C2
   prototype; the skyline in them is a made-up curve, not data.
-- **State:** built, not verified
+- **State:** verified (the orchestrator, Claude Fable 5.2, ran typecheck, the tests and the build, and looked at the running app at 1440 and 1280 pixels wide with the panels open and collapsed, at the start screen at phone width, and at an explanation opened by a click; Antigravity, gemini-3.8-flash reviewed the code and found explanations could not be opened by touch, fixed by the orchestrator)
 - **Changed:** `web/src/app/`, `web/src/components/` (not `luna/`), `web/package.json`,
   `web/pnpm-lock.yaml`, `DESIGN.md`, this entry
 - **Notes:**
