@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>TrueSouth Mission Control, direction B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:ital,wght@0,400;0,500;0,600;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
+<style>
+/* Direction B, Lunar atlas: tokens. Mirrors design/variants/direction-b.md */
+:root {
+  --paper-0: #1a1814;   /* page: warm charcoal */
+  --paper-1: #211e1a;   /* panels */
+  --paper-2: #2a2721;   /* raised, focused */
+  --paper-3: #343028;   /* wells, inputs */
+  --rule: #3a352d;      /* hairline */
+  --rule-2: #554e41;    /* strong hairline, frames */
+  --ink: #ede6d6;       /* off-white ink */
+  --ink-2: #bfb5a2;
+  --ink-3: #8f8675;
+  --ink-4: #665e51;
+  --accent: #d39ba6;    /* overprint rose: selection, scrubber, focus */
+  --accent-ink: #2b1b1f;
+  --accent-wash: rgba(211, 155, 166, .11);
+  --status-go: #93c27f;
+  --status-caution: #e6b645;
+  --status-nogo: #e66b53;
+  --sun: #efe0b6;
+  --earth: #94b5c7;
+  --ground: #37322a;
+  --sky: #1e1c18;
+
+  --font-display: "Newsreader", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-data: "IBM Plex Sans Condensed", "Roboto Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+
+  --t-micro: 10.5px;
+  --t-label: 11.5px;
+  --t-data: 12.5px;
+  --t-body: 14px;
+  --t-h3: 17px;
+  --t-h2: 22px;
+  --t-h1: 30px;
+  --t-display: 68px;
+
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px; --s-7: 48px;
+  --radius: 2px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--paper-0);
+  color: var(--ink);
+  font-family: var(--font-data);
+  font-size: var(--t-data);
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums lining-nums;
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; }
+a { color: inherit; }
+:focus-visible { outline: 1.5px solid var(--accent); outline-offset: 2px; }
+
+.serif { font-family: var(--font-display); }
+.name { font-family: var(--font-display); font-style: italic; font-weight: 400; }
+.muted { color: var(--ink-3); }
+
+/* prototype marker */
+.proto {
+  position: absolute; right: 12px; top: 10px; z-index: 50;
+  font-size: var(--t-micro); color: var(--ink-3);
+  border: 1px solid var(--rule-2); padding: 1px 6px; background: var(--paper-0);
+}
+
+/* provenance tags: solid = sourced, dashed + italic = assumed */
+.prov {
+  display: inline-block; font-size: var(--t-micro); line-height: 14px; padding: 0 4px;
+  border: 1px solid var(--ink-4); border-radius: var(--radius); color: var(--ink-2);
+  vertical-align: 1px; white-space: nowrap; text-decoration: none; font-style: normal;
+}
+.prov.s::before { content: "\2197\00a0"; color: var(--ink-3); }
+.prov.a { border-style: dashed; font-style: italic; color: var(--ink-3); }
+
+/* status: map-legend symbol + word */
+.st { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; }
+.st i { display: inline-block; width: 9px; height: 9px; flex: none; }
+.st.go { color: var(--status-go); } .st.go i { background: var(--status-go); border-radius: 50%; }
+.st.caution { color: var(--status-caution); }
+.st.caution i { background: var(--status-caution); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.st.nogo { color: var(--status-nogo); }
+.st.nogo i { border: 1.4px solid var(--status-nogo);
+  background: linear-gradient(45deg, transparent 43%, var(--status-nogo) 43% 57%, transparent 57%),
+              linear-gradient(-45deg, transparent 43%, var(--status-nogo) 43% 57%, transparent 57%); }
+
+.info {
+  display: inline-grid; place-items: center; width: 13px; height: 13px; border-radius: 50%;
+  border: 1px solid var(--ink-4); color: var(--ink-3); font: italic 600 9px/1 var(--font-display);
+  vertical-align: 1px; cursor: help;
+}
+
+/* SVG text classes shared by the drawings */
+.tl text, .pv text { font-family: var(--font-data); }
+.tl-day { font-size: 11px; fill: var(--ink-2); }
+.tl-ctx { font-size: 10px; fill: var(--ink-4); font-style: italic; }
+.tl-ax { font-size: 10px; fill: var(--ink-3); }
+.tl-earthc { fill: var(--earth); }
+.tl-row { font-family: var(--font-display) !important; font-size: 14px; fill: var(--ink); }
+.tl-sub { font-size: 10px; fill: var(--ink-3); }
+.tl-date { font-size: 10px; fill: var(--ink-3); }
+.tl-call { font-family: var(--font-display) !important; font-style: italic; font-size: 12.5px; fill: var(--ink); }
+.tl-call-ok { fill: var(--ink-3); font-size: 11.5px; }
+.tl-call-bad { fill: var(--status-nogo); }
+.tl-flag { font-size: 10.5px; fill: var(--accent-ink); font-weight: 600; }
+.pv-ax { font-size: 10px; fill: var(--ink-3); }
+.pv-lab { font-size: 10.5px; fill: var(--ink-3); }
+.pv-earthc { fill: var(--earth); }
+.pv-zero { fill: var(--ink-2); font-style: italic; }
+.pv-tick { font-size: 9.5px; fill: var(--ink-3); }
+.pv-disc { font-family: var(--font-display) !important; font-style: italic; font-size: 14px; fill: var(--ink); }
+.pv-compass { font-family: var(--font-display) !important; font-size: 14px; fill: var(--ink); font-weight: 500; }
+.pv-compass2 { font-size: 9.5px; fill: var(--ink-3); }
+.pv-sun { stroke: var(--sun); stroke-width: 1.3; stroke-dasharray: 1 0; opacity: .9; }
+.pv-earth { stroke: var(--earth); stroke-width: 1.3; opacity: .9; }
+.pv-sun-tick { stroke: var(--sun); stroke-width: 1.2; }
+.pv-earth-tick { stroke: var(--earth); stroke-width: 1.2; }
+
+/* countdown cards (shared) */
+.cd h3 { grid-column: 1 / -1; margin: 0; display: flex; align-items: baseline; gap: 8px; font: 400 15px/1.2 var(--font-display); }
+.cd h3 small { font: var(--t-label) var(--font-data); color: var(--ink-3); }
+.card { border: 1px solid var(--rule-2); border-radius: var(--radius); padding: 7px 9px; display: flex; flex-direction: column; gap: 2px; background: var(--paper-0); }
+.card .ev { color: var(--ink-2); font-size: var(--t-label); display: flex; justify-content: space-between; align-items: center; }
+.card .big { font: 500 22px/1.05 var(--font-data); letter-spacing: -.01em; }
+.card .at { color: var(--ink-3); font-size: var(--t-micro); }
+.card.next { border-color: var(--ink-3); }
+.card.amber { border-color: var(--status-caution); box-shadow: inset 3px 0 0 var(--status-caution); }
+.card.amber .big { color: var(--status-caution); }
+.soon { display: inline-flex; align-items: center; gap: 4px; color: var(--status-caution); font-size: var(--t-micro); font-weight: 600; }
+.soon i { width: 8px; height: 8px; background: var(--status-caution); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+
+html, body { height: 100%; overflow: hidden; }
+.app { width: 1440px; height: 900px; display: grid; grid-template-rows: 52px 258px 82px 1fr 28px; }
+
+/* top bar */
+.top { display: flex; align-items: center; gap: 28px; padding: 0 20px; border-bottom: 1px solid var(--rule-2); background: var(--paper-0); }
+.mark { display: flex; align-items: center; gap: 9px; font: 500 21px/1 var(--font-display); letter-spacing: -.01em; }
+.mode { display: flex; gap: 18px; margin-left: 8px; height: 100%; }
+.mode a { display: flex; align-items: center; text-decoration: none; color: var(--ink-3); font-size: 13px; border-bottom: 2px solid transparent; padding-top: 2px; }
+.mode a[aria-current] { color: var(--ink); border-bottom-color: var(--accent); }
+.pick { display: flex; align-items: center; gap: 8px; }
+.pick > label { color: var(--ink-3); font-size: var(--t-label); }
+.select { display: inline-flex; align-items: center; gap: 8px; background: var(--paper-2); border: 1px solid var(--rule-2); border-radius: var(--radius); height: 30px; padding: 0 10px; cursor: pointer; }
+.select b { font: 500 14px/1 var(--font-display); }
+.select .chev { color: var(--ink-3); font-size: 10px; }
+.step { display: inline-flex; border: 1px solid var(--rule-2); border-radius: var(--radius); height: 30px; }
+.step button { background: none; border: 0; padding: 0 9px; color: var(--ink-2); cursor: pointer; font-size: var(--t-label); }
+.step button + button { border-left: 1px solid var(--rule); }
+.step .date { padding: 0 10px; display: flex; align-items: center; border-left: 1px solid var(--rule); border-right: 1px solid var(--rule); font-size: 13px; color: var(--ink); background: var(--paper-2); }
+.spacer { flex: 1; }
+.btn { height: 30px; padding: 0 14px; border: 1px solid var(--ink-3); background: none; border-radius: var(--radius); cursor: pointer; font-size: 13px; }
+
+/* hero: timeline + countdowns */
+.hero { display: grid; grid-template-columns: 1fr 352px; border-bottom: 1px solid var(--rule-2); background: var(--paper-1); }
+.tlwrap { padding: 10px 14px 0 18px; border-right: 1px solid var(--rule); }
+.tlhead { display: flex; align-items: baseline; gap: 14px; height: 26px; }
+.tlhead h2 { margin: 0; font: italic 400 19px/1 var(--font-display); }
+.tlhead .win { color: var(--ink-3); font-size: var(--t-label); }
+.ctrls { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.chip { height: 24px; padding: 0 9px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--rule-2); border-radius: var(--radius); background: none; color: var(--ink-2); font-size: var(--t-label); cursor: pointer; }
+.chip[aria-pressed="true"] { border-color: var(--accent); color: var(--ink); background: var(--accent-wash); }
+.cd { padding: 10px 16px 10px 16px; display: grid; grid-template-rows: auto 1fr auto 1fr; gap: 6px 10px; grid-template-columns: 1fr 1fr; }
+
+/* site strip */
+.strip { display: flex; align-items: stretch; gap: 10px; padding: 10px 18px; border-bottom: 1px solid var(--rule-2); background: var(--paper-0); }
+.site { width: 214px; border: 1px solid var(--rule-2); border-radius: var(--radius); padding: 7px 10px 6px; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; column-gap: 8px; cursor: pointer; position: relative; background: var(--paper-1); }
+.site .nm { font: italic 400 16.5px/1.15 var(--font-display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.site .co { grid-column: 1 / -1; color: var(--ink-3); font-size: var(--t-micro); margin-top: 3px; display: flex; gap: 8px; }
+.site .sc { text-align: right; font-size: var(--t-label); }
+.site .sc .st { font-size: var(--t-label); }
+.site .sc .num { display: block; color: var(--ink-2); font-size: var(--t-micro); margin-top: 1px; }
+.site[aria-current] { background: var(--paper-2); border-color: var(--accent); box-shadow: inset 0 2px 0 var(--accent); }
+.site .grey { color: var(--ink-4); text-decoration: line-through; }
+.site.add { width: 120px; border-style: dashed; display: flex; align-items: center; justify-content: center; color: var(--ink-2); font-size: 13px; background: none; }
+.strip .count { margin-left: auto; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; color: var(--ink-3); font-size: var(--t-label); gap: 4px; }
+
+/* lower: main view + focused-site panel */
+.lower { display: grid; grid-template-columns: 1fr 404px; min-height: 0; }
+.view { display: flex; flex-direction: column; min-width: 0; border-right: 1px solid var(--rule-2); }
+.tabs { display: flex; align-items: stretch; gap: 22px; padding: 0 18px; height: 38px; border-bottom: 1px solid var(--rule); }
+.tabs a { display: flex; align-items: center; text-decoration: none; color: var(--ink-3); font-size: 13px; border-bottom: 2px solid transparent; }
+.tabs a[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); font: italic 500 15px/1 var(--font-display); }
+.tabs .r { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.pvbar { display: flex; align-items: center; gap: 14px; padding: 8px 18px 0; font-size: var(--t-label); color: var(--ink-3); }
+.seg { display: inline-flex; border: 1px solid var(--rule-2); border-radius: var(--radius); }
+.seg button { border: 0; background: none; padding: 3px 9px; font-size: var(--t-label); color: var(--ink-3); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"] { color: var(--ink); background: var(--accent-wash); }
+.vx { border: 1px solid var(--rule-2); padding: 1px 6px; color: var(--ink-2); }
+.legend { margin-left: auto; display: flex; gap: 14px; align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { display: inline-block; width: 16px; height: 0; border-top: 1.4px solid; }
+.pvbox { padding: 6px 12px 0 8px; }
+
+.focus { overflow: hidden; padding: 12px 18px 8px; display: flex; flex-direction: column; gap: 8px; background: var(--paper-1); }
+.fhead h1 { margin: 0; font: italic 400 27px/1.05 var(--font-display); letter-spacing: -.01em; }
+.fhead .meta { color: var(--ink-3); font-size: var(--t-label); margin-top: 3px; }
+.verdict { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--rule-2); border-bottom: 1px solid var(--rule); padding: 7px 0; }
+.verdict .st { font-size: 18px; letter-spacing: .04em; }
+.verdict .st i { width: 13px; height: 13px; }
+.verdict .why { color: var(--ink-2); font-size: var(--t-label); margin-left: 10px; }
+.verdict .score { text-align: right; color: var(--ink-4); font-size: var(--t-label); }
+.verdict .score b { font: 500 20px/1 var(--font-data); color: var(--ink-4); display: block; }
+h4 { margin: 0 0 3px; font: 500 13.5px/1.2 var(--font-display); color: var(--ink-2); display: flex; justify-content: space-between; align-items: baseline; }
+h4 small { font: var(--t-micro) var(--font-data); color: var(--ink-4); }
+table { border-collapse: collapse; width: 100%; }
+.vt td { padding: 2px 0; border-bottom: 1px solid var(--rule); font-size: var(--t-data); vertical-align: middle; }
+.vt td:nth-child(2), .vt td:nth-child(3) { text-align: right; padding-left: 8px; }
+.vt td:last-child { text-align: right; width: 70px; }
+.vt tr.bad td { color: var(--ink); }
+.vt tr.bad td:first-child { box-shadow: inset 2px 0 0 var(--status-nogo); padding-left: 7px; }
+.vt .ok { color: var(--ink-3); font-size: var(--t-label); }
+.vt .lim { color: var(--ink-2); }
+.mt { display: grid; grid-template-columns: 1fr 1fr; column-gap: 18px; margin: 0; }
+.mt div { display: flex; justify-content: space-between; align-items: baseline; padding: 2px 0; border-bottom: 1px solid var(--rule); }
+.mt dt { color: var(--ink-2); font-size: var(--t-label); }
+.mt dd { margin: 0; font-weight: 500; }
+.ut { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; font-size: var(--t-label); color: var(--ink-2); }
+.ut > span { display: grid; grid-template-columns: 1fr auto; row-gap: 3px; }
+.ut .bar { grid-column: 1 / -1; height: 5px; background: var(--paper-3); border: 1px solid var(--rule); }
+.ut .bar i { display: block; height: 100%; background: var(--ink-4); }
+.ut b { font-weight: 500; color: var(--ink-3); }
+.slope { display: flex; justify-content: space-between; align-items: baseline; font-size: var(--t-label); color: var(--ink-2); }
+.slope b { font: 500 14px var(--font-data); color: var(--ink); }
+.links { display: flex; gap: 16px; font-size: var(--t-label); margin-top: auto; padding-top: 6px; border-top: 1px solid var(--rule); }
+.links a { white-space: nowrap; color: var(--ink-2); text-decoration-color: var(--ink-4); text-underline-offset: 3px; }
+
+footer { display: flex; align-items: center; gap: 24px; padding: 0 18px; border-top: 1px solid var(--rule-2); color: var(--ink-3); font-size: var(--t-label); background: var(--paper-0); }
+footer em { font-family: var(--font-display); color: var(--ink-2); font-size: 13px; }
+footer .src { margin-left: auto; margin-right: 150px; }
+.proto { position: fixed; top: auto; bottom: 6px; right: 10px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="mark">
+      <svg width="22" height="22" viewBox="-11 -11 22 22" aria-hidden="true"><circle r="9.5" fill="none" stroke="var(--ink-3)" stroke-width=".7"/><path d="M0 -10.5L1.6 0L0 10.5L-1.6 0Z" fill="var(--ink)"/><path d="M-10.5 0L0 1.3L10.5 0L0 -1.3Z" fill="var(--ink-3)"/><path d="M0 4 L1.6 0 L0 10.5 L-1.6 0Z" fill="var(--accent)"/></svg>
+      TrueSouth
+    </div>
+    <nav class="mode" aria-label="Mode"><a href="#" aria-current="page">Mission Control</a><a href="#">Academy</a></nav>
+    <div class="pick"><label>Mission profile</label>
+      <button class="select" aria-haspopup="listbox"><b>IM-2 Athena</b><span class="muted">10 d window</span><span class="prov s">sourced</span><span class="chev">▼</span></button>
+    </div>
+    <div class="pick"><label>Landing date</label>
+      <div class="step"><button title="1 day earlier">‹</button><span class="date">2028-03-01 00:00 UTC</span><button title="1 day later">›</button></div>
+      <div class="step"><button>−14 d</button><button>−7 d</button><button>+7 d</button><button>+14 d</button></div>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn">Share</button>
+  </header>
+
+  <section class="hero">
+    <div class="tlwrap">
+      <div class="tlhead">
+        <h2>Mission window at de Gerlache rim</h2>
+        <span class="win">2028-03-01 00:00 UTC to 2028-03-11 00:00 UTC, 240 h</span>
+        <div class="ctrls">
+          <button class="chip" aria-label="Play">▶ Play</button>
+          <button class="chip">6 h per second ▾</button>
+          <button class="chip" aria-pressed="false">Clearance chart</button>
+        </div>
+      </div>
+      <div id="tl"></div>
+    </div>
+    <div class="cd" id="cd"></div>
+  </section>
+
+  <section class="strip" aria-label="Selected sites">
+    <div class="site"><span class="nm">Connecting Ridge</span><span class="sc"><span class="st go"><i></i>GO</span><span class="num">score 86</span></span><span class="co"><span>89.46°S 222.62°E</span><span>core80</span></span></div>
+    <div class="site"><span class="nm">Malapert Massif</span><span class="sc"><span class="st go"><i></i>GO</span><span class="num">score 82</span></span><span class="co"><span>85.99°S 359.76°E</span><span>core80</span></span></div>
+    <div class="site"><span class="nm">Mons Mouton</span><span class="sc"><span class="st caution"><i></i>CAUTION</span><span class="num">score 41</span></span><span class="co"><span>85.43°S 31.74°E</span><span>core80</span></span></div>
+    <div class="site" aria-current="true"><span class="nm">de Gerlache rim</span><span class="sc"><span class="st nogo"><i></i>NO-GO</span><span class="num"><span class="grey">score 40</span></span></span><span class="co"><span>88.70°S 291.72°E</span><span>core80</span><span>1 veto</span></span></div>
+    <div class="site"><span class="nm">Apollo 11</span><span class="sc"><span class="st go"><i></i>GO</span><span class="num">score 100</span></span><span class="co"><span>0.67°N 23.47°E</span><span>sphere tier</span></span></div>
+    <button class="site add">+ Add site</button>
+    <div class="count"><span>5 of 8 sites</span><span>status at the landing date</span></div>
+  </section>
+
+  <section class="lower">
+    <div class="view">
+      <nav class="tabs" role="tablist">
+        <a href="#" role="tab">Slip</a><a href="#" role="tab">Map</a><a href="#" role="tab">System</a><a href="#" role="tab">Terrain</a><a href="#" role="tab" aria-selected="true">Lander's eye</a><a href="#" role="tab">Compare</a>
+        <span class="r"><button class="chip" aria-pressed="false">Split</button></span>
+      </nav>
+      <div class="pvbar">
+        <span>Centre on</span>
+        <span class="seg"><button aria-pressed="true">Earth</button><button>North</button><button>Sun</button></span>
+        <span class="vx" id="vx">vertical ×8</span>
+        <span class="legend">
+          <span><i style="color:var(--sun)"></i>Sun’s path, tick each day</span>
+          <span><i style="color:var(--earth)"></i>Earth’s path</span>
+          <span><i style="color:var(--earth);border-top-style:dashed"></i>antenna mask</span>
+        </span>
+      </div>
+      <div class="pvbox" id="pv"></div>
+    </div>
+
+    <aside class="focus" aria-label="Focused site">
+      <div class="fhead">
+        <h1>de Gerlache rim</h1>
+        <div class="meta">88.6952°S 291.7154°E, core80 terrain, close-up DEM Site11</div>
+      </div>
+      <div class="verdict">
+        <div><span class="st nogo"><i></i>NO-GO</span><span class="why">1 veto: blackout</span></div>
+        <div class="score"><b>40</b>score, not ranked</div>
+      </div>
+      <div>
+        <h4>Vetoes <small>measured, then the profile’s limit</small></h4>
+        <table class="vt">
+          <tr class="bad"><td>Blackout <span class="info">i</span></td><td><b>30 h</b></td><td class="lim">limit 12 h <span class="prov a">assumed</span></td><td><span class="st nogo"><i></i>breaks</span></td></tr>
+          <tr><td>Darkness <span class="info">i</span></td><td>4 h</td><td class="lim">limit 6 h <span class="prov a">assumed</span></td><td class="ok">passes</td></tr>
+          <tr><td>Slope <span class="info">i</span></td><td>6.4°</td><td class="lim">limit 10° <span class="prov a">assumed</span></td><td class="ok">passes</td></tr>
+          <tr><td>Landing dark <span class="info">i</span></td><td>lit</td><td class="lim">must be lit</td><td class="ok">passes</td></tr>
+        </table>
+      </div>
+      <div>
+        <h4>Metrics <small>mission window, 240 h</small></h4>
+        <dl class="mt">
+          <div><dt>Sun fraction mean <span class="info">i</span></dt><dd>0.975</dd></div>
+          <div><dt>Link fraction <span class="info">i</span></dt><dd>87.5 %</dd></div>
+          <div><dt>Lit fraction <span class="info">i</span></dt><dd>97.5 %</dd></div>
+          <div><dt>Longest blackout <span class="info">i</span></dt><dd style="color:var(--status-nogo)">30 h</dd></div>
+          <div><dt>Longest dark stretch <span class="info">i</span></dt><dd>4 h</dd></div>
+          <div><dt>Landing Sun elevation <span class="info">i</span></dt><dd>+2.63°</dd></div>
+        </dl>
+      </div>
+      <div>
+        <h4>Utilities behind the score <small>weights 0.40, 0.35, 0.25 <span class="prov a">assumed</span></small></h4>
+        <div class="ut">
+          <span>Slope <b>0.72</b><span class="bar"><i style="width:72%"></i></span></span>
+          <span>Power <b>0.33</b><span class="bar"><i style="width:33%"></i></span></span>
+          <span>Comms <b>0.00</b><span class="bar"><i style="width:0%"></i></span></span>
+        </div>
+      </div>
+      <div class="slope"><span>Slope <span class="info">i</span></span><span><b>6.4°</b> over a 100 m baseline, 5 m close-up DEM</span></div>
+      <div class="links"><a href="#">Open in LROC Quickmap ↗</a><a href="#">Open in Moon Trek ↗</a></div>
+    </aside>
+  </section>
+
+  <footer>
+    <em>Planning aid, not flight certification. Limits marked assumed are our estimates.</em>
+    <span class="src">Sun and Earth from JPL Horizons. Terrain from LOLA, NASA PGDA.</span>
+  </footer>
+</div>
+<div class="proto">prototype · mock data</div>
+<script>
+/* Mock model shared by every direction-B page. Deterministic, no randomness.
+   Site: de Gerlache rim (-88.6952, 291.7154 E), profile im2_athena,
+   landing date 2028-03-01T00:00Z, window 240 h. t = hours from landing. */
+var TS = (function () {
+  var RAD = Math.PI / 180;
+  var LANDING = Date.UTC(2028, 2, 1, 0, 0, 0);
+  var WIN = 240, CTX = 72;
+  function wrap(d) { return ((d % 360) + 540) % 360 - 180; }
+  function bump(az, c, w, h, p) { var x = Math.abs(wrap(az - c)) / w; return h * Math.exp(-Math.pow(x, p)); }
+  function noise(az) {
+    var a = az * RAD;
+    return 0.16 * Math.sin(3 * a + 0.7) + 0.11 * Math.sin(7 * a + 1.9) + 0.07 * Math.sin(13 * a + 0.3)
+      + 0.045 * Math.sin(29 * a + 2.2) + 0.03 * Math.sin(53 * a + 1.1) + 0.018 * Math.sin(97 * a + 0.4)
+      + 0.01 * Math.sin(211 * a + 2.7);
+  }
+  function sky(az) {
+    az = ((az % 360) + 360) % 360;
+    return -0.62 + noise(az)
+      + bump(az, 75.2, 4.5, 2.75, 1.6)    // Haworth rim: the Earth blocker
+      + bump(az, 69.5, 1.2, 0.6, 1.3)
+      + bump(az, 90, 13, 0.85, 2)         // Mons Malapert flank
+      + bump(az, 251.6, 4, 1.32, 1.15)   // de Gerlache far rim: the Sun blocker
+      + bump(az, 272, 22, 0.75, 2)        // de Gerlache rim arc
+      + bump(az, 221.4, 4.2, 1.33, 1.2)   // ridge toward Sverdrup
+      + bump(az, 140, 10, 0.6, 2)         // Shoemaker rim
+      + bump(az, 35, 8, 0.35, 2)
+      + bump(az, 184, 7, -0.45, 2);       // low toward Shackleton and the pole
+  }
+  var SUN_R = 0.2665, EARTH_R = 0.95, MASK = 1.0;
+  function sunAt(t) { var az = 330 - 0.50792 * t; az = ((az % 360) + 360) % 360; var el = 1.5 + 1.3048 * Math.cos(az * RAD); return { az: az, el: el }; }
+  function earthAt(t) {
+    var az = 68.3 + 7.6 * Math.sin(2 * Math.PI * (t - 120) / 661.3);
+    var el = 0.49 + 6.7 * Math.cos(2 * Math.PI * (t - 81) / 653);
+    return { az: az, el: el };
+  }
+  function frac(c, r) { var x = Math.max(-1, Math.min(1, c / r)); return 1 - (Math.acos(x) - x * Math.sqrt(1 - x * x)) / Math.PI; }
+  function hour(t) {
+    var s = sunAt(t), e = earthAt(t);
+    var sc = s.el - sky(s.az), ec = e.el - sky(e.az);
+    return { t: t, sun_az: s.az, sun_el: s.el, sun_clear: sc, sun_frac: frac(sc, SUN_R),
+      earth_az: e.az, earth_el: e.el, earth_clear: ec, earth_frac: frac(ec, EARTH_R),
+      lit: frac(sc, SUN_R) >= 0.5, link: ec >= MASK };
+  }
+  var series = [];
+  for (var t = -CTX; t <= WIN + CTX; t++) series.push(hour(t));
+  function at(t) { return series[t + CTX]; }
+  function runs(key, val) { // runs inside the window [0, WIN)
+    var out = [], start = null;
+    for (var t = 0; t < WIN; t++) {
+      var v = at(t)[key] === val;
+      if (v && start === null) start = t;
+      if ((!v || t === WIN - 1) && start !== null) { out.push({ start: start, end: v ? t + 1 : t }); start = null; }
+    }
+    return out;
+  }
+  function longest(rs) { var b = null; rs.forEach(function (r) { if (!b || r.end - r.start > b.end - b.start) b = r; }); return b; }
+  function nextCross(t0, fn) { // fn(t) returns signed value; find next sign change after t0 (fractional hour)
+    var a = Math.floor(t0), va = fn(a);
+    for (var t = a + 1; t <= 2000; t++) { var vb = fn(t); if ((va >= 0) !== (vb >= 0)) { var f = t - 1 + va / (va - vb); if (f > t0) return f; } va = vb; }
+    return null;
+  }
+  function iso(t) { var d = new Date(LANDING + t * 3600e3); return d.toISOString().slice(0, 16).replace('T', ' ') + ' UTC'; }
+  function dur(h) {
+    if (h >= 48) { var d = Math.floor(h / 24); return d + ' d ' + Math.round(h - d * 24) + ' h'; }
+    var hh = Math.floor(h), mm = Math.round((h - hh) * 60); if (mm === 60) { hh++; mm = 0; }
+    return hh + ' h ' + (mm < 10 ? '0' : '') + mm + ' m';
+  }
+  var dark = runs('lit', false), black = runs('link', false);
+  var sumFrac = 0, lit = 0, link = 0;
+  for (var i = 0; i < WIN; i++) { sumFrac += at(i).sun_frac; if (at(i).lit) lit++; if (at(i).link) link++; }
+  var metrics = { sun_fraction_mean: sumFrac / WIN, lit_fraction: lit / WIN, link_fraction: link / WIN,
+    longest_dark: longest(dark), longest_blackout: longest(black), dark: dark, black: black,
+    landing_sun_el: at(0).sun_el };
+  function sunVal(t) { var h = hour(t); return h.sun_clear; }
+  function earthVal(t) { var h = hour(t); return h.earth_clear - MASK; }
+  return { RAD: RAD, sky: sky, hour: hour, at: at, series: series, WIN: WIN, CTX: CTX, SUN_R: SUN_R, EARTH_R: EARTH_R,
+    MASK: MASK, metrics: metrics, iso: iso, dur: dur, wrap: wrap,
+    nextSun: function (t) { return nextCross(t, sunVal); }, nextEarth: function (t) { return nextCross(t, earthVal); } };
+})();
+
+/* Hand-drawn SVG for the direction-B prototypes: timeline bands and the Lander's eye. */
+var DRAW = (function () {
+  var RAD = Math.PI / 180;
+  function n(v, d) { return (+v).toFixed(d == null ? 1 : d); }
+  function sgn(v, d) { return (v < 0 ? '−' : v > 0 ? '+' : '') + Math.abs(v).toFixed(d == null ? 1 : d); }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function sym(kind, x, y, s) { // map-legend status symbols, centred on x,y
+    s = s || 9;
+    if (kind === 'go') return '<circle cx="' + x + '" cy="' + y + '" r="' + s / 2 + '" fill="var(--status-go)"/>';
+    if (kind === 'caution') return '<path d="M' + x + ' ' + (y - s / 2) + 'L' + (x + s / 2) + ' ' + (y + s / 2) + 'L' + (x - s / 2) + ' ' + (y + s / 2) + 'Z" fill="var(--status-caution)"/>';
+    var h = s / 2;
+    return '<rect x="' + (x - h) + '" y="' + (y - h) + '" width="' + s + '" height="' + s + '" fill="none" stroke="var(--status-nogo)" stroke-width="1.4"/>' +
+      '<path d="M' + (x - h + 2) + ' ' + (y - h + 2) + 'L' + (x + h - 2) + ' ' + (y + h - 2) + 'M' + (x + h - 2) + ' ' + (y - h + 2) + 'L' + (x - h + 2) + ' ' + (y + h - 2) + '" stroke="var(--status-nogo)" stroke-width="1.4"/>';
+  }
+
+  /* ---------------- Timeline ---------------- */
+  function timeline(o) {
+    var W = o.w, L = o.left || 92, RM = 10, x0 = -TS.CTX, x1 = TS.WIN + TS.CTX;
+    var X = function (t) { return L + (t - x0) / (x1 - x0) * (W - L - RM); };
+    var hw = X(1) - X(0);
+    var p = [], y = 0;
+    var yFlag = 0, yDay = 30, yBar = 36, yChart = 48, CH = o.clearance ? (o.chartH || 128) : 0;
+    var yCall1 = yChart + (CH ? CH + 16 : 0), BH = o.bandH || 40;
+    var ySun = yCall1 + 18, yEarth = ySun + BH + 12, yCall2 = yEarth + BH + 2, yDate = yCall2 + 38;
+    var H = yDate + 4;
+    var id = o.id || 'tl';
+    p.push('<defs><pattern id="' + id + 'hx" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="var(--rule-2)" stroke-width="1"/></pattern></defs>');
+    // day scale bar (alternating segments, like a map's scale bar)
+    for (var d = 0; d < 10; d++) {
+      var a = X(d * 24), b = X(d * 24 + 24);
+      p.push('<rect x="' + a + '" y="' + yBar + '" width="' + (b - a) + '" height="5" fill="' + (d % 2 ? 'var(--paper-0)' : 'var(--ink-2)') + '" stroke="var(--ink-2)" stroke-width=".6"/>');
+      p.push('<text x="' + ((a + b) / 2) + '" y="' + yDay + '" class="tl-day" text-anchor="middle">Day ' + (d + 1) + '</text>');
+    }
+    p.push('<line x1="' + X(x0) + '" x2="' + X(0) + '" y1="' + (yBar + 2.5) + '" y2="' + (yBar + 2.5) + '" stroke="var(--ink-4)" stroke-dasharray="2 3"/>');
+    p.push('<line x1="' + X(240) + '" x2="' + X(x1) + '" y1="' + (yBar + 2.5) + '" y2="' + (yBar + 2.5) + '" stroke="var(--ink-4)" stroke-dasharray="2 3"/>');
+    p.push('<text x="' + ((X(x0) + X(0)) / 2) + '" y="' + yDay + '" class="tl-ctx" text-anchor="middle">3 days before landing</text>');
+    p.push('<text x="' + ((X(240) + X(x1)) / 2) + '" y="' + yDay + '" class="tl-ctx" text-anchor="middle">3 days after the window</text>');
+    // graticule: day lines through everything below the bar
+    for (var dd = -3; dd <= 13; dd++) {
+      var gx = X(dd * 24);
+      p.push('<line x1="' + gx + '" x2="' + gx + '" y1="' + (yBar + 6) + '" y2="' + (yEarth + BH) + '" stroke="var(--rule)" stroke-width="' + (dd === 0 || dd === 10 ? 1 : .5) + '"/>');
+    }
+    // clearance chart
+    if (CH) {
+      var lo = -4, hi = 8, Y = function (v) { return yChart + (hi - Math.max(lo, Math.min(hi, v))) / (hi - lo) * CH; };
+      for (var g = lo; g <= hi; g += 2) {
+        p.push('<line x1="' + L + '" x2="' + (W - RM) + '" y1="' + Y(g) + '" y2="' + Y(g) + '" stroke="var(--rule)" stroke-width=".5"/>');
+        p.push('<text x="' + (L + 4) + '" y="' + (Y(g) - 2.5) + '" class="tl-ax">' + sgn(g, 0) + '°</text>');
+      }
+      p.push('<line x1="' + L + '" x2="' + (W - RM) + '" y1="' + Y(0) + '" y2="' + Y(0) + '" stroke="var(--ink-3)" stroke-width="1"/>');
+      p.push('<line x1="' + L + '" x2="' + (W - RM) + '" y1="' + Y(TS.MASK) + '" y2="' + Y(TS.MASK) + '" stroke="var(--earth)" stroke-width="1" stroke-dasharray="5 3"/>');
+      p.push('<text x="' + (X(30)) + '" y="' + (Y(0) + 12) + '" class="tl-ax">0°, the skyline at the body’s azimuth</text>');
+      p.push('<text x="' + (X(30)) + '" y="' + (Y(TS.MASK) - 4) + '" class="tl-ax tl-earthc">antenna mask 1.0° (assumed)</text>');
+      var sp = '', ep = '';
+      TS.series.forEach(function (h, i) { sp += (i ? 'L' : 'M') + n(X(h.t + .5), 1) + ' ' + n(Y(h.sun_clear), 1); ep += (i ? 'L' : 'M') + n(X(h.t + .5), 1) + ' ' + n(Y(h.earth_clear), 1); });
+      p.push('<path d="' + sp + '" fill="none" stroke="var(--sun)" stroke-width="1.5"/>');
+      p.push('<path d="' + ep + '" fill="none" stroke="var(--earth)" stroke-width="1.5"/>');
+      p.push('<text x="' + (L - 66) + '" y="' + (yChart + 10) + '" class="tl-row">Clearance</text>');
+      p.push('<text x="' + (L - 66) + '" y="' + (yChart + 24) + '" class="tl-sub">degrees</text>');
+      p.push('<rect x="' + (L - 66) + '" y="' + (yChart + 36) + '" width="10" height="2" fill="var(--sun)"/><text x="' + (L - 52) + '" y="' + (yChart + 40) + '" class="tl-sub">Sun</text>');
+      p.push('<rect x="' + (L - 66) + '" y="' + (yChart + 50) + '" width="10" height="2" fill="var(--earth)"/><text x="' + (L - 52) + '" y="' + (yChart + 54) + '" class="tl-sub">Earth</text>');
+    }
+    // band frames
+    [ySun, yEarth].forEach(function (yy) {
+      p.push('<line x1="' + L + '" x2="' + (W - RM) + '" y1="' + (yy + BH) + '" y2="' + (yy + BH) + '" stroke="var(--rule-2)" stroke-width=".8"/>');
+      p.push('<line x1="' + L + '" x2="' + (W - RM) + '" y1="' + yy + '" y2="' + yy + '" stroke="var(--rule)" stroke-width=".5" stroke-dasharray="1 3"/>');
+    });
+    p.push('<text x="' + (L - 66) + '" y="' + (ySun + 16) + '" class="tl-row">Sun</text><text x="' + (L - 66) + '" y="' + (ySun + 30) + '" class="tl-sub">disc fraction</text>');
+    p.push('<text x="' + (L - 66) + '" y="' + (yEarth + 16) + '" class="tl-row">Earth</text><text x="' + (L - 66) + '" y="' + (yEarth + 30) + '" class="tl-sub">link</text>');
+    // hours
+    var sunLit = '', sunCtx = '', earthLink = '', earthCtx = '', darkStep = '';
+    TS.series.forEach(function (h) {
+      var x = X(h.t), ctx = h.t < 0 || h.t >= TS.WIN;
+      if (h.lit) { var hh = h.sun_frac * BH; var r = 'M' + n(x, 2) + ' ' + n(ySun + BH - hh, 2) + 'h' + n(hw + .05, 2) + 'v' + n(hh, 2) + 'h-' + n(hw + .05, 2) + 'Z'; if (ctx) sunCtx += r; else sunLit += r; }
+      else { darkStep += 'M' + n(x, 2) + ' ' + n(ySun + BH - h.sun_frac * BH, 2) + 'h' + n(hw, 2); }
+      if (h.link) { var e = 'M' + n(x, 2) + ' ' + yEarth + 'h' + n(hw + .05, 2) + 'v' + BH + 'h-' + n(hw + .05, 2) + 'Z'; if (ctx) earthCtx += e; else earthLink += e; }
+    });
+    p.push('<path d="' + sunCtx + '" fill="var(--sun)" opacity=".28"/><path d="' + sunLit + '" fill="var(--sun)"/>');
+    p.push('<path d="' + earthCtx + '" fill="var(--earth)" opacity=".28"/><path d="' + earthLink + '" fill="var(--earth)"/>');
+    p.push('<path d="' + darkStep + '" stroke="var(--ink-3)" stroke-width="1" fill="none"/>');
+    // context hatching
+    p.push('<rect x="' + X(x0) + '" y="' + ySun + '" width="' + (X(0) - X(x0)) + '" height="' + (yEarth + BH - ySun) + '" fill="url(#' + id + 'hx)" opacity=".55"/>');
+    p.push('<rect x="' + X(240) + '" y="' + ySun + '" width="' + (X(x1) - X(240)) + '" height="' + (yEarth + BH - ySun) + '" fill="url(#' + id + 'hx)" opacity=".55"/>');
+    // outlines: longest dark stretch and longest blackout
+    var m = TS.metrics, ld = m.longest_dark, lb = m.longest_blackout;
+    if (o.outlines !== false) {
+      var dxa = X(ld.start), dxb = X(ld.end), darkLen = ld.end - ld.start, darkVeto = darkLen > 6;
+      p.push('<rect x="' + (dxa - 1.5) + '" y="' + (ySun - 3) + '" width="' + (dxb - dxa + 3) + '" height="' + (BH + 6) + '" fill="none" stroke="' + (darkVeto ? 'var(--status-nogo)' : 'var(--ink)') + '" stroke-width="1.4"/>');
+      p.push('<path d="M' + ((dxa + dxb) / 2) + ' ' + (ySun - 3) + 'V' + (yCall1 + 6) + 'H' + ((dxa + dxb) / 2 - 18) + '" stroke="var(--ink-2)" stroke-width=".7" fill="none"/>');
+      p.push('<text x="' + ((dxa + dxb) / 2 - 22) + '" y="' + (yCall1 + 9.5) + '" class="tl-call" text-anchor="end">Longest dark stretch ' + darkLen + ' h <tspan class="tl-call-ok">within the 6 h limit (assumed)</tspan></text>');
+      var bxa = X(lb.start), bxb = X(lb.end), blLen = lb.end - lb.start;
+      p.push('<rect x="' + (bxa - 1.5) + '" y="' + (yEarth - 3) + '" width="' + (bxb - bxa + 3) + '" height="' + (BH + 6) + '" fill="none" stroke="var(--status-nogo)" stroke-width="1.6"/>');
+      p.push('<path d="M' + ((bxa + bxb) / 2) + ' ' + (yEarth + BH + 3) + 'V' + (yCall2 + 14) + 'H' + ((bxa + bxb) / 2 - 18) + '" stroke="var(--status-nogo)" stroke-width=".8" fill="none"/>');
+      p.push(sym('nogo', (bxa + bxb) / 2 - 27, yCall2 + 14, 9));
+      p.push('<text x="' + ((bxa + bxb) / 2 - 36) + '" y="' + (yCall2 + 17.5) + '" class="tl-call tl-call-bad" text-anchor="end">Longest blackout ' + blLen + ' h, breaks the 12 h limit (assumed)</text>');
+    }
+    // dates
+    for (var k = -3; k <= 12; k++) {
+      var dx = X(k * 24), dt = TS.iso(k * 24).slice(0, 10);
+      if (k % 1 === 0) p.push('<text x="' + (dx + 3) + '" y="' + (yDate - 2) + '" class="tl-date' + (k < 0 || k > 9 ? ' tl-ctx' : '') + '">' + dt.slice(5) + '</text>');
+    }
+    p.push('<text x="' + (L - 66) + '" y="' + (yDate - 2) + '" class="tl-sub">UTC dates</text>');
+    // scrubber
+    if (o.t != null) {
+      var sx = X(o.t + .5);
+      p.push('<line x1="' + sx + '" x2="' + sx + '" y1="' + (yBar - 2) + '" y2="' + (yEarth + BH + 2) + '" stroke="var(--accent)" stroke-width="1.6"/>');
+      p.push('<path d="M' + (sx - 5) + ' ' + (yBar - 8) + 'L' + (sx + 5) + ' ' + (yBar - 8) + 'L' + sx + ' ' + (yBar - 1) + 'Z" fill="var(--accent)"/>');
+      var day = Math.floor(o.t / 24) + 1, lab = 'Day ' + day + ', ' + TS.iso(o.t);
+      var tw = lab.length * 6.1 + 16, fx = Math.min(Math.max(sx - tw / 2, L), W - RM - tw);
+      p.push('<rect x="' + fx + '" y="' + (yFlag + 2) + '" width="' + tw + '" height="17" rx="1" fill="var(--accent)"/>');
+      p.push('<text x="' + (fx + tw / 2) + '" y="' + (yFlag + 14) + '" class="tl-flag" text-anchor="middle">' + lab + '</text>');
+    }
+    return { svg: '<svg class="tl" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="Mission timeline">' + p.join('') + '</svg>', h: H, X: X };
+  }
+
+  /* ---------------- Lander's eye ---------------- */
+  // sphere-tier contrast site: Apollo 11, smooth Moon
+  var A11 = { lat: 0.67416, lon: 23.47314 };
+  function a11Sun(t) {
+    var H = (-84 + 0.50792 * t) * RAD, dec = -1.2 * RAD, phi = A11.lat * RAD;
+    var el = Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H));
+    var az = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(phi) - Math.tan(dec) * Math.cos(phi)) / RAD + 180;
+    return { az: (az + 360) % 360, el: el / RAD };
+  }
+  function a11Earth(t) {
+    var bE = 4.1 * Math.cos(2 * Math.PI * (t - 81) / 653) * RAD, lE = 6.2 * Math.sin(2 * Math.PI * (t - 120) / 661.3) * RAD;
+    var phi = A11.lat * RAD, lam = A11.lon * RAD, dl = lE - lam;
+    var el = Math.asin(Math.sin(phi) * Math.sin(bE) + Math.cos(phi) * Math.cos(bE) * Math.cos(dl));
+    var az = Math.atan2(Math.sin(dl) * Math.cos(bE), Math.cos(phi) * Math.sin(bE) - Math.sin(phi) * Math.cos(bE) * Math.cos(dl)) / RAD;
+    return { az: (az + 360) % 360, el: el / RAD };
+  }
+
+  function pano(o) {
+    var W = o.w, H = o.h, ML = 40, MR = 12, MT = o.mt == null ? 26 : o.mt, MB = o.mb == null ? 30 : o.mb, id = o.id || 'pv';
+    var PW = W - ML - MR, PH = H - MT - MB, lo = o.range[0], hi = o.range[1];
+    var sphere = o.kind === 'sphere', c = o.center;
+    var span = o.span || 360, half = span / 2, pxX = PW / span, pxY = PH / (hi - lo);
+    var X = function (az) { return ML + (TS.wrap(az - c) + half) * pxX; };
+    var inView = function (az) { return Math.abs(TS.wrap(az - c)) <= half + 1e-9; };
+    var Y = function (el) { return MT + (hi - el) * pxY; };
+    var skyF = sphere ? function () { return -0.05; } : TS.sky;
+    var sunF = sphere ? a11Sun : function (t) { var h = TS.at(t); return { az: h.sun_az, el: h.sun_el }; };
+    var earthF = sphere ? a11Earth : function (t) { var h = TS.at(t); return { az: h.earth_az, el: h.earth_el }; };
+    var p = [];
+    // skyline geometry
+    var pts = [];
+    var stp = span < 60 ? 0.05 : 0.25;
+    for (var r = -half; r <= half + 1e-9; r += stp) { var az = c + r; pts.push([ML + (r + half) * pxX, Y(skyF(az))]); }
+    var top = pts.map(function (q, i) { return (i ? 'L' : 'M') + n(q[0], 1) + ' ' + n(q[1], 1); }).join('');
+    var ground = top + 'L' + (ML + PW) + ' ' + (MT + PH) + 'L' + ML + ' ' + (MT + PH) + 'Z';
+    var skyArea = top + 'L' + (ML + PW) + ' ' + MT + 'L' + ML + ' ' + MT + 'Z';
+    p.push('<defs><clipPath id="' + id + 'sky"><path d="' + skyArea + '"/></clipPath><clipPath id="' + id + 'plot"><rect x="' + ML + '" y="' + MT + '" width="' + PW + '" height="' + PH + '"/></clipPath>' +
+      '<pattern id="' + id + 'eng" width="6" height="3" patternUnits="userSpaceOnUse"><line x1="0" y1="1.5" x2="6" y2="1.5" stroke="var(--ink)" stroke-opacity=".09" stroke-width=".8"/></pattern></defs>');
+    p.push('<rect x="' + ML + '" y="' + MT + '" width="' + PW + '" height="' + PH + '" fill="var(--sky)"/>');
+    // graticule
+    var stepEl = o.stepEl || (sphere ? 15 : 2);
+    for (var g = Math.ceil(lo / stepEl) * stepEl; g <= hi; g += stepEl) {
+      p.push('<line x1="' + ML + '" x2="' + (ML + PW) + '" y1="' + Y(g) + '" y2="' + Y(g) + '" stroke="var(--rule)" stroke-width="' + (g === 0 ? 0 : .5) + '"/>');
+      p.push('<text x="' + (ML - 6) + '" y="' + (Y(g) + 3.5) + '" class="pv-ax" text-anchor="end">' + sgn(g, stepEl < 1 ? 1 : 0) + '°</text>');
+    }
+    var stepAz = span < 60 ? 2 : 10, labAz = span < 60 ? 2 : 30;
+    for (var a = 0; a < 360; a += stepAz) {
+      if (!inView(a) || (span < 360 && Math.abs(TS.wrap(a - c)) > half - .01)) continue;
+      var gx = X(a);
+      p.push('<line x1="' + gx + '" x2="' + gx + '" y1="' + MT + '" y2="' + (MT + PH) + '" stroke="var(--rule)" stroke-width="' + (a % labAz ? .35 : .6) + '"/>');
+      if (a % labAz === 0 && MT > 12) p.push('<text x="' + gx + '" y="' + (MT - 8) + '" class="pv-ax" text-anchor="middle">' + a + '°</text>');
+      p.push('<line x1="' + gx + '" x2="' + gx + '" y1="' + MT + '" y2="' + (MT + (a % labAz ? 3 : 6)) + '" stroke="var(--ink-3)" stroke-width=".8"/>');
+    }
+    // ground
+    p.push('<path d="' + ground + '" fill="var(--ground)"/><path d="' + ground + '" fill="url(#' + id + 'eng)"/>');
+    p.push('<path d="' + top + '" fill="none" stroke="var(--ink-2)" stroke-width="1.1" stroke-linejoin="round"/>');
+    // zero line
+    if (lo < 0 && hi > 0) p.push('<line x1="' + ML + '" x2="' + (ML + PW) + '" y1="' + Y(0) + '" y2="' + Y(0) + '" stroke="var(--ink-2)" stroke-width=".9" stroke-dasharray="' + (sphere ? '0' : '6 3') + '" opacity=".85"/>');
+    var zx = o.zeroLabelX != null ? o.zeroLabelX : ML + PW - 6;
+    if (lo < 0 && hi > 0) p.push('<text x="' + zx + '" y="' + (Y(0) + 13) + '" class="pv-lab pv-zero" text-anchor="end">0°, local horizontal</text>');
+    // paths
+    var T0 = 0, T1 = TS.WIN;
+    function track(F, cls) {
+      var s = '', last = null;
+      for (var t = T0; t <= T1; t++) {
+        var q = F(t), x = X(q.az), y = Y(q.el);
+        s += (last === null || Math.abs(x - last) > PW / 2 || !inView(q.az) ? 'M' : 'L') + n(x, 1) + ' ' + n(y, 1); last = x;
+      }
+      var out = '<path d="' + s + '" class="' + cls + '" fill="none" clip-path="url(#' + id + 'plot)"/>';
+      for (var d = 0; d <= 10; d++) {
+        var q2 = F(d * 24), q3 = F(Math.min(d * 24 + 1, T1)), q1 = F(Math.max(d * 24 - 1, 0));
+        var tx = X(q2.az), ty = Y(q2.el), ddx = X(q3.az) - X(q1.az), ddy = Y(q3.el) - Y(q1.el), L2 = Math.hypot(ddx, ddy) || 1;
+        var nx = -ddy / L2 * 5, ny = ddx / L2 * 5;
+        if (!inView(q2.az) || o.ticks === false) continue;
+        out += '<line x1="' + n(tx - nx, 1) + '" y1="' + n(ty - ny, 1) + '" x2="' + n(tx + nx, 1) + '" y2="' + n(ty + ny, 1) + '" class="' + cls + '-tick"/>';
+        if (o.tickLabels !== false) {
+          if (cls === 'pv-earth') { if ([0, 3, 6, 9].indexOf(d) >= 0) out += '<text x="' + n(tx - 8, 1) + '" y="' + n(ty + 3, 1) + '" class="pv-tick" text-anchor="end">' + (d + 1) + '</text>'; }
+          else if (d % (o.tickEvery || 1) === 0) out += '<text x="' + n(tx + nx * 2.2, 1) + '" y="' + n(ty + ny * 2.2 + 3, 1) + '" class="pv-tick" text-anchor="middle">' + (d + 1) + '</text>';
+        }
+      }
+      return out;
+    }
+    p.push(track(sunF, 'pv-sun'));
+    p.push(track(earthF, 'pv-earth'));
+    // antenna mask line around Earth's position
+    if (!sphere && inView(earthF(o.t).az)) {
+      var eMin = 999, eMax = -999;
+      for (var t2 = 0; t2 <= TS.WIN; t2 += 6) { var ea = TS.wrap(earthF(t2).az - c); eMin = Math.min(eMin, ea); eMax = Math.max(eMax, ea); }
+      var ms = '';
+      var m0 = Math.max(eMin - 10, -half), m1 = Math.min(eMax + 10, half);
+      for (var r2 = m0; r2 <= m1; r2 += stp) ms += (ms ? 'L' : 'M') + n(ML + (r2 + half) * pxX, 1) + ' ' + n(Y(TS.sky(c + r2) + TS.MASK), 1);
+      p.push('<path d="' + ms + '" fill="none" stroke="var(--earth)" stroke-width="1" stroke-dasharray="4 3"/>');
+      var mlx = ML + (m1 + half) * pxX;
+      if (o.maskLabel !== false) p.push('<text x="' + (mlx + 6) + '" y="' + (Y(TS.sky(c + m1) + TS.MASK) + 3) + '" class="pv-lab pv-earthc">antenna mask, 1.0° above the skyline (assumed)</text>');
+    } else if (sphere) {
+      p.push('<text x="' + (ML + 10) + '" y="' + (Y(0) - 8) + '" class="pv-lab">Terrain not modelled. Showing a smooth Moon.</text>');
+    }
+    // discs at the scrubber's time
+    function disc(F, R, fill, label, side) {
+      var q = F(o.t); if (!inView(q.az)) return '';
+      var x = X(q.az), y = Y(q.el), rx = Math.max(R * pxX, 1.2), ry = R * pxY;
+      var e = '<ellipse cx="' + n(x, 1) + '" cy="' + n(y, 1) + '" rx="' + n(rx, 2) + '" ry="' + n(ry, 2) + '"';
+      var s = e + ' fill="' + fill + '" opacity=".22"/>' + e + ' fill="none" stroke="' + fill + '" stroke-width=".6" stroke-dasharray="2 2" opacity=".7"/>';
+      s += '<g clip-path="url(#' + id + 'sky)">' + e + ' fill="' + fill + '"/></g>';
+      s = '<g clip-path="url(#' + id + 'plot)">' + s + '</g>';
+      var lx = x + side * (rx + 10), ly = y - ry - (label === 'Sun' ? (o.sunLift || 4) : 4);
+      if (o.discLabels === false) return s;
+      s += '<line x1="' + n(x + side * (rx + 2), 1) + '" y1="' + n(y - ry * .6, 1) + '" x2="' + n(lx, 1) + '" y2="' + n(ly + 4, 1) + '" stroke="var(--ink-3)" stroke-width=".7"/>';
+      s += '<text x="' + n(lx + side * 3, 1) + '" y="' + n(ly, 1) + '" class="pv-disc" text-anchor="' + (side > 0 ? 'start' : 'end') + '">' + label + '</text>';
+      s += '<text x="' + n(lx + side * 3, 1) + '" y="' + n(ly + 13, 1) + '" class="pv-lab" text-anchor="' + (side > 0 ? 'start' : 'end') + '">' + sgn(q.el, 2) + '°, az ' + n(q.az, 1) + '°</text>';
+      return s;
+    }
+    p.push(disc(sunF, TS.SUN_R, 'var(--sun)', 'Sun', o.sunSide || 1));
+    p.push(disc(earthF, TS.EARTH_R, 'var(--earth)', 'Earth', o.earthSide || 1));
+    // hover crosshair
+    var hv = null;
+    if (o.hover != null) {
+      var hx = X(o.hover), hy = Y(skyF(o.hover));
+      p.push('<line x1="' + hx + '" x2="' + hx + '" y1="' + MT + '" y2="' + (MT + PH) + '" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 2"/>');
+      p.push('<circle cx="' + hx + '" cy="' + hy + '" r="4" fill="none" stroke="var(--accent)" stroke-width="1.6"/><circle cx="' + hx + '" cy="' + hy + '" r="1.4" fill="var(--accent)"/>');
+      hv = { x: hx, y: hy };
+    }
+    // frame (neatline: outer and inner rule)
+    p.push('<rect x="' + ML + '" y="' + MT + '" width="' + PW + '" height="' + PH + '" fill="none" stroke="var(--ink-3)" stroke-width=".8"/>');
+    p.push('<rect x="' + (ML - 3) + '" y="' + (MT - 3) + '" width="' + (PW + 6) + '" height="' + (PH + 6) + '" fill="none" stroke="var(--rule-2)" stroke-width=".5"/>');
+    // compass labels
+    if (o.compass !== false) [['N', 0], ['NE', 45], ['E', 90], ['SE', 135], ['S', 180], ['SW', 225], ['W', 270], ['NW', 315]].forEach(function (k) {
+      if (!inView(k[1])) return; var x = X(k[1]); var big = k[0].length === 1;
+      p.push('<text x="' + x + '" y="' + (MT + PH + (big ? 20 : 17)) + '" class="' + (big ? 'pv-compass' : 'pv-compass2') + '" text-anchor="middle">' + k[0] + '</text>');
+    });
+    var ratio = pxY / pxX;
+    return { svg: '<svg class="pv" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="Lander\'s eye panorama">' + p.join('') + '</svg>', hover: hv, ratio: ratio, X: X, Y: Y };
+  }
+
+  var BLOCKERS = [ { az: 251.6, w: 6, dist: 12.4, feature: 'de Gerlache', fdist: 9.8 }, { az: 75.2, w: 6, dist: 58.7, feature: 'Haworth', fdist: 25.7 } ];
+  function blocker(az) {
+    for (var i = 0; i < BLOCKERS.length; i++) if (Math.abs(TS.wrap(az - BLOCKERS[i].az)) < BLOCKERS[i].w) {
+      var b = BLOCKERS[i], el = TS.sky(az), h = Math.tan(el * RAD) * b.dist + b.dist * b.dist / (2 * 1737.4);
+      return { az: az, el: el, dist: b.dist, height_m: h * 1000, feature: b.feature, fdist: b.fdist };
+    }
+    return null;
+  }
+  function countdowns(T) {
+    var h = TS.at(T), ns = TS.nextSun(T), ns2 = TS.nextSun(ns + .01), ne = TS.nextEarth(T), ne2 = TS.nextEarth(ne + .01);
+    function card(ev, dt, cls, tip) {
+      var amber = dt - T < 6;
+      return '<div class="card ' + cls + (amber ? ' amber' : '') + '"><span class="ev"><span>' + ev + ' in</span>' + (amber ? '<span class="soon"><i></i>under 6 h</span>' : '<span class="info" title="' + tip + '">i</span>') + '</span><span class="big">' + TS.dur(dt - T) + '</span><span class="at">' + TS.iso(dt) + '</span></div>';
+    }
+    var sunTip = 'Sunset is the moment the disc fraction falls below 0.5, the profile rule, not the geometric horizon.';
+    var earthTip = 'Earthset is the moment Earth clearance falls below the 1.0 degree antenna mask.';
+    return '<h3>Sun <small>now ' + (h.lit ? 'lit' : 'dark') + ', ' + sgn(h.sun_el, 2) + '° up, disc fraction ' + h.sun_frac.toFixed(2) + '</small></h3>' +
+      card(h.lit ? 'Sunset' : 'Sunrise', ns, 'next', sunTip) + card(h.lit ? 'Sunrise' : 'Sunset', ns2, '', sunTip) +
+      '<h3>Earth <small>now ' + (h.link ? 'linked' : 'in blackout') + ', ' + sgn(h.earth_el, 2) + '° up, clearance ' + sgn(h.earth_clear, 2) + '°</small></h3>' +
+      card(h.link ? 'Earthset' : 'Earthrise', ne, 'next', earthTip) + card(h.link ? 'Earthrise' : 'Earthset', ne2, '', earthTip);
+  }
+  function why(T, body) {
+    var h = TS.at(T), az = body === 'sun' ? h.sun_az : h.earth_az, el = body === 'sun' ? h.sun_el : h.earth_el, b = blocker(az);
+    var name = body === 'sun' ? 'Sun' : 'Earth';
+    return { text: name + ' is ' + n(el, 1) + '° up. The ridge in that direction rises to ' + n(b.el, 1) + '°, ' + n(b.dist, 1) + ' km away, near ' + b.feature + '. Blocked by terrain.', az: az, b: b };
+  }
+  function meanEarthAz() { var s = 0; for (var t = 0; t < TS.WIN; t++) s += TS.at(t).earth_az; return s / TS.WIN; }
+  return { blocker: blocker, countdowns: countdowns, why: why, timeline: timeline, pano: pano, sym: sym, n: n, sgn: sgn, meanEarthAz: meanEarthAz, a11Sun: a11Sun, a11Earth: a11Earth };
+})();
+
+(function () {
+  var T = 200;
+  var tl = DRAW.timeline({ w: 1068, t: T, id: 'tl' });
+  document.getElementById('tl').innerHTML = tl.svg;
+  var c = DRAW.meanEarthAz();
+  var pv = DRAW.pano({ w: 1016, h: 398, center: c, t: T, range: [-3, 9], id: 'pv', sunSide: -1, earthSide: 1, tickEvery: 1, zeroLabelX: 470, sunLift: 26 });
+  document.getElementById('pv').innerHTML = pv.svg;
+  document.getElementById('vx').textContent = 'vertical ×' + Math.round(pv.ratio);
+  document.getElementById('cd').innerHTML = DRAW.countdowns(T);
+})();
+</script>
+</body>
+</html>
