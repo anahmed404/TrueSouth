@@ -141,8 +141,12 @@ from the data:
 The blocker's distance, position and nearest named feature come from the skyline bin at
 the body's azimuth.
 
-When the Sun is up and lit, the card reads "Lit." and the share of the Sun's disc above the
-skyline, for example "Lit. 62 % of the Sun's disc is above the skyline."
+When the hour is lit and linked, the card reads "Lit and linked." and then, when the
+series' Sun disc fraction is below 1, the share of the Sun's disc above the skyline from that
+fraction, rounded down, for example "Lit and linked. 62 % of the Sun's disc is above the
+skyline." At a full disc it gives the Sun's height and its clearance instead, for example
+"Lit and linked. The Sun is 1.22° below level, 0.33° above the skyline." A lit hour with no
+link shows the reason for the blackout.
 
 For a sphere-tier site the sentence is "Sun is below the horizon" with no blocker.
 
