@@ -15,6 +15,7 @@ import type { Evaluation, VetoId } from "../../../lib/scoring";
 import { COMPARE_CSV_HEADER, compareCsv, compareFileName, scenarioFileName, scenarioJson, type ExportScenario } from "./export";
 import {
   MAP_CENTRE_NOTE,
+  nameList,
   TOO_FEW_SITES,
   compareColumn,
   metricRows,
@@ -224,6 +225,12 @@ describe("the summary sentence", () => {
     expect(say([["a", go(90)], ["b", go(90.5)], ["c", go(70)], ["d", blackout]])).toBe(
       `${lead}, Alpha, Bravo and Charlie are GO. Alpha and Bravo tie for the highest score, 90 of 100. Delta fails on a 31 h blackout (limit ${athena.max_blackout_h} h).`,
     );
+  });
+
+  it("splits names that hold a comma with semicolons", () => {
+    expect(nameList(["Alpha", "Bravo", "Charlie"])).toBe("Alpha, Bravo and Charlie");
+    expect(nameList(["Ridge", "Ridge, best-lit point", "Rim, best-lit point"])).toBe("Ridge; Ridge, best-lit point; and Rim, best-lit point");
+    expect(nameList(["Ridge", "Ridge, best-lit point"])).toBe("Ridge and Ridge, best-lit point");
   });
 
   it("while loading, and with a site that has no result or failed", () => {

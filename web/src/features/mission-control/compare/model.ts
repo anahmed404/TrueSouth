@@ -406,6 +406,8 @@ function capitalised(text: string): string {
 /** "A", "A and B", "A, B and C". */
 export function nameList(names: readonly string[]): string {
   if (names.length <= 1) return names[0] ?? "";
+  // "Connecting Ridge, best-lit point" holds a comma, so such lists are split by semicolons.
+  if (names.length > 2 && names.some((name) => name.includes(","))) return `${names.slice(0, -1).join("; ")}; and ${names[names.length - 1]}`;
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
