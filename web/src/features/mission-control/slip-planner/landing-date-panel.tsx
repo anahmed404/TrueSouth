@@ -454,7 +454,8 @@ function Dates(props: DatesProps) {
         <div className={cx("tl-landing ldp-date-slot", compact && "tl-compact-landing")} data-slot="landing-date-control">
           <LandingDateControl />
         </div>
-        {wholeNote}
+        {/* On the phone the note sits in the head; on a wider screen, over the row names. */}
+        {compact ? wholeNote : null}
         <span className="ldp-key" aria-label="Key: GO is a full mark, CAUTION a half mark, NO-GO a low line. A spot's ring is its score.">
           <span aria-hidden="true">
             <i className="ldp-key-go" />
@@ -491,6 +492,7 @@ function Dates(props: DatesProps) {
         className="ldp-grid"
         style={{ gridTemplateRows: `22px ${height}px 18px` }}
       >
+        {!compact && !whole ? <span className="ldp-whole ldp-whole-grid">{WHOLE_NOTE}</span> : null}
         <div className="ldp-labels" style={{ gridRow: 2, height }}>
           {rows.map((row, i) => (
             <RowLabel

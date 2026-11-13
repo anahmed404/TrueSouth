@@ -48,6 +48,14 @@
     font-size: var(--t-sm);
   }
 
+  /* Above the row names, beside the strips it is about, so the head stays one row. */
+  .ldp-whole-grid {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    white-space: nowrap;
+  }
+
   /* On the phone the landing-date control takes its own row, as at the head of the timeline. */
   .ldp[data-compact="true"] .ldp-date-slot {
     flex-basis: 100%;

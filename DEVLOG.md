@@ -576,7 +576,9 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   `scene-root.tsx`), `web/src/app/scene.ts` (optional `onProjector`, `slipShading`),
   `web/src/app/mission/` (`views.ts`, `scene-slot.tsx`, `scene-status.ts`, `view-bar.tsx`
   comment, three tests), `web/src/app/mission-screen.tsx`, `web/src/components/StatusLamp.tsx`
-  (exports `GLYPH`), `web/vite.config.ts` (the worker build input is gone),
+  (exports `GLYPH`), `web/src/app/mission/landing-control.ts` and its two tests (the
+  no-GO wording), `web/src/features/three/scene/world.ts` (a comment for the ground look),
+  `web/vite.config.ts` (the worker build input is gone), `docs/features/site-detail.md`,
   `docs/features/slip-planner.md`, `docs/design/c2/built-slip-*.png`, this entry
 - **Notes:**
   - Every status, score and veto is the sweep's (`useSweeps`), packed per 00:00 UTC day by
@@ -602,6 +604,32 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     and 44 px touch targets on the phone.
   - On the phone the strip rows are 12 px tall: the spec makes the whole strip area one
     touch target, so they leave the tab order and the slider knob is the keyboard path.
+  - Review round 1 (Cursor, request changes; 2026-11-14), all fixed on this branch:
+    - One source: every status, rule and score a user reads for a site and a landing hour
+      comes from the rail's `cachedEvaluation` (`slip-planner/landing-results.ts`). A spot
+      therefore equals the rail even while a new profile's sweep runs; the strips never show
+      the previous profile's sweep; the packed Float32 score is never shown (IM-2 days where
+      it floors one higher: sphere 30, edge 1476, wide 1584; every day of one site tested).
+    - "Any site" is GO as soon as a known site is GO; CAUTION, NO-GO and "no GO before…"
+      wait for every site; the hover, `aria-valuetext` and "next GO" follow the same rule.
+    - A landing not at 00:00 UTC: the header, folded row, slider words and row lamps read
+      the real landing; strips, hovers and "next GO" are 00:00 UTC and say so; the note
+      shows open (over the row names), folded and on the phone.
+    - A failed sweep is its own state, with Retry; "Any site" works from the others.
+    - The shading keeps a (short) label when the free space has no room for the controls.
+    - `panel-mount.test.ts` mounts the panel and the spots with the real hooks: no new sweep
+      and no redraw while the date moves in range; spot = rail before a new sweep answers;
+      the 06:00 note in three layouts; a failed sweep and Retry.
+  - After #83: the header mounts `LandingDateControl` (the panel's own mission-window line
+    is gone). The button's no-GO line now reads "No later GO before 2032"
+    (`app/mission/landing-control.ts`, its two tests, `site-detail.md`), so it never
+    contradicts "GO on this date" beside it.
+  - Checked by eye with the real data in headless Chrome (one browser, closed between runs):
+    1440, 1024 with eight sites including two best-lit variants (no label or spot overlap;
+    the variants keep their names on hover), the phone and the folded row at 06:00; the
+    computing state after a profile change was read from the page (the progress bar,
+    "computing…", "Still computing 4 of 4 sites.", spots equal to the rail), not
+    photographed: a slowed browser could not take the picture in time.
 
 #### 2026-11-14 · MC shell feedback · No view sentence; the landing date joins the timeline; "Next GO"
 - **Who:** Claude Code agent, for the orchestrator
