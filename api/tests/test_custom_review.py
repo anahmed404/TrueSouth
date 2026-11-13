@@ -10,6 +10,11 @@ from truesouth_api.jobs import Computer, Jobs, Rejected, site_id
 from truesouth_api.main import create_app
 
 
+@pytest.fixture
+def empty_tree(tmp_path):
+    return tuple(tmp_path/name for name in ('derived', 'prepared', 'cache'))
+
+
 @pytest.mark.parametrize('body', [
     b'{"lat_deg":NaN,"lon_deg":0}', b'{"lat_deg":Infinity,"lon_deg":0}',
     b'{"lat_deg":-Infinity,"lon_deg":0}', b'{"lat_deg":1e309,"lon_deg":0}',
@@ -23,8 +28,8 @@ from truesouth_api.main import create_app
     b'{"lat_deg":0}', b'{}', b'[]', b'null', b'', b'{broken',
     b'{"lat_deg":0,"lon_deg":0,"SECRET_CLIENT_FIELD":"SECRET_PAYLOAD"}',
 ])
-def test_invalid_bodies_are_plain_422(synthetic, body):
-    derived, prepared, cache = synthetic
+def test_invalid_bodies_are_plain_422(empty_tree, body):
+    derived, prepared, cache = empty_tree
     with TestClient(create_app(derived=derived, prepared=prepared, cache=cache), raise_server_exceptions=False) as client:
         response = client.post('/api/sites/custom', content=body, headers={'Content-Type':'application/json'})
         assert response.status_code == 422
@@ -118,8 +123,8 @@ def test_dead_worker_is_reconciled_and_restarted(tmp_path):
 
 @pytest.mark.parametrize('field', ['name', 'extra'])
 @pytest.mark.parametrize('streamed', [False, True])
-def test_large_body_is_413(synthetic, field, streamed):
-    derived, prepared, cache = synthetic
+def test_large_body_is_413(empty_tree, field, streamed):
+    derived, prepared, cache = empty_tree
     body = json.dumps(dict(lat_deg=0, lon_deg=0, **{field:'SECRET'*1_750_000})).encode()
     with TestClient(create_app(derived=derived, prepared=prepared, cache=cache)) as client:
         response = client.post('/api/sites/custom', content=iter([body[:2000], body[2000:]]) if streamed else body,
@@ -129,9 +134,9 @@ def test_large_body_is_413(synthetic, field, streamed):
         assert 'SECRET' not in response.text
 
 
-def test_stream_limit_stops_receiving_before_parsing(synthetic):
+def test_stream_limit_stops_receiving_before_parsing(empty_tree):
     import asyncio
-    derived, prepared, cache = synthetic
+    derived, prepared, cache = empty_tree
     app = create_app(derived=derived, prepared=prepared, cache=cache)
     seen, sent = [], []
     async def receive():
@@ -145,3 +150,57 @@ def test_stream_limit_stops_receiving_before_parsing(synthetic):
     asyncio.run(app(scope, receive, send))
     assert sent[0]['status'] == 413
     assert len(seen) == 1
+
+
+class Instant:
+    def tier(self, body): return 'sphere'
+    def __call__(self, body, tier): return entry(body)
+
+
+def test_finished_states_are_bounded(tmp_path):
+    jobs = Jobs(tmp_path, Instant(), finished_limit=2)
+    for i in range(8): jobs.submit(request(0, i), str(i))
+    assert len(jobs.states) == 2
+    assert set(jobs.states) == {site_id(request(0, 6)), site_id(request(0, 7))}
+
+
+def test_rejected_and_expired_addresses_are_not_retained(tmp_path):
+    class Missing(Instant):
+        def tier(self, body): raise Rejected(503, 'No maps')
+    jobs = Jobs(tmp_path, Missing())
+    for i in range(30):
+        with pytest.raises(Rejected): jobs.submit(request(0, i), str(i))
+    assert jobs.starts == {}
+    now = [0.]
+    jobs = Jobs(tmp_path, Instant(), clock=lambda: now[0], max_addresses=2)
+    jobs.submit(request(0, 0), 'a'); jobs.submit(request(0, 1), 'b')
+    with pytest.raises(Rejected) as full: jobs.submit(request(0, 2), 'c')
+    assert full.value.status == 503 and len(jobs.starts) == 2
+    now[0] = 3600
+    jobs.submit(request(0, 3), 'c')
+    assert set(jobs.starts) == {'c'}
+
+
+def test_storage_full_rejected_without_job_or_slot(empty_tree):
+    derived, prepared, cache = empty_tree
+    jobs = Jobs(cache, Computer(derived, prepared, cache), cache_limit_bytes=1)
+    with TestClient(create_app(derived=derived, prepared=prepared, cache=cache, jobs=jobs)) as client:
+        response = client.post('/api/sites/custom', json=dict(lat_deg=0, lon_deg=0))
+        assert response.status_code == 507
+        assert response.json() == {'message':"This server's storage for custom sites is full."}
+        assert jobs.states == {} and jobs.starts == {}
+        health = client.get('/api/health').json()
+        assert health['custom_cache'] == {'size_bytes':0, 'limit_bytes':1}
+
+
+def test_storage_publication_does_not_evict(tmp_path):
+    from truesouth_api.storage import CacheBudget
+    root = tmp_path/'cache'; root.mkdir()
+    budget = CacheBudget(root, 10)
+    for name in ('one', 'two'):
+        stage = tmp_path/name; stage.mkdir(); (stage/'series.bin').write_bytes(b'1234567')
+    budget.publish(tmp_path/'one', root/'one')
+    with pytest.raises(Rejected) as full: budget.publish(tmp_path/'two', root/'two')
+    assert full.value.status == 507
+    assert (root/'one/series.bin').read_bytes() == b'1234567'
+    assert not (root/'two').exists()

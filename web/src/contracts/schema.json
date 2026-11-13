@@ -827,7 +827,8 @@
             "queue_full",
             "terrain_unavailable",
             "not_found",
-            "computation_failed"
+            "computation_failed",
+            "storage_full"
           ],
           "title": "Code",
           "type": "string"

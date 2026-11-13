@@ -55,3 +55,10 @@ def cache_dir() -> Path:
     if override:
         return Path(override)
     return Path(os.environ.get(DATA_ROOT_ENV, repo_root() / "data")) / "cache"
+
+
+def cache_limit_bytes() -> int:
+    value = int(os.environ.get('TRUESOUTH_CACHE_MAX_BYTES', 2 * 1024**3))
+    if value < 0:
+        raise ValueError('TRUESOUTH_CACHE_MAX_BYTES must be non-negative')
+    return value

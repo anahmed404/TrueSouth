@@ -1,10 +1,15 @@
 ﻿"""Bounded in-process FIFO. Only completed atomic directories survive a restart."""
 from collections import deque
+import errno
 import logging
 from pathlib import Path
 import re
 from threading import Condition, Lock, Thread
 from time import monotonic
+
+from truesouth_api.errors import Rejected
+from truesouth_api.storage import CacheBudget, FULL
+from truesouth_api.settings import cache_limit_bytes as configured_cache_limit
 
 from truesouth.contracts import CatalogSite, CustomSiteRequest, Site
 
@@ -20,11 +25,6 @@ def site_id(request):
     return f'c_{lat:.4f}_{lon:.4f}'
 
 
-class Rejected(Exception):
-    def __init__(self, status, message, retry=None):
-        self.status, self.message, self.retry = status, message, retry
-
-
 class Computer:
     """Lazy science imports and one read-only memory mapping per prepared array."""
     def __init__(self, derived, prepared, cache):
@@ -32,6 +32,7 @@ class Computer:
         self.store = None
         self.global_data = None
         self.lock = Lock()
+        self.budget = None
 
     def tier(self, request):
         from truesouth.dem import DemStore, site_tier
@@ -60,12 +61,12 @@ class Computer:
             lat_deg=float(lat), lon_deg=float(lon), description='Coordinates entered by the user.',
             source_url='', outcome=None)
         return build_site(site, self.store or DemStore(), self.global_data,
-                          self.cache / identity, tier=tier, site_entry=True)
+                          self.cache / identity, tier=tier, site_entry=True, publish=self.budget.publish if self.budget else None)
 
 
 
 class Jobs:
-    def __init__(self, cache: Path, computer, *, clock=monotonic):
+    def __init__(self, cache: Path, computer, *, clock=monotonic, finished_limit=128, max_addresses=4096, cache_limit_bytes=None):
         self.cache, self.computer, self.clock = cache, computer, clock
         self.condition = Condition()
         self.waiting = deque()
@@ -74,6 +75,12 @@ class Jobs:
         self.worker = None
         self.closed = False
         self.inline = set()
+        self.finished_limit = finished_limit
+        self.finished = deque()
+        self.max_addresses = max_addresses
+        self.budget = CacheBudget(cache, configured_cache_limit() if cache_limit_bytes is None else cache_limit_bytes)
+        if isinstance(computer, Computer):
+            computer.budget = self.budget
 
     def cached(self, identity):
         if not ID.fullmatch(identity):
@@ -90,12 +97,23 @@ class Jobs:
             pass
         return None
 
+    def _record(self, identity, state):
+        self.states[identity] = state
+        if identity in self.finished:
+            self.finished.remove(identity)
+        self.finished.append(identity)
+        while len(self.finished) > self.finished_limit:
+            old = self.finished.popleft()
+            if self.states.get(old, {}).get('status') in ('ready', 'failed'):
+                self.states.pop(old, None)
+
     def _reconcile_worker(self):
         if self.worker is None or not self.worker.is_alive():
             for identity, state in list(self.states.items()):
                 if state['status'] == 'running' and identity not in self.inline:
-                    self.states[identity] = dict(site_id=identity, status='failed', site=None,
-                        error=dict(code='computation_failed', message='The custom-site worker stopped. Please try again.'))
+                    self.budget.release(identity)
+                    self._record(identity, dict(site_id=identity, status='failed', site=None,
+                        error=dict(code='computation_failed', message='The custom-site worker stopped. Please try again.')))
             if self.waiting and not self.closed:
                 self.worker = Thread(target=self._run, name='custom-sites', daemon=True)
                 self.worker.start()
@@ -122,15 +140,22 @@ class Jobs:
                 position = next((i+1 for i, job in enumerate(self.waiting) if job[0] == identity), 0)
                 return dict(site_id=identity, status=state['status'], position_in_queue=position)
             now = self.clock()
-            history = self.starts.setdefault(address, deque())
-            while history and history[0] <= now - 3600:
-                history.popleft()
+            for client, previous in list(self.starts.items()):
+                while previous and previous[0] <= now - 3600:
+                    previous.popleft()
+                if not previous:
+                    del self.starts[client]
+            history = self.starts.get(address, deque())
             if len(history) >= 6:
                 raise Rejected(429, 'You may start 6 custom sites per hour. Please try again later.', max(1, int(3600 - (now-history[0]) + .999)))
             tier = self.computer.tier(request)
             if tier != 'sphere' and len(self.waiting) >= 20:
-                raise Rejected(429, 'The custom-site queue is full. Please try again later.')
+                raise Rejected(429, 'The custom-site queue is full. Please try again later.', 1)
+            if address not in self.starts and len(self.starts) >= self.max_addresses:
+                raise Rejected(503, 'This server is handling too many client addresses. Please try again later.', 3600)
+            self.budget.reserve(identity, tier)
             history.append(now)
+            self.starts[address] = history
             self.states[identity] = dict(site_id=identity, status='queued', site=None, error=None)
             if tier != 'sphere':
                 self.waiting.append((identity, request, tier))
@@ -142,10 +167,10 @@ class Jobs:
                 return dict(site_id=identity, status='queued', position_in_queue=position)
             self.states[identity]['status'] = 'running'
             self.inline.add(identity)
-        self._compute(identity, request, tier)
+        result = self._compute(identity, request, tier)
         with self.condition:
             self.inline.discard(identity)
-        return dict(site_id=identity, status=self.status(identity)['status'], position_in_queue=0)
+        return dict(site_id=identity, status=result['status'], position_in_queue=0)
 
     def _compute(self, identity, request, tier):
         with self.condition:
@@ -153,13 +178,17 @@ class Jobs:
         try:
             site = self.computer(request, tier)
             state = dict(site_id=identity, status='ready', site=site.model_dump(mode='json'), error=None)
-        except BaseException:
+        except BaseException as error:
             logging.exception('Custom site %s failed', identity)
+            full = (isinstance(error, Rejected) and error.status == 507) or (isinstance(error, OSError) and error.errno == errno.ENOSPC)
             state = dict(site_id=identity, status='failed', site=None,
-                         error=dict(code='computation_failed', message='The custom site could not be computed. Please try again.'))
+                         error=dict(code='storage_full' if full else 'computation_failed',
+                                    message=FULL if full else 'The custom site could not be computed. Please try again.'))
         with self.condition:
-            self.states[identity] = state
+            self.budget.release(identity)
+            self._record(identity, state)
             self.condition.notify_all()
+        return state
 
     def _run(self):
         while True:

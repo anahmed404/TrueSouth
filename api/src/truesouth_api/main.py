@@ -107,7 +107,9 @@ def create_app(
 
     @app.get("/api/health")
     def health() -> JSONResponse:
-        return JSONResponse(health_report(derived_root, prepared_root), headers={"Cache-Control": "no-store"})
+        report = health_report(derived_root, prepared_root)
+        report['custom_cache'] = {'size_bytes': service.budget.size(), 'limit_bytes': service.budget.limit_bytes}
+        return JSONResponse(report, headers={"Cache-Control": "no-store"})
 
     @app.post('/api/sites/custom', response_model=CustomSiteQueued)
     def submit(request: Request, body: CustomSiteRequest):

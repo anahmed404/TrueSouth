@@ -598,7 +598,7 @@ class CustomSiteQueued(Contract):
 class ErrorDetail(Contract):
     """Structured API error."""
 
-    code: Literal['invalid_coordinates', 'date_outside_time_grid', 'rate_limited', 'queue_full', 'terrain_unavailable', 'not_found', 'computation_failed'] = Field(description='Stable error code.')
+    code: Literal['invalid_coordinates', 'date_outside_time_grid', 'rate_limited', 'queue_full', 'terrain_unavailable', 'not_found', 'computation_failed', 'storage_full'] = Field(description='Stable error code.')
     message: str = Field(description='Plain-language error message.')
 
 

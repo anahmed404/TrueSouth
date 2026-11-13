@@ -317,3 +317,18 @@ state. The Academy renders the same panels inside lessons.
 - Desktop-first. The Academy must also work on a phone. Mission Control may ask for a
   wider screen.
 - English only.
+
+### Custom-site storage and memory bounds
+
+`TRUESOUTH_CACHE_MAX_BYTES` sets the custom cache limit in bytes (default 2147483648,
+2 GiB). Admission reserves each site's fixed binary sizes plus 32 KiB for metadata;
+publication checks actual disk bytes under a shared lock. A full cache refuses work
+with 507 and never evicts completed sites. A concurrent external disk change can
+instead fail an already accepted job with storage_full. Health includes
+`custom_cache: { size_bytes, limit_bytes }`, including staging bytes in the size.
+
+Only queued/running jobs and 128 recent finished states remain in memory; completed
+sites are recovered from disk. Address histories expire after the rolling hour. At
+most 4096 active address histories are kept; a new address at capacity receives 503
+and Retry-After, rather than evicting an active rate limit. Rejected jobs allocate no
+address history or storage reservation.

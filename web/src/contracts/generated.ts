@@ -661,7 +661,8 @@ export interface ErrorDetail {
     | "queue_full"
     | "terrain_unavailable"
     | "not_found"
-    | "computation_failed";
+    | "computation_failed"
+    | "storage_full";
   /**
    * Plain-language error message.
    */
@@ -858,7 +859,8 @@ export interface ErrorDetail1 {
     | "queue_full"
     | "terrain_unavailable"
     | "not_found"
-    | "computation_failed";
+    | "computation_failed"
+    | "storage_full";
   /**
    * Plain-language error message.
    */
