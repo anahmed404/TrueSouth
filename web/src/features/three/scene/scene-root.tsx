@@ -37,6 +37,7 @@ import {
 } from "./camera";
 import { Overlay, type OverlayBus, type Preset, type LookToward } from "./overlay";
 import { sceneContent, type LoadState } from "./plates";
+import { southPolePose } from "./navigate";
 import { Rig } from "./rig";
 import { sightState, type SightState } from "./sight";
 import { mul, type V3 } from "./vec";
@@ -51,6 +52,8 @@ import "./scene.css";
 
 /** A first flight whose median frame is over this is "slow" (system-view.md, "When 3D does not run"). */
 const SLOW_MEDIAN_MS = 55;
+/** A double-click's move onto a spot. */
+const FOCUS_MS = 700;
 /** The space our own plates take at the top and foot of the free space, so the subject clears them. */
 const PLATE_TOP = 40;
 /** In the System view the bodies' labels hang below them, above the controls. */
@@ -212,6 +215,13 @@ function Scene3D(props: SceneProps) {
   const sceneMeta = useSceneMeta();
 
   const [preset, setPreset] = useState<Preset>("south_pole");
+  // Counts preset clicks: a click flies even to the preset already chosen (after a drag, the
+  // "South pole" click brings the whole cap back). Before the first click, "South pole" is home.
+  const [presetPulse, setPresetPulse] = useState(0);
+  const pickPreset = useCallback((next: Preset) => {
+    setPreset(next);
+    setPresetPulse((n) => n + 1);
+  }, []);
   const [trueScale, setTrueScale] = useState(false);
   const [moon8k, setMoon8k] = useState(false);
   const [lookToward, setLookToward] = useState<LookToward>("earth");
@@ -387,50 +397,111 @@ function Scene3D(props: SceneProps) {
   );
 
   // ── Pointer, wheel and keys ──
-  const drag = useRef<{ id: number; x: number; y: number; pinch?: { other: number; distance: number } } | null>(null);
+  // One finger or the left button turns; the right button, Shift or two fingers slide; the
+  // wheel or a pinch zooms toward the pointer; a double-click or double-tap centres a spot.
   const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const gesture = useRef<{ button: number; pan: boolean } | null>(null);
+  const tap = useRef<{ x: number; y: number; t: number; moved: boolean; last: { x: number; y: number; t: number } | null }>({
+    x: 0,
+    y: 0,
+    t: 0,
+    moved: false,
+    last: null,
+  });
+  const ndcAt = (element: HTMLElement, x: number, y: number) => {
+    const rect = element.getBoundingClientRect();
+    return { x: ((x - rect.left) / Math.max(1, rect.width)) * 2 - 1, y: -(((y - rect.top) / Math.max(1, rect.height)) * 2 - 1) };
+  };
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if ((event.target as HTMLElement).closest("button, [role='radiogroup'], .scene-plate-interactive")) return;
     const controls = bus.current.controls;
     if (!controls) return;
     pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-    controls.beginDrag();
-    drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    if (pointers.current.size === 1) {
+      gesture.current = { button: event.button, pan: event.button === 2 || event.shiftKey };
+      tap.current = { ...tap.current, x: event.clientX, y: event.clientY, t: performance.now(), moved: false };
+      controls.beginDrag();
+    } else {
+      tap.current.moved = true;
+    }
   };
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     const controls = bus.current.controls;
     if (!controls || !pointers.current.has(event.pointerId)) return;
     const previous = pointers.current.get(event.pointerId)!;
     pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (Math.hypot(event.clientX - tap.current.x, event.clientY - tap.current.y) > 6) tap.current.moved = true;
     if (pointers.current.size >= 2) {
-      const [a, b] = [...pointers.current.values()];
-      const [pa, pb] = [...pointers.current.entries()].map(([id, p]) => (id === event.pointerId ? previous : p));
-      const now = Math.hypot(a!.x - b!.x, a!.y - b!.y);
-      const before = Math.hypot(pa!.x - pb!.x, pa!.y - pb!.y);
-      if (now > 0 && before > 0) controls.zoom(before / now);
+      // Two fingers: the midpoint slides the view, the spread zooms toward the midpoint.
+      const entries = [...pointers.current.entries()].slice(0, 2);
+      const [a, b] = entries.map(([, p]) => p) as [{ x: number; y: number }, { x: number; y: number }];
+      const [pa, pb] = entries.map(([id, p]) => (id === event.pointerId ? previous : p)) as [
+        { x: number; y: number },
+        { x: number; y: number },
+      ];
+      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      const midBefore = { x: (pa.x + pb.x) / 2, y: (pa.y + pb.y) / 2 };
+      controls.pan(mid.x - midBefore.x, mid.y - midBefore.y);
+      const spread = Math.hypot(a.x - b.x, a.y - b.y);
+      const spreadBefore = Math.hypot(pa.x - pb.x, pa.y - pb.y);
+      if (spread > 0 && spreadBefore > 0) controls.zoom(spreadBefore / spread, ndcAt(event.currentTarget, mid.x, mid.y));
       return;
     }
-    controls.orbit(event.clientX - previous.x, event.clientY - previous.y);
+    const g = gesture.current;
+    const pan = Boolean(g && (g.button === 2 || event.shiftKey));
+    if (g && g.pan && !pan) controls.beginDrag(); // back from sliding to turning: a fresh turn
+    if (g) g.pan = pan;
+    const dx = event.clientX - previous.x;
+    const dy = event.clientY - previous.y;
+    if (!pan || !controls.pan(dx, dy)) controls.orbit(dx, dy);
   };
   const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    if (!pointers.current.has(event.pointerId)) return;
     pointers.current.delete(event.pointerId);
-    if (pointers.current.size === 0) drag.current = null;
+    const controls = bus.current.controls;
+    if (pointers.current.size === 1) {
+      // One finger left after a pinch: it turns from here.
+      controls?.beginDrag();
+      if (gesture.current) gesture.current.pan = false;
+    }
+    if (pointers.current.size > 0) return;
+    gesture.current = null;
+    // A double-click or double-tap: two short taps close together.
+    const t = tap.current;
+    const now = performance.now();
+    if (event.type !== "pointerup" || t.moved || now - t.t > 300) {
+      t.last = null;
+      return;
+    }
+    const last = t.last;
+    if (last && now - last.t < 400 && Math.hypot(event.clientX - last.x, event.clientY - last.y) < 24) {
+      t.last = null;
+      controls?.focusOn(ndcAt(event.currentTarget, event.clientX, event.clientY));
+    } else {
+      t.last = { x: event.clientX, y: event.clientY, t: now };
+    }
   };
   const onWheel = (event: WheelEvent<HTMLDivElement>) => {
     if ((event.target as HTMLElement).closest(".scene-controls")) return;
-    bus.current.controls?.zoom(Math.exp(event.deltaY * 0.0012));
+    bus.current.controls?.zoom(Math.exp(event.deltaY * 0.0012), ndcAt(event.currentTarget, event.clientX, event.clientY));
   };
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.target !== event.currentTarget) return;
     const controls = bus.current.controls;
     if (!controls) return;
+    // An arrow moves the camera the arrow's way, so the picture moves the other way, as on a
+    // map: the same as a drag the opposite way. With Shift it slides instead of turning.
     const step = 24;
+    const move = (dx: number, dy: number) => () => {
+      controls.beginDrag();
+      if (!event.shiftKey || !controls.pan(dx, dy)) controls.orbit(dx, dy);
+    };
     const keys: Record<string, () => void> = {
-      ArrowLeft: () => controls.orbit(-step, 0),
-      ArrowRight: () => controls.orbit(step, 0),
-      ArrowUp: () => controls.orbit(0, -step),
-      ArrowDown: () => controls.orbit(0, step),
+      ArrowLeft: move(step, 0),
+      ArrowRight: move(-step, 0),
+      ArrowUp: move(0, step),
+      ArrowDown: move(0, -step),
       "+": () => controls.zoom(0.8),
       "=": () => controls.zoom(0.8),
       "-": () => controls.zoom(1.25),
@@ -448,13 +519,16 @@ function Scene3D(props: SceneProps) {
       tabIndex={0}
       role="application"
       aria-roledescription="3D scene"
-      aria-label="The Sun, Earth and Moon. Drag to turn, scroll or pinch to zoom. With the scene focused, arrow keys turn and plus and minus zoom."
+      aria-label="The Sun, Earth and Moon. Drag to turn, right-drag, Shift-drag or drag with two fingers to slide, scroll or pinch to zoom, double-click to centre a spot. With the scene focused, arrow keys turn, Shift and the arrow keys slide, and plus and minus zoom."
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       onWheel={onWheel}
       onKeyDown={onKeyDown}
+      onContextMenu={(event) => {
+        if (!(event.target as HTMLElement).closest("button, a, input, .scene-plate-interactive")) event.preventDefault();
+      }}
     >
       {focusedId ? <FocusedSiteData key={focusedId} siteId={focusedId} profile={scenario.profile} onData={onData} /> : null}
       <Canvas
@@ -474,6 +548,7 @@ function Scene3D(props: SceneProps) {
           reduceMotion={reduceMotion}
           ignoreSlow={ignoreSlow}
           preset={preset}
+          presetPulse={presetPulse}
           lookToward={lookToward}
           trueScale={trueScale}
           moon8k={moon8k}
@@ -504,7 +579,7 @@ function Scene3D(props: SceneProps) {
           sunDistKm={hour ? hour.sunDistKm : null}
           plates={content.plates}
           preset={preset}
-          onPreset={setPreset}
+          onPreset={pickPreset}
           onTrueScale={setTrueScale}
           moon8k={moon8k}
           onMoon8k={setMoon8k}
@@ -534,6 +609,8 @@ type DirectorProps = {
   reduceMotion: boolean;
   ignoreSlow: boolean;
   preset: Preset;
+  /** Preset clicks so far; 0 means the camera is still on home. */
+  presetPulse: number;
   lookToward: LookToward;
   trueScale: boolean;
   moon8k: boolean;
@@ -603,9 +680,19 @@ function Director(props: DirectorProps) {
         rig.orbit(dx, dy);
         invalidate();
       },
-      zoom: (f) => {
-        rig.zoom(f);
+      pan: (dx, dy) => {
+        const handled = rig.pan(dx, dy);
         invalidate();
+        return handled;
+      },
+      zoom: (f, ndc) => {
+        rig.zoom(f, ndc ?? null);
+        invalidate();
+      },
+      focusOn: (ndc) => {
+        const handled = rig.focusOn(ndc, latest.current.reduceMotion ? 0 : FOCUS_MS);
+        invalidate();
+        return handled;
       },
     };
     return () => {
@@ -635,10 +722,20 @@ function Director(props: DirectorProps) {
       if (p.preset === "from_earth") return fromDirectionPose(i.earthDir, space);
       if (p.preset === "from_sun") return fromDirectionPose(i.sunDir, space);
       if (p.preset === "follow_site" && site) return followSitePose(site.frame.up, site.frame.north, space);
+      if (p.preset === "south_pole" && p.presetPulse > 0) return southPolePose(subjects, space);
       return homePose(subjects, space);
     },
     [],
   );
+
+  /** The System view's point of interest for the current preset: drags close in turn about it. */
+  const focusFor = useCallback((view: CameraViewId): THREE.Vector3 | null => {
+    const p = latest.current;
+    if (view !== "system") return null;
+    if (p.preset === "follow_site" && p.inputs.site) return new THREE.Vector3(...p.inputs.site.frame.up);
+    if (p.preset === "south_pole") return new THREE.Vector3(0, -1, 0);
+    return null;
+  }, []);
 
   // ── Status: measure the first flight, then report ──
   const measuring = useRef<{ frames: number[]; last: number } | null>(null);
@@ -675,6 +772,7 @@ function Director(props: DirectorProps) {
     (view: CameraViewId, ms: number, locked = true) => {
       const p = latest.current;
       const target = targetFor(view);
+      rig.focus = focusFor(view);
       if (p.reduceMotion) {
         rig.mode = view;
         p.dip(view === "map" ? 400 : DIP_MS, () => {
@@ -686,7 +784,7 @@ function Director(props: DirectorProps) {
       rig.flyToView(view, target, ms, arrive, { locked });
       invalidate();
     },
-    [rig, targetFor, arrive, invalidate],
+    [rig, targetFor, focusFor, arrive, invalidate],
   );
 
   // The intro: once the data for the current time is in, ease in from 1.5 times the distance.
@@ -699,6 +797,7 @@ function Director(props: DirectorProps) {
     const target = targetFor(props.view);
     const start = props.view === "system" ? introStart(target) : introStart(targetFor("system"));
     rig.apply(start);
+    rig.focus = focusFor(props.view);
     if (props.reduceMotion) {
       rig.flyToView(props.view, target, 0, arrive);
       finishMeasure();
@@ -730,7 +829,7 @@ function Director(props: DirectorProps) {
   useEffect(() => {
     const key =
       props.view === "system"
-        ? `system|${props.preset}|${props.trueScale}|${props.preset === "follow_site" ? siteId : ""}`
+        ? `system|${props.preset}|${props.presetPulse}|${props.trueScale}|${props.preset === "follow_site" ? siteId : ""}`
         : props.view === "map"
           ? "map"
           : `${props.view}|${groundKey}|${props.view === "panorama" ? props.lookToward : ""}|${props.sight ? "s" : ""}`;
@@ -739,7 +838,7 @@ function Director(props: DirectorProps) {
     if (!introDone.current || previous === null || previous === key) return;
     if (previous.split("|")[0] !== key.split("|")[0]) return; // a view change flies by itself
     flyToView(props.view, FLIGHT_MS, props.view !== "system");
-  }, [props.view, props.preset, props.trueScale, siteId, groundKey, props.lookToward, props.sight !== null, flyToView]);
+  }, [props.view, props.preset, props.presetPulse, props.trueScale, siteId, groundKey, props.lookToward, props.sight !== null, flyToView]);
 
   // The free space: the centre slides there; a camera the user has not moved re-frames.
   const firstSpace = useRef(true);

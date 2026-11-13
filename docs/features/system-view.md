@@ -143,10 +143,36 @@ re-encoded. Sizes are from the prototype; they are budgets for the real files.
 
 - **Home:** from under the south pole, turned so that Earth and the Sun sit either side of
   the Moon.
-- **Orbit and zoom:** drag to turn, scroll to zoom, down to 60 km from the surface. The
-  arrow keys turn the camera and `+` and `−` zoom, when the scene has focus.
+- **One rule for every drag, "grab the globe":** the surface under the pointer moves with
+  the pointer (drag right and the surface moves right), on both axes, in the System view,
+  Local terrain and Lander's eye. In a tilted view the ground nearest the viewer is the
+  part that follows.
+- **Turn:** drag with one finger or the left button.
+  - Far out, the camera turns about the Moon's centre, around the Moon's axis.
+  - Close in, it turns about the point of interest on the surface, around that point's
+    vertical: the south pole after the "South pole" preset, the site after "Follow site",
+    a double-clicked spot, otherwise the point at the centre of the free space.
+  - Between 1.6 and 4 Moon radii from that point, the pivot slides along the line from the
+    Moon's centre to the point and the axis turns with it, so nothing jumps.
+  - The camera stops about 9.9° short of the axis it turns about, so the view never flips
+    over a pole. Close in it stays above the horizon (at most 80° of tilt), the sky stays at
+    the top of the screen, and it never goes below 60 km.
+- **Slide (pan):** right-drag, Shift-drag or two-finger drag. The globe turns under the
+  camera about the Moon's centre, so the height above the surface does not change. Sliding
+  lets go of the preset's point of interest.
+- **Zoom:** scroll or pinch, toward the pointer: the surface point under the pointer stays
+  fixed on screen. Down to 60 km from the surface.
+- **Double-click or double-tap** a spot on the Moon: the camera centres it and moves in to
+  about half the distance, looking straight down.
+- **Keys, when the scene has focus:** an arrow key moves the camera the arrow's way, so the
+  picture moves the other way, as on a map (in Lander's eye, the left arrow looks left).
+  Shift and an arrow slides. `+` and `−` zoom toward the centre.
+- A short hint of these controls is in the view's "About" popover (`system_view` in
+  `web/src/lib/explain.ts`), not on the scene.
 - **Presets:** "South pole" (the default), "From Earth", "From the Sun", and "Follow site"
-  (keeps the focused site facing the camera).
+  (keeps the focused site facing the camera). The first load lands on home. A click on
+  "South pole", even when it is already chosen, frames the whole cap poleward of about
+  80°S, where the sites are, from straight below the pole, turned as home is.
 - **Free space.** The camera's principal point moves to the centre of the space between
   the floating panels, through the projection matrix. The Moon is never covered by a
   panel and there is no crop. When panels fold, the centre slides to the new free space in

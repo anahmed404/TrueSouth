@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import type { CameraViewId, FreeSpace } from "../../../app/scene";
 import { MOON_RADIUS_M } from "../../../lib/geo";
-import { easeInOutCubic, lerpPose, MIN_SPACE_ALTITUDE, viewOffset, type Pose, type SiteFrame } from "./camera";
+import { easeInOutCubic, lerpPose, viewOffset, type Pose, type SiteFrame } from "./camera";
+import { beginDragFrame, focusPose, hitMoon, orbitSystem, panSystem, rayThrough, zoomSystem, type DragFrame } from "./navigate";
 import { clamp, smooth } from "./vec";
 
 /** The rig turns about the Moon in any view but Local terrain and Lander's eye. */
@@ -20,43 +21,7 @@ type Tween = {
 
 type Offset = { x: number; y: number; width: number; height: number };
 
-/**
- * The System view's orbit stops short of the Moon's axis: |y| of the camera's direction at
- * most this (about 9.9° from the pole), so the view never flips over a pole.
- */
-export const POLE_LIMIT_Y = 0.985;
-
-function horizontal(v: THREE.Vector3): THREE.Vector2 {
-  return new THREE.Vector2(v.x, v.z);
-}
-
-/**
- * Pitches `p` about `axis` by `angle`, within the pole limit. A step that moves away from
- * the pole is always taken, even from inside the limit (the home pose is straight below the
- * south pole). A step toward the pole stops at the limit, and no step crosses a pole.
- */
-function limitPitch(p: THREE.Vector3, axis: THREE.Vector3, angle: number): THREE.Vector3 {
-  const startY = Math.abs(p.clone().normalize().y);
-  const startSide = horizontal(p);
-  const acceptable = (v: THREE.Vector3) => {
-    const side = horizontal(v);
-    const crossed = startSide.lengthSq() > 1e-18 && side.lengthSq() > 1e-18 && startSide.dot(side) < 0;
-    if (crossed) return false;
-    const y = Math.abs(v.clone().normalize().y);
-    return y <= POLE_LIMIT_Y || y < startY - 1e-12;
-  };
-  const full = p.clone().applyAxisAngle(axis, angle);
-  if (acceptable(full)) return full;
-  // Clamp: the largest part of the step that is still acceptable.
-  let lo = 0;
-  let hi = 1;
-  for (let i = 0; i < 40; i += 1) {
-    const mid = (lo + hi) / 2;
-    if (acceptable(p.clone().applyAxisAngle(axis, angle * mid))) lo = mid;
-    else hi = mid;
-  }
-  return p.clone().applyAxisAngle(axis, angle * lo);
-}
+export { POLE_LIMIT_Y } from "./navigate";
 
 /**
  * Moves the camera: eased flights between poses, the free-space offset, and the drag,
@@ -86,7 +51,13 @@ export class Rig {
   private tween: Tween | null = null;
   private offset: Offset | null = null;
   private offsetTween: { from: Offset; to: Offset; t0: number; ms: number } | null = null;
-  private upHint: THREE.Vector3 | null = null;
+  private dragFrame: DragFrame | null = null;
+  /**
+   * The System view's point of interest, on the unit sphere: the south pole after the "South
+   * pole" preset, the site after "Follow site", a double-clicked spot. Close in, drags turn
+   * about it. Cleared by a pan or a zoom toward another point.
+   */
+  focus: THREE.Vector3 | null = null;
 
   constructor(readonly camera: THREE.PerspectiveCamera) {}
 
@@ -221,35 +192,42 @@ export class Rig {
   }
 
   // ── Controls ──────────────────────────────────────────────────────────────
+  //
+  // Every drag follows one rule, "grab the globe": the surface under the pointer moves with
+  // the pointer (drag right, the surface moves right). Keys move the camera the arrow's way,
+  // so the picture moves the other way. The System view's pivot, pan and zoom toward the
+  // pointer are in navigate.ts.
 
+  /**
+   * Starts a drag (or a key press): stops an unlocked move and fixes the drag's turning axis
+   * and direction for the System view, so they cannot change half way through a drag.
+   */
   beginDrag(): void {
     if (this.locked) return;
     this.stop();
-    this.upHint = this.camera.up.clone();
+    this.dragFrame = this.mode === "system" ? beginDragFrame(this.camera, this.focus) : null;
   }
 
+  /** The window's height in CSS pixels, from the free space. */
+  private get viewportHeight(): number {
+    return this.offset?.height ?? 900;
+  }
+
+  /** True in the views a drag can turn: every view but the Polar map, which stays a north-up map. */
+  private get turnable(): boolean {
+    return this.mode !== "map" && !this.locked;
+  }
+
+  /** A drag of (dx, dy) CSS pixels: turn the view (see the rule above). */
   orbit(dx: number, dy: number): void {
     const c = this.camera;
-    if (this.mode === "map" || this.locked) return;
+    if (!this.turnable) return;
     this.stop();
     this.userMoved = true;
     if (this.mode === "system") {
-      const p = c.position.clone();
-      const r = p.length();
-      const yaw = -dx * 0.005;
-      const pitch = -dy * 0.005;
-      p.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-      const right = new THREE.Vector3().crossVectors(c.up, p).normalize();
-      p.copy(limitPitch(p, right, pitch));
-      c.position.copy(p.setLength(r));
-      const look = p.clone().negate().normalize();
-      const hint = (this.upHint ?? c.up.clone()).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-      const up = hint.clone().sub(look.clone().multiplyScalar(hint.dot(look)));
-      if (up.lengthSq() < 1e-9) up.set(0, 0, 1);
-      up.normalize();
-      this.upHint = up.clone();
-      c.up.copy(up);
-      c.lookAt(0, 0, 0);
+      const frame = this.dragFrame ?? beginDragFrame(c, this.focus);
+      this.dragFrame = frame;
+      orbitSystem(c, frame, dx, dy, this.viewportHeight);
       return;
     }
     // Only the two ground views turn about the site; any other view keeps the camera still.
@@ -270,18 +248,20 @@ export class Rig {
         .add(up.clone().multiplyScalar(Math.sin(e)));
     };
     if (this.mode === "terrain") {
+      // A turntable about the site: the camera goes the other way round from the drag, so the
+      // ground nearest the viewer follows the pointer.
       const rel = c.position.clone().sub(ground);
       const r = rel.length();
       let el = THREE.MathUtils.radToDeg(Math.asin(clamp(rel.clone().normalize().dot(up), -1, 1)));
       let az = THREE.MathUtils.radToDeg(Math.atan2(rel.dot(east), rel.dot(north)));
-      az -= dx * 0.3;
+      az += dx * 0.3;
       el = clamp(el + dy * 0.2, 6, 85);
       c.position.copy(ground).add(along(az, el).multiplyScalar(r));
       c.up.copy(up);
       c.lookAt(ground);
       return;
     }
-    // Lander's eye: look around from where the camera stands.
+    // Lander's eye: look around from where the camera stands; the view turns against the drag.
     const look = new THREE.Vector3(0, 0, -1).applyQuaternion(c.quaternion);
     let el = THREE.MathUtils.radToDeg(Math.asin(clamp(look.dot(up), -1, 1)));
     let az = THREE.MathUtils.radToDeg(Math.atan2(look.dot(east), look.dot(north)));
@@ -292,16 +272,39 @@ export class Rig {
     c.lookAt(c.position.clone().add(along(az, el)));
   }
 
-  /** `factor` above 1 zooms out. */
-  zoom(factor: number): void {
+  /**
+   * Slides the System view across the surface by (dx, dy) CSS pixels. Returns false in a view
+   * that has no pan, so the caller can turn instead.
+   */
+  pan(dx: number, dy: number): boolean {
+    if (this.mode !== "system") return false;
+    if (this.locked) return true;
+    this.stop();
+    this.userMoved = true;
+    // The view is no longer centred on the preset's point: turn about what is under the centre.
+    this.focus = null;
+    this.dragFrame = null;
+    panSystem(this.camera, dx, dy, this.viewportHeight);
+    return true;
+  }
+
+  /**
+   * `factor` above 1 zooms out. In the System view, `ndc` (the pointer in normalised device
+   * coordinates) keeps the surface point under the pointer fixed on screen.
+   */
+  zoom(factor: number, ndc: { x: number; y: number } | null = null): void {
     const c = this.camera;
-    if (this.mode === "map" || this.locked) return;
+    if (!this.turnable) return;
     this.stop();
     this.userMoved = true;
     if (this.mode === "system") {
-      const alt = c.position.length() - 1;
-      const maxAlt = this.trueScale ? 900 : 40;
-      c.position.setLength(1 + clamp(alt * factor, MIN_SPACE_ALTITUDE, maxAlt));
+      if (ndc && this.focus) {
+        // Zooming toward a point other than the preset's moves the view off it.
+        const hit = hitMoon(c.position, rayThrough(c, ndc));
+        if (hit && hit.distanceTo(this.focus) > 1e-9) this.focus = null;
+      }
+      this.dragFrame = null;
+      zoomSystem(c, factor, this.trueScale ? 900 : 40, ndc, this.focus);
       return;
     }
     if (this.mode === "terrain" && this.site) {
@@ -315,5 +318,20 @@ export class Rig {
       c.fov = clamp(c.fov * factor, 8, 75);
       c.updateProjectionMatrix();
     }
+  }
+
+  /**
+   * Double-click in the System view: centre the surface point under `ndc` and move in on it,
+   * over `ms`. Returns false when the point is off the Moon.
+   */
+  focusOn(ndc: { x: number; y: number }, ms: number): boolean {
+    if (this.mode !== "system" || this.locked) return false;
+    const hit = hitMoon(this.camera.position, rayThrough(this.camera, ndc));
+    if (!hit) return false;
+    this.dragFrame = null;
+    this.flyTo(focusPose(this.camera, hit), ms);
+    this.focus = hit.normalize();
+    this.userMoved = true;
+    return true;
   }
 }

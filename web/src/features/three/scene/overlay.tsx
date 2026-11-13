@@ -26,7 +26,16 @@ export type LookToward = "earth" | "sun";
 
 export type OverlayBus = {
   overlay: ((anchors: Anchors, camera: THREE.PerspectiveCamera, size: { width: number; height: number }) => void) | null;
-  controls: { beginDrag: () => void; orbit: (dx: number, dy: number) => void; zoom: (factor: number) => void } | null;
+  controls: {
+    beginDrag: () => void;
+    orbit: (dx: number, dy: number) => void;
+    /** Slides the view; false in a view with no pan. */
+    pan: (dx: number, dy: number) => boolean;
+    /** `ndc`: the pointer in normalised device coordinates, kept fixed on screen. */
+    zoom: (factor: number, ndc?: { x: number; y: number } | null) => void;
+    /** Centres and moves in on the spot under `ndc`; false when it is off the Moon. */
+    focusOn: (ndc: { x: number; y: number }) => boolean;
+  } | null;
 };
 
 type SightInfo = {
@@ -147,7 +156,8 @@ export function Overlay(props: OverlayProps) {
         for (let pass = 0; pass < 4; pass += 1) {
           const hit = placed.find((r) => lx < r.x + r.w && lx + w > r.x && ly < r.y + r.h && ly + h > r.y);
           if (!hit) break;
-          ly = hit.y + hit.h + 4;
+          // Below the label in the way, or above it when there is no room below.
+          ly = hit.y + hit.h + 4 + h <= bottom ? hit.y + hit.h + 4 : Math.max(top, hit.y - h - 4);
         }
         ly = Math.min(ly, bottom - h);
         lx = Math.min(Math.max(lx, left), right - w);
