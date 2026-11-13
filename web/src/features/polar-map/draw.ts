@@ -192,7 +192,8 @@ function drawGraticule(input: DrawInput): void {
   ctx.save();
   ctx.font = `400 12px ${palette.font}`;
   for (let lat = -89; lat <= -80; lat += 1) {
-    if (Math.abs(lat) % every !== 0) continue;
+    // 80°S is the map's edge, where the meridian labels sit.
+    if (Math.abs(lat) % every !== 0 || lat === -80) continue;
     const r = latitudeRadiusPx(lat, view);
     const at = { x: pole.x + 4, y: pole.y - r };
     gridLabel(ctx, `${Math.abs(lat)}°S`, at, palette);

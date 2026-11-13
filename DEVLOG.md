@@ -742,6 +742,41 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## 3D and Map
 
+#### 2026-11-14 · T7 · The flat Polar map
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (no question
+  round: a briefed sub-agent) — wrote the flat map in `web/src/features/polar-map/` (canvas
+  drawing, pins, readouts, the takeover, the nudge), its vitest tests, the seam change in
+  `web/src/app/scene.ts` and `scene-slot.tsx`, the `polar_map` sentence and the spec edits
+  — checked by the agent with the vitest suite, typecheck, the build, impeccable's detector
+  (no findings) and by eye in a browser on the real data at 1440 × 900, 1024 × 768,
+  390 × 844, forced "no WebGL", reduced motion and a 360 px lesson box; a human has not
+  reviewed it yet
+- **State:** built, not verified
+- **Changed:** `web/src/features/polar-map/` (new files; `index.tsx` keeps `PolarMap` as the
+  default export), `web/src/app/scene.ts` (adds `FlatLayer` and `FlatLayerProps`),
+  `web/src/app/mission/scene-slot.tsx` (optional `flat` prop), two lines in
+  `web/src/app/mission-screen.tsx`, the `polar_map` text in `web/src/lib/explain.ts`,
+  `web/package.json` and `web/pnpm-lock.yaml` (`d3-selection` and its types declared; both
+  were already in the lockfile under `d3-zoom`), `docs/features/polar-map.md`,
+  `docs/design/c2/built-polar-map-*.png`, this entry
+- **Notes:**
+  - The swap from globe to map: the scene's arrival gives the pole and the scale; the map
+    takes the scale halfway between the pole's and 80°S's, so no pin from the pole to 80°S
+    moves by more than about 0.6 % of the map's width at 80°S (a pinhole projection of the
+    cap, tested against `polarPose` and `polarScale`). Matching the pole exactly left pins
+    near 80°S up to 1.1 % off.
+  - `sites.json` on main has no best-lit variants and no `nearby_sun` yet; the map draws
+    and words them when they arrive (tested with a made-up variant).
+  - `artemis_regions.json` has no centres or sizes, so no outlines are drawn.
+  - Catalog sites that are not selected are grey dots without a status: a status needs the
+    site's 0.8 MB series, which loads when the site is added.
+  - On a page load straight into `view=map`, the scene's first flight waits for data; after
+    2.4 s without an arrival the map opens at its own fit (the same fit as the camera's).
+  - `polar-map.css` is not in a cascade layer: it loads before `theme.css`, and a
+    `@layer components` there reordered Tailwind's layers and reset every component's
+    padding (seen and fixed in the browser).
+
 #### 2026-11-13 · T1, T2 · The 3D scene behind Mission Control
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (question
