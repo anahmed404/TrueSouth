@@ -812,6 +812,53 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Academy
 
+#### 2026-11-13 · A8 · Validation page, "How we know it's right"
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the page at `/validation`, its model,
+  number formatting, the two hand-built SVG charts and the vitest tests — checked by the
+  agent with tests, typecheck and build, the impeccable detector (0 findings), and by eye
+  at 1440 × 900, 1024 × 768 and 390 × 844 on the real data and on `VITE_DATA=fixtures`
+  (no console errors, no sideways page scroll, every control at least 44 px, keyboard
+  focus visible). A human has not read the page yet.
+- **State:** verified (322 Python tests, 1,744 web tests, typecheck and build pass on the merge with main; reviewed by Codex (every recorded miss shown, counts match both data files, three mutations caught; six findings, all fixed with tests: largest differences round up, a damaged file never prints NaN, the compass-bearing note is in the open); not yet read by the team lead)
+- **Changed:** `web/src/features/validation/` (all new except `index.tsx`), screenshots
+  `docs/design/c2/built-validation*.png`
+- **Notes:**
+  - Every number on the page comes from `validation.json`. Derived display values (a
+    difference of the file's two numbers, row counts, the largest daily value) are marked
+    in code comments. A gate with `passed: null` reads "Checked in the web tests". A
+    failed gate is a NO-GO cross with "Failed"; a comparison outside its mark is a CAUTION
+    "!" with "Outside the mark", its explanation in a card above its table.
+  - Missing or unreadable file: "Validation has not been run on this build", no numbers.
+  - Sections 3 and 5 also show every gate and comparison the brief did not place: G1, G3,
+    G9, G10 and G11 under "Other checks"; R5 (and R6 on the fixture) under Slope.
+  - Gaps in the real file: no R4 (the page says so), the raw compass-azimuth difference
+    of decision 0011 exists only inside G2's `detail` text, and in-mark R1 to R3
+    `explanation` fields hold pixel notes, not explanations (shown behind "Notes from the
+    pipeline").
+  - The fixture already has a failing comparison (R1) and a failing gate (G6). The test
+    for an outside self-comparison is built from the fixture's R5 row.
+  - Review fixes (Codex review of PR #79), each its own commit:
+    1. A largest difference, an upper bound or a "within X" is rounded up, a lower bound
+       down, a reading to nearest (`format.ts`), and a shown value keeps its side of its
+       limit or mark. The real headline now reads "within 0.0061°", not "0.006°". A test
+       checks every gate and comparison in both data files against its printed result.
+    2. `check.ts` checks every field the page reads. An incomplete gate or row reads
+       "This check's record is incomplete in this build" in its place and is never
+       counted as passed; no NaN, undefined, null or Infinity in any tested case.
+       `parseValidation` in `web/src/data/` still rejects a whole file whose gate has a
+       result but no measurement, so that case reads "not run" in the app.
+    3. G2's raw-bearing sentences are quoted from `detail` in the open under the headline.
+       The pipeline could supply them as fields: `raw_azimuth_max_deg`,
+       `raw_azimuth_max_at` (site, body, UTC), `raw_azimuth_hours_over_limit`,
+       `sky_max_deg` and `elevation_max_deg`.
+    4. Method boxes link to lessons 1 to 4 by catalog title; lessons 5 to 8 get no link.
+       The feature imports only `academy/catalog.ts`. No link points into the private repo.
+    5. Every data table has a caption; every header cell a scope.
+    6. Contrast: CAUTION amber text 8.83:1 on the card, 8.25:1 on the highlighted row;
+       the diagonal 5.78:1 on the plot. The mark's shaded band was 1.12:1, so its edges
+       are now dashed Ink 3 lines (5.78:1 on the plot, 5.15:1 over the band).
+
 #### 2026-11-13 · A5b · Lessons 1 to 4 reworded to the real numbers
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-sonnet-5-5 — rewrote the text of lessons 1 to 4 in
