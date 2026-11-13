@@ -1,9 +1,9 @@
 import { Fragment, useMemo, type ReactNode } from "react";
 import { Link } from "react-router";
-import type { Validation } from "../../contracts/generated.ts";
+import type { Site, Validation } from "../../contracts/generated.ts";
 import { BrandMark } from "../../components/BrandMark";
 import { formatUtc } from "../../components/format";
-import { useSites, useValidation } from "../../data";
+import { useSites, useValidation, type HookResult } from "../../data";
 import { Method } from "./Method";
 import {
   COMPARISON_TITLES,
@@ -40,8 +40,19 @@ function titleOf(id: SectionId): string {
 export default function ValidationPage() {
   const validation = useValidation();
   const sites = useSites();
+  return <ValidationView validation={validation} sites={sites.data} />;
+}
+
+type ValidationViewProps = {
+  validation: HookResult<Validation | null>;
+  /** Site names for the tables; the site id stands in while they load. */
+  sites: readonly Site[] | null;
+};
+
+/** The page itself, without the data hooks, so tests can draw any state of the file. */
+export function ValidationView({ validation, sites }: ValidationViewProps) {
   const state = pageState(validation);
-  const names = useMemo(() => siteNames(sites.data), [sites.data]);
+  const names = useMemo(() => siteNames(sites), [sites]);
 
   return (
     <div className="vl-page">
