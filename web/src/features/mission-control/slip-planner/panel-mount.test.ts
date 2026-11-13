@@ -278,6 +278,37 @@ describe("the Slip Planner, mounted", () => {
     }
   });
 
+  it("a sweep that fails is its own state: the strip says so with Retry, and Any site works from the others", async () => {
+    const store = createScenarioStore(catalog, search("2028-03-01T00:00Z"));
+    const host = await mount(store, createElement(Panel, { folded: false, compact: false }));
+    const failing = SITES[1]!;
+    await act(async () => {
+      for (const request of client.requests) {
+        if (request.done || !request.active) continue;
+        request.done = true;
+        if (request.job.siteId === failing) request.listener({ ok: false, error: "the worker stopped" });
+        else request.listener({ ok: true, sweep: slipSweep(request.job.series, request.job.profile, request.job.slopeDeg) });
+      }
+    });
+    const text = textOf(host);
+    expect(text).toContain("Could not compute this site.");
+    expect(text).toContain("1 site missing");
+    // No strip is left "computing" for ever: the progress bar is gone and nothing pulses.
+    expect(allNodes(host).filter((n) => propsOf(n).className === "ldp-pending")).toHaveLength(0);
+    expect(allNodes(host).some((n) => propsOf(n).role === "progressbar")).toBe(false);
+    // "Any site"'s words name the missing site.
+    const any = allNodes(host).find((n) => String(propsOf(n)["aria-label"]).startsWith("Any site:"))!;
+    expect(String(propsOf(any)["aria-valuetext"])).toContain("could not be computed");
+
+    // Retry asks for that site's sweep again.
+    const retry = allNodes(host).find((n) => propsOf(n)["aria-label"] === `Retry ${sites.find((s) => s.id === failing)!.name}`)!;
+    const before = client.requests.filter((r) => r.job.siteId === failing).length;
+    await act(async () => (propsOf(retry).onClick as () => void)());
+    expect(client.requests.filter((r) => r.job.siteId === failing).length).toBeGreaterThan(before);
+    await deliver();
+    expect(textOf(host)).not.toContain("Could not compute this site.");
+  });
+
   for (const layout of [
     { name: "open", folded: false, compact: false },
     { name: "folded", folded: true, compact: false },
