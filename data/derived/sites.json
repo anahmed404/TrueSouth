@@ -1,0 +1,18 @@
+[
+  {
+    "id": "connecting_ridge",
+    "name": "Connecting Ridge",
+    "group": "sunlit_peak",
+    "lat_deg": -89.4555,
+    "lon_deg": 222.6192,
+    "description": "Gläser et al. 2014, point CR1. Sunlight in the source: 92.27% at 2 m above ground, over 19 years.",
+    "source_url": "https://www.sciencedirect.com/science/article/abs/pii/S0019103514004278",
+    "outcome": null,
+    "terrain_tier": "core80",
+    "has_closeup": false,
+    "elevation_m": 1950.2564442439525,
+    "slope": null,
+    "quickmap_url": "https://quickmap.lroc.asu.edu/",
+    "moontrek_url": "https://trek.nasa.gov/moon/"
+  }
+]

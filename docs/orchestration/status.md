@@ -35,13 +35,17 @@ Each child works in its own worktree and opens a pull request.
 | Task | Branch | Provider, model, effort | State |
 | :--- | :--- | :--- | :--- |
 | Review of S7 (#42) | — | Antigravity, `gemini-4-argon`, high | running; also reproducing the NASA-map comparison independently |
-| Review of MC3 (#45) | — | Codex, `gpt-6.1-terra`, high | running |
+| MC3 review fixes (#45) | `mc/mc3-scenario` | Cursor, `grok-4.7`, high | seven fixes sent back after the Codex review; it also merges `main` |
 | A2 and the Academy screens in the picked form | `academy/a2-screens` | Claude Code, `claude-opus-5-5`, high | running |
-| S9: `maps.py` and `build-maps` | `science/s9-maps` | Codex, `gpt-6.1-terra`, high | running |
-| NASA's wider 120 m sunlight and Earth-visibility maps (background command, not an agent) | — | — | `fetch-raw --group visibility` into the shared data folder, with retries; the 60 m pair is complete |
+| S9: `maps.py` and `build-maps` | `science/s9-maps-2` | Cursor, `grok-4.7`, high | running; moved from Codex |
+| S8 part 1: `slope.py` (G8) and `terrain_mesh.py` | `science/s8-slope-mesh` or `t3/s8-slope-terrain-mesh-1` | Cursor, `grok-4.7`, high | running; moved from Codex; brief corrected (the close-up slope method is for 5 m maps only) |
+| C2 design: space-first Mission Control | `design/c2-space-first` | Claude Code, `claude-opus-5-5`, high | running; the sixth child, started on the team lead's word |
 
-S7 (#42) and MC3 (#45) are finished and waiting on those reviews. MC3 was built on MC1
-before MC1's review fixes: merge `main` into it before checking it.
+**Codex is out of quota until about 21:06 local time on 2026-11-13.** Send it nothing
+until then. Routine Python went to Cursor `grok-4.7`. Reviews of Cursor's work go to
+Antigravity or Claude. All four NASA average-visibility maps are downloaded.
+
+S7 (#42) is finished and waiting on its review. MC3 (#45) is in review fixes.
 
 ## The site-placement question
 
@@ -246,7 +250,7 @@ An unanswered question takes the orchestrator's recommendation.
 
 | Question | Asked at | Blocks | Running meanwhile |
 | :--- | :--- | :--- | :--- |
-| Mission Control views: variant a or b for the Slip Planner, Polar map, System view and Local terrain? Recommended: a for all four, with the timeline fold. | 2026-11-13, with the screenshots | MC7, T1, T3, T7 in their final form | their data and logic |
+| Space-first Mission Control: solid or see-through panels, and a continuous camera flight or a cross-fade to the polar map? | to be asked with the prototype | every Mission Control screen in its final form (MC4b, MC5, MC6, MC7, T1, T3, T7) | their data and logic; the Academy screens |
 | Where is a catalog site evaluated? Firm recommendation: sunlight-peak sites at the highest point within 160 m, with the offset shown; landed sites at their exact coordinates. | 2026-11-13, with the measured table | real derived data for the catalog sites | S7's review |
 | Scope: submit at M2 plus the validation page, Docker and the submission text, and drop custom sites, the sensitivity grid and lessons 5 to 8? | first asked with the time estimate on 2026-11-13; not answered | nothing yet; it decides the order of work after M1 | everything |
 | Links for the five retagged profile values | 2026-11-13 | nothing; they show as assumed until a link arrives | — |
@@ -265,6 +269,7 @@ An unanswered question takes the orchestrator's recommendation.
 | C2 | Academy lesson step | **Variant b, the split stage:** the scene on the left, Luna's conversation and the answers on the right. Picked 2026-11-13. | The team lead: in variant a "I can't see the split screen view". |
 | C2 | Academy lesson complete | **Variant a:** the patch as the hero in one column, then stars, XP, the recap and the panel the learner built. Picked 2026-11-13. | The team lead's pick. |
 | C2 | A correct answer | **A green check.** It replaces the designer's moonlight-white mark: GO green with the check glyph and the word "Correct", kept off status lamps. A miss is still never red. | The team lead: "we can do a green check its fine". |
+| C2 | Mission Control's core layout | **Space-first, directed by the team lead on 2026-11-13.** The System view (a 3D Sun, Earth and Moon) is the home of Mission Control and fills the window. The interface floats above it in the same layout, panels still collapsible. A floating top bar picks the view and the camera does the switching: it flies to the south pole and the flat Polar map takes over; it continues down for Local terrain and the Lander's eye. The Slip Planner and Compare open as floating windows. Earth gets a real texture, the Sun must look good, and the Moon must be sharp: an 8K or 4K NASA globe with our 80 m shaded relief over the polar cap. Local terrain must read as part of the Moon, not a disc. A prototype is being made before anything final is built. | The team lead: "I want the main view to be the system view... the UI elements to kind of float above the space view". This replaces the a-or-b question for the four views; the a variants' content carries over. |
 | C2 | Skyline sketch XP | **Scored on closeness:** a closer sketch earns more XP. docs/academy/overview.md needs the rule written down beside the 10/5/2 rule for answers. | The team lead took the recommendation on 2026-11-13. |
 
 The shell, start screen and shared components are built in this look (MC4a, #34).
@@ -320,11 +325,16 @@ One line per delegated task: date, work package, provider, model, effort, outcom
 | 2026-11-13 | Review of S7 | Antigravity | `gemini-4-argon` | high | running |
 | 2026-11-13 | Review of MC3 | Codex | `gpt-6.1-terra` | high | running |
 | 2026-11-13 | A2 and the Academy screens | Claude Code | `claude-opus-5-5` | high | running |
-| 2026-11-13 | S9 | Codex | `gpt-6.1-terra` | high | running |
+| 2026-11-13 | S9, first run | Codex | `gpt-6.1-terra` | high | stopped, correctly, on two spec gaps (fixed in #47); the rerun hit Codex's usage limit |
+| 2026-11-13 | S8 part 1, first run | Codex | `gpt-6.1-terra` | high | hit the usage limit; found a mistake in the brief first |
+| 2026-11-13 | MC3, review fixes | Cursor | `grok-4.7` | high | running |
+| 2026-11-13 | S9, second run | Cursor | `grok-4.7` | high | running |
+| 2026-11-13 | S8 part 1, second run | Cursor | `grok-4.7` | high | running |
+| 2026-11-13 | C2 design, space-first Mission Control | Claude Code | `claude-opus-5-5` | high | running |
 
-Totals so far: Claude Code 10 (9 Opus, 1 Sonnet), Codex 16 (13 terra, 3 sol), Cursor 12
-(11 `grok-4.7`, 1 `grok-4.6`), Antigravity 9 (3 flash, 4 hydrogen, 2 argon). No provider
-has hit a limit.
+Totals so far: Claude Code 11 (10 Opus, 1 Sonnet), Codex 17 (14 terra, 3 sol), Cursor 14
+(13 `grok-4.7`, 1 `grok-4.6`), Antigravity 9 (3 flash, 4 hydrogen, 2 argon). **Codex hit
+its usage limit on 2026-11-13 at about 18:30 local time, until 21:06.**
 
 ## Open questions for the team lead
 

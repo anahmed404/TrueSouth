@@ -1,42 +1,50 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router";
-import { Luna, LunaSays } from "../../components/luna";
-import { LESSONS } from "./catalog";
-import { AcademyChrome } from "./chrome";
-import type { GoalEvaluator } from "./evaluator";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useNavigate } from "react-router";
+import { CompleteScreen } from "./complete-screen";
+import { createValueEvaluator, type GoalEvaluator } from "./evaluator";
+import { Conversation, type TalkTab } from "./lesson/conversation";
+import { Stage } from "./lesson/stage";
+import { LessonTopBar } from "./lesson/top-bar";
 import { sampleCard } from "./lessons/sample";
-import { fillPlaceholders, type WorkedExamples } from "./placeholders";
-import { initialRunnerState, reduceRunner, type RunnerState } from "./runner";
+import type { WorkedExamples } from "./placeholders";
+import {
+  completionRecord,
+  initialRunnerState,
+  needsLeaveCheck,
+  reduceRunner,
+  type RunnerAction,
+  type RunnerState,
+} from "./runner";
+import {
+  draftAfterCheck,
+  initialDraft,
+  isAnswered,
+  isPickKind,
+  optionViews,
+  pipAt,
+  primaryAction,
+  resultFor,
+  type Draft,
+} from "./step-view";
 import { useAcademyStore } from "./store";
-import { createStubEvaluator } from "./stub-evaluator";
-import type { Lesson, Step, Submission, UnderTheHoodCard } from "./types";
+import type { Lesson, Submission, UnderTheHoodCard } from "./types";
+import { ConfirmDialog } from "./ui/dialog";
 
 const cards: Record<string, UnderTheHoodCard> = {
   [sampleCard.id]: sampleCard,
 };
 
-function submissionFor(step: Step | undefined): Submission | null {
-  if (!step) return null;
-  if (step.kind === "drag-body") return { kind: "drag-body", value: 0 };
-  if (step.kind === "tune-slider") return { kind: "tune-slider", value: step.slider.min };
-  return null;
+function submissionFrom(draft: Draft): Submission | null {
+  if (!draft) return null;
+  if (draft.kind === "tune-slider") return { kind: "tune-slider", value: draft.value };
+  return { kind: draft.kind, selected: draft.selected };
 }
 
-function nextLessonHref(lessonId: string): string | null {
-  const index = LESSONS.findIndex((lesson) => lesson.id === lessonId);
-  if (index < 0) return null;
-  const next = LESSONS[index + 1];
-  return next ? `/academy/${next.id}` : null;
-}
-
-function Filled({ value, examples }: { value: string; examples: WorkedExamples }) {
-  const filled = fillPlaceholders(value, examples);
-  return (
-    <>
-      {filled.text}
-      {filled.missing.length > 0 ? <span> Missing worked example: {filled.missing.join(", ")}.</span> : null}
-    </>
-  );
+/** True when a key press belongs to a control that handles Enter itself. */
+function ownsEnter(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.closest("[data-ac-option], [data-ac-slider]")) return false;
+  return Boolean(target.closest("button, a, input, textarea, select, [role='tab']"));
 }
 
 export function LessonScreen({
@@ -48,296 +56,177 @@ export function LessonScreen({
   examples: WorkedExamples;
   evaluator?: GoalEvaluator;
 }) {
-  const goalEvaluator = useMemo(() => evaluator ?? createStubEvaluator(true), [evaluator]);
+  const navigate = useNavigate();
+  const goalEvaluator = useMemo(() => evaluator ?? createValueEvaluator(), [evaluator]);
   const recordCompletion = useAcademyStore((state) => state.recordCompletion);
   const [runner, setRunner] = useState<RunnerState>(() => initialRunnerState());
-  const [submission, setSubmission] = useState<Submission | null>(() => submissionFor(lesson.steps[0]));
-  const [notice, setNotice] = useState("");
-  const [cardOpen, setCardOpen] = useState(false);
-  const [recorded, setRecorded] = useState(false);
-
-  function finishIfComplete(next: RunnerState) {
-    if (recorded || next.phase !== "complete" || next.stars === 0) return;
-    setRecorded(true);
-    recordCompletion(lesson.id, next.stars, next.xp);
-  }
-
-  function onCheck() {
-    const step = lesson.steps[runner.stepIndex];
-    if (!step) return;
-    if (runner.phase !== "prompt" && runner.phase !== "hint") return;
-    if (!submission || submission.kind !== step.kind) {
-      setNotice("Finish this step first.");
-      return;
-    }
-    setNotice("");
-    const next = reduceRunner(runner, { type: "submit", submission }, lesson, goalEvaluator);
-    setRunner(next);
-    finishIfComplete(next);
-  }
-
-  function onContinue() {
-    const next = reduceRunner(runner, { type: "continue" }, lesson, goalEvaluator);
-    setRunner(next);
-    setNotice("");
-    setSubmission(submissionFor(lesson.steps[next.stepIndex]));
-    setCardOpen(false);
-    finishIfComplete(next);
-  }
-
-  if (runner.phase === "complete") {
-    const nextHref = nextLessonHref(lesson.id);
-    return (
-      <section>
-        <AcademyChrome close />
-        <Luna mood="cheering" />
-        <h1>{lesson.title}</h1>
-        <p>{lesson.tagline}</p>
-        <p>Lesson complete.</p>
-        <p>Stars: {runner.stars}</p>
-        <p>XP: {runner.xp}</p>
-        <p>Mission patch: {lesson.patch.name}</p>
-        <p>
-          <Filled value={lesson.recap} examples={examples} />
-        </p>
-        <p>Unlocked panel: {lesson.unlocks}</p>
-        <p>{nextHref ? <Link to={nextHref}>Next lesson</Link> : <Link to="/academy">Back to the path map</Link>}</p>
-        <p>
-          <Link to="/mission">Open in Mission Control</Link>
-        </p>
-      </section>
-    );
-  }
+  const [draft, setDraft] = useState<Draft>(() => initialDraft(lesson.steps[0]));
+  const [tab, setTab] = useState<TalkTab>("luna");
+  const [celebrate, setCelebrate] = useState(0);
+  const [leaveTo, setLeaveTo] = useState<string | null>(null);
+  const recorded = useRef(false);
+  const primaryRef = useRef<HTMLButtonElement>(null);
+  const stepRef = useRef<HTMLDivElement>(null);
 
   const step = lesson.steps[runner.stepIndex];
-  if (!step) {
+  const views = useMemo(() => (step ? optionViews(step, runner, draft) : []), [step, runner, draft]);
+  const isLast = runner.stepIndex === lesson.steps.length - 1;
+  const primary = step ? primaryAction(step, runner, draft, isLast) : null;
+
+  // Save once, when the lesson is complete. Leaving part-way saves nothing.
+  useEffect(() => {
+    const record = completionRecord(runner);
+    if (!record || recorded.current) return;
+    recorded.current = true;
+    recordCompletion(lesson.id, record.stars, record.xp);
+  }, [runner, lesson.id, recordCompletion]);
+
+  const dispatch = useCallback(
+    (action: RunnerAction) => {
+      const next = reduceRunner(runner, action, lesson, goalEvaluator, examples);
+      if (next === runner) return;
+      setRunner(next);
+      const nextStep = lesson.steps[next.stepIndex];
+      if (action.type === "submit" && step) {
+        setDraft(draftAfterCheck(step, next, draft));
+        if (next.phase === "correct") setCelebrate((count) => count + 1);
+        if (isAnswered(next)) requestAnimationFrame(() => primaryRef.current?.focus());
+      } else {
+        setDraft(initialDraft(nextStep));
+        setCelebrate(0);
+        setTab("luna");
+        // Focus the new step's area, not its first option: a ring on an option would read
+        // as a second selection. Tab goes on into the step; number keys work at once.
+        requestAnimationFrame(() => stepRef.current?.focus());
+      }
+    },
+    [runner, lesson, goalEvaluator, examples, step, draft],
+  );
+
+  const onPrimary = useCallback(() => {
+    if (!step || !primary) return;
+    if (primary.kind === "continue") dispatch({ type: "continue" });
+    else if (primary.kind === "skip") dispatch({ type: "skip" });
+    else if (primary.enabled) {
+      const submission = submissionFrom(draft);
+      if (submission) dispatch({ type: "submit", submission });
+    }
+  }, [step, primary, draft, dispatch]);
+
+  const onPick = useCallback(
+    (index: number) => {
+      if (!step || !isPickKind(step.kind) || isAnswered(runner)) return;
+      if (views[index]?.state === "missed") return;
+      setDraft({ kind: step.kind, selected: index });
+    },
+    [step, runner, views],
+  );
+
+  // Keyboard: number keys pick, Backspace empties a formula slot, Enter checks or continues.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (leaveTo !== null || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+      // The "Under the hood" tab hides the step, so no shortcut may answer it from there.
+      if (!step || tab !== "luna") return;
+      if (event.key === "Enter") {
+        if (ownsEnter(event.target)) return;
+        event.preventDefault();
+        onPrimary();
+        return;
+      }
+      if (event.key === "Backspace" && step.kind === "fill-formula" && !isAnswered(runner)) {
+        setDraft(null);
+        return;
+      }
+      if (/^[1-9]$/.test(event.key) && isPickKind(step.kind)) {
+        if (event.target instanceof HTMLElement && event.target.closest("input, textarea")) return;
+        onPick(Number(event.key) - 1);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [step, tab, runner, onPrimary, onPick, leaveTo]);
+
+  const requestLeave = (to: string) => {
+    if (needsLeaveCheck(runner)) setLeaveTo(to);
+    else navigate(to);
+  };
+
+  if (runner.phase === "complete") {
+    return <CompleteScreen lesson={lesson} runner={runner} examples={examples} />;
+  }
+
+  if (!step || !primary) {
     return (
-      <section>
-        <AcademyChrome close />
-        <p>This lesson has no steps.</p>
-      </section>
+      <main className="ac-screen">
+        <div className="ac-plain">
+          <h1>{lesson.title}</h1>
+          <p>This lesson has no steps.</p>
+        </div>
+      </main>
     );
   }
 
-  const waiting = runner.phase === "prompt" || runner.phase === "hint";
+  const result = resultFor(step, runner);
 
   return (
-    <section>
-      <AcademyChrome close />
-      <h1>{lesson.title}</h1>
-      <p>{lesson.tagline}</p>
-      <p>
-        Step {runner.stepIndex + 1} of {lesson.steps.length}
-      </p>
-      <PipMeters step={step} />
-      <LunaSays mood={step.luna.mood} announce>
-        <Filled value={step.luna.says} examples={examples} />
-      </LunaSays>
-      <StepControls
-        step={step}
-        submission={submission}
-        disabled={!waiting}
-        examples={examples}
-        onSubmission={setSubmission}
+    <main className="ac-screen ac-screen--fixed">
+      <LessonTopBar
+        title={lesson.title}
+        stepIndex={runner.stepIndex}
+        stepCount={lesson.steps.length}
+        answered={isAnswered(runner)}
+        pip={pipAt(lesson.steps, runner.stepIndex)}
+        onClose={() => requestLeave("/academy")}
+        onSkip={(event: MouseEvent<HTMLAnchorElement>) => {
+          event.preventDefault();
+          requestLeave("/mission");
+        }}
       />
-      <div aria-live="polite">
-        {notice ? <p>{notice}</p> : null}
-        {runner.feedback ? (
-          <p>
-            <Filled value={runner.feedback} examples={examples} />
-          </p>
-        ) : null}
-        {(runner.phase === "correct" || runner.phase === "revealed") && step.kind === "predict" ? (
-          <p>
-            Reveal: <Filled value={step.reveal.caption} examples={examples} />
-          </p>
-        ) : null}
+      <div className="ac-split" ref={stepRef} tabIndex={-1} aria-label={`Step ${runner.stepIndex + 1} of ${lesson.steps.length}`}>
+        <Stage
+          step={step}
+          runner={runner}
+          draft={draft}
+          views={views}
+          examples={examples}
+          celebrate={celebrate}
+          onDraft={(next) => {
+            if (!isAnswered(runner)) setDraft(next);
+          }}
+        />
+        <Conversation
+          step={step}
+          runner={runner}
+          views={views}
+          examples={examples}
+          card={cards[lesson.card]}
+          lessonTitle={lesson.title}
+          tab={tab}
+          onTab={setTab}
+          onPick={onPick}
+          primary={primary}
+          onPrimary={onPrimary}
+          result={result}
+          primaryRef={primaryRef}
+        />
       </div>
-      <p>
-        <button type="button" onClick={waiting ? onCheck : onContinue}>
-          {waiting ? "Check" : "Continue"}
-        </button>
-      </p>
-      <p>
-        <button type="button" aria-expanded={cardOpen} onClick={() => setCardOpen((open) => !open)}>
-          Under the hood
-        </button>
-      </p>
-      {cardOpen ? <CardView card={cards[lesson.card]} examples={examples} /> : null}
-      <p>Use Tab and Enter. A slider also takes arrow keys.</p>
-    </section>
-  );
-}
-
-function PipMeters({ step }: { step: Step }) {
-  if (!step.pip) return null;
-  const power = step.pip.power;
-  const link = step.pip.link;
-  return (
-    <p>
-      {power !== undefined ? `Pip power: ${power}%` : null}
-      {power !== undefined && link !== undefined ? " · " : null}
-      {link === undefined ? null : link ? "Pip: link" : "Pip: blackout"}
-    </p>
-  );
-}
-
-function StepControls({
-  step,
-  submission,
-  disabled,
-  examples,
-  onSubmission,
-}: {
-  step: Step;
-  submission: Submission | null;
-  disabled: boolean;
-  examples: WorkedExamples;
-  onSubmission: (submission: Submission) => void;
-}) {
-  switch (step.kind) {
-    case "choice":
-    case "predict":
-    case "fill-formula":
-      return (
-        <div role="group" aria-label="Answers">
-          {step.kind === "fill-formula" ? (
-            <p>
-              <Filled value={step.tex} examples={examples} />
-            </p>
-          ) : null}
-          {step.options.map((option, index) => {
-            const selected = submission?.kind === step.kind && submission.selected === index;
-            return (
-              <button
-                key={`${step.id}-${index}`}
-                type="button"
-                aria-pressed={selected}
-                disabled={disabled}
-                onClick={() => onSubmission({ kind: step.kind, selected: index })}
-              >
-                <Filled value={option} examples={examples} />
-              </button>
-            );
-          })}
-        </div>
-      );
-    case "spot-bug":
-      return (
-        <div role="group" aria-label="Lines">
-          {step.lines.map((line, index) => {
-            const selected = submission?.kind === "spot-bug" && submission.selected === index;
-            return (
-              <button
-                key={`${step.id}-${index}`}
-                type="button"
-                aria-pressed={selected}
-                disabled={disabled}
-                onClick={() => onSubmission({ kind: "spot-bug", selected: index })}
-              >
-                <Filled value={line} examples={examples} />
-              </button>
-            );
-          })}
-        </div>
-      );
-    case "drag-body": {
-      const value = submission?.kind === "drag-body" ? submission.value : 0;
-      return (
+      <ConfirmDialog
+        open={leaveTo !== null}
+        title="Leave the lesson?"
+        keepLabel="Keep going"
+        confirmLabel="Leave"
+        onKeep={() => setLeaveTo(null)}
+        onConfirm={() => {
+          const to = leaveTo ?? "/academy";
+          setLeaveTo(null);
+          navigate(to);
+        }}
+      >
         <p>
-          <label htmlFor="academy-marker">Marker</label>{" "}
-          <input
-            id="academy-marker"
-            type="range"
-            min={0}
-            max={4}
-            step={1}
-            value={value}
-            disabled={disabled}
-            onChange={(event) => onSubmission({ kind: "drag-body", value: Number(event.target.value) })}
-          />{" "}
-          {value} steps
+          You will lose this lesson's {runner.xp} XP so far. XP, stars and patches are saved when you finish a lesson.
         </p>
-      );
-    }
-    case "tune-slider": {
-      const value = submission?.kind === "tune-slider" ? submission.value : step.slider.min;
-      return (
-        <p>
-          <label htmlFor="academy-slider">Slider</label>{" "}
-          <input
-            id="academy-slider"
-            type="range"
-            min={step.slider.min}
-            max={step.slider.max}
-            step={step.slider.step}
-            value={value}
-            disabled={disabled}
-            onChange={(event) => onSubmission({ kind: "tune-slider", value: Number(event.target.value) })}
-          />{" "}
-          {value} {step.slider.unit}
-        </p>
-      );
-    }
-    case "draw-skyline": {
-      const sketched = submission?.kind === "draw-skyline";
-      return (
-        <p>
-          <button
-            type="button"
-            aria-pressed={sketched}
-            disabled={disabled}
-            onClick={() => onSubmission({ kind: "draw-skyline", sketch: [step.azFrom, step.azTo] })}
-          >
-            Sketch
-          </button>{" "}
-          {step.azFrom} to {step.azTo} degrees
-        </p>
-      );
-    }
-    case "drop-pin": {
-      const placed = submission?.kind === "drop-pin";
-      return (
-        <p>
-          <button
-            type="button"
-            aria-pressed={placed}
-            disabled={disabled}
-            onClick={() => onSubmission({ kind: "drop-pin", value: 1 })}
-          >
-            Place the pin
-          </button>
-        </p>
-      );
-    }
-  }
-}
-
-function CardView({ card, examples }: { card: UnderTheHoodCard | undefined; examples: WorkedExamples }) {
-  if (!card) return <p>This card is not written yet.</p>;
-  return (
-    <div>
-      <h2>The idea</h2>
-      <p>
-        <Filled value={card.idea} examples={examples} />
-      </p>
-      <h2>The formula</h2>
-      <p>
-        <Filled value={card.formula} examples={examples} />
-      </p>
-      <p>{card.formulaSection}</p>
-      <h2>A worked example</h2>
-      <p>
-        <Filled value={card.workedExample} examples={examples} />
-      </p>
-      <h2>In the code</h2>
-      <p>
-        {card.inTheCode.fn} in {card.inTheCode.file}
-      </p>
-      <h2>What can go wrong</h2>
-      <p>
-        <Filled value={card.whatCanGoWrong} examples={examples} />
-      </p>
-    </div>
+      </ConfirmDialog>
+    </main>
   );
 }
