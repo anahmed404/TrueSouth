@@ -265,8 +265,9 @@ A site reports `slope: { deg, baseline_m, source }` as defined in
 ## 9. Mission metrics
 
 Inputs: a site's series, a mission profile, and a landing date at index $i_0$ on the time
-grid. The mission window is the $N = \text{round}(24 \times \text{duration\_days})$ hours
-from $i_0$.
+grid. The mission window is the $N = \lfloor 24 \times \text{duration\_days} + 0.5 \rfloor$
+hours from $i_0$; halves round up, and $N$ must be at least 1. A window that would run
+past the end of the time grid has no result; this is not a NO-GO.
 
 Per hour:
 
@@ -286,16 +287,26 @@ Over the window:
 | `landing_sun_el_deg` | `sun_el` at $i_0$ |
 | `landing_lit` | lit at $i_0$ |
 
-**Countdowns** are measured from the scrubber's current time. Sunset is the next moment
-`sun_frac` falls through `min_sun_fraction`; sunrise is the next moment it rises through
-it. Earthset and Earthrise use `earth_clear` and `antenna_mask_deg`. The crossing time is
-linearly interpolated between the two hourly samples around it.
+**Countdowns** are measured from the scrubber's current time to the next change of the
+same lit or link flag drawn on the timeline. Sunset is when the site stops being lit;
+sunrise is when it becomes lit. Earthset is when the link ends; Earthrise is when it
+starts. With a relay the link never ends, so both Earth countdowns are none. A change
+occurs between neighbouring hourly samples whose flags differ. The crossing time is
+linearly interpolated between the two hourly samples around it, for each condition that
+changes there. Each condition passes when its value is greater than or equal to its
+threshold. For sunset, use the earliest crossing among conditions changing from passing to
+failing; for sunrise, use the latest crossing among conditions changing from failing to
+passing, because all conditions must pass. The Sun conditions are disc fraction against
+`min_sun_fraction` and, if set, Sun elevation against `ops_sun_el_min_deg`. The link
+condition is Earth clearance against `antenna_mask_deg`. The next change is the first at
+or after the current hour; if none occurs before the end of the time grid, the result is
+none.
 
 `web/src/lib/scoring/metrics.ts` (reference copy: `scoring.py`)
 
 ## 10. Vetoes, utilities, score, status
 
-**Vetoes.** Each is checked only if the profile sets its limit.
+**Vetoes.** Each is checked only if the profile sets its limit. `landing_dark` always applies.
 
 | Veto | Triggers when |
 | :--- | :--- |
@@ -307,7 +318,9 @@ linearly interpolated between the two hourly samples around it.
 | `landing_sun_high` | `landing_sun_el_deg > landing_sun_el_max_deg` |
 
 **Utilities**, each from 0 to 1. Let $g(x, m) = \max(0,\ 1 - x/m)$ when $m > 0$, and 1 when
-$m = 0$.
+$m = 0$. So a limit of 0 does not reduce the utility; a limit of 0 is enforced by the veto.
+
+A profile must have `slope_ideal_deg` less than `max_slope_deg`.
 
 $$U_{slope} = \operatorname{clamp}\left(\frac{\text{max\_slope} - \text{slope}}{\text{max\_slope} - \text{slope\_ideal}},\ 0,\ 1\right)$$
 
@@ -336,7 +349,8 @@ Vetoes decide whether a mission can work. The score ranks the ones that can. The
 
 The Slip Planner evaluates section 10 for a landing at 00:00 UTC on every day of the time
 grid, for every selected site. Means use prefix sums. Longest runs are scanned directly.
-It runs in a Web Worker.
+It runs in a Web Worker. The reference in `scoring.py` evaluates every landing hour; the
+Slip Planner reads the 00:00 UTC rows.
 
 `web/src/lib/scoring/sweep.worker.ts`
 

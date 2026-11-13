@@ -8,6 +8,13 @@
  */
 export type ArtemisRegions = ArtemisRegion[];
 /**
+ * Array of hand-entered catalog sites.
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "CatalogSites".
+ */
+export type CatalogSites = CatalogSite[];
+/**
  * Array of named features.
  *
  * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
@@ -236,6 +243,46 @@ export interface TerrainLayout1 {
   row_order?: "north_to_south";
 }
 /**
+ * Hand-entered site information, before pipeline processing.
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "CatalogSite".
+ */
+export interface CatalogSite {
+  /**
+   * Plain-language site description.
+   */
+  description: string;
+  /**
+   * Catalog group.
+   */
+  group: "artemis" | "sunlit_peak" | "polar_lander" | "contrast";
+  /**
+   * Stable site identifier.
+   */
+  id: string;
+  /**
+   * Latitude in degrees north.
+   */
+  lat_deg: number;
+  /**
+   * East longitude in degrees.
+   */
+  lon_deg: number;
+  /**
+   * Display name.
+   */
+  name: string;
+  /**
+   * Mission outcome, or null.
+   */
+  outcome: string | null;
+  /**
+   * Source of site coordinates.
+   */
+  source_url: string;
+}
+/**
  * Documented earth_az column.
  *
  * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
@@ -396,20 +443,32 @@ export interface ColumnSunFrac {
   scale: 0.0001;
 }
 /**
- * Reported validation comparison.
+ * Reported validation comparison. See docs/validation.md, "Reported comparisons".
  *
  * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
  * via the `definition` "Comparison".
  */
 export interface Comparison {
   /**
-   * Comparison identifier.
+   * Our best plain-language explanation. Required when outside_mark is true; null otherwise or when none is needed.
+   */
+  explanation: string | null;
+  /**
+   * Comparison identifier, R1 to R6.
    */
   id: string;
+  /**
+   * The "investigate when" mark from docs/validation.md, in unit: the largest difference between ours and reference that needs no explanation.
+   */
+  investigate_above: number;
   /**
    * Our measured value in unit.
    */
   ours: number;
+  /**
+   * True when the difference between ours and reference is above investigate_above.
+   */
+  outside_mark: boolean;
   /**
    * Reference value in unit.
    */
@@ -423,7 +482,7 @@ export interface Comparison {
    */
   site_id: string;
   /**
-   * Unit of both values.
+   * Unit of both values and of investigate_above.
    */
   unit: string;
 }
@@ -598,6 +657,54 @@ export interface Slope {
   source: string;
 }
 /**
+ * One NASA product the results rest on.
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "DataSource".
+ */
+export interface DataSource {
+  /**
+   * Product name.
+   */
+  name: string;
+  /**
+   * Link to the product.
+   */
+  url: string;
+  /**
+   * What TrueSouth uses it for, in a plain phrase.
+   */
+  used_for: string;
+}
+/**
+ * Gate G2 at one site for one body: the largest difference in each step of the time grid.
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "DifferenceOverTime".
+ */
+export interface DifferenceOverTime {
+  /**
+   * The body whose direction was compared with JPL Horizons.
+   */
+  body: "sun" | "earth";
+  /**
+   * Largest difference on the sky in degrees within each step, in time order.
+   */
+  max_difference_deg: number[];
+  /**
+   * Site identifier.
+   */
+  site_id: string;
+  /**
+   * UTC time of the first step.
+   */
+  start_utc: string;
+  /**
+   * Length of one step in hours; 24 gives one value per day.
+   */
+  step_h: number;
+}
+/**
  * API error envelope.
  *
  * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
@@ -658,14 +765,18 @@ export interface Feature {
   name: string;
 }
 /**
- * Validation hard gate result.
+ * Validation hard gate result. See docs/validation.md, "Hard gates".
  *
  * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
  * via the `definition` "Gate".
  */
 export interface Gate {
   /**
-   * Gate identifier.
+   * Optional plain sentence with the expected and measured values of a synthetic test, written by the pipeline from its own numbers. Null when there is nothing to add.
+   */
+  detail?: string | null;
+  /**
+   * Gate identifier, G1 to G11.
    */
   id: string;
   /**
@@ -673,11 +784,11 @@ export interface Gate {
    */
   limit: number;
   /**
-   * Measured value in unit.
+   * Measured value in unit: for most gates the largest difference found.
    */
   measured: number;
   /**
-   * Gate name.
+   * Gate name, a plain sentence.
    */
   name: string;
   /**
@@ -685,7 +796,7 @@ export interface Gate {
    */
   passed: boolean;
   /**
-   * Number of samples.
+   * Number of samples compared.
    */
   samples: number;
   /**
@@ -1441,7 +1552,7 @@ export interface TimeGrid1 {
   step_s: number;
 }
 /**
- * Hard gates and reported comparisons.
+ * Hard gates and reported comparisons: everything the validation page shows.
  *
  * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
  * via the `definition` "Validation".
@@ -1452,13 +1563,21 @@ export interface Validation {
    */
   comparisons: Comparison[];
   /**
+   * Gate G2 over time, for the chart on the validation page. Empty until the check has been run.
+   */
+  g2_over_time: DifferenceOverTime[];
+  /**
    * Hard gate results.
    */
   gates: Gate[];
   /**
-   * Generation time in UTC.
+   * When the validation was last run, in UTC.
    */
   generated_utc: string;
+  /**
+   * Every NASA product used, with its link.
+   */
+  sources: DataSource[];
 }
 /**
  * Non-negative relative scoring weights.
