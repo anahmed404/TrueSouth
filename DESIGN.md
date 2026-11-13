@@ -132,7 +132,10 @@ components:
 <!-- Recorded from the direction C2 prototypes in design/variants/*/c2/ (November 2026), and
 updated from the first build of C2 in web/ (work package MC4a). The team lead picked C2
 and asked for collapsible side panels. Tokens live in web/src/app/theme.css; shared
-components in web/src/components/. -->
+components in web/src/components/. Updated 2026-11-13 for the space-first Mission Control
+layout (docs/decisions/0013-space-first-mission-control.md), from the designer's notes in
+design/variants/c2-space-first.md. Only the layout, the scene and the rules that guard them
+changed. -->
 
 # Design System: TrueSouth
 
@@ -152,9 +155,10 @@ carry meaning:
 
 Depth comes from tonal steps between grey surfaces, not from shadow, glass or glow.
 
-Mission Control is dense and calm. Panels are docked side by side and the main view gets
-the room. Each view states in one sentence what the user is looking at. Detail waits
-behind a disclosure until it is asked for.
+Mission Control is dense and calm. Behind everything is the scene: a 3D photograph of the
+Sun, Earth and Moon. The panels float above it, each only as tall as its content, so the
+scene gets the room. Each view states in one sentence what the user is looking at. Detail
+waits behind a disclosure until it is asked for.
 
 The Academy uses the same tokens with more air: larger type, rounder cards and bigger
 buttons. Rounded corners and the geometric Jost face keep both modes friendly. The round
@@ -162,14 +166,17 @@ porthole and the flat status lamp are the shared signature shapes.
 
 Rejected, at the team lead's request: purple, indigo or violet anywhere; glow on panels,
 chips, buttons, lamps or text; starfields behind data; all-caps letter-spaced labels; and
-showing everything at full volume.
+showing everything at full volume. The scene has no stars either: a camera exposed for a
+sunlit Moon would not see them.
 
 **Key Characteristics:**
 - Neutral near-black greys with tonal depth.
 - One achromatic accent, moonlight white, used only for what the user controls.
 - Data colours (Sun, Earth, status) are the only hues.
 - Sentence case everywhere. Only GO, CAUTION, NO-GO and true acronyms are in capitals.
-- Docked panels, 8 px apart, 14 px corners.
+- Floating panels, 16 px from the window edge and from each other, 14 px corners, sized to
+  their content.
+- A scene behind the interface, treated as a photograph of space. The interface stays flat.
 - Every view opens with one plain sentence.
 
 ## Colors
@@ -199,8 +206,9 @@ A grey instrument whose only hues are data.
   Always paired with a word or a glyph.
 
 ### Neutral
-- **Night** (`bg`): the page and the gutters between panels.
-- **Panel** (`surface`): docked panels.
+- **Night** (`bg`): the page, the gutters between panels, and the scene's clear colour
+  (proposed token `--space`, the same value), so a panel looks the same over empty space.
+- **Panel** (`surface`): floating panels, always opaque.
 - **Raised** (`raised`): cards and controls inside a panel, and the selected tab.
 - **Hover** (`hover`): hover fills, the focused row and meter tracks.
 - **Hairline** (`line`), **Control Edge** (`line-strong`): borders and dividers.
@@ -267,36 +275,44 @@ weight.
 
 ## Layout
 
-The Mission Control shell fills the window (at least 1024 × 640) and is docked:
+The Mission Control shell fills the window (at least 1024 × 640). The scene is the main
+view and fills the whole window. Every panel floats above it:
 
 | Element | Size |
 | :--- | :--- |
-| Top bar on the page background | 44px, then the 8px gutter |
+| Scene | the whole window |
+| App bar: four floating blocks, 12px from the top | 44px tall |
+| View bar, under the app bar, with the view's sentence under it | 44px tall |
 | Sites rail | 256px open, 48px collapsed |
-| Main view | everything left over (824px at 1440 wide with both panels open) |
 | Focused-site panel | 328px open, 48px collapsed |
-| Full-width timeline strip | 196px |
+| Timeline strip, along the bottom | 196px open, 52px folded |
 | Footer line | 20px |
+| Floating window (Slip Planner, Compare) | at most 1120px wide, between the view bar and the timeline |
 
-Panels sit 8px apart, and nothing floats over the main view.
+**Floating panels.** Every panel keeps a 16px margin (8px on a phone) from the window edge
+and from the other panels. A side panel is only as tall as its content, so the scene shows
+below it. The scene is the main view: nothing frames it. The scene's camera centres the
+Moon in the free space between the panels, so a panel never covers the Moon.
 
 **Collapsing the side panels.** Each side panel has a toggle at its top (also the keys
 `[` and `]`). Collapsed, it keeps a 48px slim rail: the toggle on top, then the status
 lamps. The sites rail keeps one lamp per site, each still focusing its site; the
-focused-site panel keeps the focused site's lamp. The main view takes all the freed width:
-its tabs spread out and its plot fills the column, while the view's sentence stays capped
-at 72ch. The change animates the grid columns in 200ms with an ease-out and does not
-animate under reduced motion. The collapsed state is view state, kept in local storage,
-not in the scenario or the URL.
+focused-site panel keeps the focused site's lamp. The timeline folds to one row. The scene
+takes all the freed room: its centre slides to the new free space, and with everything
+folded the home camera moves in so the Moon fills the window. The view's sentence stays
+capped at 72ch. The change animates in 200ms with an ease-out and does not animate under
+reduced motion. The collapsed state is view state, kept in local storage, not in the
+scenario or the URL.
 
-**The main view stacks:**
+**The view stacks, top to bottom, over the scene:**
 
-1. view tabs, each with a name and a "what it is for" line, and a 3D badge where it applies;
-2. the one-sentence description;
-3. one control row;
-4. the plot;
+1. the view bar (four scene views, a divider, two window buttons);
+2. the one-sentence description, on a plate;
+3. the scene, with its labels and pins on plates;
+4. one control row, floating at the foot of the free space;
 5. one legend line;
-6. any explanation card.
+6. any explanation card;
+7. the timeline strip.
 
 **The focused-site panel stacks:**
 
@@ -309,10 +325,44 @@ not in the scenario or the URL.
 Close-study and Academy pages use a 1440px maximum width with 32px page padding and 24px
 panel padding. Spacing follows the scale: 4, 8, 12, 16, 24, 32 and 48px.
 
+### The scene
+
+The scene is a photograph of space: NASA's Moon and Earth textures and a Sun drawn in code.
+The rules that keep it from spoiling the instrument:
+
+- **The interface stays flat.** The scene gets no tonal steps, borders or panels of its own.
+  Nothing in the interface imitates it: no gradients, glow or glass.
+- **Text over the scene sits on a plate.** A plate is `--surface` at 92% opacity
+  (proposed token `--plate`). Over pure white it blends to grey 39, so Ink is then 12.7:1,
+  Ink 2 7.1:1 and the NO-GO red 4.8:1. Labels drawn on the scene use only Ink, Ink 2 and
+  the data colours, never Ink 3.
+- **Panels are opaque.** Their contrast is the one measured on `--surface`, and nothing in
+  the scene can change it. See-through panels were tried and rejected: over a bright Moon
+  they had to turn almost solid.
+- **The Moon's brightness rolls off softly,** so a face-on Moon never clips to white.
+- **No stars,** because a camera exposed for a sunlit Moon would not see them.
+- **The Only Hues Are Data Rule applies to the interface,** not to the photograph. The
+  scene's blues, greys and warm Sun are NASA data, not chrome.
+- **Shadows and shading in the scene are decoration.** They never decide a result.
+
+### Proposed tokens for the scene
+
+Proposed by the designer; no existing token changes. They live in `web/src/app/theme.css`
+when adopted.
+
+| Token | Value | Use |
+| :--- | :--- | :--- |
+| `--space` | `#0b0b0c` | The scene's clear colour. It equals Night. |
+| `--float-gap` | `16px` (8px on the phone) | The margin around every floating panel. |
+| `--plate` | `rgba(20,20,21,.92)` | The plate behind any text over the scene. |
+| `--panel-alpha` | `1` | Panel opacity. Only the rejected see-through option changed it, so it may be dropped. |
+| `--shadow-pop` | `0 8px 20px rgba(0,0,0,.45)` | The existing popover shadow, now named. Used on the two windows. |
+| `--ease-out`, `--dur-panel` | `cubic-bezier(.2,.7,.2,1)`, `200ms` | Panel folding, as approved, now named. |
+
 ### Academy scale
 
-The Academy uses the same colours and the same Mission Control shell grid (panels 8px
-apart, 14px corners), with more air. These tokens are in the "Academy" block of
+The Academy uses the same colours and a docked grid (panels 8px apart, 14px corners, as
+Mission Control had before the space-first layout), with more air. These tokens are in the "Academy" block of
 `web/src/app/theme.css`. They come from the designer's notes,
 `design/variants/c2-academy.md`.
 
@@ -339,16 +389,19 @@ grey ring with an eye.
 
 Flat by default. Depth comes from tonal layering: Night under Panel, Panel under Raised,
 and Raised under Hover. Each layer has a 1px hairline. There is no backdrop blur, no
-gradient wash, no glow, and no starfield.
+gradient wash, no glow, and no starfield. The scene behind the interface is a photograph;
+the interface stays flat above it. A floating panel has a 1px Control Edge border, because
+the scene needs the firmer edge, and no shadow.
 
 ### Shadow Vocabulary
 - **Popover** (`box-shadow: 0 8px 20px rgba(0,0,0,0.45)`): the only shadow. It is used for a
-  hover readout or popover that floats over a plot.
+  hover readout or popover that floats over a plot, and for the two floating windows.
 
 ### Named Rules
 **The No Glow Rule.** Panels, chips, buttons, lamps and text never glow. The Sun's disc may
 take a faint, small halo only if a drawing reads worse without it. The C2 prototypes use
-none.
+none. One exception: the scene's Sun is a disc with a short warm edge that ends by 1.8 disc
+radii. It is part of the photograph, not of the interface, and it is not a halo.
 
 ## Shapes
 
@@ -378,8 +431,7 @@ exception is the 2px red outline of a broken-rule stretch. No coloured side bord
   - **Sourced:** a solid outline and a small up-right arrow icon; it links to the source.
   - **Assumed:** a dashed outline.
   - Quiet on purpose, and never coloured.
-- **3D badge:** a small Hover chip with a cube icon and "3D", inside the System view and
-  Local terrain tabs.
+- **3D badge:** removed. Everything behind the interface is 3D now.
 
 ### Cards / Containers
 - **Corner Style:** 14px for panels, 10px for cards inside them.
@@ -392,10 +444,12 @@ exception is the 2px red outline of a broken-rule stretch. No coloured side bord
 ### Navigation
 - **Mode switch:** a pill segmented control. The selected mode is filled Moonlight with
   dark text.
-- **View tabs:** two lines (name at 13px/500, purpose at 12px in Ink 3). The selected tab
-  has a Raised fill and a 2px Moonlight underline. A tab never shrinks below its name; on
-  a narrow main view its purpose line wraps to two lines instead of being cut. Tabs are
-  at most 232px wide, so on a wide screen they stay together.
+- **View bar:** a floating panel holding the four scene views as tabs (a Raised fill and a
+  2px Moonlight underline on the selected one), a hairline divider, then the two window
+  buttons, Slip Planner and Compare, each with a small window icon and `aria-expanded`. The
+  tabs have a name only; the old "what it is for" lines are gone, and the view's sentence
+  under the bar does that job. On a phone the bar scrolls sideways and every tab is at
+  least 44px tall.
 - **Panel toggle:** a 28px borderless icon button (panel-close or panel-open icon) in Ink 3.
 
 ### Tips
@@ -407,6 +461,23 @@ exception is the 2px red outline of a broken-rule stretch. No coloured side bord
   It opens on hover or keyboard focus, pins on click, and closes on Escape.
 - **Provenance tag tips:** sourced shows the quote and the source's host; assumed shows
   the reason.
+
+### Floating panel, plate and scene parts
+- **Floating panel:** a `--surface` fill, a 1px Control Edge border and 14px corners.
+- **View sentence plate:** 15px Ink on `--plate`, at most 72ch, centred under the view bar.
+- **Scene label:** a plate with one 13px line and an optional 12px Ink 2 line, kept inside
+  the free space and moved to avoid other labels.
+- **Pin:** a status lamp with a 2px Night ring. The focused pin adds a Moonlight ring and a
+  name plate. Pins closer than 18px fold into the focused pin, which says "and N more sites
+  here". Pins are not in the tab order; the sites rail is the keyboard path.
+- **Sight-line:** a line from the site along the true direction. Solid GO Green when lit or
+  linked, dashed NO-GO Red when not, with a plate carrying a lamp, a word and the state.
+- **Sun edge marker:** an upright Sun icon and an arrow that rotates toward the off-screen
+  Sun.
+- **Floating window:** a floating panel with the popover shadow, `role="dialog"` and
+  `aria-modal="false"`. Escape closes it and focus returns to its button.
+- **Still picture:** an `<img>` behind the interface and a note with "Try 3D anyway", when
+  WebGL is missing or slow.
 
 ### Status lamp
 A flat circle in the status colour with a dark cut glyph: ✓, ! or ✕. It is 16px in lists
@@ -429,12 +500,14 @@ or glow.
 - **Do** tag every mission-profile value as sourced or assumed, quietly.
 - **Do** give every number a unit, and say "UTC" on every time.
 - **Do** keep text at or above 4.5:1. Ink 3 is the faintest text colour.
+- **Do** put text drawn over the scene on a plate.
 
 ### Don't:
 - **Don't** use purple, indigo or violet, or any gradient as decoration.
 - **Don't** add glow, glass, backdrop blur or a starfield.
 - **Don't** write labels in capitals or letter-space them. Only GO, CAUTION, NO-GO and
   acronyms are in capitals.
-- **Don't** float panels or cards over the main view.
+- **Don't** make a panel see-through, or let the scene decide a contrast ratio.
+- **Don't** draw text straight on the scene without a plate.
 - **Don't** repeat a chip, tag or legend that is already on screen.
 - **Don't** show a status by colour alone.

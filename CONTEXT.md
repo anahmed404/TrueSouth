@@ -27,6 +27,11 @@ If you need a new term, add it here first.
 | **Close-up DEM** | A 5 m elevation map that exists for a few sites. Used for slope and the close-up 3D view. |
 | **DEM** | Digital elevation model: a grid of terrain heights. |
 | **Named feature** | A crater or mountain with an official IAU name, used for labels. |
+| **Polar cap** | The Moon's surface from 80°S to the pole, where the 80 m terrain map applies. The scene draws TrueSouth's own relief and slope images over it. |
+| **Patch** | The 20 km square of terrain centred on a site, at 80 m, drawn in Local terrain. |
+| **Apron** | The 300 km square of coarser terrain around a site's patch, drawn out to the horizon in Local terrain. |
+| **Nearby range** | For a sunlit-peak site: the lowest and highest six-year average sunlight among the 80 m map pixels within 160 m of its listed point. |
+| **Best-lit variant** | A second site chosen by TrueSouth at the best-lit pixel near a sunlit-peak site. It is labelled as chosen by TrueSouth, and its sunlight is an upper reading. |
 
 ## Directions and visibility
 
@@ -89,6 +94,13 @@ If you need a new term, add it here first.
 | **Lander's eye** | The 360° panorama of the skyline with the Sun and Earth drawn on it. |
 | **Countdown** | Time from the current time to the next sunset, sunrise, Earthset or Earthrise. |
 | **Scrubber** | The time slider shared by every view. |
+| **Scene** | The 3D picture of the Sun, Earth and Moon that fills Mission Control's window. The interface floats above it. |
+| **View bar** | The floating bar that picks the view: four camera views and two floating windows. |
+| **Camera view** | A view that is a place in the scene: the System view, Polar map, Local terrain or Lander's eye. Picking it moves the camera. |
+| **Floating window** | A panel that opens over the scene without moving the camera: the Slip Planner and Compare. |
+| **Free space** | The part of the window not covered by a floating panel. The camera keeps the Moon centred in it. |
+| **Plate** | The panel-coloured backing behind any text drawn on the scene. |
+| **Still picture** | The image that replaces the scene when WebGL is missing or slow. |
 
 ## Academy
 

@@ -3,6 +3,12 @@
 You build the planner tool's screens and logic, and you keep the web app in one piece.
 Read [`README.md`](README.md) in this folder first.
 
+**Mission Control is space-first.** A 3D scene of the Sun, Earth and Moon (the 3D and Map
+track's) fills the window, and your panels float above it. The view bar picks the view:
+four are camera moves, and the Slip Planner and Compare are floating windows. Read
+[`../decisions/0013-space-first-mission-control.md`](../decisions/0013-space-first-mission-control.md)
+and [`../../design/variants/c2-space-first.md`](../../design/variants/c2-space-first.md).
+
 **You are the integrator.** The app shell, the router, the theme, the data hooks and the
 scoring are yours. Two other people build inside what you set up.
 
@@ -24,8 +30,11 @@ these specs in [`../features/`](../features/): `mission-control.md`, `slip-plann
 5. [`../mission-profiles.md`](../mission-profiles.md)
 6. [`../features/mission-control.md`](../features/mission-control.md), then each of your
    other feature specs as you reach it
-7. Decisions [`0002`](../decisions/0002-scoring-in-browser.md) and
-   [`0007`](../decisions/0007-mission-profiles.md)
+7. [`../features/system-view.md`](../features/system-view.md), for the scene your panels
+   float over, and [`../../DESIGN.md`](../../DESIGN.md), "Layout" and "The scene"
+8. Decisions [`0002`](../decisions/0002-scoring-in-browser.md),
+   [`0007`](../decisions/0007-mission-profiles.md) and
+   [`0013`](../decisions/0013-space-first-mission-control.md)
 
 ## Your order of work
 
@@ -47,17 +56,24 @@ Details and checks for each id are in [`../build-plan.md`](../build-plan.md).
 **M1. One real site.**
 
 - [ ] **MC3** The `scenario` store and URL sync
-- [ ] **MC4** The shell: layout, profile picker and editor, sites rail, focused-site panel
-- [ ] **MC5** Timeline, scrubber, countdowns, "why is it dark" card
-- [ ] **MC6** Lander's eye
+- [ ] **MC4** The panels: profile picker and editor, sites rail, focused-site panel (built
+      docked as MC4a and MC4b; kept)
+- [ ] **MC4c** The space-first shell: float the panels, the app bar, the view bar and the
+      timeline over the scene (needs T1); folding, the free-space insets, the phone layout
+      and keyboard use
+- [ ] **MC5** Timeline, scrubber, countdowns, "why is it dark" card, as a floating bar that
+      folds to one row
+- [ ] **MC6** Lander's eye: the horizon chart, its card and controls (the camera and 3D
+      horizon are T5)
 
-**M2.** MC7 (Slip Planner and the sweep worker).
+**M2.** MC7 (the Slip Planner's window; its sweep worker is done as MC7a).
 
-**M3.** MC9 (Compare, share and export, NASA tool links).
+**M3.** MC9 (the Compare window, share and export, NASA tool links).
 
 **M4.** MC11 (every state, keyboard use, performance).
 
-The polar map and custom sites belong to the 3D and Map track.
+The scene, the polar map and custom sites belong to the 3D and Map track. Custom sites are
+out of scope for the deadline, and so are the sensitivity grid and Academy lessons 5 to 8.
 
 ## What others need from you
 
@@ -66,7 +82,7 @@ The polar map and custom sites belong to the 3D and Map track.
 | The scaffold with placeholders, `PanelProps` and theme tokens | 3D and Map, Academy | MC0, day one |
 | The data hooks, working on fixtures | 3D and Map, Academy | MC1, end of M0 |
 | The evaluation hooks | 3D and Map (sight-line and pin colours), Academy (step goals) | MC2, end of M0 |
-| The shell with a tab for every panel | 3D and Map | MC4 |
+| The space-first shell: the view bar, the free-space insets the camera reads, and the floating windows' frame | 3D and Map | MC4c |
 | `LandersEye` working in `"lesson"` mode | Academy (lessons 1, 2, 4) | MC6 |
 | `Timeline` and `Countdowns` in `"lesson"` mode | Academy (lessons 4, 8) | MC5 |
 | `SlipPlanner` in `"lesson"` mode | Academy (lessons 7, 8) | MC7 |
@@ -82,7 +98,8 @@ Tell the team in chat the moment each of these lands on `main`.
 | Fixtures and the scoring cases | Science (S2) | Write loaders against [`../data-contracts.md`](../data-contracts.md) |
 | `explain.ts` with a first draft of every term | Academy (A7) | Show the term's name as the tooltip text |
 | `Luna` for empty and error states | Academy (A1) | A plain text message |
-| `SystemView`, `LocalTerrain`, `PolarMap` | 3D and Map | The placeholders render in the tabs |
+| The scene (T1): `SystemView`, and the camera moves to `PolarMap`, `LocalTerrain` and Lander's eye | 3D and Map | A plain dark background and the placeholders |
+| The scene's image files | Science (S16) | A plain grey Moon |
 
 ## Rules for this track
 
@@ -104,6 +121,16 @@ Tell the team in chat the moment each of these lands on `main`.
   limit. A score never hides a veto.
 - **Show provenance.** Every profile value shows its sourced or assumed tag.
 - **Keep heavy work off the main thread.** The slip sweep runs in a Web Worker.
+- **Panels float; they are solid.** Follow `DESIGN.md`: a 16 px margin (8 px on a phone), a
+  1 px Control Edge border, no see-through fill. Text drawn straight on the scene sits on a
+  plate. Use the tokens; never type a colour value.
+- **The interface tells the scene where the free space is,** so the camera can keep the
+  Moon clear of the panels. When a panel folds, the free space changes with it.
+- **Slip Planner and Compare are windows,** with `role="dialog"` and `aria-modal="false"`.
+  Escape closes them and returns focus. The timeline stays visible.
+- **Results never come from the scene.** A status, a lamp or a "lit" label comes from the
+  evaluation hooks, not from 3D shading or shadows.
+- **Respect reduced motion** in every panel and window animation.
 - **Decode once.** Series are typed arrays held in the `data` store. Do not copy them into
   objects per hour.
 
@@ -128,7 +155,12 @@ Tell the team in chat the moment each of these lands on `main`.
   split into two lines.
 - **Weights.** They are normalised. Never show a "must add to 1" error.
 - **Sphere-tier sites.** No slope, a flat skyline, no blockers. Every panel needs a
-  sensible display for them.
+  sensible display for them. In Local terrain and Lander's eye the camera does not descend;
+  the view offers "Show it in the System view".
+- **Panels over a moving background.** Contrast is guaranteed by solid panels and plates,
+  not by the scene's brightness. Check text over a bright Moon.
+- **Focus order and Escape.** The scene is not the first Tab stop; Escape closes the open
+  window and focus returns to its button.
 
 ## Brief for your agent
 
@@ -162,5 +194,7 @@ output. Then tell me exactly what to click to check the feature by hand.
 - [ ] `pnpm --dir web test` and `pnpm --dir web typecheck` pass.
 - [ ] You clicked through the spec's "done when" list on fixtures.
 - [ ] The feature works for a sphere-tier fixture site.
+- [ ] The panel is readable over a bright Moon and over empty space, and works folded and
+      on a phone at 390 px.
 - [ ] No colour values, no hand-written explanations, no fetches outside `web/src/data/`.
 - [ ] The diff touches only your folders.
