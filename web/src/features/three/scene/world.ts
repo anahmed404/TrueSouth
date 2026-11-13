@@ -4,9 +4,10 @@ import type { DecodedApron, DecodedTerrain } from "../../../data";
 import { sceneImageUrl } from "../../../data";
 import { EARTH_RADIUS_KM, MOON_RADIUS_M, SQUEEZED_DISTANCE, SQUEEZED_SUN_RADIUS, SUN_RADIUS_KM, type ApronGrid } from "../../../lib/geo";
 import { altitudeOf, type SiteFrame } from "./camera";
-import { apronGeometry, patchGeometry, patchOutline, smoothGroundGeometry, type GroundSite } from "./ground";
+import { apronGeometry, apronUpGrid, patchGeometry, patchOutline, patchUpGrid, smoothGroundGeometry, type GroundSite } from "./ground";
+import { GroundLook } from "./ground-material";
 import { aimLander, createLander, LANDER_HEIGHT_M, partAxis, type Lander } from "./lander";
-import { earthMaterial, groundMaterial, landerMaterial, moonMaterial, solidTexture, sunMaterial } from "./materials";
+import { earthMaterial, landerMaterial, moonMaterial, solidTexture, sunMaterial } from "./materials";
 import { smooth, type V3 } from "./vec";
 
 /**
@@ -98,7 +99,8 @@ export class World {
   private readonly sightGroup = new THREE.Group();
   private readonly sightLines: { sun: THREE.Line; earth: THREE.Line };
   private readonly ground = new THREE.Group();
-  private readonly groundMat;
+  /** The ground's material and its quality levels (ground-material.ts). */
+  readonly groundLook: GroundLook;
   private groundMeshes: THREE.Object3D[] = [];
   private groundFor: string | null = null;
   private readonly lander: Lander;
@@ -175,8 +177,14 @@ export class World {
     this.sightLines = { sun: line(), earth: line() };
     this.root.add(this.sightGroup);
 
-    this.groundMat = groundMaterial(this.moon.uniforms.uMap, this.moon.uniforms.uLoaded, this.moon.uniforms.uSun, this.moon.uniforms.uNoSun);
-    this.own(this.groundMat.material);
+    const mu = this.moon.uniforms;
+    this.groundLook = this.own(
+      new GroundLook(
+        { light: mu.uSun, noLight: mu.uNoSun },
+        { map: mu.uMap, loaded: mu.uLoaded, capSlope: mu.uCapN, coreSlope: mu.uCoreN, capLoaded: mu.uCapLoaded },
+        invalidate,
+      ),
+    );
     this.ground.visible = false;
     this.root.add(this.ground);
 
@@ -367,6 +375,7 @@ export class World {
     }
     this.groundMeshes = [];
     this.groundFor = null;
+    this.groundLook.clearHeights();
   }
 
   /**
@@ -391,13 +400,20 @@ export class World {
     if (site.sphere || smooth) {
       // A sphere-tier site, or a site whose terrain file failed: the smooth Moon.
       // It sits at the site's own height, where Pip and the camera stand.
-      meshes.push(new THREE.Mesh(smoothGroundGeometry(g), this.groundMat.material));
+      meshes.push(new THREE.Mesh(smoothGroundGeometry(g), this.groundLook.material));
     } else if (terrain) {
       const patch = patchGeometry(terrain.data, terrain.size, terrain.windowKm, g);
-      meshes.push(new THREE.Mesh(patch, this.groundMat.material));
-      if (apron && apron.grid.windowM / 2_000 > terrain.windowKm / 2) {
-        meshes.push(new THREE.Mesh(apronGeometry(apron.data, apron.grid, terrain.windowKm / 2, g), this.groundMat.material));
+      meshes.push(new THREE.Mesh(patch, this.groundLook.material));
+      const withApron = Boolean(apron && apron.grid.windowM / 2_000 > terrain.windowKm / 2);
+      if (apron && withApron) {
+        meshes.push(new THREE.Mesh(apronGeometry(apron.data, apron.grid, terrain.windowKm / 2, g), this.groundLook.material));
       }
+      this.groundLook.setHeights(
+        { heights: patchUpGrid(terrain.data, terrain.size), columns: terrain.size, rows: terrain.size, halfKm: terrain.windowKm / 2 },
+        apron && withApron
+          ? { heights: apronUpGrid(apron.data, apron.grid, g), columns: apron.grid.columns, rows: apron.grid.rows, halfKm: apron.grid.windowM / 2_000 }
+          : null,
+      );
       const lift = new THREE.Vector3(...site.frame.up).multiplyScalar(4 / MOON_RADIUS_M);
       const outline = new THREE.LineLoop(
         patchOutline(patch, terrain.size, lift),
@@ -410,17 +426,44 @@ export class World {
     }
     for (const mesh of meshes) {
       mesh.frustumCulled = false;
+      if (mesh instanceof THREE.Mesh) this.groundLook.attach(mesh);
       this.ground.add(mesh);
     }
     this.groundMeshes = meshes;
     this.groundFor = key;
     this.ground.position.set(...site.frame.ground);
-    this.groundMat.uniforms.uUp.value.set(...site.frame.up);
+    this.groundLook.setFrame(site.frame);
     this.invalidate();
   }
 
   get hasGround(): boolean {
     return this.groundMeshes.length > 0;
+  }
+
+  private prepTarget: THREE.WebGLRenderTarget | null = null;
+
+  /**
+   * Draws the ground once into a 1 × 1 target, so its meshes, height textures and shader are
+   * on the GPU before the first flight into Local terrain needs them (a stall of about 375 ms
+   * on a software GPU otherwise). Nothing on screen changes.
+   */
+  prepareGround(renderer: THREE.WebGLRenderer, camera: THREE.Camera): void {
+    if (!this.hasGround) return;
+    this.prepTarget ??= this.own(new THREE.WebGLRenderTarget(1, 1));
+    const visible = this.ground.visible;
+    const fade = this.groundLook.uniforms.uFade.value;
+    const previous = renderer.getRenderTarget();
+    this.ground.visible = true;
+    this.groundLook.fade = 1;
+    this.ground.updateMatrixWorld(true);
+    // The shader as the screen draws it (three.js compiles a separate variant for a render
+    // target), then one draw off-screen to upload the meshes and height textures.
+    renderer.compile(this.ground, camera);
+    renderer.setRenderTarget(this.prepTarget);
+    renderer.render(this.ground, camera);
+    renderer.setRenderTarget(previous);
+    this.ground.visible = visible;
+    this.groundLook.fade = fade;
   }
 
   // ── Per-frame layout ────────────────────────────────────────────────────
@@ -430,6 +473,7 @@ export class World {
     this.moon.uniforms.uNoSun.value = inputs.bodies ? 0 : 1;
     this.moon.uniforms.uSun.value.set(...inputs.sunDir);
     this.earth.uniforms.uSun.value.set(...inputs.sunDir);
+    this.groundLook.setBodies(inputs.sunDir, inputs.earthDir, inputs.bodies);
     const site = inputs.site;
     if (site) {
       aimLander(
@@ -509,7 +553,7 @@ export class World {
     // System view's zoom stops at 60 km.
     const groundFade = site && this.hasGround ? smooth(0.03, 0.016, alt) : 0;
     this.ground.visible = groundFade > 0.001;
-    this.groundMat.uniforms.uFade.value = groundFade;
+    this.groundLook.fade = groundFade;
     const u = this.moon.uniforms;
     if (groundFade > 0.999 && site) {
       u.uHideDir.value.set(...site.frame.up);
