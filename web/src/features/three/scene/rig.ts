@@ -1,10 +1,11 @@
 import * as THREE from "three";
-import type { FreeSpace } from "../../../app/scene";
+import type { CameraViewId, FreeSpace } from "../../../app/scene";
 import { MOON_RADIUS_M } from "../../../lib/geo";
 import { easeInOutCubic, lerpPose, MIN_SPACE_ALTITUDE, viewOffset, type Pose, type SiteFrame } from "./camera";
 import { clamp } from "./vec";
 
-type Mode = "system" | "map" | "terrain" | "panorama";
+/** The rig turns about the Moon in any view but Local terrain and Lander's eye. */
+type Mode = CameraViewId;
 
 type Tween = {
   from: Pose;
@@ -154,6 +155,8 @@ export class Rig {
       c.lookAt(0, 0, 0);
       return;
     }
+    // Only the two ground views turn about the site; any other view keeps the camera still.
+    if (this.mode !== "terrain" && this.mode !== "panorama") return;
     const site = this.site;
     if (!site) return;
     const ground = new THREE.Vector3(...site.ground);

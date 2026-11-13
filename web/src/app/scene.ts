@@ -85,8 +85,6 @@ export type SceneProps = {
    * terrain data (a sphere-tier site).
    */
   onViewChange: (view: CameraViewId) => void;
-  /** Optional: a camera flight has landed (see `SceneArrival`). */
-  onArrive?: (arrival: SceneArrival) => void;
   /** Adds a catalog site to the selected sites, for example from a pin on the Polar map. */
   onAddSite: (siteId: string) => void;
   /**
@@ -94,4 +92,6 @@ export type SceneProps = {
    * unmounted for this: it is told, and draws its 2D parts or nothing.
    */
   mode: SceneMode;
+  /** Optional: a camera flight has landed (see `SceneArrival`). */
+  onArrive?: (arrival: SceneArrival) => void;
 };

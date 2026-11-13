@@ -415,7 +415,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   checked by the agent with typecheck, the vitest suite and the build, impeccable's
   detector (no findings), and by eye in a browser on the real data and the fixtures at
   1440 × 900, 1024 × 768 and 390 × 844; a human has not reviewed it yet
-- **State:** built, not verified
+- **State:** verified (1,577 web tests, 308 Python tests, typecheck and build pass on the merge with main; reviewed (11 findings, all fixed); opened by the orchestrator at 1440, 1024 and 390 px on real data: no console errors, no sideways scroll, dark-hour plate and Why? popover, Slip Planner window opens and Escape returns focus)
 - **Changed:** `web/src/app/mission-screen.tsx`, `web/src/app/shell.css`,
   `web/src/app/scene.ts` (new), `web/src/app/mission/` (new: `free-space.ts`,
   `shell-hooks.ts`, `view-bar.tsx`, `floating-window.tsx`, `window-focus.ts`,

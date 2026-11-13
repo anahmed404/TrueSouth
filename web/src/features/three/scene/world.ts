@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import type { CameraViewId } from "../../../app/scene";
 import type { DecodedApron, DecodedTerrain } from "../../../data";
 import { sceneImageUrl } from "../../../data";
 import { EARTH_RADIUS_KM, MOON_RADIUS_M, SQUEEZED_DISTANCE, SQUEEZED_SUN_RADIUS, SUN_RADIUS_KM, type ApronGrid } from "../../../lib/geo";
@@ -39,7 +40,8 @@ export type WorldInputs = {
   site: WorldSite | null;
   /** The focused site's sight-lines: directions from the series, states from the hour flags. */
   sight: { sunDir: V3; earthDir: V3; sunGood: boolean | null; earthGood: boolean | null } | null;
-  view: "system" | "map" | "terrain" | "panorama";
+  /** The camera view. Views without ground (any but Local terrain and Lander's eye) show no lander. */
+  view: CameraViewId;
 };
 
 /** Pip is drawn this many times larger than life in Local terrain, and a plate says so. */
