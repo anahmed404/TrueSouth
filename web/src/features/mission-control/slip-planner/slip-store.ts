@@ -26,6 +26,9 @@ export type SlipUiState = {
   clearComparison: (hour: number) => void;
   /** Leaving the view forgets the comparison and the panning. */
   leave: () => void;
+  /** Bumped by "Retry" on a site that could not be computed: the panel's sweeps start again. */
+  retries: number;
+  retry: () => void;
 };
 
 export function createSlipStore(): StoreApi<SlipUiState> {
@@ -45,6 +48,8 @@ export function createSlipStore(): StoreApi<SlipUiState> {
     },
     clearComparison: (hour) => set({ fromHour: null, baselineHour: hour }),
     leave: () => set({ baselineHour: null, fromHour: null, start: null }),
+    retries: 0,
+    retry: () => set({ retries: get().retries + 1 }),
   }));
 }
 

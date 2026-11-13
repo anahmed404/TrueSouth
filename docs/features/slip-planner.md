@@ -218,15 +218,30 @@ Before any slip, none of these are shown.
 - The strips are drawn on a Canvas. The spots are SVG over the scene.
 - The sweep reads the Python-computed series and the mission profile. The scene's shading
   plays no part, and neither does the fixed drawing light.
-- The spot, the strip, the hover readout, the sites rail and the focused-site panel all read
-  the same sweep result, so they cannot disagree. The earlier prototype's grid came from a
+- The spot, the strip, the hover readout, the sites rail and the focused-site panel cannot
+  disagree. Every status, rule and score a user reads for a site and a landing hour comes
+  from one function, the sites rail's single-date evaluation (`cachedEvaluation`, through
+  `slip-planner/landing-results.ts`). The sweep draws the strips and finds "next GO"; its
+  statuses equal that evaluation on every 00:00 UTC day (tested), and its packed score is
+  never shown. The earlier prototype's grid came from a
   separate cheap mock and could disagree with its own hover; the real build must not.
 
 ## States
 
-- **Computing.** The previous result stays, with a thin progress bar along the top of the
-  panel. Days not yet worked out pulse grey between 35 % and 80 %. Under "reduce motion" the
-  pulse stops.
+- **Computing.** A thin progress bar runs along the top of the panel. A site whose sweep is
+  still running for the current profile and site list pulses grey (35 % to 80 %; under
+  "reduce motion" the pulse stops), its words say "Still computing this site" and its
+  "next GO" says "computing…". The previous profile's picture is never shown in its place.
+  The spots do not wait for the sweep: they read the same single-date evaluation as the
+  sites rail, so a spot always equals the rail.
+- **"Any site" while computing.** It is GO on a day as soon as any site is known to be GO
+  that day; its hover then says "GO: <site>. <n> more still computing." CAUTION, NO-GO and
+  "no GO before 2032" are stated only once every site is known; until then the mark pulses
+  and the words say how many are computing. Its "next GO" is final only when no earlier day
+  is still being worked out.
+- **A site that could not be computed.** Its strip says "Could not compute this site." with
+  "Retry". "Any site" is worked out from the others, its label says "1 site missing", and
+  its hover names the missing site.
 - **Dates near the end of the time grid** whose mission window does not fit are drawn as "no
   data".
 - **One site.** The strip is taller (18 px) and the camera frames the site with 70 km around

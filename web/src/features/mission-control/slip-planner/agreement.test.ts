@@ -187,7 +187,7 @@ describe("the whole-days rule", () => {
 describe("Any site and next GO on the fixture", () => {
   it("Any site is the best status among the sites on every day", () => {
     const list = entries.get(chosen[0]!.id)!;
-    const any = anySiteDays(list.map((e) => e.days), list[0]!.days!.dayCount);
+    const any = anySiteDays(list.map((e) => e.days!), list[0]!.days!.dayCount);
     for (const day of days) {
       const best = Math.max(...list.map((e) => rank(e.days!.status[day]!)));
       expect(rank(any[day]!)).toBe(best);

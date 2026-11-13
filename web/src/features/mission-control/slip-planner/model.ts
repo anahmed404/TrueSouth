@@ -21,28 +21,48 @@ export function rank(code: number): number {
   return 0;
 }
 
+/** What "Any site" reads from one selected site: its day table, or that it is still computing or failed. */
+export type DaySource = Pick<SlipDays, "status"> | "pending" | "failed";
+
 /**
  * "Any site": on each day, the best status among the selected sites (slip-planner.md, "The
- * landing-date panel"). A site not yet worked out (null) leaves the day pending, unless
- * another site is already GO that day.
+ * landing-date panel"). One rule, for the mark, the hover, the strip's words and "next GO":
+ * GO as soon as any site is known to be GO that day, since that holds whatever the others
+ * turn out to be; otherwise the day is pending while any site is still computing; only then
+ * CAUTION, NO-GO or no data, from the sites that are known. A site that failed is left out.
  */
-export function anySiteDays(sites: readonly (Pick<SlipDays, "status"> | null)[], dayCount: number): Uint8Array {
+export function anySiteDays(sites: readonly DaySource[], dayCount: number): Uint8Array {
   const out = new Uint8Array(dayCount);
   for (let day = 0; day < dayCount; day += 1) {
     let best = 0;
     let pending = false;
     for (const site of sites) {
-      if (!site) {
+      if (site === "pending") {
         pending = true;
         continue;
       }
+      if (site === "failed") continue;
       const r = rank(site.status[day] ?? DAY_NONE);
       if (r > best) best = r;
     }
-    if (pending && best < 3) out[day] = DAY_PENDING;
-    else out[day] = best === 3 ? DAY_GO : best === 2 ? DAY_CAUTION : best === 1 ? DAY_NOGO : DAY_NONE;
+    if (best === 3) out[day] = DAY_GO;
+    else if (pending) out[day] = DAY_PENDING;
+    else out[day] = best === 2 ? DAY_CAUTION : best === 1 ? DAY_NOGO : DAY_NONE;
   }
   return out;
+}
+
+/**
+ * "Any site"'s next GO from day `from`, read from `anySiteDays`: the day, null when no day
+ * up to the end of the time grid is GO, or "computing" when a day before the first GO is
+ * still pending. A GO is final only if no earlier day is still being worked out.
+ */
+export function anyNextGo(codes: ArrayLike<number>, from: number): number | null | "computing" {
+  for (let day = Math.max(0, Math.ceil(from)); day < codes.length; day += 1) {
+    if (codes[day] === DAY_GO) return day;
+    if (codes[day] === DAY_PENDING) return "computing";
+  }
+  return null;
 }
 
 /**

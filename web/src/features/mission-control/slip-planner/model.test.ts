@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import type { Site } from "../../../contracts/generated";
 import type { Evaluation } from "../../../lib/scoring";
 import { DAY_CAUTION, DAY_GO, DAY_NOGO, DAY_NONE } from "../../../lib/scoring/slip-days";
+import { anyReadout } from "./readout";
 import { nextGo, nextGoWords } from "./next-go-words";
 import { MOON_RADIUS_M } from "../../../lib/geo";
 import { flatProjection } from "./flat";
 import {
   DAY_PENDING,
+  anyNextGo,
   anySiteDays,
   bestSite,
   dayAtX,
@@ -45,9 +47,53 @@ describe("Any site", () => {
     expect([...anySiteDays([a, b], 5)]).toEqual([DAY_NOGO, DAY_CAUTION, DAY_GO, DAY_NONE, DAY_GO]);
   });
 
-  it("is pending while a site is not worked out, unless another site is already GO", () => {
-    const a = { status: new Uint8Array([DAY_CAUTION, DAY_GO]) };
-    expect([...anySiteDays([a, null], 2)]).toEqual([DAY_PENDING, DAY_GO]);
+  it("is GO as soon as a known site is GO; anything else waits for every site", () => {
+    // Day 0: one site CAUTION, one computing: not yet known, so pending, never CAUTION.
+    // Day 1: one site GO: GO whatever the other turns out to be.
+    const a = { status: new Uint8Array([DAY_CAUTION, DAY_GO, DAY_NOGO]) };
+    expect([...anySiteDays([a, "pending"], 3)]).toEqual([DAY_PENDING, DAY_GO, DAY_PENDING]);
+  });
+
+  it("leaves a failed site out and works from the others", () => {
+    const a = { status: new Uint8Array([DAY_CAUTION, DAY_NOGO]) };
+    expect([...anySiteDays([a, "failed"], 2)]).toEqual([DAY_CAUTION, DAY_NOGO]);
+    expect([...anySiteDays(["failed"], 2)]).toEqual([DAY_NONE, DAY_NONE]);
+  });
+
+  it("next GO is final only when no earlier day is still computing", () => {
+    expect(anyNextGo([DAY_NOGO, DAY_GO, DAY_PENDING], 0)).toBe(1);
+    expect(anyNextGo([DAY_NOGO, DAY_PENDING, DAY_GO], 0)).toBe("computing");
+    expect(anyNextGo([DAY_GO, DAY_PENDING], 0)).toBe(0);
+    expect(anyNextGo([DAY_NOGO, DAY_CAUTION], 0)).toBeNull();
+    expect(anyNextGo([DAY_NOGO, DAY_PENDING], 0)).toBe("computing");
+  });
+
+  it("the readout follows the same rule as the mark", () => {
+    const go = evaluation("GO", 91);
+    const caution = evaluation("CAUTION", 60);
+    const nogo = evaluation("NO-GO", 10);
+    const pending: SiteResult = { kind: "pending" };
+    const failed: SiteResult = { kind: "failed" };
+    const site = (name: string, result: SiteResult) => ({ siteId: name, name, result });
+
+    // A known GO with another site computing: GO, and it says the rest are computing.
+    const early = anyReadout("d", [site("A", go), site("B", pending), site("C", pending)]);
+    expect(early.status).toBe("GO");
+    expect(early.lines).toEqual(["GO: A. 2 more still computing."]);
+
+    // CAUTION known, another computing: no status yet, never CAUTION.
+    const waiting = anyReadout("d", [site("A", caution), site("B", pending)]);
+    expect(waiting.status).toBeNull();
+    expect(waiting.lines[0]).toBe("Still computing 1 of 2 sites.");
+
+    // Every site known: the best status.
+    expect(anyReadout("d", [site("A", caution), site("B", nogo)]).status).toBe("CAUTION");
+    expect(anyReadout("d", [site("A", nogo), site("B", nogo)]).status).toBe("NO-GO");
+
+    // A failed site is left out, and the readout says so.
+    const missing = anyReadout("d", [site("A", caution), site("B", failed)]);
+    expect(missing.status).toBe("CAUTION");
+    expect(missing.lines).toContain("B could not be computed, so it is left out.");
   });
 
   it("with every date NO-GO shows no GO either", () => {

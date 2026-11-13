@@ -262,6 +262,37 @@
     display: block;
   }
 
+  /* A site that could not be computed: its strip says so, with "Retry", above the drag layer. */
+  .ldp-failed {
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    padding-left: var(--s2);
+    border-radius: var(--r-sm);
+    background: var(--hover);
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .ldp-failed .ldp-link {
+    position: relative;
+  }
+
+  .ldp-failed .ldp-link::after {
+    content: "";
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+
   .ldp-over {
     right: 0;
     z-index: 2;

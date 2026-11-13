@@ -27,8 +27,8 @@ import { useManifest, useSites } from "../../../data";
 import { utcMidnightHours, windowLength, type Status } from "../../../lib/scoring";
 import { utcToHourIndex } from "../../../lib/time";
 import {
-  DAY_PENDING,
   ZOOMS,
+  anyNextGo,
   anySiteDays,
   dayAtX,
   dayLabel,
@@ -48,7 +48,8 @@ import {
   type SiteResult,
   type Zoom,
 } from "./model";
-import { anyReadout, readoutText, siteReadout, type Readout } from "./readout";
+import { anyReadout, FAILED_LINE, readoutText, siteReadout, type Readout } from "./readout";
+import { dataStore, seriesKey } from "../../../state/data";
 import { comparisonHour, slipStore } from "./slip-store";
 import { StripCanvas, stripsHeight, type StripColours } from "./strips-canvas";
 import { useSlipDays, type SiteDays } from "./use-slip-days";
@@ -120,6 +121,7 @@ function useWidth<T extends HTMLElement>(): [RefObject<T | null>, number] {
  */
 export function LandingDatePanel(props: LandingDatePanelProps) {
   const manifest = useManifest();
+  const retries = useStore(slipStore, (s) => s.retries);
   if (manifest.status === "error") return <PanelMessage {...props}>{`The time grid could not load: ${manifest.error}`}</PanelMessage>;
   if (manifest.status !== "ready") return <PanelMessage {...props}>Loading the time grid…</PanelMessage>;
   const grid = manifest.data.time_grid;
@@ -141,7 +143,8 @@ export function LandingDatePanel(props: LandingDatePanelProps) {
       </PanelMessage>
     );
   }
-  return <Dates {...props} gridCount={grid.count} gridStartMs={Date.parse(grid.start_utc)} landingHour={landingHour} />;
+  // A new key after "Retry" mounts the sweeps again: a failed sweep is remembered per mount.
+  return <Dates key={retries} {...props} gridCount={grid.count} gridStartMs={Date.parse(grid.start_utc)} landingHour={landingHour} />;
 }
 
 type DatesProps = LandingDatePanelProps & { gridCount: number; gridStartMs: number; landingHour: number };
@@ -177,7 +180,7 @@ function Dates(props: DatesProps) {
   // ── Rows ──
   const siteCodes = entries.map((e) => e.days?.status ?? null);
   const anyCodes = useMemo(
-    () => anySiteDays(entries.map((e) => e.days), dayCount),
+    () => anySiteDays(entries.map((e) => (e.state === "ready" && e.days ? e.days : e.state === "error" ? "failed" : "pending")), dayCount),
     // The entries array is the same object while no sweep changed.
     [entries, dayCount],
   );
@@ -378,6 +381,12 @@ function Dates(props: DatesProps) {
     ? `${entries.length > 1 ? "Any site: " : ""}${nowAny.status} for this landing`
     : (nowAny.lines[0] ?? "");
   const ready = entries.filter((e) => e.state !== "loading").length;
+  const failedCount = entries.filter((e) => e.state === "error").length;
+  const retry = (siteId: string) => {
+    // A series that failed to load is dropped so it loads again; the remount re-runs the sweeps.
+    if (dataStore.getState().entries[seriesKey(siteId)]?.status === "error") dataStore.getState().dropSite(siteId);
+    slipStore.getState().retry();
+  };
   const computing = ready < entries.length;
   const weights = settingsProvenance(profile, ["weights"]);
   const wholeNote = whole ? null : <span className="ldp-whole">{WHOLE_NOTE}</span>;
@@ -490,6 +499,7 @@ function Dates(props: DatesProps) {
               top={rowTop(i)}
               rowHeight={metrics.height}
               status={row.kind === "any" ? nowAny.status : (nowStatus.get(row.siteId) ?? null)}
+              missing={failedCount}
               focused={row.kind === "site" && row.siteId === scenario.focusedSiteId}
               compact={compact}
               catalog={catalog}
@@ -501,8 +511,18 @@ function Dates(props: DatesProps) {
         <div ref={stripRef} className="ldp-strips" style={{ gridRow: "1 / 4" }}>
           <canvas ref={canvasRef} className="ldp-canvas" style={{ top: 22, width: "100%", height }} aria-hidden="true" />
           {rows.map((row, i) =>
-            row.kind === "site" && row.entry.state === "loading" && !row.entry.days ? (
+            row.kind === "site" && row.entry.state === "loading" ? (
               <span key={`p${row.key}`} className="ldp-pending" style={{ top: 22 + rowTop(i), height: metrics.height }} aria-hidden="true" />
+            ) : null,
+          )}
+          {rows.map((row, i) =>
+            row.kind === "site" && row.entry.state === "error" ? (
+              <div key={`f${row.key}`} className="ldp-failed" style={{ top: 22 + rowTop(i), height: metrics.height }}>
+                <span>{FAILED_LINE}</span>
+                <button type="button" className="ldp-link" onClick={() => retry(row.siteId)} aria-label={`Retry ${nameOf(row.siteId)}`}>
+                  Retry
+                </button>
+              </div>
             ) : null,
           )}
           <div
@@ -589,14 +609,17 @@ function Dates(props: DatesProps) {
               // The first 00:00 UTC landing at or after the landing: its own day when it is at
               // 00:00, else the next day, so a 00:00 result is never pinned on a later hour.
               const from = whole ? landingDay : landingDay + 1;
-              const text =
-                codes && !(row.kind === "site" && row.entry.state === "loading" && !row.entry.days)
-                  ? nextGoWords(nextGo({ status: codes }, from), landingDay, gridStartMs, gridEndYear)
-                  : "";
-              const pendingAny = row.kind === "any" && codes ? hasPendingBefore(codes, from) : false;
+              // "Any site" and a site still computing say so; a found GO is final only when no
+              // earlier day is still being worked out (anyNextGo).
+              let text = "";
+              if (row.kind === "any") {
+                const next = codes ? anyNextGo(codes, from) : "computing";
+                text = next === "computing" ? COMPUTING_WORD : nextGoWords(next, landingDay, gridStartMs, gridEndYear);
+              } else if (row.entry.state === "loading") text = COMPUTING_WORD;
+              else if (row.entry.state === "ready" && codes) text = nextGoWords(nextGo({ status: codes }, from), landingDay, gridStartMs, gridEndYear);
               return (
                 <span key={row.key} className="ldp-next-cell" style={{ top: rowTop(i), height: metrics.height }}>
-                  {pendingAny ? "" : text}
+                  {text}
                 </span>
               );
             })}
@@ -607,14 +630,7 @@ function Dates(props: DatesProps) {
   );
 }
 
-/** "Any site" cannot say "next GO" while an earlier day is still being worked out. */
-function hasPendingBefore(codes: Uint8Array, from: number): boolean {
-  for (let day = from; day < codes.length; day += 1) {
-    if (codes[day] === 1) return false;
-    if (codes[day] === DAY_PENDING) return true;
-  }
-  return false;
-}
+const COMPUTING_WORD = "computing…";
 
 type RowLabelProps = {
   row: Row;
@@ -622,6 +638,8 @@ type RowLabelProps = {
   rowHeight: number;
   /** The status for the landing itself, at its own hour: the same as the spot and the rail. */
   status: Status | null;
+  /** Sites that could not be computed, which "Any site" leaves out. */
+  missing: number;
   focused: boolean;
   /** On the phone the whole strip area is the touch target: a row name is text, not a button. */
   compact: boolean;
@@ -629,7 +647,7 @@ type RowLabelProps = {
   onFocusSite: (siteId: string) => void;
 };
 
-const RowLabel = memo(function RowLabel({ row, top, rowHeight, status, focused, compact, catalog, onFocusSite }: RowLabelProps) {
+const RowLabel = memo(function RowLabel({ row, top, rowHeight, status, missing, focused, compact, catalog, onFocusSite }: RowLabelProps) {
   const lamp = status ? <StatusLamp status={status} size="xs" /> : <span className="lamp-none ldp-lamp-none" aria-hidden="true" />;
   const style = { top, height: Math.max(rowHeight, 16), marginTop: Math.min(0, (rowHeight - 16) / 2) };
   if (row.kind === "any") {
@@ -637,6 +655,7 @@ const RowLabel = memo(function RowLabel({ row, top, rowHeight, status, focused, 
       <span className="ldp-label ldp-label-any" style={style}>
         {lamp}
         <span className="ldp-name">Any site</span>
+        {missing > 0 ? <span className="ldp-note">{missing} {missing === 1 ? "site" : "sites"} missing</span> : null}
       </span>
     );
   }
@@ -661,7 +680,6 @@ const RowLabel = memo(function RowLabel({ row, top, rowHeight, status, focused, 
       <span className="ldp-name">{parentId ? "Best-lit variant" : name}</span>
       {parentId ? <span className="tag tag-chosen">chosen by TrueSouth</span> : null}
       {site?.terrain_tier === "sphere" ? <span className="ldp-note">terrain not modelled</span> : null}
-      {row.entry.state === "error" ? <span className="ldp-note">could not load</span> : null}
     </Tag>
   );
 });
