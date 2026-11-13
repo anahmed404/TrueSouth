@@ -1,13 +1,13 @@
-import { Check, ChevronDown, Share2 } from "lucide-react";
-import { memo, useEffect, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { memo } from "react";
 import { Link } from "react-router";
 import { BrandMark } from "../../components/BrandMark";
-import { Button } from "../../components/Button";
 import { Popover } from "../../components/Popover";
 import { ProvenanceTag } from "../../components/ProvenanceTag";
 import { profileTitle } from "./profile-fields";
 import { ProfileEditor } from "./profile-editor";
 import { formatLimit } from "./rules";
+import { ShareButton } from "../../features/mission-control/share/share-button";
 import { useScenario } from "./scenario-context";
 
 /**
@@ -72,41 +72,5 @@ function ProfilePicker() {
       </span>
       <ProvenanceTag provenance={profile.provenance.duration_days} />
     </div>
-  );
-}
-
-/** Copies the address, which is always the current scenario. */
-function ShareButton() {
-  const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
-  const timer = useRef<number | undefined>(undefined);
-  useEffect(() => () => window.clearTimeout(timer.current), []);
-
-  const copy = async () => {
-    window.clearTimeout(timer.current);
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setState("copied");
-    } catch {
-      setState("failed");
-    }
-    timer.current = window.setTimeout(() => setState("idle"), 2400);
-  };
-
-  return (
-    <span className="share">
-      <Button
-        size="md"
-        className="share-button"
-        icon={state === "copied" ? <Check size={16} strokeWidth={2} aria-hidden="true" /> : <Share2 size={16} strokeWidth={1.8} aria-hidden="true" />}
-        onClick={copy}
-        aria-label="Share: copy a link to this scenario"
-      >
-        <span className="share-word">{state === "copied" ? "Copied" : "Share"}</span>
-      </Button>
-      <span className="sr-only" role="status">
-        {state === "copied" ? "Link copied." : state === "failed" ? "Could not copy. The link is in the address bar." : ""}
-      </span>
-      {state === "failed" ? <span className="share-failed">Copy the address bar</span> : null}
-    </span>
   );
 }
