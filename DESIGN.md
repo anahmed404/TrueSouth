@@ -287,7 +287,8 @@ view and fills the whole window. Every panel floats above it:
 | Focused-site panel | 328px open, 48px collapsed |
 | Timeline strip, along the bottom | 196px open, 52px folded |
 | Footer line | 20px |
-| Floating window (Slip Planner, Compare) | at most 1120px wide, between the view bar and the timeline |
+| Floating window (Compare) | at most 1120px wide, between the view bar and the timeline |
+| Landing-date panel (Slip Planner), in the timeline's slot | as tall as its content |
 
 **Floating panels.** Every panel keeps a 16px margin (8px on a phone) from the window edge
 and from the other panels. A side panel is only as tall as its content, so the scene shows
@@ -307,7 +308,7 @@ scenario or the URL.
 
 **The view stacks, top to bottom, over the scene:**
 
-1. the view bar (four scene views, a divider, two window buttons);
+1. the view bar (five scene views, a divider, one window button);
 2. the one-sentence description, on a plate;
 3. the scene, with its labels and pins on plates;
 4. one control row, floating at the foot of the free space;
@@ -359,7 +360,7 @@ existed.
 | `--float-gap` | `16px` (8px on the phone) | The margin around every floating panel. |
 | `--plate` | `rgba(20,20,21,.92)` | The plate behind any text over the scene. |
 | `--panel-alpha` | `1` | Panel opacity. Only the rejected see-through option changed it, so it may be dropped. |
-| `--shadow-pop` | `0 8px 20px rgba(0,0,0,.45)` | The existing popover shadow, now named. Used on the two windows. |
+| `--shadow-pop` | `0 8px 20px rgba(0,0,0,.45)` | The existing popover shadow, now named. Used on the floating window. |
 | `--ease-out`, `--dur-panel` | `cubic-bezier(.2,.7,.2,1)`, `200ms` | Panel folding, as approved, now named. |
 
 ### Academy scale
@@ -398,7 +399,7 @@ the scene needs the firmer edge, and no shadow.
 
 ### Shadow Vocabulary
 - **Popover** (`box-shadow: 0 8px 20px rgba(0,0,0,0.45)`): the only shadow. It is used for a
-  hover readout or popover that floats over a plot, and for the two floating windows.
+  hover readout or popover that floats over a plot, and for the floating window.
 
 ### Named Rules
 **The No Glow Rule.** Panels, chips, buttons, lamps and text never glow. The Sun's disc may
@@ -447,10 +448,10 @@ exception is the 2px red outline of a broken-rule stretch. No coloured side bord
 ### Navigation
 - **Mode switch:** a pill segmented control. The selected mode is filled Moonlight with
   dark text.
-- **View bar:** a floating panel holding the four scene views as tabs (a Raised fill and a
-  2px Moonlight underline on the selected one), a hairline divider, then the two window
-  buttons, Slip Planner and Compare, each with a small window icon and `aria-expanded`. The
-  tabs have a name only; the old "what it is for" lines are gone, and the view's sentence
+- **View bar:** a floating panel holding the five scene views as tabs (a Raised fill and a
+  2px Moonlight underline on the selected one), a hairline divider, then the window button,
+  Compare, with a small window icon and `aria-expanded`. The Slip Planner is the third tab,
+  between the Polar map and Local terrain. The tabs have a name only; the old "what it is for" lines are gone, and the view's sentence
   under the bar does that job. On a phone the bar scrolls sideways and every tab is at
   least 44px tall.
 - **Panel toggle:** a 28px borderless icon button (panel-close or panel-open icon) in Ink 3.
@@ -478,7 +479,33 @@ exception is the 2px red outline of a broken-rule stretch. No coloured side bord
 - **Sun edge marker:** an upright Sun icon and an arrow that rotates toward the off-screen
   Sun.
 - **Floating window:** a floating panel with the popover shadow, `role="dialog"` and
-  `aria-modal="false"`. Escape closes it and focus returns to its button.
+  `aria-modal="false"`. Escape closes it and focus returns to its button. Only Compare is one.
+- **Spot** (Slip Planner): an SVG of 32px (44px on a phone), a button with `data-site`, out of
+  the tab order like the pins.
+  - A Night disc at 85%, radius 13.5; a score track in Control Edge, radius 12, 2px; a score
+    arc in Ink, whose length is the score out of 100 and which is absent for NO-GO; the
+    status disc, radius 8, with the Night cut glyph.
+  - When focused, an outer Moonlight ring at radius 17.5 over a Night disc of 18.6, so the
+    focus ring is not read as a full score.
+  - `--spot-r` (`15px`) is the radius used to place labels. A spot label is a scene label:
+    line one is the name, plus the status word when it is loud; small lines carry the reason,
+    "was …" and a variant's distance and tag. It is placed right, left, below or above, or as
+    a callout with a hairline (Ink 2 over a Night under-stroke).
+  - The "chosen by TrueSouth" tag, for a best-lit variant, is a 1px dotted Ink 3 outline.
+    Dashed already means assumed.
+- **Landing-date panel** (Slip Planner): a floating panel in the timeline's slot, sized to its
+  content.
+  - **Header:** "Landing dates", the mission window, a one-line key, the zoom control and the
+    fold button. A 2px progress bar runs along the top while the sweep runs.
+  - **Grid:** label (208px) | strips | "next GO" (136px).
+  - **Strip:** a `--plot` background and `--dt-h` tall (`14px`; 12px with seven or eight
+    sites, 18px with one), with `--dt-g` between strips (`7px`; 5px with seven or eight).
+    GO is full height, CAUTION half height, NO-GO a 2.4px red line at 80%, and no data a 1px
+    Ink 4 line.
+  - **Over the strips:** the slider (a Moonlight line and pill), the mission-window band
+    (Moonlight at 14%, with Ink 3 edges), the "was" line (dashed Ink 2) and the reading point
+    (a 1.5px Ink outline).
+- **Slip summary:** a plate at the foot of the free space, shown only after a slip.
 - **Still picture:** an `<img>` behind the interface and a note with "Try 3D anyway", when
   WebGL is missing or slow.
 

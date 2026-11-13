@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { parseSites, parseValidation } from "./parse.ts";
+import { WORKED_EXAMPLE_KEYS } from "../features/academy/worked-example-keys.ts";
+import { parseSites, parseValidation, parseWorkedExamples } from "./parse.ts";
 
 const fixtures = JSON.parse(
   readFileSync(new URL("../../../data/fixtures/sites.json", import.meta.url), "utf8"),
@@ -86,5 +87,45 @@ describe("sites placement fields", () => {
     ].map((change) => ({ nearby_sun: { radius_m: 160, points: 13, min: .2, max: .9, ...change } })),
   ])("rejects invalid placement fields %j", (fields) => {
     expect(() => parseSites([{ ...oldSite(), ...fields }])).toThrow(/sites\.json/);
+  });
+});
+
+function workedExamples(): Record<string, unknown> {
+  const shares = [55, 48, 40, 36, 32, 28, 24, 20, 18, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  const value: Record<string, unknown> = {};
+  for (const key of WORKED_EXAMPLE_KEYS) {
+    if (key === "l4.link_pct_by_mask") value[key] = shares;
+    else if (key === "l4.mask_for_15pct_deg") value[key] = 5;
+    else if (key === "l7.slip_vetoes" || key === "l8.candidates") value[key] = ["ridge"];
+    else if (key === "l6.example_metrics.landing_lit" || key === "l8.region_overlap.overlaps") value[key] = true;
+    else if (key.endsWith("_utc") || key.endsWith("_date") || key === "l7.next_go") value[key] = "2028-01-01T00:00:00Z";
+    else if (/(_id|_name|_site|_feature)$/.test(key) || key === "l6.site_a" || key === "l6.site_b" || key === "l7.alt_site") {
+      value[key] = "ridge";
+    } else value[key] = 1;
+  }
+  return value;
+}
+
+describe("worked examples", () => {
+  it("accepts the contract keys, including a null the definitions allow", () => {
+    const value = workedExamples();
+    value["l5.slope_10m_deg"] = null;
+    value["l7.alt_site"] = null;
+    expect(parseWorkedExamples(value)["l4.mask_for_15pct_deg"]).toBe(5);
+  });
+
+  it("rejects a wrong type, a null on a lesson 1 key, a short list, and a mask that is not the first share below 15", () => {
+    const wrong = workedExamples();
+    wrong["l1.sun_el_max_deg"] = "high";
+    expect(() => parseWorkedExamples(wrong)).toThrow(/l1\.sun_el_max_deg/);
+    const blocked = workedExamples();
+    blocked["l1.sun_el_max_deg"] = null;
+    expect(() => parseWorkedExamples(blocked)).toThrow(/cannot be null/);
+    const short = workedExamples();
+    short["l4.link_pct_by_mask"] = [20];
+    expect(() => parseWorkedExamples(short)).toThrow(/21/);
+    const mask = workedExamples();
+    mask["l4.mask_for_15pct_deg"] = 6;
+    expect(() => parseWorkedExamples(mask)).toThrow(/below 15/);
   });
 });

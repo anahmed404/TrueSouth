@@ -86,7 +86,9 @@ If you need a new term, add it here first.
 
 | Term | Meaning |
 | :--- | :--- |
-| **Slip Planner** | The heatmap of sites against landing dates. |
+| **Slip Planner** | The view of your sites on the Moon and their landing dates: a camera view with a spot for each site and a landing-date panel. |
+| **Spot** | A site's mark in the Slip Planner: its status lamp inside a ring that fills to its score. |
+| **Landing-date panel** | The bottom panel in the Slip Planner: one strip per site across six years of landing dates, and a slider for the landing date. |
 | **System view** | The 3D bird's-eye view of the Moon, Earth and Sun. |
 | **Polar map** | The flat south-pole map used to pick and nudge sites. |
 | **Local terrain** | The 3D close-up of the ground around one site. |
@@ -95,9 +97,9 @@ If you need a new term, add it here first.
 | **Countdown** | Time from the current time to the next sunset, sunrise, Earthset or Earthrise. |
 | **Scrubber** | The time slider shared by every view. |
 | **Scene** | The 3D picture of the Sun, Earth and Moon that fills Mission Control's window. The interface floats above it. |
-| **View bar** | The floating bar that picks the view: four camera views and two floating windows. |
-| **Camera view** | A view that is a place in the scene: the System view, Polar map, Local terrain or Lander's eye. Picking it moves the camera. |
-| **Floating window** | A panel that opens over the scene without moving the camera: the Slip Planner and Compare. |
+| **View bar** | The floating bar that picks the view: five camera views and one floating window. |
+| **Camera view** | A view that is a place in the scene: the System view, Polar map, Slip Planner, Local terrain or Lander's eye. Picking it moves the camera. |
+| **Floating window** | A panel that opens over the scene without moving the camera: Compare. |
 | **Free space** | The part of the window not covered by a floating panel. The camera keeps the Moon centred in it. |
 | **Plate** | The panel-coloured backing behind any text drawn on the scene. |
 | **Still picture** | The image that replaces the scene when WebGL is missing or slow. |

@@ -17,8 +17,9 @@ Layout and folding: [`mission-control.md`](mission-control.md). Prototype:
   toggle remain; the bands and the countdown cards are hidden. The camera's centre slides
   to the new free space as the bar folds (200 ms; none under "reduce motion").
 - The folded state is view state, kept in local storage, not in the scenario or the URL.
-- **It is always on screen.** A floating window (the Slip Planner or Compare) opens above
-  it, never over it, so the scrubber stays reachable.
+- **It is always on screen.** The Compare window opens above it, never
+  over it, so the scrubber stays reachable. In the Slip Planner its slot holds the
+  landing-date panel ([`slip-planner.md`](slip-planner.md)), which has its own slider.
 - **On a phone** it is a 100 px strip: play, the current time, and a 44 px scrubber. The
   countdown cards become one line.
 
@@ -104,5 +105,6 @@ For a sphere-tier site the sentence is "Sun is below the horizon" with no blocke
   near terrain, blocked by far terrain, and below the horizon.
 - The bar folds to one row and unfolds with its toggle, and the scrubber works at every
   state, including on a phone at 390 px with a 44 px target.
-- The bar stays visible and usable while the Slip Planner or Compare window is open.
+- The bar stays visible and usable while the Compare window is open. In the Slip Planner the
+  landing-date panel takes its place.
 - Moving the scrubber moves the Sun and Earth in the scene.

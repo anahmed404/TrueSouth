@@ -49,6 +49,91 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-13 · S12b · Worked examples from the stored series
+- **Who:** Cursor implementation agent
+- **AI use:** Cursor, grok-4.7 — wrote the selection tests first, then the worked-example command, the contract keys and the smallest Academy wiring — human and orchestrator review pending.
+- **State:** verified (322 Python tests and 1,581 web tests, typecheck, build and schema regeneration pass on the merge with main; the orchestrator recomputed lessons 1 to 4 from the stored series with its own script and every value matches, including all 21 link shares)
+- **Changed:** `WorkedExamples` in `contracts.py` (story keys, lesson 2 site, the 21 mask shares, nullable lessons 5–8 keys), `worked_examples.py`, `commands/build_worked_examples.py`, the synthetic fixture, regenerated schema and TypeScript types, parser and lesson wiring for those keys, `data/derived/academy/worked_examples.json`, this entry.
+- **Checks:** `uv run pytest`: 308 passed, exit 0. `pnpm --dir web typecheck`: exit 0. `pnpm --dir web test`: 1,507 passed, exit 0. `pnpm --dir web build`: exit 0. A second `build-worked-examples` on the real derived tree was byte-identical. Regenerating the schema and types after the contract edit left no further diff.
+- **Notes:** The story is `connecting_ridge` with `im2_athena`, landing 2028-01-01T00:00:00Z (GO, score 100). The story month is the 720 hours through 2028-01-31T00:00:00Z, exclusive. The mission window ends 2028-01-11T00:00:00Z, exclusive. Lesson 2 looks from `malapert_peak` (Malapert Massif peak) at 2028-01-04T17:00:00Z. Connecting Ridge has no 2028 hour that passes the rule: the 345 hours with the Sun up and clearance from −0.5° to −0.1° are blocked by ground 0.08–0.12 km away. de Gerlache Rim and the peak near Shackleton also have none, so Malapert is the first site in the search order that has one. The spot checks agree, including Shackleton's own first hour 2028-01-21T19:00:00Z and the first mask below 15 percent at 6.5°.
+
+| Key | Value | Null |
+| :--- | :--- | :--- |
+| `l1.sun_el_max_deg` | 0.63° | no |
+| `l1.sun_el_min_deg` | −0.25° | no |
+| `l1.site_lat_deg` | −89.4555° | no |
+| `l1.example_utc` | 2028-01-01T00:00:00Z | no |
+| `l1.example_subsolar_lat` | −0.63° | no |
+| `l1.example_subsolar_lon` | 133.23° | no |
+| `l1.example_sun_az` | 270.60° | no |
+| `l1.example_sun_el` | 0.63° | no |
+| `l2.site_id` | malapert_peak | no |
+| `l2.site_name` | Malapert Massif peak | no |
+| `l2.example_utc` | 2028-01-04T17:00:00Z | no |
+| `l2.sun_el_deg` | 0.54° | no |
+| `l2.sun_az_deg` | 90.25° | no |
+| `l2.ridge_dist_km` | 9.0 km | no |
+| `l2.ridge_rise_m` | 179 m | no |
+| `l2.ridge_el_deg` | 1.0° | no |
+| `l2.ridge_feature` | Unnamed terrain | no |
+| `l2.sun_frac` | 0 | no |
+| `l3.drop_at_20km_m` | 115 m | no |
+| `l3.drop_at_60km_m` | 1,036 m | no |
+| `l3.drop_at_130km_m` | 4,864 m | no |
+| `l3.example_bin_az` | 259.00° | no |
+| `l3.example_dist_km` | 89.3 km | no |
+| `l3.example_height_m` | −1,578 m | no |
+| `l3.example_el_flat_deg` | −1.01° | no |
+| `l3.example_el_true_deg` | −2.48° | no |
+| `l4.earth_el_max_deg` | 6.22° | no |
+| `l4.earth_el_min_deg` | −7.53° | no |
+| `l4.earth_up_pct` | 60% | no |
+| `l4.link_pct_by_mask` | 56, 54, 52, 49, 47, 45, 42, 38, 34, 30, 26, 21, 16, 11, 0, 0, 0, 0, 0, 0, 0 | no |
+| `l4.link_pct_mask0` | 56% | no |
+| `l4.link_pct_mask1` | 52% | no |
+| `l4.link_pct_mask5` | 26% | no |
+| `l4.mask_for_15pct_deg` | 6.5° | no |
+| `l4.example_utc` | 2028-01-26T23:00:00Z | no |
+| `l4.example_earth_az` | 138.61° | no |
+| `l4.example_earth_el` | 0.28° | no |
+| `l4.example_earth_clear` | 1.01° | no |
+| `l5.slope_10m_deg` | — | yes |
+| `l5.slope_100m_deg` | — | yes |
+| `l5.slope_160m_deg` | 4.05° | no |
+| `l5.example_site` | connecting_ridge | no |
+| `l5.plane_a` | — | yes |
+| `l5.plane_b` | — | yes |
+| `l6.site_a` | connecting_ridge | no |
+| `l6.site_b` | — | yes |
+| `l6.a_score` | 100 | no |
+| `l6.b_score` | — | yes |
+| `l6.example_metrics.sun_fraction_mean` | 1 | no |
+| `l6.example_metrics.lit_fraction` | 1 | no |
+| `l6.example_metrics.longest_dark_h` | 0 h | no |
+| `l6.example_metrics.link_fraction` | 1 | no |
+| `l6.example_metrics.longest_blackout_h` | 0 h | no |
+| `l6.example_metrics.landing_sun_el_deg` | 0.63° | no |
+| `l6.example_metrics.landing_lit` | true | no |
+| `l6.example_utilities.slope` | 1 | no |
+| `l6.example_utilities.power` | 1 | no |
+| `l6.example_utilities.comms` | 1 | no |
+| `l6.example_score` | 100 | no |
+| `l7.go_date` | 2028-01-01T00:00:00Z | no |
+| `l7.slip_date` | 2028-01-22T00:00:00Z | no |
+| `l7.slip_vetoes` | darkness, blackout, landing_dark | no |
+| `l7.slip_blackout_h` | 119 h | no |
+| `l7.next_go_date` | 2028-01-27T00:00:00Z | no |
+| `l7.alt_site` | — | yes |
+| `l8.candidates` | artemis_de_gerlache_rim_2, artemis_haworth, artemis_malapert, artemis_nobile_rim_2 | no |
+| `l8.region_overlap.site_id` | artemis_nobile_rim_2 | no |
+| `l8.region_overlap.region_name` | — | yes |
+| `l8.region_overlap.overlaps` | — | yes |
+| `story.site_id` | connecting_ridge | no |
+| `story.profile_id` | im2_athena | no |
+| `story.landing_utc` | 2028-01-01T00:00:00Z | no |
+| `story.month_end_utc` | 2028-01-31T00:00:00Z | no |
+| `story.window_end_utc` | 2028-01-11T00:00:00Z | no |
+
 #### 2026-11-13 · S13 · Docker build, with a minimal API
 - **Who:** Cursor agent, for the orchestrator
 - **AI use:** Cursor, grok-4.7 — wrote the catalog API, Dockerfile, compose file and tests — checked with pytest, a local web build, and a real container run
@@ -830,6 +915,22 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   live, or a `reduceMotion` prop.
 
 ## Planning
+
+#### 2026-11-13 · MC7 (spec) · The Slip Planner spec rewritten as a view on the Moon
+- **Who:** team lead
+- **AI use:** Claude Code (Sonnet 5.5) — rewrote `docs/features/slip-planner.md` and the
+  places that called the Slip Planner a window, from `design/variants/c2-slip-on-moon.md` and
+  the team lead's picks — not yet read by the team lead; links checked by script
+- **State:** verified (308 Python tests and 1,578 web tests pass on the merge with main; read by the orchestrator against the design note and the prototype's code)
+- **Changed:** `docs/features/slip-planner.md`, `CONTEXT.md`, `DESIGN.md`,
+  `docs/decisions/0013-space-first-mission-control.md`, `docs/build-plan.md`,
+  `docs/challenge.md`, and the Slip Planner wording in `docs/features/` and `docs/tracks/`
+- **Notes:** Variant a (lamp and ring) is picked; variant b and the window of squares are
+  rejected. The orchestrator closed the open points: the shading is on when the view opens;
+  strips are landings at 00:00 UTC and a landing at another hour gets a note; picking a
+  camera view closes Compare. Spot and Landing-date panel are in the glossary test as layout
+  words, and the `slip_planner` explanation in `web/src/lib/explain.ts` now describes the
+  view. The shell still shows a Slip Planner window button until MC7 is built.
 
 #### 2026-11-13 · planning · One orchestrator runs all four tracks
 - **Who:** team lead
