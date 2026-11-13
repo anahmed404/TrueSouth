@@ -182,8 +182,8 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
   const labelRefs = useRef(new Map<string, HTMLDivElement>());
   const [hover, setHover] = useState<string | null>(null);
   const hoverRef = useRef<HTMLDivElement>(null);
-  const latest = useRef({ onMap, freeSpace, phone, source });
-  latest.current = { onMap, freeSpace, phone, source };
+  const latest = useRef({ onMap, freeSpace, phone, source, flat });
+  latest.current = { onMap, freeSpace, phone, source, flat };
 
   const mapFrame = useMemo(
     () => ({ x: freeSpace.x, y: freeSpace.y, width: freeSpace.width, height: freeSpace.height }),
@@ -204,6 +204,14 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
     const placed = placeSpots(points, scale);
     const order = [...list].sort((a, b) => b.priority - a.priority);
     const shown = placed.filter((p) => p.visible);
+    // With 3D off the flat map has its own control plate at the foot of the free space (zoom,
+    // scale and the sunlight legend): ours sit just above it, never under it.
+    const footEl = footRef.current;
+    if (footEl) {
+      const mapFoot = latest.current.flat ? layerRef.current?.querySelector(".slip-flat-map .pm-foot") : null;
+      const mapTop = mapFoot ? mapFoot.getBoundingClientRect() : null;
+      footEl.style.top = mapTop && mapTop.height > 0 ? `${(mapTop.top - 8).toFixed(1)}px` : "";
+    }
     // Labels keep clear of the plates at the top (notes) and the foot (summary, controls).
     const topPlates = topRef.current?.getBoundingClientRect();
     const footPlates = footRef.current?.getBoundingClientRect();
@@ -385,7 +393,8 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
                 <span className="tl-switch-track" aria-hidden="true" />
                 Average sunlight
               </button>
-              {foot.label ? <span className="slip-shading-label">{foot.label}</span> : null}
+              {/* With 3D off the map's own legend says it: "an 18.6-year average, not for your date". */}
+              {foot.label && !flat ? <span className="slip-shading-label">{foot.label}</span> : null}
             </div>
           </div>
         </>
