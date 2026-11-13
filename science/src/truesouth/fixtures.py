@@ -2,6 +2,8 @@
 
 The skyline is an analytic crater rim. Disc fraction is a linear ramp across
 the disc diameter, a stand-in for the later terrain and strip integration.
+The equatorial contrast site has a synthetic high Sun and high Earth rather
+than polar horizon-hugging trajectories.
 Scoring cases refer to a fixture series file and a half-open hour range.
 """
 import json
@@ -69,6 +71,9 @@ def _series(sky, index):
     el = np.round(sun_centre + sun_amplitude*np.sin(2*np.pi*t/708.7 + index*.8) + seasonal*np.sin(2*np.pi*t/(24*365.25)), 2)
     earth_centre, earth_amplitude = [(4.0, 2.0), (3.1, 2.3), (3.2, 2.8), (3.0, 2.0), (2.5, 2.0)][index]
     earth_el = np.round(earth_centre + earth_amplitude*np.sin(2*np.pi*t/655.7 + index*1.2), 2)
+    if index == 4:
+        el = np.round(65 * np.sin(2*np.pi*t/708.7), 2)
+        earth_el = np.round(60 + 5*np.sin(2*np.pi*t/655.7), 2)
     elevation = np.asarray(sky['el_deg'], dtype='<f4').astype(float)
     def clear(a, e):
         pos = a * 4
@@ -82,8 +87,9 @@ def _series(sky, index):
 
 def _validation():
     limits = [0, .02, .01, .001, .001, .02, .005, .001, .005, 1e-9, 0]
+    units = ['difference', 'deg', 'm', 'deg', 'deg', 'deg', 'fraction', 'deg', 'deg', 'difference', 'difference']
     gates = [dict(id=f'G{i}', name=f'Synthetic example gate G{i}', passed=i != 6,
-                  measured=(.03 if i == 6 else 0), limit=lim, unit='deg' if i in (2,4,5,6,8,9) else 'difference',
+                  measured=(.03 if i == 6 else 0), limit=lim, unit=units[i-1],
                   samples=100, detail='Synthetic demonstration; not an actual validation run.') for i, lim in enumerate(limits, 1)]
     marks = [.1,.1,2,2,.05,.05]
     references = ['https://pgda.gsfc.nasa.gov/products/69', 'https://pgda.gsfc.nasa.gov/products/69',
@@ -169,7 +175,7 @@ def _cases(root, sites, profiles):
     for name,p in profiles.items():
         add('preset_'+name,'fixture_ridge',p,100,3)
     add('im2_go','fixture_ridge',base,0,3)
-    add(['im2_caution','slope_not_assessed'],'fixture_sphere',base,2016,None)
+    add('im2_caution','fixture_crater',base,1992,8)
     common = dict(duration_days=2/24, min_sun_fraction=0, max_dark_h=10000,
                   relay_available=True, max_blackout_h=10000, landing_sun_el_min_deg=None,
                   landing_sun_el_max_deg=None, ops_sun_el_min_deg=None)
@@ -181,16 +187,26 @@ def _cases(root, sites, profiles):
     add('veto_darkness_alone','fixture_ridge',p.model_copy(update={'min_sun_fraction':.5,'max_dark_h':0}),dark_start,3)
     add('veto_landing_dark_alone','fixture_ridge',p.model_copy(update={'min_sun_fraction':.5}),dark_start+1,3)
     add('veto_blackout_alone','fixture_ridge',p.model_copy(update={'relay_available':False,'antenna_mask_deg':100,'max_blackout_h':0}),0,3)
-    add(['relay','max_dark_h_zero'],'fixture_ridge',p.model_copy(update={'max_dark_h':0}),0,3)
+    add('relay','fixture_wide',p.model_copy(update={'antenna_mask_deg':100}),0,8)
+    half = int(np.flatnonzero(series['fixture_ridge']['sun_frac'] == .5)[0])
+    add('max_dark_h_zero','fixture_ridge',p.model_copy(update={'duration_days':1/24,'min_sun_fraction':.5,'max_dark_h':0}),half,8)
     add('slope_not_assessed','fixture_sphere',p,0,None)
     add('operations_sun_elevation','fixture_ridge',p.model_copy(update={'ops_sun_el_min_deg':2}),0,3)
-    add('weights_nonunit_zero','fixture_ridge',p.model_copy(update={'weights':Weights(slope=0,power=2,comms=3)}),0,3)
+    weighted = p.model_copy(update={'duration_days':10, 'relay_available':False, 'min_sun_fraction':.5,
+                                    'max_dark_h':1000, 'max_blackout_h':1000,
+                                    'weights':Weights(slope=0,power=2,comms=3)})
+    add('weights_nonunit_zero','fixture_wide',weighted,0,8)
     add('score_go_threshold','fixture_ridge',p.model_copy(update={'weights':Weights(slope=1,power=0,comms=0), 'max_slope_deg':10, 'slope_ideal_deg':0}),0,3)
     add('high_score_with_veto','fixture_ridge',p.model_copy(update={'weights':Weights(slope=0,power=1,comms=1)}),0,p.max_slope_deg+1)
     add('half_hour_window_tie','fixture_ridge',p.model_copy(update={'duration_days':2.5/24}),0,3)
     add('first_hour','fixture_ridge',p,0,3)
     add('last_landing_that_fits','fixture_ridge',p,N-2,3)
     add('one_hour_too_late','fixture_ridge',p,N-1,3)
+    flags = scoring.hour_flags(series['fixture_wide'], base)
+    for label, mask in [('current_lit', flags[0]), ('current_dark', ~flags[0]),
+                        ('current_linked', flags[1]), ('current_blackout', ~flags[1])]:
+        current = int(np.flatnonzero(mask & (np.arange(N) >= 10))[0])
+        add(label, 'fixture_wide', base, current-10, 9, current)
     return {'format': 'series_file is relative to data/fixtures; hour_range is a half-open slice of the full time grid. landing_hour and current_hour are full-grid indices. expected is null when the window has no result.',
             'generated_by': 'uv run truesouth build-fixtures', 'cases': cases}
 
@@ -211,8 +227,11 @@ def build_fixtures(root=None, cases_path=None):
         loader()
         _json(root/name,json.loads((catalog_dir()/name).read_text(encoding='utf-8')))
     t = np.arange(N, dtype=float)
-    io.write_system(root/'system.bin', dict(subsolar_lat=1.5*np.sin(2*np.pi*t/(24*365.25)), subsolar_lon=(360-t*360/708.7)%360,
-        subearth_lat=6*np.sin(2*np.pi*t/655.7), subearth_lon=(3*np.sin(2*np.pi*t/655.7))%360,
+    # Wrap after float32 quantization too: a value just below 360 can round to 360.
+    def longitude(values):
+        return np.mod(np.asarray(values, dtype='<f4'), np.float32(360))
+    io.write_system(root/'system.bin', dict(subsolar_lat=1.5*np.sin(2*np.pi*t/(24*365.25)), subsolar_lon=longitude((360-t*360/708.7)%360),
+        subearth_lat=6*np.sin(2*np.pi*t/655.7), subearth_lon=longitude((3*np.sin(2*np.pi*t/655.7))%360),
         earth_dist_km=384400+21000*np.sin(2*np.pi*t/661), sun_dist_km=149600000+2500000*np.sin(2*np.pi*t/(24*365.25))), N)
     for index,site in enumerate(sites):
         folder=root/'sites'/site['id']; folder.mkdir(parents=True, exist_ok=True)
