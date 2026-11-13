@@ -65,7 +65,7 @@
     "group": "sunlit_peak",
     "lat_deg": -89.4555,
     "lon_deg": 222.6192,
-    "description": "Gläser et al. 2014, point CR1. Sunlight in the source: 92.27% at 2 m above ground, over 19 years.",
+    "description": "Gläser et al. 2014, point CR1. Sunlight in the source: 92.27% of the time in sunlight (hours with any Sun, not average sunlight) at 2 m above ground, over 19 years.",
     "source_url": "https://www.sciencedirect.com/science/article/abs/pii/S0019103514004278",
     "outcome": null
   },

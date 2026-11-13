@@ -51,6 +51,9 @@
     "missing_samples": 0,
     "max_range_km": 300.0
   },
-  "terrain": null,
+  "terrain": {
+    "size": 257,
+    "window_km": 20.0
+  },
   "closeup": null
 }
