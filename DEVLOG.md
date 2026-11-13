@@ -51,7 +51,7 @@ each integration checkpoint.
 
 #### 2026-11-13 · S8 part 1 · Slope (gate G8) and the terrain mesh
 - **Who:** Cursor agent, for the orchestrator
-- **AI use:** Cursor, grok-4.7 — wrote the synthetic tests first, then `slope.py` and `terrain_mesh.py`, and ran pytest and the real-map measurements — a human has not reviewed it yet
+- **AI use:** Cursor, grok-4.7 — wrote `slope.py`, `terrain_mesh.py` and their synthetic tests, and ran pytest and the real-map measurements — a human has not reviewed it yet
 - **State:** built, not verified
 - **Changed:** `science/src/truesouth/slope.py`, `science/src/truesouth/terrain_mesh.py`, `science/tests/test_slope.py`, `science/tests/test_terrain_mesh.py`, this entry. No `build-sites` wiring and no derived files.
 - **Notes:** `uv run pytest`: 167 passed in 27.96 s, exit 0. Gate G8 largest error: polar method 4.1915316551e-7° (limit 0.001°) on 10° planes at 80 m and 240 m, near the pole and 5° from it, toward north, east and northeast; close-up plane fit 7.1054273576e-15° on 5 m samples of the same tilts. A flat map is 0°, a 30° plane is 30°, and shifting the plane up or down by thousands of metres stays inside the gate. On `z = tan(6°) N + 1.5e-8 N³`, the 160 m central difference and the 100 m plane fit differ by 0.0043898283°, inside a bound of 0.0043922341° derived from that curvature, the two baselines, the projection, the 5 m grid and float32 rounding.
