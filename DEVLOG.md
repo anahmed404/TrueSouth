@@ -87,6 +87,24 @@ _No entries yet._
 
 ## Academy
 
+#### 2026-11-13 · A0 · Lesson types, step runner, feedback flow, academy store, path map
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote the lesson types, pure step runner, placeholder
+  substitution, `academy` store, sample lesson and plain placeholder screens — the agent
+  ran `pnpm --dir web test`, `typecheck` and `build`; the orchestrator has not verified
+  this yet
+- **State:** verified (the orchestrator, Claude Fable 5.2, read the runner against the spec's game rules and ran the tests, typecheck and build; Antigravity, gemini-3.8-flash reviewed the pull request and approved)
+- **Changed:** `web/src/features/academy/`, this entry
+- **Notes:**
+  - Screens are plain placeholders until the design choice. The sample lesson id is
+    `sample`, at `/academy/sample`. A5 replaces it. It is not one of the eight lessons.
+  - Goal checks go through an injected evaluator. `stub-evaluator.ts` returns a fixed
+    boolean until MC2. The sample passes every goal.
+  - Progress is stored at `truesouth.academy.v1`. The store takes a storage object, so
+    the tests do not need a DOM. Best stars and best XP are kept. The ninth mission
+    patch is `all-eight`, after the eight catalog lessons.
+  - Spec questions are in the pull request.
+
 #### 2026-11-13 · A1 · Luna and LunaSays with placeholder art in eight moods; celebrations
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — wrote `Luna`, `LunaSays`, `LunaCelebration`,
