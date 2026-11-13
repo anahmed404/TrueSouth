@@ -54,13 +54,14 @@ class Computer:
         with self.lock:
             if self.global_data is None:
                 self.global_data = load_global(self.derived / 'system.bin')
-            identity = site_id(request)
-            _, lat, lon = identity.split('_')
-            site = CatalogSite(id=identity, name=request.name or 'Custom site', group='contrast',
-                lat_deg=float(lat), lon_deg=float(lon), description='Coordinates entered by the user.',
-                source_url='', outcome=None)
-            return build_site(site, self.store or DemStore(), self.global_data,
-                              self.cache / identity, tier=tier, site_entry=True)
+        identity = site_id(request)
+        _, lat, lon = identity.split('_')
+        site = CatalogSite(id=identity, name=request.name or 'Custom site', group='contrast',
+            lat_deg=float(lat), lon_deg=float(lon), description='Coordinates entered by the user.',
+            source_url='', outcome=None)
+        return build_site(site, self.store or DemStore(), self.global_data,
+                          self.cache / identity, tier=tier, site_entry=True)
+
 
 
 class Jobs:

@@ -36,3 +36,35 @@ def test_invalid_bodies_are_plain_422(synthetic, body):
         assert 'input' not in response.text
         if b'lat_deg' in body and b'lon_deg' in body and b'name' not in body and b'lat_deg":0' not in body:
             assert data['fields'][0]['message'] == 'Latitude must be a number from −90 to 90.'
+
+
+def test_sphere_and_status_do_not_wait_for_terrain(synthetic, monkeypatch):
+    from truesouth.commands import build_sites
+    derived, prepared, cache = synthetic
+    entered, release, done = Event(), Event(), Event()
+    def build(body, store, global_data, target, **kwargs):
+        if kwargs['tier'] != 'sphere':
+            entered.set()
+            assert release.wait(5)
+        return entry(body)
+    monkeypatch.setattr(build_sites, 'build_site', build)
+    computer = Computer(derived, prepared, cache)
+    jobs = Jobs(cache, computer)
+    with TestClient(create_app(derived=derived, prepared=prepared, cache=cache, jobs=jobs)) as client:
+        first = client.post('/api/sites/custom', json=dict(lat_deg=-89.99, lon_deg=0)).json()
+        assert entered.wait(2)
+        result = []
+        def sphere():
+            result.append(client.post('/api/sites/custom', json=dict(lat_deg=0, lon_deg=0)))
+            done.set()
+        thread = Thread(target=sphere)
+        thread.start()
+        try:
+            started = perf_counter()
+            assert client.get('/api/sites/custom/'+first['site_id']).json()['status'] == 'running'
+            assert perf_counter()-started < .4
+            assert done.wait(.4), 'sphere POST waited for the terrain calculation'
+            assert result[0].json()['status'] == 'ready'
+        finally:
+            release.set()
+            thread.join(3)
