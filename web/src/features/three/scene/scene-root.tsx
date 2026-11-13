@@ -40,6 +40,7 @@ import { sceneContent, type LoadState } from "./plates";
 import { southPolePose } from "./navigate";
 import { Rig } from "./rig";
 import { sightState, type SightState } from "./sight";
+import { PointerTracker, type Command as PointerCommand } from "./pointers";
 import { FrameMeter, MOON_SEGMENTS_FULL, STEP_DOWN_MS, WINDOW_FRAMES, drawDpr, judgeWindow, median, moonSegments, qualityStages } from "./perf";
 import { Stars, starExposure } from "./stars";
 import { mul, type V3 } from "./vec";
@@ -409,89 +410,71 @@ function Scene3D(props: SceneProps) {
   // ── Pointer, wheel and keys ──
   // One finger or the left button turns; the right button, Shift or two fingers slide; the
   // wheel or a pinch zooms toward the pointer; a double-click or double-tap centres a spot.
-  const pointers = useRef(new Map<number, { x: number; y: number }>());
-  const gesture = useRef<{ button: number; pan: boolean } | null>(null);
-  const tap = useRef<{ x: number; y: number; t: number; moved: boolean; last: { x: number; y: number; t: number } | null }>({
-    x: 0,
-    y: 0,
-    t: 0,
-    moved: false,
-    last: null,
-  });
+  // The bookkeeping (and every way a gesture can end) is in pointers.ts.
+  const tracker = useMemo(() => new PointerTracker(), []);
+  const sceneRef = useRef<HTMLDivElement>(null);
   const ndcAt = (element: HTMLElement, x: number, y: number) => {
     const rect = element.getBoundingClientRect();
     return { x: ((x - rect.left) / Math.max(1, rect.width)) * 2 - 1, y: -(((y - rect.top) / Math.max(1, rect.height)) * 2 - 1) };
   };
-  const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if ((event.target as HTMLElement).closest("button, [role='radiogroup'], .scene-plate-interactive")) return;
+  const run = (element: HTMLElement, commands: PointerCommand[]) => {
     const controls = bus.current.controls;
     if (!controls) return;
-    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-    if (pointers.current.size === 1) {
-      gesture.current = { button: event.button, pan: event.button === 2 || event.shiftKey };
-      tap.current = { ...tap.current, x: event.clientX, y: event.clientY, t: performance.now(), moved: false };
-      controls.beginDrag();
-    } else {
-      tap.current.moved = true;
+    for (const c of commands) {
+      if (c.type === "begin") controls.beginDrag();
+      else if (c.type === "orbit") controls.orbit(c.dx, c.dy);
+      else if (c.type === "pan") {
+        if (!controls.pan(c.dx, c.dy) && c.orFallback) controls.orbit(c.dx, c.dy);
+      } else if (c.type === "zoom") controls.zoom(c.factor, ndcAt(element, c.x, c.y));
+      else if (c.type === "focus") controls.focusOn(ndcAt(element, c.x, c.y));
     }
+  };
+  const release = (element: HTMLElement, id: number) => {
+    try {
+      if (element.hasPointerCapture(id)) element.releasePointerCapture(id);
+    } catch {
+      // The pointer is already gone.
+    }
+  };
+  const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest("button, [role='radiogroup'], .scene-plate-interactive")) return;
+    if (!bus.current.controls) return;
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    const kind = event.pointerType === "touch" || event.pointerType === "pen" ? event.pointerType : "mouse";
+    run(event.currentTarget, tracker.down(event.pointerId, event.clientX, event.clientY, kind, event.button, event.shiftKey, performance.now()));
   };
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    const controls = bus.current.controls;
-    if (!controls || !pointers.current.has(event.pointerId)) return;
-    const previous = pointers.current.get(event.pointerId)!;
-    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    if (Math.hypot(event.clientX - tap.current.x, event.clientY - tap.current.y) > 6) tap.current.moved = true;
-    if (pointers.current.size >= 2) {
-      // Two fingers: the midpoint slides the view, the spread zooms toward the midpoint.
-      const entries = [...pointers.current.entries()].slice(0, 2);
-      const [a, b] = entries.map(([, p]) => p) as [{ x: number; y: number }, { x: number; y: number }];
-      const [pa, pb] = entries.map(([id, p]) => (id === event.pointerId ? previous : p)) as [
-        { x: number; y: number },
-        { x: number; y: number },
-      ];
-      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-      const midBefore = { x: (pa.x + pb.x) / 2, y: (pa.y + pb.y) / 2 };
-      controls.pan(mid.x - midBefore.x, mid.y - midBefore.y);
-      const spread = Math.hypot(a.x - b.x, a.y - b.y);
-      const spreadBefore = Math.hypot(pa.x - pb.x, pa.y - pb.y);
-      if (spread > 0 && spreadBefore > 0) controls.zoom(spreadBefore / spread, ndcAt(event.currentTarget, mid.x, mid.y));
-      return;
-    }
-    const g = gesture.current;
-    const pan = Boolean(g && (g.button === 2 || event.shiftKey));
-    if (g && g.pan && !pan) controls.beginDrag(); // back from sliding to turning: a fresh turn
-    if (g) g.pan = pan;
-    const dx = event.clientX - previous.x;
-    const dy = event.clientY - previous.y;
-    if (!pan || !controls.pan(dx, dy)) controls.orbit(dx, dy);
+    const element = event.currentTarget;
+    const commands = tracker.move(event.pointerId, event.clientX, event.clientY, event.buttons, event.shiftKey);
+    run(element, commands);
+    // A mouse moving with no button held has ended its drag: let go of it.
+    if (event.pointerType === "mouse" && event.buttons === 0) release(element, event.pointerId);
   };
   const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
-    if (!pointers.current.has(event.pointerId)) return;
-    pointers.current.delete(event.pointerId);
-    const controls = bus.current.controls;
-    if (pointers.current.size === 1) {
-      // One finger left after a pinch: it turns from here.
-      controls?.beginDrag();
-      if (gesture.current) gesture.current.pan = false;
-    }
-    if (pointers.current.size > 0) return;
-    gesture.current = null;
-    // A double-click or double-tap: two short taps close together.
-    const t = tap.current;
-    const now = performance.now();
-    if (event.type !== "pointerup" || t.moved || now - t.t > 300) {
-      t.last = null;
-      return;
-    }
-    const last = t.last;
-    if (last && now - last.t < 400 && Math.hypot(event.clientX - last.x, event.clientY - last.y) < 24) {
-      t.last = null;
-      controls?.focusOn(ndcAt(event.currentTarget, event.clientX, event.clientY));
-    } else {
-      t.last = { x: event.clientX, y: event.clientY, t: now };
-    }
+    release(event.currentTarget, event.pointerId);
+    run(event.currentTarget, tracker.up(event.pointerId, event.clientX, event.clientY, performance.now()));
   };
+  const onPointerCancel = (event: PointerEvent<HTMLDivElement>) => {
+    release(event.currentTarget, event.pointerId);
+    run(event.currentTarget, tracker.cancel(event.pointerId));
+  };
+  // The window losing focus or the tab hiding ends every gesture (pointers.ts).
+  useEffect(() => {
+    const clear = () => {
+      const element = sceneRef.current;
+      if (element) for (const id of tracker.ids()) release(element, id);
+      tracker.clear();
+    };
+    const onVisibility = () => {
+      if (document.hidden) clear();
+    };
+    window.addEventListener("blur", clear);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("blur", clear);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [tracker]);
   const onWheel = (event: WheelEvent<HTMLDivElement>) => {
     if ((event.target as HTMLElement).closest(".scene-controls")) return;
     bus.current.controls?.zoom(Math.exp(event.deltaY * 0.0012), ndcAt(event.currentTarget, event.clientX, event.clientY));
@@ -525,6 +508,7 @@ function Scene3D(props: SceneProps) {
 
   return (
     <div
+      ref={sceneRef}
       className="scene-3d"
       tabIndex={0}
       role="application"
@@ -533,7 +517,8 @@ function Scene3D(props: SceneProps) {
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
+      onPointerCancel={onPointerCancel}
+      onLostPointerCapture={onPointerCancel}
       onWheel={onWheel}
       onKeyDown={onKeyDown}
       onContextMenu={(event) => {
