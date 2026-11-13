@@ -1,4 +1,4 @@
-﻿# docs/science.md §1
+# docs/science.md §1
 MOON_RADIUS_M = 1_737_400
 SUN_RADIUS_KM = 695_700
 EARTH_RADIUS_KM = 6_378.137
