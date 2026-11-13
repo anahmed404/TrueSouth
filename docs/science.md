@@ -179,8 +179,32 @@ that same elevation on the sky:
 $$\delta_A = 2\arcsin\left(\left|\cos e_H\sin\tfrac{\Delta A}{2}\right|\right)
 \qquad \delta_e = |e-e_H|$$
 
-This approaches $|\Delta A\cos e_H|$ for small differences and tends to zero at the
-zenith; neither a 360° wrap nor undefined azimuth at the zenith causes a false failure.
+This approaches $|\Delta A\cos e_H|$ for small differences and tends to zero when the
+body is straight overhead or straight underfoot, where a compass direction has no
+meaning; neither a 360° wrap nor that undefined azimuth causes a false failure.
+
+**What this comparison is, and is not.** $\delta_A$ is an angle on the sky, not the raw
+difference between two compass bearings. The two agree for a body near the horizon,
+which is the only case at the polar sites. They part when a body is nearly overhead or
+underfoot. Measured over all 20 catalog sites and 52,584 hours (2026-11-13):
+
+| Quantity | Largest value | Where |
+| :--- | :--- | :--- |
+| Full direction separation on the sky | 0.0060° | Earth at Apollo 11, 2027-01-07T22:00Z |
+| $\delta_A$, azimuth as an angle on the sky | 0.0060° | Earth at IM-1, same hour |
+| $\delta_e$, elevation | 0.0060° | Earth at Apollo 11 |
+| Raw compass azimuth $|\Delta A|$ | 0.082° | Sun at Apollo 11, 2031-10-14T01:00Z, at elevation −89.88° |
+
+The raw compass azimuth is above 0.02° at 28 hours in six years, all of them the Sun at
+Apollo 11 while it is within 0.52° of straight overhead or straight underfoot. At the
+worst of those hours the direction on the sky differs by 0.00017°. At every other site
+and hour the raw compass azimuth differs by at most 0.0093°, and at the polar sites by at
+most 0.0060°.
+
+Gate G2 in [`validation.md`](validation.md) is worded as "azimuth and elevation match".
+Read as a direction on the sky it is met everywhere with a wide margin. Read as raw
+compass azimuth it is not met at those 28 hours. Which reading the gate means is the
+team lead's decision; until it is made, G2 is reported with both numbers.
 For each component, report the maximum, its UTC hour, and
 $\operatorname{RMS}(\delta)=\sqrt{\operatorname{mean}(\delta^2)}$. Also report the full
 direction separation, computed from local east/north/up unit vectors $\hat d$ and

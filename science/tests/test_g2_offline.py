@@ -38,3 +38,14 @@ def test_committed_global_ephemeris_is_loadable():
     assert len(columns) == 6
     assert all(values.shape == (TIME_GRID_COUNT,) for values in columns.values())
     assert columns['subsolar_lon'][0] == np.float32(32.519634)
+
+
+def test_committed_global_ephemeris_is_the_reviewed_file():
+    # The exact bytes the full-grid G2 run and its review used. A rebuild that changes any
+    # hour, not only the first, must fail here and be reviewed again.
+    import hashlib
+
+    from truesouth.paths import derived_dir
+
+    digest = hashlib.sha256((derived_dir() / 'system.bin').read_bytes()).hexdigest()
+    assert digest == 'a6752add11ba5786437688145f09c2435ca92e23ec6a9e6d2ecaf93a4be42e8b'
