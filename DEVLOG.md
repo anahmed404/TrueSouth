@@ -59,6 +59,42 @@ each integration checkpoint.
 - **Cardinal blockers:** Values are azimuth → skyline elevation; ground distance; blocker height; latitude, east longitude. Connecting Ridge: 0° → +0.954605°; 0.080000 km; 1,953.592790 m; −89.452861769°, 222.619200000°E. 90° → +0.740407°; 0.080000 km; 1,953.293311 m; −89.455493609°, 222.896813569°E. 180° → −0.604280°; 0.560000 km; 1,946.433825 m; −89.473967616°, 222.619200000°E. 270° → −1.968455°; 59.382335 km; 925.888428 m; −87.968400807°, 148.053761819°E. Shackleton rim: 0° → −1.180621°; 0.280000 km; 1,729.112754 m; −89.764966192°, 203.495200000°E. 90° → −0.903974°; 0.120000 km; 1,732.975155 m; −89.774165325°, 204.499259434°E. 180° → +0.417500°; 0.120000 km; 1,735.745777 m; −89.778157346°, 203.495200000°E. 270° → −0.759560°; 35.697040 km; 1,628.251709 m; −88.801808975°, 124.232393059°E.
 - **Common sense and coverage:** Connecting Ridge's height matches the expected ~1,950 m; 923/1,440 bins (64.10%) are at or below horizontal, with elevated terrain in some directions, including local rises 80 m north/east. Shackleton rim has 1,187/1,440 bins (82.43%) at or below horizontal. Both are consistent with high sites. The wide map was not prepared at benchmark time: far terrain beyond the core map's edge is not yet included, even though missing-sample counts are zero within the sampled core terrain.
 - **Spec questions / choices:** Use each sample's map coverage, not the site's tier, for method selection: rays to pixel size / tan(bin width), then every pixel to 300 km (18.334533 km for 80 m; 55.003599 km for 240 m). Wide terrain between those switches remains on 120 m ray steps, even after the ray leaves the core; core rays use 40 m steps. Both start at 40 m, include the exact switch endpoint, and mask wide terrain wherever the core covers it; no unsound wide-pixel binning or skipped distance interval. R5 adjusts switch with bin width and accepts `step_scale=.5`. Bins use nearest centre (half-open edges); ties keep the first encountered point, with near winning exact near/far ties. Missing site ground raises ValueError; missing core terrain is never filled with wide terrain. Missing samples count failed covered ray samples and eligible missing far pixels; uncovered ray positions count once on the last available map's lattice; nonexistent far pixels cannot be counted. Metadata max range is the configured 300 km limit, not a complete-coverage claim. Bins with no terrain use the §4 two-metre flat horizon and NaN blockers; available terrain is never clamped to that fallback. Arrays retain float64 for computation and follow SkylineLayout order; no writer added because `derived_io.py` is absent from main.
+#### 2026-11-13 · S2 part 2 · Synthetic fixtures and scoring cases
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-terra — built fixture pipeline and tests — automated checks run; human review pending
+- **State:** verified (the orchestrator, Claude Fable 5.2, rebuilt the fixtures and confirmed they equal the committed files, recomputed clearance from elevation and skyline, swept every site with the scoring reference and sent the first version back for lack of variety; Antigravity, gemini-4-hydrogen checked every file against its contract, recomputed all scoring cases and found a weights case that proved nothing, fixed by the agent; 5 sites, 58 scoring cases, 5.9 MB)
+- **Changed:** Science fixture encoding, binary I/O, pipeline, tests, `data/fixtures/`, shared scoring cases and data-contract notes.
+- **Notes:** G9 sampled maximum errors 0.004999907384558355° and 0.00004999858055221296. Fixtures total 5,873,738 bytes; 58 scoring cases total 683,740 bytes. Daily IM-2 windows: ridge 1,732 GO / 450 NO-GO; crater 103 GO / 18 CAUTION / 2,061 NO-GO; wide 504 CAUTION / 1,678 NO-GO; edge 2,182 NO-GO; sphere 365 GO / 11 CAUTION / 1,806 NO-GO. Values are synthetic, not validation measurements.
+
+#### 2026-11-13 · S4 · Global ephemeris: G1 passes; G2 measured on the full grid
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — wrote `horizons.py`, `ephemeris.py`, the `fetch-ephemeris`
+  step and their tests, and ran the comparison with JPL Horizons — the orchestrator (Claude
+  Fable 5.2) reran the full comparison offline from the saved responses and checked the
+  result against known facts; Cursor, grok-4.7 recomputed it with its own vector code and
+  checked the conventions against the Horizons headers and manual
+- **State:** verified (gates G1 and G2; the team lead decided on 2026-11-13 that G2
+  compares directions on the sky, see `docs/decisions/0011`)
+- **Changed:** `science/src/truesouth/horizons.py`, `ephemeris.py`,
+  `commands/fetch_ephemeris.py`, `science/tests/`, `data/derived/system.bin`,
+  `docs/science.md` section 3
+- **Notes:**
+  - 20 catalog sites × 2 bodies × 52,584 hours = 2,103,360 comparisons, with no correction
+    or fitted offset. Largest direction difference on the sky: 0.0060° (Earth at
+    Apollo 11, 2027-01-07T22:00Z). Sun: at most 0.0002°. Limit: 0.02°.
+  - Raw compass azimuth is above 0.02° at 28 hours, all the Sun at Apollo 11 within 0.52°
+    of straight overhead or underfoot; the largest is 0.082° at elevation −89.88°
+    (2031-10-14T01:00Z), where the direction on the sky differs by 0.00017°. Everywhere
+    else raw azimuth differs by at most 0.0093°. So G2 is met as a direction on the sky
+    and not met, at those 28 hours, as raw compass azimuth. docs/science.md section 3.3
+    states both.
+  - Horizons headers: longitudes east-positive; `MOON_ME` for the global table and
+    `MEAN_ME (high precision)` at the sites, the DE421 mean-Earth frame. No sign change or
+    frame rotation was needed.
+  - Both sides use ground height 0 plus the 2 m observer. A 5 km height error moves Earth's
+    direction by at most 0.0008° and the Sun's by 0.000002°.
+  - `system.bin` is 1,262,016 bytes and rebuilds byte for byte from the saved response.
+    The full comparison takes 27 s offline; 306 s with 38 fresh requests.
 
 #### 2026-11-13 · S5 · Prepared terrain maps and downloads
 - **Who:** Codex agent, for the orchestrator
