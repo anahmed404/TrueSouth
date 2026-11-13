@@ -742,8 +742,8 @@
     },
     {
       "id": "R5",
-      "site_id": "connecting_ridge_best_lit",
-      "ours": 0.01225856693196476,
+      "site_id": "de_gerlache_rim",
+      "ours": 0.01472515270239983,
       "reference": 0.0,
       "unit": "deg",
       "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
@@ -753,8 +753,8 @@
     },
     {
       "id": "R5",
-      "site_id": "de_gerlache_rim",
-      "ours": 0.01472515270239983,
+      "site_id": "malapert_peak",
+      "ours": 0.03899064279062731,
       "reference": 0.0,
       "unit": "deg",
       "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
