@@ -4496,7 +4496,7 @@
       "name": "Synthetic example gate G3",
       "passed": true,
       "samples": 100,
-      "unit": "difference"
+      "unit": "m"
     },
     {
       "detail": "Synthetic demonstration; not an actual validation run.",
@@ -4536,7 +4536,7 @@
       "name": "Synthetic example gate G7",
       "passed": true,
       "samples": 100,
-      "unit": "difference"
+      "unit": "fraction"
     },
     {
       "detail": "Synthetic demonstration; not an actual validation run.",

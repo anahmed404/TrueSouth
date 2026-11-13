@@ -13,7 +13,7 @@ Run with `uv run pytest` and `pnpm --dir web test`.
 | # | Check | Pass mark | Section of [`science.md`](science.md) |
 | :--- | :--- | :--- | :--- |
 | G1 | Horizons parser reads a saved response and returns its exact values. Longitudes are confirmed east-positive from the header. | exact | §3.1 |
-| G2 | Our Sun and Earth azimuth and elevation match Horizons' own site table at every catalog site and every hour of the time grid. | max difference ≤ 0.02° | §3.2–3.3 |
+| G2 | Our Sun and Earth directions match Horizons' own site table at every catalog site and every hour of the time grid: azimuth compared as an angle on the sky, and elevation. | each ≤ 0.02° | §3.2–3.3 |
 | G3 | `pyproj` and the closed-form projection agree, forward and inverse. | ≤ 0.01 m | §2.3 |
 | G4 | Flat terrain at height 0 gives a skyline of $-\arccos(R/(R+h))$ in every bin. | ≤ 0.001° | §4–5 |
 | G5 | A synthetic wall of height $H$ at distance $D$ gives the exact elevation angle, in the near field and in the far field. | ≤ 0.001° | §4–5 |
@@ -27,6 +27,14 @@ Run with `uv run pytest` and `pnpm --dir web test`.
 G2 is the strongest evidence in the project: about two million comparisons against NASA's
 own ephemeris service. If it cannot be met, follow the fallback in
 [`decisions/0004-one-global-ephemeris.md`](decisions/0004-one-global-ephemeris.md).
+
+G2 compares directions on the sky, not raw compass bearings
+([`decisions/0011`](decisions/0011-g2-compares-directions-on-the-sky.md)). A compass
+bearing has no meaning for a body that is almost straight overhead or underfoot, so the
+raw azimuth difference is reported beside the gate as a stated limit and is not gated.
+Measured on 2026-11-13: directions agree within 0.0060° everywhere; the raw azimuth
+difference exceeds 0.02° at 28 hours in six years, all for the Sun at Apollo 11 within
+0.52° of the zenith or nadir, and reaches 0.082°.
 
 The shared fixture for G10 is `web/src/lib/scoring/__fixtures__/scoring_cases.json`,
 written by `uv run truesouth build-fixtures`. It holds at least 40 cases, covering every

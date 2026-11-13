@@ -60,6 +60,8 @@ def test_contracts_binary_lengths_and_clearance():
     for name, model in [('profiles.json', Profiles), ('features.json', Features), ('artemis_regions.json', ArtemisRegions), ('validation.json', Validation), ('academy/worked_examples.json', WorkedExamples)]:
         read(name, model)
     validation = read('validation.json', Validation)
+    assert {g.id: g.unit for g in validation.gates} == dict(zip((f'G{i}' for i in range(1,12)), ['difference','deg','m','deg','deg','deg','fraction','deg','deg','difference','difference']))
+    assert {c.id: c.unit for c in validation.comparisons} == dict(zip((f'R{i}' for i in range(1,7)), ['fraction','fraction','deg','deg','deg','fraction']))
     assert {g.id for g in validation.gates} == {f'G{i}' for i in range(1,12)}
     assert {c.id for c in validation.comparisons} == {f'R{i}' for i in range(1,7)}
     assert any(not g.passed for g in validation.gates)
@@ -68,13 +70,18 @@ def test_contracts_binary_lengths_and_clearance():
     assert {x.body for x in validation.g2_over_time} == {'sun', 'earth'}
     assert all(x.step_h == 24 and len(x.max_difference_deg) == n//24 and max(x.max_difference_deg) < .02 for x in validation.g2_over_time)
     assert (root / 'system.bin').stat().st_size == n * 6 * 4
-    assert len(io.read_system(root / 'system.bin', n)) == 6
+    system = io.read_system(root / 'system.bin', n)
+    assert len(system) == 6
+    for key in ('subsolar_lon', 'subearth_lon'):
+        assert np.all((system[key] >= 0) & (system[key] < 360))
     for site in sites:
         folder = root / 'sites' / site.id
         meta = SiteMeta.model_validate_json((folder / 'meta.json').read_bytes())
         assert (folder / 'series.bin').stat().st_size == n * 8 * 2
         assert (folder / 'skyline.bin').stat().st_size == meta.skyline.bins * 5 * 4
         s = io.read_series(folder / 'series.bin', n)
+        for key in ('sun_az', 'earth_az'):
+            assert np.all((s[key] >= 0) & (s[key] < 360))
         sky = io.read_skyline(folder / 'skyline.bin', meta.skyline.bins)
         for body in ('sun', 'earth'):
             pos = s[body + '_az'] * 4
@@ -96,6 +103,8 @@ def test_contracts_binary_lengths_and_clearance():
             assert site.slope is None and meta.terrain is None
             assert all(np.isnan(sky[k]).all() for k in ('dist_km','lat_deg','lon_deg','height_m'))
             assert np.ptp(sky['el_deg']) == 0
+            assert s['sun_el'].max() > 40 and s['sun_el'].min() < -40
+            assert s['earth_el'].min() > 30
     maps = read('maps/meta.json', MapMeta)
     for layer in (maps.layers.hillshade, maps.layers.sunlight, maps.layers.earthvis):
         for name in layer.files:
@@ -149,6 +158,43 @@ def test_cases_match_reference_and_cover_edges():
     assert next(x for x in cases if 'one_hour_too_late' in x['labels'])['expected'] is None
     high = next(x for x in cases if 'high_score_with_veto' in x['labels'])['expected']['evaluation']
     assert high['score'] >= 70 and high['status'] == 'NO-GO'
+    case = next(x for x in cases if 'weights_nonunit_zero' in x['labels'])
+    utility = case['expected']['evaluation']['utilities']
+    assert all(0 < utility[k] < 1 for k in ('slope', 'power', 'comms'))
+    assert len(set(utility.values())) == 3
+    equal_score = 100 * sum(utility.values()) / 3
+    assert abs(equal_score - case['expected']['evaluation']['score']) > 1e-6
+    assert case['profile']['weights'] == {'slope': 0, 'power': 2, 'comms': 3}
+    assert case['expected']['evaluation']['score'] == pytest.approx(100*(2*utility['power']+3*utility['comms'])/5)
+    threshold = next(x for x in cases if 'score_go_threshold' in x['labels'])['expected']['evaluation']
+    assert threshold['score'] == 70 and threshold['status'] == 'GO'
+    missing = next(x for x in cases if 'slope_not_assessed' in x['labels'])
+    u = missing['expected']['evaluation']['utilities']; w = missing['profile']['weights']
+    assert u['slope'] is None and u['power'] != u['comms']
+    assert missing['expected']['evaluation']['score'] == pytest.approx(100*(w['power']*u['power']+w['comms']*u['comms'])/(w['power']+w['comms']))
+    assert w['slope'] > 0
+    zero = next(x for x in cases if 'max_dark_h_zero' in x['labels'])
+    metrics = zero['expected']['evaluation']['metrics']
+    assert zero['profile']['max_dark_h'] == 0 and metrics['longest_dark_h'] == 0
+    assert 0 < metrics['sun_fraction_mean'] < 1
+    assert zero['expected']['evaluation']['utilities']['power'] == metrics['sun_fraction_mean']
+    relay = next(x for x in cases if 'relay' in x['labels'])
+    assert relay['profile']['relay_available'] and relay['expected']['evaluation']['utilities']['comms'] == 1
+    assert relay['profile']['antenna_mask_deg'] > 90
+    start, end = relay['hour_range']
+    relay_series = {k:v[start:end] for k,v in cache[fixtures_dir() / relay['series_file']].items()}
+    no_relay = MissionProfile.model_validate(relay['profile']).model_copy(update={'relay_available':False})
+    without = scoring.evaluate(relay_series, no_relay, relay['landing_hour']-start, relay['slope_deg'])
+    assert without.utilities.comms == 0 and without.score != relay['expected']['evaluation']['score']
+    for label in ('current_lit', 'current_dark', 'current_linked', 'current_blackout'):
+        c = next(x for x in cases if label in x['labels'])
+        assert c['current_hour'] > c['landing_hour']
+        i = c['current_hour'] - c['landing_hour']
+        assert i < c['expected']['window_length']
+        flags = c['expected']['lit'] if label in ('current_lit', 'current_dark') else c['expected']['link']
+        assert flags[i] == (label in ('current_lit', 'current_linked'))
+        key = {'current_lit':'sunset', 'current_dark':'sunrise', 'current_linked':'earthset', 'current_blackout':'earthrise'}[label]
+        assert c['countdowns'][key] is not None
 
 
 def test_daily_site_variety():
@@ -183,6 +229,17 @@ def test_daily_site_variety():
     assert any({k for k,v in e.vetoes.items() if v.triggered} == {'slope'} for e in results['fixture_edge'])
     assert any(len({e.status for e in row}) == 3 for row in results.values())
     assert all(any(not e.vetoes[veto].triggered for site in ('fixture_ridge','fixture_crater','fixture_edge','fixture_wide') for e in results[site]) for veto in profile_veto_names())
+
+
+def test_unmodified_preset_landing_sun_vetoes():
+    from truesouth import catalog, derived_io as io, scoring
+    from truesouth.constants import TIME_GRID_COUNT
+    from truesouth.paths import fixtures_dir
+    profile = next(p for p in catalog.load_profiles() if p.id == 'chandrayaan3')
+    series = io.read_series(fixtures_dir() / 'sites/fixture_sphere/series.bin', TIME_GRID_COUNT)
+    results = [e for e in scoring.slip_sweep(series, profile, None)[::24] if e is not None]
+    assert any(e.vetoes['landing_sun_low'].triggered for e in results)
+    assert any(e.vetoes['landing_sun_high'].triggered for e in results)
 
 
 def profile_veto_names():

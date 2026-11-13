@@ -291,3 +291,21 @@ file has `format`, `generated_by`, and `cases` keys; a case's `expected` is null
 its window does not fit. Each run of `build-fixtures` rewrites the files. Fixture
 validation results and worked examples are synthetic demonstrations, not measurements
 from NASA data.
+
+### Shared scoring cases
+
+`web/src/lib/scoring/__fixtures__/scoring_cases.json` is an object with `format` (a
+reader description), `generated_by` (the build command), and `cases` (an array).
+Each case has:
+
+- `labels`: coverage labels; `site_id`: the fixture site; `profile`: the full mission profile.
+- `series_file`: path relative to `data/fixtures/`; `hour_range`: `[start, end)` on the
+  full time grid. Read that slice of every decoded column from the file.
+- `landing_hour` and `current_hour`: full-grid indices. Subtract `start` to index the
+  slice. `landing_utc` is the landing timestamp; `slope_deg` is the slope or null.
+- `countdowns`: all four countdowns at `current_hour`, including null values when no
+  transition remains in the slice.
+- `expected`: null when the mission window does not fit. Otherwise it contains
+  `window_length`, `lit`, `link`, `evaluation`, and `countdowns`. Both flag arrays
+  contain exactly `window_length` booleans starting at the landing hour; `evaluation`
+  contains metrics, vetoes, utilities, score, status and slope assessment.
