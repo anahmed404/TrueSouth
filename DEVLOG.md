@@ -55,6 +55,7 @@ each integration checkpoint.
 - **State:** built, not verified
 - **Changed:** `science/src/truesouth/scoring.py`, `science/tests/test_scoring.py`
 - **Notes:** Spec interpretation questions are recorded in the pull request; G10 awaits the shared fixtures and TypeScript port.
+- **Review changes:** Specified half-up windows, flag-based countdowns, veto and slope rules, and added boundary tests.
 
 
 #### 2026-11-13 · S3 · Site-centred frames and polar projection

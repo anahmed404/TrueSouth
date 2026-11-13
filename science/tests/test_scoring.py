@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from truesouth.contracts import MissionProfile, PROFILE_FIELDS, Weights
-from truesouth.scoring import hour_flags, evaluate, slip_sweep, countdowns
+from truesouth.scoring import hour_flags, evaluate, slip_sweep, countdowns, window_length
 
 
 def profile(**changes):
@@ -135,3 +135,61 @@ def test_veto_boundary_and_zero_limit():
     relay = evaluate(s, profile(relay_available=True, max_blackout_h=0), 0, 5)
     assert relay.metrics.longest_blackout_h == 0 and relay.utilities.comms == 1
     assert not relay.vetoes['blackout'].triggered
+
+
+@pytest.mark.parametrize("days, expected", [(10, 240), (6.5, 156), (2.5/24, 3), (.5/24, 1)])
+def test_window_length_rounds_halves_up(days, expected):
+    assert window_length(days) == expected
+
+
+def test_window_length_rejects_zero():
+    with pytest.raises(ValueError):
+        window_length(.49 / 24)
+
+
+def test_separate_flag_columns():
+    # Fraction crosses at hour 1, elevation at hour 2, clearance at hour 3.
+    s = series([0,1,1,1], [0,0,0,2], [0,0,7,7])
+    lit, link = hour_flags(s, profile(ops_sun_el_min_deg=6))
+    assert lit.tolist() == [False, False, True, True]
+    assert link.tolist() == [False, False, False, True]
+
+
+def test_high_score_does_not_override_veto():
+    # Relay and full sun give 100 points, but an 11 degree slope exceeds 10.
+    e = evaluate(series([1]*4), profile(relay_available=True,
+        weights=dict(slope=0, power=1, comms=1)), 0, 11)
+    assert e.score == 100 and e.vetoes['slope'].triggered and e.status == 'NO-GO'
+
+
+@pytest.mark.parametrize("ideal", [10, 11])
+def test_invalid_slope_profile_even_without_slope(ideal):
+    with pytest.raises(ValueError):
+        evaluate(series([1]*4), profile(slope_ideal_deg=ideal), 0, None)
+
+
+def test_elevation_sunset_and_two_condition_sunrise():
+    p = profile(ops_sun_el_min_deg=6)
+    # The disc remains full; elevation crosses 6 halfway from 8 to 4.
+    c = countdowns(series([1,1], [2,2], [8,4]), p, 0)
+    assert c.sunset == .5
+    # Disc rises through .5 at 1/4 h; elevation reaches 6 at 3/4 h.
+    c = countdowns(series([.25,1.25], [2,2], [3,7]), p, 0)
+    assert c.sunrise == .75
+
+
+def test_relay_has_no_earth_events():
+    # A clearance crossing at half an hour does not change the relay link.
+    s = series([1,1,1], [2,0,2])
+    c = countdowns(s, profile(relay_available=True), 0)
+    assert c.earthset is None and c.earthrise is None
+
+
+def test_sunset_uses_earliest_crossing_and_includes_current_hour():
+    p = profile(ops_sun_el_min_deg=6)
+    # Disc passes until 1/4 h; elevation passes until 3/4 h.
+    c = countdowns(series([.75,-.25], [2,2], [9,5]), p, 0)
+    assert c.sunset == .25
+    # At the threshold now, declining values cross immediately: 0 h.
+    c = countdowns(series([.5,0], [1,0]), profile(), 0)
+    assert c.sunset == 0 and c.earthset == 0

@@ -1,6 +1,6 @@
 """Python reference for gate G10: compare the TypeScript port against shared cases.
 
-Browser order: hour_flags, evaluate, slip_sweep, countdowns. All inputs are decoded
+Browser order: window_length, hour_flags, evaluate, slip_sweep, countdowns. All inputs are decoded
 section 7 series columns; no terrain or ephemeris calculations happen here.
 """
 
@@ -57,6 +57,23 @@ class Countdowns:
     earthrise: float | None
 
 
+def window_length(duration_days: float) -> int:
+    """Return floor(24 × duration_days + 0.5) hours (docs/science.md §9).
+
+    This matches JavaScript's Math.round for positive values.
+    """
+    n = int(np.floor(24 * duration_days + 0.5))
+    if n < 1:
+        raise ValueError('mission window must contain at least one hour')
+    return n
+
+
+def _validate_profile(profile: MissionProfile) -> None:
+    """Check slope utility's profile requirement (docs/science.md §10)."""
+    if profile.slope_ideal_deg >= profile.max_slope_deg:
+        raise ValueError('slope_ideal_deg must be less than max_slope_deg')
+
+
 def hour_flags(series: Mapping[str, NDArray], profile: MissionProfile) -> tuple[NDArray, NDArray]:
     """Calculate per-hour lit and link flags (docs/science.md §9)."""
     lit = np.asarray(series['sun_frac']) >= profile.min_sun_fraction
@@ -100,8 +117,6 @@ def _evaluation(metrics: Metrics, profile: MissionProfile, slope_deg: float | No
     def g(x: float, m: float) -> float:
         """Compute g for power and comms (docs/science.md §10)."""
         return max(0.0, 1 - x / m) if m > 0 else 1.0
-    if slope_deg is not None and p.max_slope_deg == p.slope_ideal_deg:
-        raise ValueError('slope utility is undefined when max_slope_deg equals slope_ideal_deg')
     slope = None if slope_deg is None else float(np.clip((p.max_slope_deg - slope_deg) / (p.max_slope_deg - p.slope_ideal_deg), 0, 1))
     power = metrics.sun_fraction_mean * g(metrics.longest_dark_h, p.max_dark_h)
     comms = 1.0 if p.relay_available else metrics.link_fraction * g(metrics.longest_blackout_h, p.max_blackout_h)
@@ -122,9 +137,8 @@ def slip_sweep(series: Mapping[str, NDArray], profile: MissionProfile, slope_deg
     """Evaluate each landing hour using window operations (docs/science.md §§9-11)."""
     lit, link = hour_flags(series, profile)
     count = len(lit)
-    n = round(24 * profile.duration_days)
-    if n <= 0:
-        raise ValueError('mission window must contain at least one hour')
+    _validate_profile(profile)
+    n = window_length(profile.duration_days)
     if n > count:
         return [None] * count
     sun_mean = _means(np.asarray(series['sun_frac']), n)
@@ -139,11 +153,10 @@ def slip_sweep(series: Mapping[str, NDArray], profile: MissionProfile, slope_deg
 def evaluate(series: Mapping[str, NDArray], profile: MissionProfile, landing_hour: int, slope_deg: float | None) -> Evaluation | None:
     """Evaluate one mission window or return no result (docs/science.md §§9-10)."""
     count = len(series['sun_frac'])
-    n = round(24 * profile.duration_days)
+    _validate_profile(profile)
+    n = window_length(profile.duration_days)
     if landing_hour < 0 or landing_hour >= count:
         raise IndexError('landing hour is outside the time grid')
-    if n <= 0:
-        raise ValueError('mission window must contain at least one hour')
     if landing_hour + n > count:
         return None
     lit, link = hour_flags(series, profile)
@@ -159,20 +172,36 @@ def evaluate(series: Mapping[str, NDArray], profile: MissionProfile, landing_hou
 
 
 def countdowns(series: Mapping[str, NDArray], profile: MissionProfile, current_hour: int) -> Countdowns:
-    """Find interpolated Sun and Earth threshold crossings (docs/science.md §9)."""
-    def crossing(values: NDArray, threshold: float, rising: bool) -> float | None:
-        """Interpolate the next threshold crossing (docs/science.md §9)."""
-        values = np.asarray(values, dtype=float)[current_hour:]
-        left, right = values[:-1], values[1:]
-        mask = (left < threshold) & (right >= threshold) if rising else (left >= threshold) & (right < threshold)
-        indices = np.flatnonzero(mask)
-        if not len(indices):
-            return None
-        i = int(indices[0])
-        return float(i + (threshold - left[i]) / (right[i] - left[i]))
+    """Interpolate the next changes of lit and link (docs/science.md §9).
+
+    Conditions pass at values ≥ their thresholds; elevation and clearance are in °.
+    """
     if current_hour < 0 or current_hour >= len(series['sun_frac']):
         raise IndexError('current hour is outside the time grid')
-    return Countdowns(crossing(series['sun_frac'], profile.min_sun_fraction, False),
-                      crossing(series['sun_frac'], profile.min_sun_fraction, True),
-                      crossing(series['earth_clear'], profile.antenna_mask_deg, False),
-                      crossing(series['earth_clear'], profile.antenna_mask_deg, True))
+    lit, link = hour_flags(series, profile)
+    sun_conditions = [(np.asarray(series['sun_frac']), profile.min_sun_fraction)]
+    if profile.ops_sun_el_min_deg is not None:
+        sun_conditions.append((np.asarray(series['sun_el']), profile.ops_sun_el_min_deg))
+    earth_conditions = [(np.asarray(series['earth_clear']), profile.antenna_mask_deg)]
+
+    def crossing(flags: NDArray, conditions: list, rising: bool) -> float | None:
+        """Interpolate changing conditions at the next flag change (docs/science.md §9)."""
+        before = flags[current_hour:-1]
+        after = flags[current_hour + 1:]
+        changes = np.flatnonzero((~before & after) if rising else (before & ~after))
+        if not len(changes):
+            return None
+        offset = int(changes[0])
+        i = current_hour + offset
+        times = []
+        for values, threshold in conditions:
+            left, right = float(values[i]), float(values[i + 1])
+            changed = (left < threshold <= right) if rising else (left >= threshold > right)
+            if changed:
+                times.append((threshold - left) / (right - left))
+        return float(offset + (max(times) if rising else min(times)))
+
+    return Countdowns(crossing(lit, sun_conditions, False),
+                      crossing(lit, sun_conditions, True),
+                      crossing(link, earth_conditions, False),
+                      crossing(link, earth_conditions, True))
