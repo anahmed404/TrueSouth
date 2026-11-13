@@ -74,6 +74,16 @@ describe("the ground's material", () => {
     ground.dispose();
   });
 
+  it("gives every ground mesh one shared draw hook, made once", () => {
+    const { ground } = look();
+    const a = new THREE.Object3D();
+    const b = new THREE.Object3D();
+    ground.attach(a);
+    ground.attach(b);
+    expect(a.onBeforeRender).toBe(b.onBeforeRender);
+    ground.dispose();
+  });
+
   it("forgets a site's heights when the ground is cleared", () => {
     const { ground } = look();
     const grid = { heights: new Float32Array(9), columns: 3, rows: 3, halfKm: 10 };

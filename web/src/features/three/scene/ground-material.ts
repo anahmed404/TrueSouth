@@ -57,7 +57,10 @@ uniform vec3 uLight, uEarth, uUp, uEast, uNorth, uCamL;
 // Height grids: (half-width km, points a side, km a point, 1 when loaded).
 uniform vec4 uPatch, uApron;
 // Loop counts as uniforms: ANGLE's Direct3D compiler then keeps them as loops instead of
-// unrolling them, which took minutes to compile.
+// unrolling them, which took minutes to compile. A loop with a uniform bound is valid GLSL
+// ES 3.00 (WebGL 2), which this renderer always is: three.js r163+ supports only WebGL 2,
+// and the scene's own probe (scene-root.tsx, probeWebgl) reports a WebGL 1-only browser as
+// "no-webgl". Do not turn these back into constants.
 uniform int uSteps, uNine;
 varying vec3 vN; varying vec3 vM; varying vec3 vL;
 
@@ -491,16 +494,27 @@ export class GroundLook {
 
   /** Called by each ground mesh before it draws: the camera in the site's frame, and the height textures on first use. */
   attach(mesh: THREE.Object3D): void {
-    mesh.onBeforeRender = (renderer, _scene, camera) => {
-      if (!this.built) this.build(renderer);
-      const frame = this.frame;
-      if (!frame) return;
-      const km = MOON_RADIUS_M / 1_000;
-      const d = [camera.position.x - frame.ground[0], camera.position.y - frame.ground[1], camera.position.z - frame.ground[2]];
-      const dot = (a: V3) => (d[0]! * a[0] + d[1]! * a[1] + d[2]! * a[2]) * km;
-      this.uniforms.uCamL.value.set(dot(frame.east), dot(frame.north), dot(frame.up));
-    };
+    mesh.onBeforeRender = this.beforeRender;
   }
+
+  /** One handler for every ground mesh, made once: nothing is allocated per draw. */
+  private readonly beforeRender = (renderer: THREE.WebGLRenderer, _scene: THREE.Scene, camera: THREE.Camera): void => {
+    if (!this.built) this.build(renderer);
+    const frame = this.frame;
+    if (!frame) return;
+    const km = MOON_RADIUS_M / 1_000;
+    const dx = camera.position.x - frame.ground[0];
+    const dy = camera.position.y - frame.ground[1];
+    const dz = camera.position.z - frame.ground[2];
+    const e = frame.east;
+    const n = frame.north;
+    const u = frame.up;
+    this.uniforms.uCamL.value.set(
+      (dx * e[0] + dy * e[1] + dz * e[2]) * km,
+      (dx * n[0] + dy * n[1] + dz * n[2]) * km,
+      (dx * u[0] + dy * u[1] + dz * u[2]) * km,
+    );
+  };
 
   private build(renderer: THREE.WebGLRenderer): void {
     this.built = true;
