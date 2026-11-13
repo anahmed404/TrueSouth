@@ -38,7 +38,7 @@ import {
 import { Overlay, type OverlayBus, type Preset, type LookToward } from "./overlay";
 import { Rig } from "./rig";
 import { sightState, type SightState } from "./sight";
-import { mul, smooth, type V3 } from "./vec";
+import { mul, type V3 } from "./vec";
 import { World, type WorldInputs, type WorldSite } from "./world";
 import "./scene.css";
 
@@ -295,8 +295,13 @@ function Scene3D(props: SceneProps) {
   const bus = useRef<OverlayBus>({ overlay: null, controls: null });
   const sceneSpace = useMemo(() => capture ? freeSpace : shrink(freeSpace, view === "system" ? PLATE_TOP : 0, view === "system" ? SYSTEM_FOOT : CONTROLS_FOOT), [freeSpace, view, capture]);
 
+  // Reduced motion: dip through Night, cut at the darkest point, rise again. A second pick
+  // during a dip replaces the pending cut, so only the last view is cut to.
   const dipRef = useRef<HTMLDivElement>(null);
+  const dipTimer = useRef<number | null>(null);
   const dip = useCallback((ms: number, cut: () => void) => {
+    if (dipTimer.current !== null) window.clearTimeout(dipTimer.current);
+    dipTimer.current = null;
     const el = dipRef.current;
     if (!el) {
       cut();
@@ -304,11 +309,18 @@ function Scene3D(props: SceneProps) {
     }
     el.style.transitionDuration = `${ms / 2}ms`;
     el.style.opacity = "1";
-    window.setTimeout(() => {
+    dipTimer.current = window.setTimeout(() => {
+      dipTimer.current = null;
       cut();
       el.style.opacity = "0";
     }, ms / 2);
   }, []);
+  useEffect(
+    () => () => {
+      if (dipTimer.current !== null) window.clearTimeout(dipTimer.current);
+    },
+    [],
+  );
 
   // ── Pointer, wheel and keys ──
   const drag = useRef<{ id: number; x: number; y: number; pinch?: { other: number; distance: number } } | null>(null);
@@ -587,57 +599,48 @@ function Director(props: DirectorProps) {
     }
   }, []);
 
+  /**
+   * Flies to a camera view (the rig's `flyToView`: locked against drags, scrolls and keys;
+   * another pick re-targets it). A re-frame inside the System view (a preset, true scale)
+   * stays interruptible by a drag.
+   */
   const flyToView = useCallback(
-    (view: CameraViewId, ms: number) => {
+    (view: CameraViewId, ms: number, locked = true) => {
       const p = latest.current;
       const target = targetFor(view);
-      const fromDraw = world.draw;
-      const toDraw = view === "map" ? 1 : 0;
-      // The cap's lighting blends from the real Sun to the map's fixed lighting in the last
-      // 45 % of the flight to the pole, and back in the first 45 % of a flight away.
-      const onT = (t: number) => {
-        world.draw = toDraw > fromDraw ? smooth(0.55, 1, t) : fromDraw * (1 - smooth(0, 0.45, t));
-      };
-      rig.mode = view;
       if (p.reduceMotion) {
+        rig.mode = view;
         p.dip(view === "map" ? 400 : DIP_MS, () => {
-          rig.flyTo(target, 0, () => arrive(view), onT);
+          rig.flyToView(view, target, 0, arrive);
           invalidate();
         });
         return;
       }
-      rig.flyTo(target, ms, () => arrive(view), onT);
+      rig.flyToView(view, target, ms, arrive, { locked });
       invalidate();
     },
-    [rig, world, targetFor, arrive, invalidate],
+    [rig, targetFor, arrive, invalidate],
   );
 
   // The intro: once the data for the current time is in, ease in from 1.5 times the distance.
+  // It is locked too, so the frame times it measures always reach a verdict.
   const introDone = useRef(false);
   useEffect(() => {
     if (introDone.current || !props.dataReady) return;
     introDone.current = true;
     rig.setFreeSpace(props.sceneSpace, 0);
     const target = targetFor(props.view);
-    rig.mode = props.view;
     const start = props.view === "system" ? introStart(target) : introStart(targetFor("system"));
     rig.apply(start);
-    if (props.view === "map") world.draw = 0;
     if (props.reduceMotion) {
-      rig.flyTo(target, 0, () => arrive(props.view));
-      world.draw = props.view === "map" ? 1 : 0;
+      rig.flyToView(props.view, target, 0, arrive);
       finishMeasure();
     } else {
       measuring.current = { frames: [], last: 0 };
-      rig.flyTo(
-        target,
-        INTRO_MS,
-        () => {
-          finishMeasure();
-          arrive(props.view);
-        },
-        props.view === "map" ? (t) => (world.draw = smooth(0.55, 1, t)) : undefined,
-      );
+      rig.flyToView(props.view, target, INTRO_MS, (view) => {
+        finishMeasure();
+        arrive(view);
+      });
     }
     invalidate();
   }, [props.dataReady]);
@@ -668,7 +671,7 @@ function Director(props: DirectorProps) {
     lastKey.current = key;
     if (!introDone.current || previous === null || previous === key) return;
     if (previous.split("|")[0] !== key.split("|")[0]) return; // a view change flies by itself
-    flyToView(props.view, FLIGHT_MS);
+    flyToView(props.view, FLIGHT_MS, props.view !== "system");
   }, [props.view, props.preset, props.trueScale, siteId, groundKey, props.lookToward, props.sight !== null, flyToView]);
 
   // The free space: the centre slides there; a camera the user has not moved re-frames.
@@ -692,6 +695,7 @@ function Director(props: DirectorProps) {
   useFrame(({ camera: frameCamera, size }) => {
     const now = performance.now();
     const moving = rig.update(now);
+    world.draw = rig.draw;
     // three updates the camera's matrices during render; the overlay projects before that.
     frameCamera.updateMatrixWorld();
     const anchors = world.layout(frameCamera);

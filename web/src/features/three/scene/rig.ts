@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { CameraViewId, FreeSpace } from "../../../app/scene";
 import { MOON_RADIUS_M } from "../../../lib/geo";
 import { easeInOutCubic, lerpPose, MIN_SPACE_ALTITUDE, viewOffset, type Pose, type SiteFrame } from "./camera";
-import { clamp } from "./vec";
+import { clamp, smooth } from "./vec";
 
 /** The rig turns about the Moon in any view but Local terrain and Lander's eye. */
 type Mode = CameraViewId;
@@ -14,14 +14,62 @@ type Tween = {
   ms: number;
   onT?: (eased: number) => void;
   onDone?: () => void;
+  /** A locked flight ignores drags, scrolls and keys; only another flight replaces it. */
+  locked: boolean;
 };
 
 type Offset = { x: number; y: number; width: number; height: number };
 
 /**
+ * The System view's orbit stops short of the Moon's axis: |y| of the camera's direction at
+ * most this (about 9.9° from the pole), so the view never flips over a pole.
+ */
+export const POLE_LIMIT_Y = 0.985;
+
+function horizontal(v: THREE.Vector3): THREE.Vector2 {
+  return new THREE.Vector2(v.x, v.z);
+}
+
+/**
+ * Pitches `p` about `axis` by `angle`, within the pole limit. A step that moves away from
+ * the pole is always taken, even from inside the limit (the home pose is straight below the
+ * south pole). A step toward the pole stops at the limit, and no step crosses a pole.
+ */
+function limitPitch(p: THREE.Vector3, axis: THREE.Vector3, angle: number): THREE.Vector3 {
+  const startY = Math.abs(p.clone().normalize().y);
+  const startSide = horizontal(p);
+  const acceptable = (v: THREE.Vector3) => {
+    const side = horizontal(v);
+    const crossed = startSide.lengthSq() > 1e-18 && side.lengthSq() > 1e-18 && startSide.dot(side) < 0;
+    if (crossed) return false;
+    const y = Math.abs(v.clone().normalize().y);
+    return y <= POLE_LIMIT_Y || y < startY - 1e-12;
+  };
+  const full = p.clone().applyAxisAngle(axis, angle);
+  if (acceptable(full)) return full;
+  // Clamp: the largest part of the step that is still acceptable.
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 40; i += 1) {
+    const mid = (lo + hi) / 2;
+    if (acceptable(p.clone().applyAxisAngle(axis, angle * mid))) lo = mid;
+    else hi = mid;
+  }
+  return p.clone().applyAxisAngle(axis, angle * lo);
+}
+
+/**
  * Moves the camera: eased flights between poses, the free-space offset, and the drag,
  * scroll and key controls of each camera view (docs/features/system-view.md, "Camera").
- * A drag, a scroll or another pick interrupts a flight and starts from where the camera is.
+ *
+ * The rule for interrupting a flight:
+ * - A flight that changes the camera view (`flyToView`) cannot be interrupted by a drag, a
+ *   scroll or a key: those are ignored until it lands. So the camera never rests between two
+ *   views, and the Polar map's lighting blend always ends at 0 or 1.
+ * - Another view pick can interrupt it: the new flight starts from where the camera is and
+ *   blends on from where the lighting is. Only the last flight reports its arrival, once.
+ * - A move inside a view (a preset, re-framing after panels fold) is not locked: a drag stops
+ *   it where it is, which is still the same view.
  */
 export class Rig {
   mode: Mode = "system";
@@ -30,6 +78,11 @@ export class Rig {
   trueScale = false;
   /** True once the user has turned or zoomed since the last pick. */
   userMoved = false;
+  /**
+   * How much the polar cap shows the map's fixed lighting instead of the real Sun: 0 or 1 at
+   * rest, between only during a flight to or from the Polar map.
+   */
+  draw = 0;
   private tween: Tween | null = null;
   private offset: Offset | null = null;
   private offsetTween: { from: Offset; to: Offset; t0: number; ms: number } | null = null;
@@ -56,7 +109,13 @@ export class Rig {
     c.updateProjectionMatrix();
   }
 
-  flyTo(to: Pose, ms: number, onDone?: () => void, onT?: (eased: number) => void): void {
+  flyTo(
+    to: Pose,
+    ms: number,
+    onDone?: () => void,
+    onT?: (eased: number) => void,
+    options: { locked?: boolean; now?: number } = {},
+  ): void {
     this.userMoved = false;
     if (ms <= 0) {
       this.tween = null;
@@ -65,11 +124,49 @@ export class Rig {
       onDone?.();
       return;
     }
-    this.tween = { from: this.pose(), to, t0: performance.now(), ms, onT, onDone };
+    const t0 = options.now ?? performance.now();
+    this.tween = { from: this.pose(), to, t0, ms, onT, onDone, locked: options.locked ?? false };
   }
 
+  /**
+   * Flies to a camera view and reports `onArrive(view)` once it lands. Locked against drags,
+   * scrolls and keys (see the rule above). The Polar map's lighting blends in over the last
+   * 45 % of a flight to it, and out over the first 45 % of a flight away
+   * (docs/features/system-view.md, "The polar cap overlay").
+   */
+  flyToView(
+    view: CameraViewId,
+    to: Pose,
+    ms: number,
+    onArrive?: (view: CameraViewId) => void,
+    options: { locked?: boolean; now?: number } = {},
+  ): void {
+    this.mode = view;
+    const fromDraw = this.draw;
+    const toDraw = view === "map" ? 1 : 0;
+    const onT = (t: number) => {
+      this.draw = toDraw >= fromDraw ? fromDraw + (toDraw - fromDraw) * smooth(0.55, 1, t) : fromDraw * (1 - smooth(0, 0.45, t));
+    };
+    this.flyTo(
+      to,
+      ms,
+      () => {
+        this.draw = toDraw;
+        onArrive?.(view);
+      },
+      onT,
+      { locked: options.locked ?? true, now: options.now },
+    );
+  }
+
+  /** True while a locked flight runs: drags, scrolls and keys are ignored. */
+  get locked(): boolean {
+    return this.tween?.locked ?? false;
+  }
+
+  /** Stops an unlocked move where it is. A locked flight carries on. */
   stop(): void {
-    this.tween = null;
+    if (this.tween && !this.tween.locked) this.tween = null;
   }
 
   /** The principal point at the free space's centre, sliding there over `ms`. */
@@ -126,13 +223,14 @@ export class Rig {
   // ── Controls ──────────────────────────────────────────────────────────────
 
   beginDrag(): void {
+    if (this.locked) return;
     this.stop();
     this.upHint = this.camera.up.clone();
   }
 
   orbit(dx: number, dy: number): void {
     const c = this.camera;
-    if (this.mode === "map") return;
+    if (this.mode === "map" || this.locked) return;
     this.stop();
     this.userMoved = true;
     if (this.mode === "system") {
@@ -142,8 +240,7 @@ export class Rig {
       const pitch = -dy * 0.005;
       p.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
       const right = new THREE.Vector3().crossVectors(c.up, p).normalize();
-      const pitched = p.clone().applyAxisAngle(right, pitch);
-      if (Math.abs(pitched.clone().normalize().y) < 0.985) p.copy(pitched);
+      p.copy(limitPitch(p, right, pitch));
       c.position.copy(p.setLength(r));
       const look = p.clone().negate().normalize();
       const hint = (this.upHint ?? c.up.clone()).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
@@ -198,7 +295,7 @@ export class Rig {
   /** `factor` above 1 zooms out. */
   zoom(factor: number): void {
     const c = this.camera;
-    if (this.mode === "map") return;
+    if (this.mode === "map" || this.locked) return;
     this.stop();
     this.userMoved = true;
     if (this.mode === "system") {
