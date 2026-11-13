@@ -42,18 +42,15 @@
     transition: width var(--dur-panel) linear;
   }
 
-  .ldp-head .ldp-window {
-    flex: 0 1 auto;
-  }
-
+  /* Shown in every layout, open, folded and on the phone, whenever the landing is not at 00:00 UTC. */
   .ldp-whole {
-    color: var(--ink-3);
+    color: var(--ink-2);
     font-size: var(--t-sm);
   }
 
-  /* Where the shell's landing-date control will sit in this view. Empty until then. */
-  .ldp-date-slot:empty {
-    display: none;
+  /* On the phone the landing-date control takes its own row, as at the head of the timeline. */
+  .ldp[data-compact="true"] .ldp-date-slot {
+    flex-basis: 100%;
   }
 
   .ldp-key {
@@ -483,7 +480,6 @@
     column-gap: var(--s2);
   }
 
-  .ldp[data-compact="true"] .ldp-head .ldp-window,
   .ldp[data-compact="true"] .ldp-key .ldp-key-ring {
     display: none;
   }

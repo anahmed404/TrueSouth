@@ -17,16 +17,14 @@ import { useStore } from "zustand";
 import type { Scenario } from "../../../app/panel";
 import { settingsProvenance } from "../../../app/mission/rules";
 import { SettingsTag } from "../../../app/mission/settings-tag";
-import { windowText } from "../../../app/mission/timeline/axis";
+import { LandingDateControl } from "../../../app/mission/landing-date-control";
 import { IconButton } from "../../../components/Button";
-import { Explain } from "../../../components/Explain";
 import { cx } from "../../../components/format";
 import { SegmentedControl } from "../../../components/SegmentedControl";
 import { StatusLamp } from "../../../components/StatusLamp";
 import type { Site } from "../../../contracts/generated";
 import { useManifest, useSites } from "../../../data";
 import { utcMidnightHours, windowLength, type Status } from "../../../lib/scoring";
-import { codeStatus } from "../../../lib/scoring/slip-days";
 import { utcToHourIndex } from "../../../lib/time";
 import {
   DAY_PENDING,
@@ -60,6 +58,9 @@ import { MOON_RADIUS_M } from "../../../lib/geo";
 import "./slip-planner.css";
 
 export type LandingWrite = "push" | "replace";
+
+/** Shown, and read out, whenever the landing is not at 00:00 UTC (slip-planner.md, "Changing the date"). */
+export const WHOLE_NOTE = "Strips show landings at 00:00 UTC.";
 
 export type LandingDatePanelProps = {
   scenario: Scenario;
@@ -355,14 +356,31 @@ function Dates(props: DatesProps) {
     if (day < start || day >= start + span) slipStore.getState().setStart(Math.max(0, Math.min(dayCount - span, day - Math.round(span / 2))));
   };
 
-  // ── What the slider and the header say ──
-  const goCount = entries.filter((e) => e.days?.status[landingDay] === 1).length;
-  const valueText = `Landing ${dayLabel(gridStartMs, landingDay)}${isWholeDay(landingHour) ? "" : `, ${String(landingHour % 24).padStart(2, "0")}:00 UTC`}. ${goCount} of ${entries.length} site${entries.length === 1 ? "" : "s"} GO on this date.`;
+  // ── What the slider, the header and the row lamps say: the real landing ──
+  // They speak of the landing itself, at its own hour, so they read the same evaluation as
+  // the spots and the sites rail. Only the strips, their hovers and "next GO" speak of 00:00
+  // UTC landings, and when the landing is at another hour a note says so in every layout.
+  const whole = isWholeDay(landingHour);
+  const landingWhen = `${dayLabel(gridStartMs, landingDay)} ${String(landingHour % 24).padStart(2, "0")}:00 UTC`;
+  const nowResults = entries.map((e) => ({ siteId: e.siteId, name: nameOf(e.siteId), result: evaluate(e.siteId, landingHour) }));
+  const nowAny = anyReadout(landingWhen, nowResults);
+  const nowStatus = new Map(nowResults.map((r) => [r.siteId, r.result.kind === "ready" ? r.result.evaluation.status : null]));
+  const nowGo = nowResults.filter((r) => r.result.kind === "ready" && r.result.evaluation.status === "GO").length;
+  const nowPending = nowResults.filter((r) => r.result.kind === "pending").length;
+  const valueText = [
+    `Landing ${landingWhen}.`,
+    `${nowGo} of ${entries.length} site${entries.length === 1 ? "" : "s"} GO for this landing${nowPending ? `, ${nowPending} still computing` : ""}.`,
+    whole ? null : WHOLE_NOTE,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const anyWords = nowAny.status
+    ? `${entries.length > 1 ? "Any site: " : ""}${nowAny.status} for this landing`
+    : (nowAny.lines[0] ?? "");
   const ready = entries.filter((e) => e.state !== "loading").length;
   const computing = ready < entries.length;
-  const anyNow: Status | null = codeStatus(anyCodes[landingDay] ?? 0);
-  const range = { landing: landingHour, windowEnd: landingHour + windowHours };
   const weights = settingsProvenance(profile, ["weights"]);
+  const wholeNote = whole ? null : <span className="ldp-whole">{WHOLE_NOTE}</span>;
 
   const foldButton = onToggleFold ? (
     <span className="tl-fold-slot">
@@ -393,14 +411,16 @@ function Dates(props: DatesProps) {
     return (
       <div className="ldp ldp-folded">
         {progress}
-        <h2 className="tl-title">Landing dates</h2>
+        <h2 className="sr-only">Landing dates</h2>
         {foldButton}
-        <span className="tl-folded-time tabular">Landing {dayLabel(gridStartMs, landingDay)}</span>
+        <div className="tl-landing">
+          <LandingDateControl />
+        </div>
         <span className="ldp-folded-any">
-          {anyNow ? <StatusLamp status={anyNow} size="xs" /> : null}
-          {entries.length > 1 ? "Any site: " : ""}
-          {anyNow ?? "no data"} on this date
+          {nowAny.status ? <StatusLamp status={nowAny.status} size="xs" /> : null}
+          {anyWords}
         </span>
+        {wholeNote}
       </div>
     );
   }
@@ -413,22 +433,19 @@ function Dates(props: DatesProps) {
     <div className="ldp" data-compact={compact}>
       {progress}
       <div className="tl-head ldp-head">
-        <h2 className="tl-title">
-          <Explain term="slip_planner">Landing dates</Explain>
-        </h2>
+        {/* The control names the group "Landing date"; the panel's title is for screen readers, as in the timeline. */}
+        <h2 className="sr-only">Landing dates</h2>
         {foldButton}
-        <p className="tl-window ldp-window">
-          <span className="tabular">
-            <Explain term="mission_window">Mission window</Explain> {windowText(range, gridStartMs)}
-          </span>
-          {isWholeDay(landingHour) ? null : <span className="ldp-whole"> Strips show landings at 00:00 UTC.</span>}
-        </p>
         {/*
-          The landing-date control (LandingDateControl, app/mission/, from the shell package)
-          mounts here in the Slip Planner once it is merged, in place of the app bar's copy.
-          It reads and writes the landing date through the scenario store, like everything here.
+          The shell's landing-date control (app/mission/landing-date-control.tsx), the same as
+          at the head of the timeline: the date with its day buttons and slips, the mission
+          window's end and length with its tag, and "Next GO". It reads and writes only the
+          scenario store, like everything here.
         */}
-        <div className="ldp-date-slot" data-slot="landing-date-control" />
+        <div className={cx("tl-landing ldp-date-slot", compact && "tl-compact-landing")} data-slot="landing-date-control">
+          <LandingDateControl />
+        </div>
+        {wholeNote}
         <span className="ldp-key" aria-label="Key: GO is a full mark, CAUTION a half mark, NO-GO a low line. A spot's ring is its score.">
           <span aria-hidden="true">
             <i className="ldp-key-go" />
@@ -472,7 +489,7 @@ function Dates(props: DatesProps) {
               row={row}
               top={rowTop(i)}
               rowHeight={metrics.height}
-              landingDay={landingDay}
+              status={row.kind === "any" ? nowAny.status : (nowStatus.get(row.siteId) ?? null)}
               focused={row.kind === "site" && row.siteId === scenario.focusedSiteId}
               compact={compact}
               catalog={catalog}
@@ -551,7 +568,7 @@ function Dates(props: DatesProps) {
                 width={width}
                 height={height}
                 edge={landingDay < start ? "left" : landingDay >= start + span ? "right" : null}
-                label={`Landing ${dayLabel(gridStartMs, landingDay)}`}
+                label={`Landing ${dayLabel(gridStartMs, landingDay)}${whole ? "" : `, ${String(landingHour % 24).padStart(2, "0")}:00`}`}
                 valueText={valueText}
                 lastDay={lastDay}
                 landingDay={landingDay}
@@ -569,11 +586,14 @@ function Dates(props: DatesProps) {
           <div className="ldp-next" style={{ gridRow: 2, height }}>
             {rows.map((row, i) => {
               const codes = row.codes;
+              // The first 00:00 UTC landing at or after the landing: its own day when it is at
+              // 00:00, else the next day, so a 00:00 result is never pinned on a later hour.
+              const from = whole ? landingDay : landingDay + 1;
               const text =
                 codes && !(row.kind === "site" && row.entry.state === "loading" && !row.entry.days)
-                  ? nextGoWords(nextGo({ status: codes }, landingDay), landingDay, gridStartMs, gridEndYear)
+                  ? nextGoWords(nextGo({ status: codes }, from), landingDay, gridStartMs, gridEndYear)
                   : "";
-              const pendingAny = row.kind === "any" && codes ? hasPendingBefore(codes, landingDay) : false;
+              const pendingAny = row.kind === "any" && codes ? hasPendingBefore(codes, from) : false;
               return (
                 <span key={row.key} className="ldp-next-cell" style={{ top: rowTop(i), height: metrics.height }}>
                   {pendingAny ? "" : text}
@@ -600,7 +620,8 @@ type RowLabelProps = {
   row: Row;
   top: number;
   rowHeight: number;
-  landingDay: number;
+  /** The status for the landing itself, at its own hour: the same as the spot and the rail. */
+  status: Status | null;
   focused: boolean;
   /** On the phone the whole strip area is the touch target: a row name is text, not a button. */
   compact: boolean;
@@ -608,9 +629,7 @@ type RowLabelProps = {
   onFocusSite: (siteId: string) => void;
 };
 
-const RowLabel = memo(function RowLabel({ row, top, rowHeight, landingDay, focused, compact, catalog, onFocusSite }: RowLabelProps) {
-  const code = row.codes?.[landingDay] ?? 0;
-  const status = code === DAY_PENDING ? null : codeStatus(code);
+const RowLabel = memo(function RowLabel({ row, top, rowHeight, status, focused, compact, catalog, onFocusSite }: RowLabelProps) {
   const lamp = status ? <StatusLamp status={status} size="xs" /> : <span className="lamp-none ldp-lamp-none" aria-hidden="true" />;
   const style = { top, height: Math.max(rowHeight, 16), marginTop: Math.min(0, (rowHeight - 16) / 2) };
   if (row.kind === "any") {

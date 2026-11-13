@@ -96,7 +96,7 @@ of one mission window, as the timeline does today. The two never stack: two slid
 different scales, one above the other, read as two clocks that disagree.
 
 ```text
-Landing dates      Mission window 01 Mar → 11 Mar     ● GO full · ◐ CAUTION half · ▁ NO-GO low   3 mo · 18 mo · 6 yr  ⌄
+⌄  Landing date ‹ 01 Mar 2028 00:00 › → 11 Mar · 10 d  Next GO   ● GO full · ◐ CAUTION half · ▁ NO-GO low   3 mo · 18 mo · 6 yr
                      2028 Jan        Feb         Mar         Apr   …
 Any site           ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔   GO on this date
 Connecting Ridge   ▁▁▄▄▄▄▁▁▁▁▁▁▁▁▁▁▄▄▄▄▄▁▁▁▁▁▁▁▁▁▄▄▄▄▁▁▁▁▁▁▁▁▁            next GO 14 Mar
@@ -107,9 +107,12 @@ de Gerlache rim    ▁▁▁▁▄▄▁▁▁▁▁▁▁▁▁▁▁▄▄▁�
 
 The sketch shows the parts, not the final drawing. The header and the grid are as follows.
 
-- **Header.** The title "Landing dates"; the mission window ("Mission window 01 Mar → 11
-  Mar", the same shape as the timeline's header); a one-line key; the zoom control; the fold
-  button. A 2 px progress bar runs along the top while the sweep runs.
+- **Header.** One row: the fold button; the shell's landing-date control
+  (`LandingDateControl`, the same control as at the head of the timeline: the date with its
+  day buttons, a picker that also holds the slips, the mission window's end and length with
+  its tag, and "Next GO"); a one-line key; the zoom control. "Landing dates" is the panel's
+  heading for screen readers, as "Timeline" is in the timeline. A 2 px progress bar runs
+  along the top while the sweep runs. On the phone the control takes its own row.
 - **Grid.** A label column, the strips, and a "next GO" column.
 - **One strip per selected site,** across the six years of the time grid, with one mark per
   landing day. Status shows by height as well as colour:
@@ -123,11 +126,15 @@ The sketch shows the parts, not the final drawing. The header and the grid are a
 - **The key** is the legend. It sits in the panel header, one line, so no other legend is
   needed: "GO full, CAUTION half, NO-GO a low line", with the lamps.
 - **The right-hand column** says "GO on this date", "next GO 22 Mar" or "no GO before
-  2032", for each site. "Next GO" is the first GO on or after the landing date. A site with
-  no later GO says so in words.
+  2032", for each site. It reads the first 00:00 UTC landing at or after the landing: the
+  landing day itself when the landing is at 00:00, else the next day. A site with no later
+  GO says so in words. The control's "Next GO" button looks only after the landing day, so
+  when that day is GO and no later one is, the button reads "No later GO before 2032"
+  beside "GO on this date"; both are true.
 - **The slider** is a Moonlight line, knob and pill across the strips, like the scrubber. It
   sets the landing date. The mission window is a pale band after it, with edges.
-- **The slip buttons** are the app bar's ("Slip +7 d", "Slip +14 d" and the others in
+- **The slip buttons** ("Slip +7 d", "+14 d") are in the landing-date control's date
+  picker, and its day buttons move the date a day at a time (see
   [`mission-control.md`](mission-control.md)). They move the same landing date, so the
   slider, the spots and the strips follow at once.
 - **Zoom.** 3 months, 18 months (the default; 3 months on a phone) or 6 years, the whole time
@@ -157,9 +164,12 @@ Before any slip, none of these are shown.
 - **Whole days.** Each mark on a strip is a landing at 00:00 UTC on that day
   ([`../science.md`](../science.md) §11). The slider, a strip's Enter key and a drag set
   the landing to 00:00 UTC on the chosen day. The slip buttons and the date picker can
-  leave another hour. Then the spots, the sites rail and the focused-site panel show
-  that exact landing, the slider sits on its day, and the panel's header says "Strips
-  show landings at 00:00 UTC".
+  leave another hour. Then the spots, the sites rail, the focused-site panel, the row
+  lamps, the folded row and the slider's words show that exact landing; the slider sits on
+  its day; and "Strips show landings at 00:00 UTC" is shown in the header, the folded row
+  and on the phone, and read with the slider's value. No sentence pins a 00:00 result on a
+  landing at another hour: the strips' hovers name their 00:00 UTC day, and "next GO"
+  starts from the next 00:00 UTC landing.
 
 ## Hover and focus
 
@@ -278,8 +288,9 @@ on.
 - The spot, the strip, the hover text and the sites panel agree for every landing at 00:00
   UTC. A test sweeps every selected fixture site and a spread of dates and compares all
   four.
-- With a landing at another hour, the spot equals the sites rail and the header shows the
-  "Strips show landings at 00:00 UTC" note.
+- With a landing at another hour, the spot equals the sites rail, and the "Strips show
+  landings at 00:00 UTC" note shows open, folded and on the phone, and is read with the
+  slider's value.
 - Eight sites with a 100-day profile recompute in under 200 ms on a mid-range laptop.
 - Results equal the focused-site panel's result for the same site and date.
 - No colour appears on the ground between sites, on any date and with the shading on or off.
