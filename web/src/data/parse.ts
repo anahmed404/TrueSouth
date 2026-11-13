@@ -11,6 +11,7 @@ import type {
   Validation,
   WorkedExamples,
 } from "../contracts/generated.ts";
+import { WORKED_EXAMPLE_KEYS } from "../features/academy/worked-example-keys.ts";
 import { SERIES_COLUMNS, type SeriesColumnSpec } from "./decode/layouts.ts";
 
 export const KNOWN_SCHEMA_VERSION = 1 satisfies Manifest["schema_version"];
@@ -298,9 +299,88 @@ export function parseValidation(value: unknown): Validation {
   return record as unknown as Validation;
 }
 
+const WORKED_EXAMPLES_FILE = "academy/worked_examples.json";
+
+/** Lessons 5 to 8 keys the definitions mark as not computable today. */
+const NULLABLE_EXAMPLE_KEYS = new Set([
+  "l5.slope_10m_deg",
+  "l5.slope_100m_deg",
+  "l5.plane_a",
+  "l5.plane_b",
+  "l6.site_b",
+  "l6.b_score",
+  "l7.alt_site",
+  "l8.region_overlap.region_name",
+  "l8.region_overlap.overlaps",
+]);
+
+const EXAMPLE_TEXT_LISTS = new Set(["l7.slip_vetoes", "l8.candidates"]);
+const EXAMPLE_BOOLEANS = new Set(["l6.example_metrics.landing_lit", "l8.region_overlap.overlaps"]);
+const UTC_HOUR = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
+
+function exampleKind(key: string): "utc" | "text" | "bool" | "numbers" | "texts" | "number" {
+  if (key === "l4.link_pct_by_mask") return "numbers";
+  if (EXAMPLE_TEXT_LISTS.has(key)) return "texts";
+  if (EXAMPLE_BOOLEANS.has(key)) return "bool";
+  if (key.endsWith("_utc") || key.endsWith("_date") || key === "l7.next_go") return "utc";
+  if (/(_id|_name|_site|_feature)$/.test(key) || key === "l6.site_a" || key === "l6.site_b" || key === "l7.alt_site") {
+    return "text";
+  }
+  return "number";
+}
+
+function expectExampleValue(key: string, value: unknown): void {
+  if (value === null) {
+    if (!NULLABLE_EXAMPLE_KEYS.has(key)) {
+      throw new Error(`${WORKED_EXAMPLES_FILE} ${key} cannot be null`);
+    }
+    return;
+  }
+  const kind = exampleKind(key);
+  if (kind === "number") {
+    expectNumber(value, WORKED_EXAMPLES_FILE, key);
+    return;
+  }
+  if (kind === "bool") {
+    if (typeof value !== "boolean") throw new Error(`${WORKED_EXAMPLES_FILE} ${key} must be yes or no`);
+    return;
+  }
+  if (kind === "utc") {
+    const text = expectString(value, WORKED_EXAMPLES_FILE, key);
+    if (!UTC_HOUR.test(text)) throw new Error(`${WORKED_EXAMPLES_FILE} ${key} must be a UTC hour ending in Z`);
+    return;
+  }
+  if (kind === "text") {
+    expectString(value, WORKED_EXAMPLES_FILE, key);
+    return;
+  }
+  const items = expectArray(value, `${WORKED_EXAMPLES_FILE} ${key}`);
+  if (kind === "numbers") {
+    if (items.length !== 21) throw new Error(`${WORKED_EXAMPLES_FILE} ${key} must have 21 entries`);
+    items.forEach((item, index) => expectNumber(item, WORKED_EXAMPLES_FILE, `${key}[${index}]`));
+    return;
+  }
+  items.forEach((item, index) => expectString(item, WORKED_EXAMPLES_FILE, `${key}[${index}]`));
+}
+
 export function parseWorkedExamples(value: unknown): WorkedExamples {
-  const record = expectObject(value, "academy/worked_examples.json");
-  expectString(record["l1.example_utc"], "academy/worked_examples.json", "l1.example_utc");
+  const record = expectObject(value, WORKED_EXAMPLES_FILE);
+  const known = new Set<string>(WORKED_EXAMPLE_KEYS);
+  for (const key of known) {
+    if (!(key in record)) throw new Error(`${WORKED_EXAMPLES_FILE} is missing ${key}`);
+  }
+  for (const key of Object.keys(record)) {
+    if (!known.has(key)) throw new Error(`${WORKED_EXAMPLES_FILE} has an unknown key ${key}`);
+    expectExampleValue(key, record[key]);
+  }
+  const shares = record["l4.link_pct_by_mask"];
+  const mask = record["l4.mask_for_15pct_deg"];
+  if (Array.isArray(shares) && typeof mask === "number") {
+    const index = shares.findIndex((share) => typeof share === "number" && share < 15);
+    if (index < 0 || mask !== index * 0.5) {
+      throw new Error(`${WORKED_EXAMPLES_FILE} l4.mask_for_15pct_deg must be the first mask whose share is below 15 percent`);
+    }
+  }
   return record as unknown as WorkedExamples;
 }
 

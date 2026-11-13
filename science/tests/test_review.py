@@ -82,8 +82,28 @@ def test_feature_iau_id_round_trip():
 
 
 def test_worked_examples_flat_aliases_and_nested_rejection():
-    keys = c.WorkedExamples.model_fields
-    flat = {f.alias: ('2028-01-01T00:00:00Z' if 'utc' in f.alias or f.alias.endswith('_date') else 'example' if f.annotation is str else ['example'] if f.annotation == list[str] else True if f.annotation is bool else 1.0) for f in keys.values()}
+    from types import UnionType
+    from typing import get_args, get_origin
+    def sample(field):
+        if 'utc' in field.alias or field.alias.endswith('_date'):
+            return '2028-01-01T00:00:00Z'
+        annotation = field.annotation
+        origin = get_origin(annotation)
+        if origin is UnionType:
+            remaining = [item for item in get_args(annotation) if item is not type(None)]
+            annotation = remaining[0]
+            origin = get_origin(annotation)
+        if annotation is str:
+            return 'example'
+        if annotation is bool:
+            return True
+        if origin is list and get_args(annotation) == (str,):
+            return ['example']
+        if origin is list:
+            return [20.0] * 13 + [14.0] + [10.0] * 7
+        return 1.0
+    flat = {field.alias: sample(field) for field in c.WorkedExamples.model_fields.values()}
+    flat['l4.mask_for_15pct_deg'] = 6.5
     example = {'l1.sun_el_max_deg': 2.0, 'l1.sun_el_min_deg': .72, 'l3.drop_at_20km_m': 115.1}
     flat.update(example)
     assert c.WorkedExamples.model_validate(flat).model_dump(by_alias=True).items() >= example.items()

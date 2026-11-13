@@ -1,4 +1,5 @@
 from datetime import datetime
+import math
 from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, RootModel, StringConstraints, model_validator
@@ -477,6 +478,8 @@ class WorkedExamples(Contract):
     l2_sun_az_deg: float = Field(description='l2.sun_az_deg: degrees.', alias='l2.sun_az_deg')
     l2_ridge_dist_km: float = Field(description='l2.ridge_dist_km: kilometres.', alias='l2.ridge_dist_km')
     l2_ridge_rise_m: float = Field(description='l2.ridge_rise_m: metres.', alias='l2.ridge_rise_m')
+    l2_site_id: str = Field(description='l2.site_id: site identifier.', alias='l2.site_id')
+    l2_site_name: str = Field(description='l2.site_name: text.', alias='l2.site_name')
     l2_ridge_el_deg: float = Field(description='l2.ridge_el_deg: degrees.', alias='l2.ridge_el_deg')
     l2_ridge_feature: str = Field(description='l2.ridge_feature: text.', alias='l2.ridge_feature')
     l2_sun_frac: float = Field(description='l2.sun_frac: dimensionless.', alias='l2.sun_frac')
@@ -491,23 +494,25 @@ class WorkedExamples(Contract):
     l4_earth_el_max_deg: float = Field(description='l4.earth_el_max_deg: degrees.', alias='l4.earth_el_max_deg')
     l4_earth_el_min_deg: float = Field(description='l4.earth_el_min_deg: degrees.', alias='l4.earth_el_min_deg')
     l4_earth_up_pct: float = Field(description='l4.earth_up_pct: percent.', alias='l4.earth_up_pct')
+    l4_link_pct_by_mask: list[float] = Field(min_length=21, max_length=21, description='l4.link_pct_by_mask: percent, one share for each mask from 0 degrees to 10 degrees in steps of 0.5 degrees.', alias='l4.link_pct_by_mask')
     l4_link_pct_mask0: float = Field(description='l4.link_pct_mask0: percent.', alias='l4.link_pct_mask0')
     l4_link_pct_mask1: float = Field(description='l4.link_pct_mask1: percent.', alias='l4.link_pct_mask1')
     l4_link_pct_mask5: float = Field(description='l4.link_pct_mask5: percent.', alias='l4.link_pct_mask5')
+    l4_mask_for_15pct_deg: float = Field(description='l4.mask_for_15pct_deg: degrees.', alias='l4.mask_for_15pct_deg')
     l4_example_utc: UTC = Field(description='l4.example_utc: UTC timestamp.', alias='l4.example_utc')
     l4_example_earth_az: float = Field(description='l4.example_earth_az: degrees.', alias='l4.example_earth_az')
     l4_example_earth_el: float = Field(description='l4.example_earth_el: degrees.', alias='l4.example_earth_el')
     l4_example_earth_clear: float = Field(description='l4.example_earth_clear: degrees.', alias='l4.example_earth_clear')
-    l5_slope_10m_deg: float = Field(description='l5.slope_10m_deg: degrees.', alias='l5.slope_10m_deg')
-    l5_slope_100m_deg: float = Field(description='l5.slope_100m_deg: degrees.', alias='l5.slope_100m_deg')
+    l5_slope_10m_deg: float | None = Field(description='l5.slope_10m_deg: degrees, or null when the 10 m method is not defined.', alias='l5.slope_10m_deg')
+    l5_slope_100m_deg: float | None = Field(description='l5.slope_100m_deg: degrees, or null when the close-up fit is absent.', alias='l5.slope_100m_deg')
     l5_slope_160m_deg: float = Field(description='l5.slope_160m_deg: degrees.', alias='l5.slope_160m_deg')
     l5_example_site: str = Field(description='l5.example_site: text.', alias='l5.example_site')
-    l5_plane_a: float = Field(description='l5.plane_a: dimensionless.', alias='l5.plane_a')
-    l5_plane_b: float = Field(description='l5.plane_b: dimensionless.', alias='l5.plane_b')
+    l5_plane_a: float | None = Field(description='l5.plane_a: dimensionless, or null when the close-up fit is absent.', alias='l5.plane_a')
+    l5_plane_b: float | None = Field(description='l5.plane_b: dimensionless, or null when the close-up fit is absent.', alias='l5.plane_b')
     l6_site_a: str = Field(description='l6.site_a: text.', alias='l6.site_a')
-    l6_site_b: str = Field(description='l6.site_b: text.', alias='l6.site_b')
+    l6_site_b: str | None = Field(description='l6.site_b: text, or null when no second site passes every veto.', alias='l6.site_b')
     l6_a_score: float = Field(description='l6.a_score: dimensionless.', alias='l6.a_score')
-    l6_b_score: float = Field(description='l6.b_score: dimensionless.', alias='l6.b_score')
+    l6_b_score: float | None = Field(description='l6.b_score: dimensionless, or null when site B was not selected.', alias='l6.b_score')
     l6_example_metrics_sun_fraction_mean: float = Field(description='l6.example_metrics.sun_fraction_mean: dimensionless.', alias='l6.example_metrics.sun_fraction_mean')
     l6_example_metrics_lit_fraction: float = Field(description='l6.example_metrics.lit_fraction: dimensionless.', alias='l6.example_metrics.lit_fraction')
     l6_example_metrics_longest_dark_h: float = Field(description='l6.example_metrics.longest_dark_h: hours.', alias='l6.example_metrics.longest_dark_h')
@@ -524,11 +529,36 @@ class WorkedExamples(Contract):
     l7_slip_vetoes: list[str] = Field(description='l7.slip_vetoes: list of text identifiers.', alias='l7.slip_vetoes')
     l7_slip_blackout_h: float = Field(description='l7.slip_blackout_h: hours.', alias='l7.slip_blackout_h')
     l7_next_go_date: UTC = Field(description='l7.next_go_date: UTC timestamp.', alias='l7.next_go_date')
-    l7_alt_site: str = Field(description='l7.alt_site: text.', alias='l7.alt_site')
+    l7_alt_site: str | None = Field(description='l7.alt_site: text, or null when no polar catalog site is GO on the slipped date.', alias='l7.alt_site')
     l8_candidates: list[str] = Field(description='l8.candidates: list of text identifiers.', alias='l8.candidates')
     l8_region_overlap_site_id: str = Field(description='l8.region_overlap.site_id: text.', alias='l8.region_overlap.site_id')
-    l8_region_overlap_region_name: str = Field(description='l8.region_overlap.region_name: text.', alias='l8.region_overlap.region_name')
-    l8_region_overlap_overlaps: bool = Field(description='l8.region_overlap.overlaps: boolean.', alias='l8.region_overlap.overlaps')
+    l8_region_overlap_region_name: str | None = Field(description='l8.region_overlap.region_name: text, or null when official region outlines are absent.', alias='l8.region_overlap.region_name')
+    l8_region_overlap_overlaps: bool | None = Field(description='l8.region_overlap.overlaps: boolean, or null when official region outlines are absent.', alias='l8.region_overlap.overlaps')
+    story_landing_utc: UTC = Field(description='story.landing_utc: UTC timestamp.', alias='story.landing_utc')
+    story_month_end_utc: UTC = Field(description='story.month_end_utc: UTC timestamp, exclusive end of the story month.', alias='story.month_end_utc')
+    story_profile_id: str = Field(description='story.profile_id: profile identifier.', alias='story.profile_id')
+    story_site_id: str = Field(description='story.site_id: site identifier.', alias='story.site_id')
+    story_window_end_utc: UTC = Field(description='story.window_end_utc: UTC timestamp, exclusive end of the mission window.', alias='story.window_end_utc')
+
+    @model_validator(mode='after')
+    def lessons_and_mask(self):
+        """Lessons 1 to 4 and the story are never null. The mask is the first share below 15 percent."""
+        nullable = {
+            'l5.slope_10m_deg', 'l5.slope_100m_deg', 'l5.plane_a', 'l5.plane_b',
+            'l6.site_b', 'l6.b_score', 'l7.alt_site',
+            'l8.region_overlap.region_name', 'l8.region_overlap.overlaps',
+        }
+        values = self.model_dump(by_alias=True)
+        missing = [key for key, value in values.items() if value is None and key not in nullable]
+        if missing:
+            raise ValueError('lessons 1 to 4 and the story cannot be null: ' + ', '.join(missing))
+        shares = self.l4_link_pct_by_mask
+        if len(shares) != 21 or any(not math.isfinite(share) for share in shares):
+            raise ValueError('l4.link_pct_by_mask must be 21 finite percentages')
+        below = next((index * 0.5 for index, share in enumerate(shares) if share < 15), None)
+        if below is None or self.l4_mask_for_15pct_deg != below:
+            raise ValueError('l4.mask_for_15pct_deg must be the first mask whose share is below 15 percent')
+        return self
 
 
 class CustomSiteRequest(Contract):
