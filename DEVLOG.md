@@ -78,7 +78,19 @@ _No entries yet._
 
 ## Academy
 
-_No entries yet._
+#### 2026-11-13 · A1 · Luna and LunaSays with placeholder art in eight moods; celebrations
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote `Luna`, `LunaSays`, `LunaCelebration`,
+  `LunaGallery`, the motion logic and its vitest tests — checked by the agent with the
+  tests, typecheck and build, and by eye in a browser at 160 px, 48 px, 390 px wide and
+  with reduced motion. **AI-generated images:** the eight placeholder Luna mood drawings
+  (inline SVG in `web/src/components/luna/art/`), made by Claude Code, claude-opus-5-5.
+- **State:** built, not verified
+- **Changed:** `web/src/components/luna/`
+- **Notes:** Luna's look lives only in `art/`; the seam is documented at the top of
+  `art/index.ts`. To look at it, mount `LunaGallery` (exported from
+  `components/luna`) on a temporary route. Reduced motion follows the system setting
+  live, or a `reduceMotion` prop.
 
 ## Planning
 
