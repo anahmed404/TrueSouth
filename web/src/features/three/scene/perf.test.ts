@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { FrameMeter, MOON_SEGMENTS_FULL, SLOW_MEDIAN_MS, STEP_DOWN_MS, drawDpr, judgeWindow, median, moonSegments, qualityStages } from "./perf";
+import {
+  FrameMeter,
+  MOON_SEGMENTS_FULL,
+  QualityGovernor,
+  RECOVER_WINDOWS,
+  SLOW_MEDIAN_MS,
+  STEP_DOWN_MS,
+  WINDOW_FRAMES,
+  drawDpr,
+  judgeWindow,
+  median,
+  moonSegments,
+  qualityStages,
+} from "./perf";
 
 describe("quality stages from the screen", () => {
   it("stage 0 is today's picture: the device pixel ratio up to 2, unchanged while moving", () => {
@@ -112,5 +125,83 @@ describe("the Moon's level of detail", () => {
       expect(n).toBeGreaterThanOrEqual(previous);
       previous = n;
     }
+  });
+});
+
+describe("the quality governor", () => {
+  const LAST = 3;
+  /** Feeds `n` frames of `gapMs`. */
+  function feed(g: QualityGovernor, n: number, gapMs: number, moving = true, hidden = false) {
+    const verdicts = [];
+    for (let i = 0; i < n; i += 1) verdicts.push(g.frame({ gapMs, moving, hidden }));
+    return verdicts;
+  }
+
+  it("never steps down at rest, however slow the frames", () => {
+    const g = new QualityGovernor(LAST);
+    feed(g, 500, 300, false);
+    expect(g.stage).toBe(0);
+  });
+
+  it("never steps down from frames taken while the tab is hidden", () => {
+    const g = new QualityGovernor(LAST);
+    feed(g, 500, 400, true, true);
+    expect(g.stage).toBe(0);
+  });
+
+  it("a hidden stretch in the middle of fast frames does not count against them", () => {
+    const g = new QualityGovernor(LAST);
+    feed(g, 10, 16);
+    feed(g, 3, 900, true, true);
+    feed(g, 30, 16);
+    expect(g.stage).toBe(0);
+  });
+
+  it("steps down while moving and slow, two stages when far too slow, and says slow only at the last stage", () => {
+    const slowish = new QualityGovernor(LAST);
+    feed(slowish, WINDOW_FRAMES, 45);
+    expect(slowish.stage).toBe(1);
+    const weak = new QualityGovernor(LAST);
+    const verdicts = feed(weak, 60, 200);
+    expect(weak.stage).toBe(LAST);
+    expect(verdicts.filter((v) => v.slow)).toHaveLength(1);
+  });
+
+  it("a one-off stall (a texture upload) does not cost quality", () => {
+    const g = new QualityGovernor(LAST);
+    feed(g, WINDOW_FRAMES, 16); // sets the reference
+    for (let i = 0; i < 20; i += 1) {
+      feed(g, 10, 16);
+      feed(g, 1, 600); // a stall: over four times the median
+    }
+    expect(g.stage).toBe(0);
+  });
+
+  it("recovers after sustained fast frames", () => {
+    const g = new QualityGovernor(LAST);
+    feed(g, WINDOW_FRAMES, 45);
+    expect(g.stage).toBe(1);
+    feed(g, WINDOW_FRAMES * RECOVER_WINDOWS, 12);
+    expect(g.stage).toBe(0);
+  });
+
+  it("does not oscillate between a stage that is too slow and the one below it", () => {
+    // A machine that is fast at stage 1 and slow at stage 0.
+    const g = new QualityGovernor(LAST);
+    let changes = 0;
+    for (let i = 0; i < 400 * WINDOW_FRAMES; i += 1) {
+      const v = g.frame({ gapMs: g.stage === 0 ? 45 : 12, moving: true, hidden: false });
+      if (v.changed) changes += 1;
+    }
+    expect(changes).toBeLessThanOrEqual(3);
+    expect(g.stage).toBe(1);
+  });
+
+  it("forgets a half-filled window when reset (the tab was hidden)", () => {
+    const g = new QualityGovernor(LAST);
+    feed(g, WINDOW_FRAMES - 1, 45);
+    g.reset();
+    feed(g, 1, 45);
+    expect(g.stage).toBe(0);
   });
 });

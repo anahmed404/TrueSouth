@@ -41,7 +41,7 @@ import { southPolePose } from "./navigate";
 import { Rig } from "./rig";
 import { sightState, type SightState } from "./sight";
 import { PointerTracker, type Command as PointerCommand } from "./pointers";
-import { FrameMeter, MOON_SEGMENTS_FULL, STEP_DOWN_MS, WINDOW_FRAMES, drawDpr, judgeWindow, median, moonSegments, qualityStages } from "./perf";
+import { FrameMeter, MOON_SEGMENTS_FULL, QualityGovernor, drawDpr, moonSegments, qualityStages } from "./perf";
 import { Stars, starExposure } from "./stars";
 import { mul, type V3 } from "./vec";
 import { World, type WorldInputs, type WorldSite } from "./world";
@@ -55,6 +55,10 @@ import "./scene.css";
 
 /** A double-click's move onto a spot. */
 const FOCUS_MS = 700;
+/** Frames closer together than this are a moving picture (perf.ts measures them). */
+const MOTION_GAP_MS = 250;
+/** With no frame for this long, the scene draws one full-quality frame. Longer than MOTION_GAP_MS. */
+const REST_AFTER_MS = 300;
 /** The space our own plates take at the top and foot of the free space, so the subject clears them. */
 const PLATE_TOP = 40;
 /** In the System view the bodies' labels hang below them, above the controls. */
@@ -754,11 +758,10 @@ function Director(props: DirectorProps) {
     () => ({
       stages: qualityStages(typeof window === "undefined" ? 1 : window.devicePixelRatio || 1),
       stage: 0,
-      meter: new FrameMeter(WINDOW_FRAMES, 1_000),
+      governor: new QualityGovernor(qualityStages(1).length - 1),
       restTimer: 0,
       lastFrame: 0,
       resting: false,
-      slowSent: false,
     }),
     [],
   );
@@ -766,7 +769,6 @@ function Director(props: DirectorProps) {
     (stage: number) => {
       if (stage === quality.stage) return;
       quality.stage = stage;
-      quality.meter.reset();
       const rest = drawDpr(quality.stages[stage]!, false);
       setDpr(rest);
       gl.setPixelRatio(rest);
@@ -774,19 +776,24 @@ function Director(props: DirectorProps) {
     },
     [quality, setDpr, gl, invalidate],
   );
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    // A hidden tab draws nothing: whatever was measured around it is not a frame time.
+    const onVisibility = () => {
+      quality.governor.reset();
+      quality.lastFrame = 0;
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
       window.clearTimeout(quality.restTimer);
-    },
-    [quality],
-  );
+    };
+  }, [quality]);
 
-  // ── Status: measure the first flight, then report ──
-  const measuring = useRef<{ frames: number[]; last: number } | null>(null);
+  // ── Status: report once the first flight lands ──
+  // The quality governor (perf.ts) judges the first flight's frames like any other flight's;
+  // the scene says "slow" only from its last quality stage.
   const reported = useRef(false);
   const finishMeasure = useCallback(() => {
-    const m = measuring.current;
-    measuring.current = null;
     if (reported.current) return;
     reported.current = true;
     const p = latest.current;
@@ -794,11 +801,8 @@ function Director(props: DirectorProps) {
       p.onStatus(p.ignoreSlow ? "ready" : "slow", NO_FLAT_VIEWS);
       return;
     }
-    // A slow first flight steps the quality down; it no longer swaps in the still picture.
-    const frames = m?.frames ?? [];
-    if (frames.length > 0 && !p.capture) applyStage(judgeWindow(quality.stage, quality.stages.length - 1, median(frames)).stage);
     p.onStatus("ready", NO_FLAT_VIEWS);
-  }, [applyStage, quality]);
+  }, []);
 
   // ── Flights ──
   const arrive = useCallback((view: CameraViewId) => {
@@ -857,7 +861,6 @@ function Director(props: DirectorProps) {
       rig.flyToView(props.view, target, 0, arrive);
       finishMeasure();
     } else {
-      measuring.current = { frames: [], last: 0 };
       rig.flyToView(props.view, target, INTRO_MS, (view) => {
         finishMeasure();
         arrive(view);
@@ -919,39 +922,31 @@ function Director(props: DirectorProps) {
     // rest, to put back the full picture, is not.
     const resting = quality.resting;
     quality.resting = false;
-    const sinceLast = now - quality.lastFrame;
+    const sinceLast = quality.lastFrame > 0 ? now - quality.lastFrame : 0;
     quality.lastFrame = now;
-    const inMotion = !latest.current.capture && !resting && sinceLast > 0 && sinceLast <= 250;
-    if (!latest.current.capture && !measuring.current) {
+    const inMotion = !latest.current.capture && !resting && quality.lastFrame > 0 && sinceLast > 0 && sinceLast <= MOTION_GAP_MS;
+    if (!latest.current.capture) {
       // Only flight frames judge the stage: they are drawn back to back, so the time between
       // them is the frame's cost. A drag's frames follow the pointer, and a pause in a drag
-      // must not look like a slow frame. The meter keeps its frames from one flight to the
-      // next (a gap over a second is dropped).
-      if (rig.flying) quality.meter.tick(now);
-      const enough = quality.meter.count >= WINDOW_FRAMES || (quality.meter.count >= 6 && quality.meter.median() > 3 * STEP_DOWN_MS);
-      if (enough) {
-        const verdict = judgeWindow(quality.stage, quality.stages.length - 1, quality.meter.median());
-        quality.meter.reset();
-        if (verdict.stage !== quality.stage) applyStage(verdict.stage);
-        else if (verdict.slow && !quality.slowSent && !latest.current.ignoreSlow) {
-          quality.slowSent = true;
-          latest.current.onStatus("slow", NO_FLAT_VIEWS);
-        }
-      }
+      // must not look like a slow frame. Hidden-tab frames and stalls never count (perf.ts).
+      const verdict = quality.governor.frame({ gapMs: resting ? 0 : sinceLast, moving: rig.flying, hidden: document.hidden });
+      if (verdict.changed) applyStage(verdict.stage);
+      if (verdict.slow && !latest.current.ignoreSlow) latest.current.onStatus("slow", NO_FLAT_VIEWS);
       // Dynamic resolution (stages 1 and up): fewer pixels while moving, the full stage
       // resolution at rest. The canvas is resized inside the frame, so a cleared canvas is
       // never shown.
       const want = drawDpr(quality.stages[quality.stage]!, inMotion);
       if (Math.abs(gl.getPixelRatio() - want) > 1e-3) gl.setPixelRatio(want);
     }
-    // When nothing has moved for 160 ms, draw one more frame with the full picture: full
-    // resolution and the full Moon mesh. Then nothing is drawn until something changes.
+    // When nothing has moved for longer than the motion cutoff, draw one more frame with the
+    // full picture: full resolution and the full Moon mesh. Then nothing is drawn until
+    // something changes. (Longer than the cutoff, so a slow flight's frames never trigger it.)
     window.clearTimeout(quality.restTimer);
-    if (inMotion) {
+    if (inMotion || rig.flying) {
       quality.restTimer = window.setTimeout(() => {
         quality.resting = true;
         invalidate();
-      }, 160);
+      }, REST_AFTER_MS);
     }
     const moving = rig.update(now);
     world.draw = rig.draw;
@@ -979,11 +974,6 @@ function Director(props: DirectorProps) {
     const overlayStart = devMeter ? performance.now() : 0;
     latest.current.bus.current.overlay?.(anchors, frameCamera as THREE.PerspectiveCamera, size);
     if (devMeter) devMeter.parts.overlay += performance.now() - overlayStart;
-    const m = measuring.current;
-    if (m) {
-      if (m.last > 0) m.frames.push(now - m.last);
-      m.last = now;
-    }
     if (devMeter) {
       devMeter.meter.tick(now);
       devMeter.frames += 1;

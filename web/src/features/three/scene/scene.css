@@ -9,6 +9,9 @@
     inset: 0;
     overflow: hidden;
     touch-action: none;
+    /* A double-click centres a spot or levels the view; it never selects text. */
+    user-select: none;
+    -webkit-user-select: none;
     background: var(--space);
     outline: none;
   }

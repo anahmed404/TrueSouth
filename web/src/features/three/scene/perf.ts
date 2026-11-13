@@ -142,3 +142,102 @@ export function moonSegments(pixelRadius: number): number {
   const needed = Math.PI * Math.sqrt(2 * pixelRadius) * 1.33;
   return MOON_SEGMENTS.find((n) => n >= needed) ?? MOON_SEGMENTS_FULL;
 }
+
+/** A window whose median is under this (about 50 frames a second) counts toward stepping back up. */
+export const STEP_UP_MS = 20;
+/** This many fast windows in a row step the quality back up one stage. */
+export const RECOVER_WINDOWS = 3;
+/** A gap this many times the last window's median is a stall (a texture upload, a GC), not a frame. */
+export const STALL_FACTOR = 4;
+
+export type FrameSample = {
+  /** Time since the frame before, in ms (0 or less: none). */
+  gapMs: number;
+  /** True while the camera flies (frames drawn back to back). Only these judge the stage. */
+  moving: boolean;
+  /** True while the tab is hidden. Those frames never count. */
+  hidden: boolean;
+};
+
+export type GovernorVerdict = { stage: number; changed: boolean; slow: boolean };
+
+/**
+ * Chooses the quality stage from measured frames (the Director feeds it every drawn frame).
+ *
+ * - Only moving, visible frames count; a frame at rest or while hidden never moves the stage.
+ * - A gap over a second, or over STALL_FACTOR times the last window's median, is a stall and
+ *   is dropped, so a one-off upload cannot cost quality for the rest of the session.
+ * - A window of WINDOW_FRAMES moving frames (or 6, when far too slow) is judged: slower than
+ *   STEP_DOWN_MS steps down (judgeWindow); at the last stage, slower than SLOW_MEDIAN_MS says
+ *   "slow" once.
+ * - RECOVER_WINDOWS windows in a row faster than STEP_UP_MS step back up one stage.
+ * - No oscillation: a stage that failed again within two windows of stepping up into it is
+ *   never stepped up into again in this visit.
+ */
+export class QualityGovernor {
+  stage = 0;
+  private readonly window: Float64Array;
+  private count = 0;
+  private reference = 0;
+  private fastRun = 0;
+  /** The best stage the governor may step up to (a stage that failed after recovering is barred). */
+  private ceiling = 0;
+  private sinceStepUp = Number.POSITIVE_INFINITY;
+  private slowSent = false;
+
+  constructor(
+    readonly lastStage: number,
+    windowFrames = WINDOW_FRAMES,
+  ) {
+    this.window = new Float64Array(windowFrames);
+  }
+
+  /** Forgets the frames in hand (the tab was hidden, or the scene rested). Keeps the stage. */
+  reset(): void {
+    this.count = 0;
+  }
+
+  frame(sample: FrameSample): GovernorVerdict {
+    const none = { stage: this.stage, changed: false, slow: false };
+    if (sample.hidden) {
+      this.count = 0;
+      return none;
+    }
+    if (!sample.moving || !(sample.gapMs > 0)) return none;
+    if (sample.gapMs > 1_000) return none;
+    if (this.reference > 0 && sample.gapMs > STALL_FACTOR * this.reference && sample.gapMs > 2 * STEP_DOWN_MS) return none;
+    this.window[this.count] = sample.gapMs;
+    this.count += 1;
+    const full = this.count >= this.window.length;
+    const farTooSlow = this.count >= 6 && median(this.window, this.count) > 3 * STEP_DOWN_MS;
+    if (!full && !farTooSlow) return none;
+    const m = median(this.window, this.count);
+    this.count = 0;
+    this.reference = m;
+    this.sinceStepUp += 1;
+    const before = this.stage;
+    if (m > STEP_DOWN_MS) {
+      this.fastRun = 0;
+      const verdict = judgeWindow(this.stage, this.lastStage, m);
+      if (verdict.stage !== this.stage) {
+        // Failing within two windows of stepping up: never step up past this stage again.
+        if (this.sinceStepUp <= 2) this.ceiling = Math.max(this.ceiling, this.stage + 1);
+        this.stage = verdict.stage;
+      }
+      const slow = verdict.slow && !this.slowSent;
+      if (slow) this.slowSent = true;
+      return { stage: this.stage, changed: this.stage !== before, slow };
+    }
+    if (m < STEP_UP_MS && this.stage > this.ceiling) {
+      this.fastRun += 1;
+      if (this.fastRun >= RECOVER_WINDOWS) {
+        this.fastRun = 0;
+        this.stage -= 1;
+        this.sinceStepUp = 0;
+      }
+    } else {
+      this.fastRun = 0;
+    }
+    return { stage: this.stage, changed: this.stage !== before, slow: false };
+  }
+}
