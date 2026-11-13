@@ -128,7 +128,7 @@ function RunLine({ report }: { report: CheckedReport }) {
       ? comparisons.incomplete === 0
         ? ` All ${comparisons.total} comparisons are within their mark.`
         : ` ${within} of ${comparisons.total} comparisons are within their mark.`
-      : ` ${comparisons.outside} of ${comparisons.total} comparisons are outside their mark; each is explained where it appears.`) +
+      : ` ${comparisons.outside} of ${comparisons.total} comparisons ${comparisons.outside === 1 ? "is" : "are"} outside their mark; each is explained where it appears.`) +
     (comparisons.incomplete > 0
       ? ` ${comparisons.incomplete} comparison ${comparisons.incomplete === 1 ? "record is" : "records are"} incomplete in this build.`
       : "");
