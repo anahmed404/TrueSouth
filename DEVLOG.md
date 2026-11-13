@@ -581,6 +581,50 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-14 · MC9 · The Compare window, share, CSV and JSON export, confirmed NASA links
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (building the
+  approved C2 window, no redesign) — wrote the Compare model and table, the CSV and scenario
+  JSON exports, the Share button with its hand-copy fallback, the NASA link builders, 47
+  vitest tests and the spec edits; a background research agent read the QuickMap and Moon
+  Trek bundles for their link parameters — checked by the agent with typecheck, the vitest
+  suite, the build and `uv run pytest`; by opening both NASA links for Apollo 11 and
+  Connecting Ridge and reading each tool's own coordinate readout; and by eye at 1440 × 900,
+  1024 × 768 and 390 × 844 with four, eight, one and best-lit sites, keyboard only, real
+  downloads read back with Python's csv module, and a copied link opened in a fresh browser
+  context. Reviewed by Gemini (request changes, two defects; substance confirmed on real
+  data); the agent then fixed all eight review items: the Share fallback moved into the
+  shell's popover, CSV formula injection, the variant's "not ranked" sentence, the shared
+  site wording and rounding, rendered-panel tests, the summary and Sun-at-landing edges, the
+  CSV's precision note, and custom sites. A human has not reviewed it yet
+- **State:** verified (2,091 web tests, typecheck and build pass on the merge with main (the orchestrator's run), and 425 Python tests (the builder's run); reviewed by Gemini, which checked every cell against the focused-site panel and a direct evaluation on real data, parsed both exports and checked the NASA links' projection; eight findings fixed with tests (the Share fallback is no longer covered and Escape closes only it; CSV text cells that begin like a formula are neutralised; the best-lit point's missing mark is explained; ranges round outward); not yet tried by the team lead)
+- **Changed:** `web/src/features/mission-control/compare/` (model, table, exports, tests),
+  `web/src/features/mission-control/share/` (new: Share button, link, NASA links, tests),
+  `web/src/lib/export/` (new: CSV writer and reader, with the formula guard),
+  `web/src/components/Popover.tsx` (an optional handle to open it from code),
+  `web/src/app/mission/top-bar.tsx`
+  (Share moved out to its own component; merged with #83, so the app bar holds the brand,
+  the mode switch, the profile and Share), `web/src/lib/explain.ts` (Compare's text),
+  `docs/features/compare.md`, `docs/features/share-export.md`,
+  `docs/features/mission-control.md`, `docs/build-plan.md`,
+  `docs/design/c2/built-compare-*.png`, this entry
+- **Notes:**
+  - Each column is built from the focused-site panel's own functions (`useSiteStatus`,
+    `describeEvaluation`, `describeMetrics`, `scoreText`); a test checks every cell
+    against the panel for five presets and three dates on the fixture.
+  - Spec changes: up to eight sites (the rail's limit), not four; the summary and the
+    export buttons sit in the window's body; the Timeline, Skyline and Nearby dates rows
+    are deferred. The Timeline CSV, the Slip Planner CSV and the PNG export are not built.
+  - Share copies a link built from the store, because the address bar can lag a scrub by
+    up to 250 ms.
+  - NASA links: QuickMap moved to `quickmap.lroc.im-ldi.com`; both tools open in their
+    south-pole projection south of 80° S. The formats are in `share-export.md`. The links
+    are in the Compare table only; adding them to the focused-site panel is a follow-up.
+  - A scrub does not re-render the table (a render-count test).
+  - The variant and nearby-range words are copied into `compare/site-wording.ts` from the
+    sites package's `site-labels.ts` (#92); import them from there once #92 is on main.
+  - Every CSV string cell that would run as a formula gets a leading `'`; numbers never do.
+
 #### 2026-11-14 · MC shell feedback · No view sentence; the landing date joins the timeline; "Next GO"
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (a rearrangement
@@ -907,6 +951,56 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - Measured: 4 vitest tests pass; production bundle 259 kB (82 kB gzipped).
 
 ## 3D and Map
+
+#### 2026-11-14 · T7 · The flat Polar map
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (no question
+  round: a briefed sub-agent) — wrote the flat map in `web/src/features/polar-map/` (canvas
+  drawing, pins, readouts, the takeover, the nudge), its vitest tests, the seam change in
+  `web/src/app/scene.ts` and `scene-slot.tsx`, the `polar_map` sentence and the spec edits
+  — checked by the agent with the vitest suite, typecheck, the build, impeccable's detector
+  (no findings) and by eye in a browser on the real data at 1440 × 900, 1024 × 768,
+  390 × 844, forced "no WebGL", reduced motion and a 360 px lesson box; a human has not
+  reviewed it yet
+- **State:** verified (2,017 web tests, typecheck and build pass on the merge with main (the orchestrator's run), and 425 Python tests on the same tree (the builder's run); reviewed by Cursor, which re-derived the projection independently and matched it at the pole, the four 80°S axes and five sites, confirmed the image is not mirrored and the lookup cells are right; one must-fix (the NASA caveat now stays up while a pin is dragged) and five smaller fixes made; not yet tried by the team lead)
+- **Changed:** `web/src/features/polar-map/` (new files; `index.tsx` keeps `PolarMap` as the
+  default export), `web/src/app/scene.ts` (adds `FlatLayer` and `FlatLayerProps`),
+  `web/src/app/mission/scene-slot.tsx` (optional `flat` prop), two lines in
+  `web/src/app/mission-screen.tsx`, the `polar_map` text in `web/src/lib/explain.ts`,
+  `web/package.json` and `web/pnpm-lock.yaml` (`d3-selection` and its types declared; both
+  were already in the lockfile under `d3-zoom`), `docs/features/polar-map.md`,
+  `docs/design/c2/built-polar-map-*.png`, this entry
+- **Notes:**
+  - The swap from globe to map: the scene's arrival gives the pole and the scale; the map
+    takes the scale halfway between the pole's and 80°S's, so no pin from the pole to 80°S
+    moves by more than about 0.6 % of the map's width at 80°S (a pinhole projection of the
+    cap, tested against `polarPose` and `polarScale`). Matching the pole exactly left pins
+    near 80°S up to 1.1 % off.
+  - Best-lit variants (#77, merged in): tested against the five real ones. A variant whose
+    parent is drawn stands in a callout beside it; one whose parent is folded into another
+    pin folds with it. Seen at Connecting Ridge and Shackleton rim at 40 m a pixel. The
+    nudge readout there reads "Average sunlight 54 % → 43 %, lower" 300 m from Connecting
+    Ridge, with its 40 to 87 % nearby range and the best-lit point 150 m away.
+  - Review of #89 (Cursor): the coordinate work checked out independently. Fixed: the "not
+    for your dates" caveat stays on screen while a pin is dragged; every NASA average is
+    labelled as NASA's; nearby ranges round outward in PR #92's wording ("Within 160 m: 39 %
+    to 87 %"), and byte 254 reads "over 99 %"; pan stops with a third of the map in the free
+    space; the 8K relief is let go after 20 s zoomed out and with the overlays on leaving.
+    New rendered tests (`readout-card.test.ts`) cover the caveat mid-drag, the start value
+    at the listed point, the request button and the longitude passed to `onRequestSite`.
+    Checked by eye once on the merged shell (#83): the map centres in the taller free space
+    and its controls sit above the timeline.
+  - For the Slip Planner (#87) and the Academy, `PolarMap` takes `sites`,
+    `showFeatureNames`, `overlay`, `overlayOpacity` and `onProjector` (the same shape as
+    `SceneProjector`). Nothing is built for the Slip Planner here.
+  - `artemis_regions.json` has no centres or sizes, so no outlines are drawn.
+  - Catalog sites that are not selected are grey dots without a status: a status needs the
+    site's 0.8 MB series, which loads when the site is added.
+  - On a page load straight into `view=map`, the scene's first flight waits for data; after
+    2.4 s without an arrival the map opens at its own fit (the same fit as the camera's).
+  - `polar-map.css` is not in a cascade layer: it loads before `theme.css`, and a
+    `@layer components` there reordered Tailwind's layers and reset every component's
+    padding (seen and fixed in the browser).
 
 #### 2026-11-14 · Scene polish · Controls, real stars, and speed on weak machines
 - **Who:** Claude Code agent, for the orchestrator

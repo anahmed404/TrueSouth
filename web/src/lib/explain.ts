@@ -285,7 +285,7 @@ const entries = {
     lesson: "l1_sun",
   },
   polar_map: {
-    text: "A flat map of the Moon's south pole region, seen from above, where you pick sites and nudge a pin to see how much a small move changes the light.",
+    text: "A flat map of the Moon's south pole region, seen from above. Add sites from it, and drag the focused site's pin to see how NASA's long-term average sunlight and Earth visibility change a short way off.",
     lesson: "l5_slope",
   },
   local_terrain: {
@@ -303,7 +303,7 @@ const entries = {
     lesson: "l2_skyline",
   },
   compare: {
-    text: "A table that puts up to four sites side by side, for the same mission profile and landing date, so you can see which one wins and why.",
+    text: "Compare puts your selected sites side by side, for one mission profile and landing date. It shows which one wins, and why.",
     lesson: "l6_tradeoffs",
   },
   timeline: {

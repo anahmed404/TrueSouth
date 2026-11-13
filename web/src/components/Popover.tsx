@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode, type Ref } from "react";
 import { cx } from "./format";
 
 export type PopoverTriggerProps = {
@@ -8,6 +8,9 @@ export type PopoverTriggerProps = {
   "aria-controls": string;
   "aria-haspopup": "dialog";
 };
+
+/** Opens or closes a popover from code, for a trigger whose click does something else first. */
+export type PopoverHandle = { open: () => void; close: () => void };
 
 type PopoverProps = {
   /** The dialog's accessible name, for example "Mission profile". */
@@ -23,6 +26,12 @@ type PopoverProps = {
   /** Open under the trigger (the default), or above it, for a trigger at the foot of the window. */
   placement?: "below" | "above";
   className?: string;
+  /**
+   * Opens it from code. A trigger that leaves `popoverTarget` off its button is then not a
+   * toggle: its click can do something else and open the popover only when needed (the
+   * Share fallback). Escape, light dismiss and the focus return work as usual.
+   */
+  handleRef?: Ref<PopoverHandle>;
 };
 
 const MARGIN = 16;
@@ -36,7 +45,7 @@ const GAP = 6;
  * - On open, focus moves to the first control inside. On close, it returns to the button.
  * - Flat Raised surface, Control Edge border and the popover shadow (DESIGN.md, Elevation).
  */
-export function Popover({ label, trigger, children, align = "start", width = 360, placement = "below", className }: PopoverProps) {
+export function Popover({ label, trigger, children, align = "start", width = 360, placement = "below", className, handleRef }: PopoverProps) {
   const id = `popover-${useId()}`;
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -113,6 +122,18 @@ export function Popover({ label, trigger, children, align = "start", width = 360
     const panel = panelRef.current;
     if (panel?.matches(":popover-open")) panel.hidePopover();
   }, []);
+
+  useImperativeHandle(
+    handleRef,
+    () => ({
+      open: () => {
+        const panel = panelRef.current;
+        if (panel && !panel.matches(":popover-open")) panel.showPopover();
+      },
+      close,
+    }),
+    [close],
+  );
 
   return (
     <>
