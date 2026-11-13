@@ -106,7 +106,7 @@ export function unitSymbol(unit: string): string {
 export const COMPARISON_TITLES: Record<string, string> = {
   R1: "Average sunlight",
   R2: "Earth in view",
-  R3: "Slope from the 80 m map",
+  R3: "Slope from the polar map",
   R4: "Slope from a close-up map",
   R5: "The skyline at a finer step",
   R6: "The fast skyline against the full method",

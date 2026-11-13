@@ -1,0 +1,955 @@
+/*
+  The validation page, "How we know it's right". A reading page in the C2 look:
+  neutral dark, data colours only for the Sun, Earth and the three statuses, flat panels.
+  Tokens only: every colour, size and curve is a var() from web/src/app/theme.css.
+  Phone rules apply under 640px; the contents list moves above the page under 960px.
+*/
+
+.vl-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--t-lg);
+  line-height: 1.55;
+}
+
+.vl-page :focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: var(--r-sm);
+}
+
+.vl-page a {
+  color: var(--ink);
+  text-decoration-color: var(--ink-3);
+}
+
+.vl-page a:hover {
+  text-decoration-color: var(--ink);
+}
+
+.vl-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ── Top bar and footer ──────────────────────────────────────────────────── */
+
+.vl-top {
+  display: flex;
+  align-items: center;
+  gap: var(--s5);
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: var(--s5) var(--s6) 0;
+  box-sizing: border-box;
+}
+
+.vl-top .brand {
+  min-height: 44px;
+}
+
+.vl-top-nav {
+  display: flex;
+  gap: var(--s2);
+  margin-left: auto;
+  font-size: var(--t-md);
+}
+
+.vl-top-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--s3);
+  border-radius: var(--r-sm);
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+.vl-top-nav a:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.vl-foot {
+  width: 100%;
+  max-width: 1440px;
+  margin: var(--s7) auto 0;
+  padding: var(--s4) var(--s6) var(--s5);
+  box-sizing: border-box;
+  border-top: 1px solid var(--line);
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+}
+
+/* ── Main column ─────────────────────────────────────────────────────────── */
+
+.vl-main {
+  flex: 1;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: var(--s7) var(--s6) 0;
+  box-sizing: border-box;
+}
+
+.vl-intro {
+  max-width: 72ch;
+  margin-bottom: var(--s7);
+}
+
+.vl-intro h1 {
+  margin: 0 0 var(--s4);
+  font-size: var(--t-3xl);
+  font-weight: 600;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.vl-lead {
+  margin: 0 0 var(--s4);
+  color: var(--ink-2);
+  font-size: var(--t-xl);
+  line-height: 1.45;
+}
+
+.vl-run {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--t-md);
+}
+
+.vl-summary {
+  margin: var(--s2) 0 0;
+  color: var(--ink-2);
+  font-size: var(--t-lg);
+}
+
+.vl-layout {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr);
+  gap: var(--s7);
+  align-items: start;
+}
+
+.vl-contents {
+  position: sticky;
+  top: var(--s5);
+}
+
+.vl-contents-title {
+  margin: 0 0 var(--s2);
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+  font-weight: 400;
+}
+
+.vl-contents ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-left: 1px solid var(--line);
+}
+
+.vl-contents a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--s3);
+  color: var(--ink-2);
+  font-size: var(--t-md);
+  text-decoration: none;
+}
+
+.vl-contents a:hover {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.vl-body {
+  min-width: 0;
+  max-width: 1040px;
+}
+
+/* ── Sections and text ───────────────────────────────────────────────────── */
+
+.vl-section {
+  scroll-margin-top: var(--s5);
+  padding-bottom: var(--s7);
+}
+
+.vl-section + .vl-section {
+  padding-top: var(--s6);
+  border-top: 1px solid var(--line);
+}
+
+.vl-h2 {
+  margin: 0 0 var(--s4);
+  font-size: var(--t-2xl);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.vl-h3 {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  margin: var(--s6) 0 var(--s3);
+  font-size: var(--t-xl);
+  font-weight: 600;
+  line-height: 1.25;
+  scroll-margin-top: var(--s5);
+}
+
+.vl-block:first-of-type > .vl-h3,
+.vl-figure-head .vl-h3 {
+  margin-top: var(--s5);
+}
+
+.vl-id {
+  flex: none;
+  color: var(--ink-3);
+  font-size: var(--t-md);
+  font-weight: 500;
+}
+
+.vl-gate-name .vl-id {
+  margin-right: var(--s2);
+}
+
+.vl-prose {
+  max-width: 72ch;
+  margin: 0 0 var(--s4);
+}
+
+.vl-quiet {
+  color: var(--ink-2);
+}
+
+.vl-note {
+  margin: var(--s1) 0 0;
+  color: var(--ink-3);
+  font-size: var(--t-md);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.vl-link {
+  display: inline;
+}
+
+.vl-link-icon {
+  display: inline-block;
+  margin-left: 2px;
+  vertical-align: -1px;
+  color: var(--ink-3);
+}
+
+.vl-source-line {
+  margin: var(--s3) 0 0;
+  color: var(--ink-3);
+  font-size: var(--t-md);
+}
+
+/* ── Results: always a glyph and a word ──────────────────────────────────── */
+
+.vl-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--t-md);
+  white-space: nowrap;
+}
+
+.vl-verdict-passed,
+.vl-verdict-within {
+  color: var(--ink-2);
+}
+
+.vl-verdict-failed {
+  color: var(--status-nogo);
+  font-weight: 600;
+}
+
+.vl-verdict-outside {
+  color: var(--status-caution);
+  font-weight: 600;
+}
+
+.vl-verdict-elsewhere {
+  color: var(--ink-2);
+}
+
+.vl-verdict-icon {
+  color: var(--ink-3);
+}
+
+/* ── Section 1: the method ───────────────────────────────────────────────── */
+
+.vl-method {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr) 32px minmax(0, 1fr);
+  align-items: stretch;
+  margin: var(--s5) 0;
+}
+
+.vl-method-col ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vl-method-heading {
+  margin: 0 0 var(--s2);
+  color: var(--ink-3);
+  font-size: var(--t-md);
+  font-weight: 400;
+}
+
+.vl-box {
+  padding: var(--s3) var(--s4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.vl-box-title {
+  margin: 0 0 var(--s1);
+  font-size: var(--t-lg);
+  font-weight: 600;
+}
+
+.vl-box p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--t-md);
+  line-height: 1.45;
+}
+
+.vl-box .vl-box-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--s3);
+  margin-top: var(--s1);
+}
+
+.vl-box-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--ink-2);
+  font-size: var(--t-sm);
+}
+
+.vl-arrow {
+  display: grid;
+  place-items: center;
+  padding-top: var(--s5);
+  color: var(--ink-3);
+}
+
+.vl-arrow-narrow {
+  display: none;
+}
+
+/* ── Section 2: the headline ─────────────────────────────────────────────── */
+
+.vl-headline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s3) var(--s4);
+  max-width: 72ch;
+  margin: 0 0 var(--s4);
+  padding: var(--s4) var(--s5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.vl-headline-failed {
+  border-color: var(--status-nogo-edge);
+}
+
+.vl-headline-text {
+  flex: 1 1 24ch;
+  margin: 0;
+  font-size: var(--t-2xl);
+  font-weight: 600;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+/* ── Figures and charts ──────────────────────────────────────────────────── */
+
+.vl-figure {
+  margin: var(--s5) 0 var(--s4);
+}
+
+.vl-figure-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-bottom: var(--s3);
+}
+
+.vl-figure-head .vl-h3 {
+  margin: 0;
+}
+
+.vl-select {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  color: var(--ink-3);
+  font-size: var(--t-md);
+}
+
+.vl-select select {
+  min-height: 44px;
+  max-width: 60vw;
+  padding: 0 var(--s3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.vl-select select:hover {
+  background: var(--hover);
+}
+
+.vl-chart {
+  width: 100%;
+  min-width: 0;
+}
+
+.vl-chart-square {
+  max-width: 420px;
+}
+
+.vl-svg {
+  display: block;
+  overflow: visible;
+}
+
+.vl-plot-bg {
+  fill: var(--plot);
+  stroke: var(--line);
+}
+
+.vl-grid {
+  stroke: var(--grid);
+}
+
+.vl-tick {
+  fill: var(--ink-3);
+  font-size: var(--t-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.vl-axis-label {
+  fill: var(--ink-2);
+  font-size: var(--t-sm);
+}
+
+.vl-limit {
+  stroke: var(--ink-2);
+  stroke-width: 1.2;
+  stroke-dasharray: 5 4;
+}
+
+.vl-limit-label {
+  fill: var(--ink-2);
+  font-size: var(--t-sm);
+}
+
+.vl-line {
+  fill: none;
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.vl-line-sun {
+  stroke: var(--sun);
+}
+
+.vl-line-earth {
+  stroke: var(--earth);
+}
+
+.vl-band {
+  fill: var(--raised);
+}
+
+.vl-diagonal {
+  stroke: var(--ink-3);
+  stroke-width: 1;
+}
+
+.vl-dot {
+  stroke: var(--plot);
+  stroke-width: 1.5;
+}
+
+.vl-dot-sun {
+  fill: var(--sun);
+}
+
+.vl-dot-earth {
+  fill: var(--earth);
+}
+
+.vl-diamond {
+  fill: var(--status-caution);
+  stroke: var(--plot);
+  stroke-width: 1.5;
+}
+
+.vl-outlier-label {
+  fill: var(--ink);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: var(--plot);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.vl-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1) var(--s4);
+  margin: var(--s2) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink-2);
+  font-size: var(--t-sm);
+}
+
+.vl-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vl-key {
+  display: inline-block;
+  width: 16px;
+  height: 0;
+  border-top: 2px solid var(--ink-2);
+}
+
+.vl-key-sun {
+  border-top-color: var(--sun);
+}
+
+.vl-key-earth {
+  border-top-color: var(--earth);
+}
+
+.vl-key-limit {
+  border-top-style: dashed;
+}
+
+.vl-caption {
+  max-width: 72ch;
+  margin: var(--s3) 0 var(--s4);
+  color: var(--ink-2);
+  font-size: var(--t-md);
+}
+
+.vl-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+  gap: var(--s6);
+  align-items: start;
+}
+
+.vl-pair .vl-figure {
+  margin: 0;
+}
+
+/* ── Gates ───────────────────────────────────────────────────────────────── */
+
+.vl-gates {
+  margin: 0 0 var(--s4);
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.vl-gate {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--s3) var(--s5);
+  align-items: start;
+  padding: var(--s4) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.vl-gate-failed .vl-gate-name {
+  color: var(--status-nogo);
+}
+
+.vl-gate-name {
+  margin: 0;
+  font-weight: 500;
+}
+
+.vl-gate-values {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 0 var(--s5);
+  margin: 0;
+  font-size: var(--t-md);
+}
+
+.vl-gate-values dt {
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+}
+
+.vl-gate-values dd {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.vl-gate-result {
+  min-width: 13.5em;
+  padding-top: 2px;
+}
+
+/* ── Comparisons ─────────────────────────────────────────────────────────── */
+
+.vl-block + .vl-block {
+  margin-top: var(--s6);
+}
+
+.vl-outliers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  max-width: 80ch;
+  margin: 0 0 var(--s5);
+  padding: 0;
+  list-style: none;
+}
+
+.vl-outlier-card {
+  padding: var(--s3) var(--s4);
+  border: 1px solid color-mix(in oklab, var(--status-caution), transparent 55%);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.vl-outlier-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s1) var(--s3);
+  margin: 0 0 var(--s2);
+}
+
+.vl-outlier-text {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--t-md);
+  line-height: 1.55;
+}
+
+.vl-table-box {
+  min-width: 0;
+}
+
+.vl-table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.vl-scroll-cue {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: var(--s2) 0 0;
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+}
+
+.vl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.vl-table th,
+.vl-table td {
+  padding: 0 var(--s3);
+  height: 36px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.vl-table thead th {
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+  font-weight: 400;
+}
+
+.vl-table tbody th {
+  font-weight: 500;
+}
+
+.vl-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.vl-table .vl-num {
+  text-align: right;
+}
+
+.vl-row-outside > * {
+  background: var(--raised);
+}
+
+.vl-notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  margin: 0;
+}
+
+.vl-notes dt {
+  font-size: var(--t-md);
+  font-weight: 500;
+}
+
+.vl-notes dd {
+  margin: 0;
+}
+
+.vl-section .disclosure {
+  max-width: 80ch;
+  margin-top: var(--s4);
+}
+
+.vl-section .disclosure > summary {
+  min-height: 44px;
+}
+
+/* ── Section 6 and 7 ─────────────────────────────────────────────────────── */
+
+.vl-limits {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s5) var(--s6);
+  max-width: 960px;
+  margin: var(--s4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vl-limit-title {
+  margin: 0 0 var(--s1);
+  font-size: var(--t-lg);
+  font-weight: 600;
+}
+
+.vl-limits p {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.vl-sources {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.vl-sources li {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: var(--s1) var(--s5);
+  padding: var(--s3) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.vl-source-name {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 500;
+}
+
+.vl-source-use {
+  align-self: center;
+  color: var(--ink-2);
+}
+
+.vl-source-host {
+  grid-column: 1;
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+  overflow-wrap: anywhere;
+}
+
+/* ── Not run, and loading ────────────────────────────────────────────────── */
+
+.vl-not-run {
+  max-width: 72ch;
+  padding: var(--s5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.vl-not-run-title {
+  margin: 0 0 var(--s2);
+  font-size: var(--t-xl);
+  font-weight: 600;
+}
+
+.vl-not-run p {
+  margin: 0 0 var(--s3);
+  color: var(--ink-2);
+}
+
+.vl-not-run a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.vl-skeleton {
+  max-width: 72ch;
+  height: 96px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+/* ── Narrower screens ────────────────────────────────────────────────────── */
+
+@media (max-width: 1180px) {
+  .vl-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vl-gate {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .vl-gate-values {
+    grid-column: 1;
+  }
+
+  .vl-gate-result {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 960px) {
+  .vl-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s5);
+  }
+
+  .vl-contents {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  .vl-method {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vl-arrow {
+    padding: var(--s2) 0;
+  }
+
+  .vl-arrow-wide {
+    display: none;
+  }
+
+  .vl-arrow-narrow {
+    display: block;
+  }
+
+  .vl-limits {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vl-sources li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .vl-top {
+    padding: var(--s4) var(--s4) 0;
+  }
+
+  .vl-main {
+    padding: var(--s5) var(--s4) 0;
+  }
+
+  .vl-foot {
+    padding: var(--s4);
+  }
+
+  .vl-top .brand > span {
+    display: none;
+  }
+
+  .vl-intro h1 {
+    font-size: var(--t-ac-title);
+  }
+
+  .vl-lead {
+    font-size: var(--t-lg);
+  }
+
+  .vl-headline {
+    padding: var(--s4);
+  }
+
+  .vl-headline-text {
+    font-size: var(--t-xl);
+  }
+
+  .vl-gate {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vl-gate-result {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .vl-gate-values {
+    grid-template-columns: repeat(2, auto);
+    gap: var(--s2) var(--s5);
+    justify-content: start;
+  }
+}
