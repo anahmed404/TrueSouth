@@ -393,3 +393,41 @@ def test_failing_measured_gate_still_writes_the_report(tmp_path, monkeypatch):
     report = Validation.model_validate_json((root/'validation.json').read_bytes())
     gate = next(g for g in report.gates if g.id == 'G3')
     assert gate.passed is False and gate.measured == 1 and gate.samples == 4
+
+
+def _clone_site(root, source_id, dest_id):
+    import json
+    import shutil
+    dest = root/'sites'/dest_id
+    shutil.copytree(root/'sites'/source_id, dest)
+    meta = json.loads((dest/'meta.json').read_text(encoding='utf-8'))
+    meta['site_id'] = dest_id
+    (dest/'meta.json').write_text(json.dumps(meta), encoding='utf-8')
+
+
+def test_a_variant_cannot_displace_a_catalog_comparison(tmp_path, monkeypatch):
+    """R5 stays on catalog sites. R1, R2 and R3 still publish the variant."""
+    import json
+    root, _raw = synthetic_tree(tmp_path, monkeypatch)
+    sites = json.loads((root/'sites.json').read_text(encoding='utf-8'))
+    parent = sites[0]
+    added = []
+    for site_id in ('a_peak', 'b_peak', 'c_peak'):
+        added.append({**parent, 'id': site_id, 'name': site_id})
+        _clone_site(root, 'synthetic_ridge', site_id)
+    added.append({**parent, 'id': 'a_peak_best_lit', 'name': 'A peak, best-lit point',
+                  'variant_of': 'a_peak', 'offset_m': 80.5})
+    _clone_site(root, 'synthetic_ridge', 'a_peak_best_lit')
+    (root/'sites.json').write_text(json.dumps(sites + added), encoding='utf-8')
+    assert main(['validate', '--generated-utc', '2026-11-13T00:00:00Z']) == 0
+    report = Validation.model_validate_json((root/'validation.json').read_bytes())
+    chosen = {}
+    for comparison in report.comparisons:
+        chosen.setdefault(comparison.id, []).append(comparison.site_id)
+    # Sorted catalog sunlit peaks: a_peak, b_peak, c_peak. The variant sits
+    # between a_peak and b_peak and must not take c_peak's place.
+    assert chosen['R5'] == ['a_peak', 'b_peak', 'c_peak']
+    for identifier in ('R1', 'R2', 'R3'):
+        assert 'a_peak' in chosen[identifier]
+        assert 'a_peak_best_lit' in chosen[identifier]
+        assert 'c_peak' in chosen[identifier]
