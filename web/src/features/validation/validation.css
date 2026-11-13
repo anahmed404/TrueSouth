@@ -992,3 +992,21 @@
 .vl-quote p {
   margin: 0;
 }
+
+/* ── Table captions and the mark's edges ─────────────────────────────────── */
+
+.vl-table-caption {
+  padding: var(--s2) var(--s3);
+  caption-side: top;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+  text-align: left;
+  white-space: normal;
+}
+
+.vl-band-edge {
+  stroke: var(--ink-3);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}

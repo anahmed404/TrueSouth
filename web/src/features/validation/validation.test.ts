@@ -281,6 +281,22 @@ describe("the page", () => {
     expect(lessonLink("no_such_lesson")).toBeNull();
   });
 
+  it("gives every data table a caption, and every header cell a scope", () => {
+    for (const file of [fixture, JSON.parse(readRepo("data/derived/validation.json")) as Validation]) {
+      const markup = page({ status: "ready", data: file, error: null });
+      const tables = markup.match(/<table[\s\S]*?<\/table>/g) ?? [];
+      expect(tables.length).toBeGreaterThan(3);
+      for (const table of tables) expect(table).toMatch(/^<table[^>]*><caption[^>]*>[^<]+<\/caption>/);
+      const headers = markup.match(/<th[^>]*>/g) ?? [];
+      for (const header of headers) expect(header).toMatch(/scope="(col|row)"/);
+    }
+  });
+
+  it("draws the investigate mark's edges as lines, not as a fill alone", () => {
+    const markup = html(createElement(MapComparison, { id: "R1", comparisons: checked.comparisons, names }));
+    expect(markup.match(/class="vl-band-edge"/g)).toHaveLength(2);
+  });
+
   it("links nowhere into the private repository, and imports nothing from inside the Academy", () => {
     const markup = page({ status: "ready", data: fixture, error: null });
     expect(markup).not.toContain("github.com");

@@ -192,6 +192,9 @@ function G2Over({ series, gate, names }: { series: readonly G2Series[]; gate: Ga
       <Disclosure title="The same numbers by year" meta={name(site)}>
         <TableBox label={`Largest difference from JPL Horizons by year at ${name(site)}`}>
           <table className="vl-table">
+            <caption className="vl-table-caption">
+              The largest difference from JPL Horizons in each UTC year at {name(site)}, for the Sun and for Earth
+            </caption>
             <thead>
               <tr>
                 <th scope="col">Year (UTC)</th>
@@ -311,6 +314,11 @@ function ComparisonTable({ rows, kind, self, title }: { rows: readonly TableRow[
   return (
     <TableBox label={`${title}: one row per site`}>
       <table className="vl-table">
+        <caption className="vl-table-caption">
+          {self
+            ? `${title}: one row per site, with the difference and its result against the mark`
+            : `${title}: one row per site, with our value, NASA's value, the difference and its result against the mark`}
+        </caption>
         <thead>
           <tr>
             <th scope="col">Site</th>
@@ -466,7 +474,7 @@ export function MapComparison({ id, comparisons, names }: { id: "R1" | "R2"; com
             summary={summary}
           />
           <figcaption className="vl-caption">
-            {summary} A point on the diagonal agrees exactly; the shaded band is the mark.
+            {summary} A point on the diagonal agrees exactly; the dashed lines either side are the mark.
           </figcaption>
         </figure>
         )}

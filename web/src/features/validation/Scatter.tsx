@@ -19,7 +19,7 @@ type ScatterProps = {
 
 /**
  * Ours against NASA's, one point per site. A point on the diagonal agrees exactly; the
- * shaded band is the "investigate" mark. A site outside the mark is a CAUTION diamond with
+ * dashed lines either side, with a shaded band between them, are the "investigate" mark. A site outside the mark is a CAUTION diamond with
  * its name beside it, so it never reads by colour alone. Values are fractions of 1, drawn
  * as percentages. Hand-built SVG.
  */
@@ -33,7 +33,8 @@ export function Scatter({ points, mark, body, xLabel, yLabel, summary }: Scatter
     const y = scaleLinear().domain([0, 1]).range([size - MARGIN.bottom, MARGIN.top]);
     const ticks = [0, 0.25, 0.5, 0.75, 1];
     let band = "";
-    if (mark !== null && mark > 0) {
+    let edges: { x1: number; y1: number; x2: number; y2: number }[] = [];
+    if (mark !== null && mark > 0 && mark < 1) {
       // The band between "ours = NASA's + mark" and "ours = NASA's − mark", clipped to 0–1.
       const upper: [number, number][] = [
         [0, mark],
@@ -48,8 +49,13 @@ export function Scatter({ points, mark, body, xLabel, yLabel, summary }: Scatter
       band = [...upper, ...lower]
         .map(([px, py], index) => `${index ? "L" : "M"}${x(px).toFixed(1)},${y(py).toFixed(1)}`)
         .join("") + "Z";
+      // The band's fill is a quiet aid (1.1:1 on the plot); its dashed edges carry it at 5.8:1.
+      edges = [
+        { x1: x(0), y1: y(mark), x2: x(1 - mark), y2: y(1) },
+        { x1: x(mark), y1: y(0), x2: x(1), y2: y(1 - mark) },
+      ];
     }
-    return { x, y, ticks, band };
+    return { x, y, ticks, band, edges };
   }, [mark, size]);
 
   const { x, y } = drawn;
@@ -80,6 +86,9 @@ export function Scatter({ points, mark, body, xLabel, yLabel, summary }: Scatter
               {Math.round(tick * 100)}%
             </text>
           </g>
+        ))}
+        {drawn.edges.map((edge, index) => (
+          <line key={index} className="vl-band-edge" {...edge} />
         ))}
         <line className="vl-diagonal" x1={x(0)} y1={y(0)} x2={x(1)} y2={y(1)} />
         <text className="vl-axis-label" x={(MARGIN.left + plotRight) / 2} y={size - 6} textAnchor="middle">
