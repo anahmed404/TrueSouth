@@ -1,0 +1,323 @@
+/*
+The Polar map (docs/features/polar-map.md). Tokens from web/src/app/theme.css only.
+The interface stays flat over the map: plates for text, opaque panels, no glow or blur.
+Not in a cascade layer: this file can load before theme.css, and a layer named here first
+would reorder Tailwind's layers for the whole app (as panorama.css avoids too). Every
+selector is scoped to .pm, so nothing here reaches other components.
+*/
+.pm {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--space);
+  outline: none;
+}
+
+.pm:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: calc(-1 * var(--focus-ring-width));
+}
+
+.pm-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+  touch-action: none;
+}
+
+.pm-canvas:active {
+  cursor: grabbing;
+}
+
+.pm-keys,
+.pm-note {
+  position: absolute;
+  z-index: 3;
+  margin: 0;
+  max-width: min(72ch, calc(100% - 16px));
+  padding: 6px 12px 7px;
+  border-radius: var(--r-sm);
+  color: var(--ink);
+  font-size: var(--t-sm);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.pm-note {
+  transform: translate(-50%, -50%);
+}
+
+/* ── Hover readout ── */
+.pm-hover {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px 9px 6px;
+  border-radius: var(--r-sm);
+  color: var(--ink);
+  font-size: var(--t-sm);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.pm-hover span + span {
+  color: var(--ink-2);
+}
+
+/* ── Readout cards: "New site here?", the nudge, a catalog pin ── */
+.pm-card {
+  position: absolute;
+  z-index: 4;
+  width: max-content;
+  max-width: 300px;
+  padding: var(--s3) var(--s4) var(--s4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-popover);
+  color: var(--ink);
+  font-size: var(--t-md);
+}
+
+.pm-card[data-dragging="true"] {
+  padding: var(--s2) var(--s3);
+  pointer-events: none;
+}
+
+.pm-card-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.pm-card-title {
+  margin: 0 28px var(--s1) 0;
+  font-size: var(--t-md);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.pm-card[data-dragging="true"] .pm-card-title {
+  margin-right: 0;
+}
+
+.pm-card-line {
+  margin: var(--s1) 0 0;
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+.pm-card-line .btn {
+  margin-left: var(--s1);
+}
+
+.pm-card-note {
+  margin: var(--s2) 0 0;
+  color: var(--ink-2);
+  font-size: var(--t-sm);
+  line-height: 1.4;
+}
+
+.pm-values {
+  display: grid;
+  gap: 2px;
+  margin: var(--s2) 0 0;
+}
+
+.pm-values div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s4);
+}
+
+.pm-values dt {
+  color: var(--ink-2);
+}
+
+.pm-values dd {
+  margin: 0;
+}
+
+.pm-nudge {
+  display: grid;
+  gap: 2px;
+  margin: var(--s1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pm-card-actions {
+  display: flex;
+  gap: var(--s2);
+  margin-top: var(--s3);
+}
+
+/* ── The foot of the free space: controls, scale, sites off the map ── */
+.pm-foot {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--s2);
+  padding: 0 var(--s2);
+  transform: translateY(calc(-100% - 12px));
+  pointer-events: none;
+}
+
+.pm-foot > * {
+  pointer-events: auto;
+}
+
+.pm-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2) var(--s3);
+  max-width: 100%;
+  padding: 6px var(--s3);
+  border-color: var(--line-strong);
+  border-radius: var(--r-lg);
+}
+
+.pm-zoom {
+  display: flex;
+  gap: 2px;
+}
+
+.pm-overlay {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.pm-opacity input {
+  width: 96px;
+  accent-color: var(--accent);
+}
+
+.pm-scale {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  color: var(--ink-2);
+  font-size: var(--t-sm);
+  white-space: nowrap;
+}
+
+.pm-scale-bar {
+  display: block;
+  height: 6px;
+  border: 1.5px solid var(--ink-2);
+  border-top: 0;
+}
+
+.pm-caveat {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--t-sm);
+}
+
+.pm-swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-pill);
+}
+
+.pm-swatch-sun {
+  background: var(--sun);
+}
+
+.pm-swatch-earth {
+  background: var(--earth);
+}
+
+.pm-off {
+  padding: var(--s2) var(--s3);
+  border-color: var(--line-strong);
+  border-radius: var(--r-lg);
+  font-size: var(--t-md);
+}
+
+.pm-off-title {
+  margin: 0 0 var(--s1);
+  color: var(--ink-2);
+  font-size: var(--t-sm);
+}
+
+.pm-off ul {
+  display: grid;
+  gap: var(--s1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pm-off li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+/* ── The layer over the scene, and its fade ── */
+.pm-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: var(--ease-out);
+  pointer-events: none;
+}
+
+.pm-layer[data-shown="true"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── In a lesson box: the same map, a smaller control set ── */
+.pm-embed {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+  overflow: hidden;
+  border-radius: var(--r-md);
+}
+
+.pm-lesson .pm-controls {
+  gap: var(--s2);
+  padding: 4px var(--s2);
+}
+
+/* Touch: every control at least 44 px. */
+@media (pointer: coarse) {
+  .pm .btn-icon,
+  .pm .pm-controls .btn,
+  .pm .pm-off .btn,
+  .pm .pm-card .btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .pm .segmented button,
+  .pm .seg-option {
+    min-height: 44px;
+  }
+
+  .pm-opacity input {
+    height: 44px;
+  }
+}

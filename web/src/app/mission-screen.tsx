@@ -13,6 +13,7 @@ import { ScenarioProvider, useScenario, useScenarioStore } from "./mission/scena
 import { windowPlacement, type Rect, type ShellState } from "./mission/free-space";
 import { SceneSlot } from "./mission/scene-slot";
 import { SpaceScene } from "../features/three/scene";
+import { POLAR_MAP_LAYER } from "../features/polar-map";
 import { TRY_AGAIN_ANNOUNCEMENT } from "./mission/scene-status";
 import {
   OVERLAY_SELECTOR,
@@ -291,6 +292,7 @@ function MissionShell() {
 
       <SceneSlot
         Scene={SpaceScene}
+        flat={POLAR_MAP_LAYER}
         view={state.camera}
         scenario={scenario}
         freeSpace={freeSpace}
