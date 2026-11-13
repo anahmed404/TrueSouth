@@ -1,13 +1,15 @@
 import { Box } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Explain } from "../components/Explain";
 import { firstSentence } from "../components/format";
 import { Panel } from "../components/Panel";
 import { TabPanel, Tabs, type TabItem } from "../components/Tabs";
 import { explanations } from "../lib/explain";
+import { selectScenario, selectView } from "../state/scenario";
 import { Countdowns, Timeline } from "../features/mission-control/site-detail";
 import { FocusedSitePanel } from "./mission/focused-site-panel";
-import { SAMPLE } from "./mission/sample";
+import { NoticeStrip } from "./mission/notice-strip";
+import { ScenarioProvider, useScenario, useScenarioStore } from "./mission/scenario-context";
 import {
   loadShellLayout,
   saveShellLayout,
@@ -19,7 +21,7 @@ import {
 } from "./mission/shell-layout";
 import { SitesRail } from "./mission/sites-rail";
 import { TopBar } from "./mission/top-bar";
-import { DEFAULT_VIEW, VIEWS, type ViewId } from "./mission/views";
+import { VIEWS, type ViewId } from "./mission/views";
 
 const FOOTER_LINE = "Planning aid, not flight certification. Limits marked assumed are our estimates.";
 
@@ -56,10 +58,27 @@ const viewTabs: TabItem<ViewId>[] = VIEWS.map((view) => ({
 }));
 
 export function MissionScreen() {
+  return (
+    <ScenarioProvider
+      loading={
+        <div className="shell-wait" role="status">
+          <p>Loading the site catalog and mission profiles…</p>
+        </div>
+      }
+      error={(message) => (
+        <div className="shell-wait" role="alert">
+          <p className="shell-wait-title">Mission Control could not load its data.</p>
+          <p>{message}</p>
+        </div>
+      )}
+    >
+      <MissionShell />
+    </ScenarioProvider>
+  );
+}
+
+function MissionShell() {
   const [layout, setLayout] = useShellLayout();
-  const [view, setView] = useState<ViewId>(DEFAULT_VIEW);
-  // SAMPLE: the focused site lives in the scenario store once MC3 lands.
-  const [focusedSiteId, setFocusedSiteId] = useState<string | null>(SAMPLE.scenario.focusedSiteId);
 
   const regions = {
     sitesRail: useRef<HTMLElement>(null),
@@ -81,6 +100,8 @@ export function MissionScreen() {
     // The refs inside `regions` and `toggles` are stable across renders.
     [setLayout],
   );
+  const toggleRail = useCallback(() => toggle("sitesRail"), [toggle]);
+  const toggleFocus = useCallback(() => toggle("focusPanel"), [toggle]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -99,10 +120,6 @@ export function MissionScreen() {
     return () => window.removeEventListener("keydown", onKey);
   }, [toggle]);
 
-  const active = VIEWS.find((v) => v.id === view) ?? VIEWS[0];
-  const scenario = { ...SAMPLE.scenario, focusedSiteId };
-  const focused = focusedSiteId === SAMPLE.focused.id ? SAMPLE.focused : null;
-
   return (
     <div
       className="shell"
@@ -111,54 +128,25 @@ export function MissionScreen() {
       data-focus={layout.focusPanel.collapsed ? "collapsed" : "open"}
     >
       <h1 className="sr-only">Mission Control</h1>
-      <TopBar profileName={SAMPLE.profileName} profileDurationDays={SAMPLE.profileDurationDays} landingUtc={SAMPLE.scenario.landingUtc} />
+      <TopBar />
 
       <SitesRail
-        sites={SAMPLE.sites}
-        maxSites={SAMPLE.maxSites}
-        focusedSiteId={focusedSiteId}
-        landingUtc={SAMPLE.scenario.landingUtc}
-        onFocusSite={setFocusedSiteId}
-        onAddSite={() => setView("map")}
         collapsed={layout.sitesRail.collapsed}
-        onToggle={() => toggle("sitesRail")}
+        onToggle={toggleRail}
         regionRef={regions.sitesRail}
         toggleRef={toggles.sitesRail}
-        sample
       />
 
-      <Panel as="main" className="shell-main" aria-label="Main view">
-        <Tabs idPrefix="view" label="Views" items={viewTabs} value={view} onChange={setView} />
-        {active ? (
-          <TabPanel idPrefix="view" id={active.id} className="view-body">
-            <p className="view-what">
-              {firstSentence(explanations[active.term]?.text ?? "")}{" "}
-              <Explain term={active.term} label={active.name} />
-            </p>
-            <div className="view-stage">
-              <active.Panel scenario={scenario} mode="mission" />
-            </div>
-          </TabPanel>
-        ) : null}
-      </Panel>
+      <MainView />
 
       <FocusedSitePanel
-        site={focused}
         collapsed={layout.focusPanel.collapsed}
-        onToggle={() => toggle("focusPanel")}
+        onToggle={toggleFocus}
         regionRef={regions.focusPanel}
         toggleRef={toggles.focusPanel}
-        sample
       />
 
-      <Panel as="section" className="shell-strip" aria-label="Timeline and countdowns">
-        <div className="strip-timeline">
-          <Timeline scenario={scenario} mode="mission" />
-        </div>
-        <div className="strip-countdowns">
-          <Countdowns scenario={scenario} mode="mission" />
-        </div>
-      </Panel>
+      <TimelineStrip />
 
       <footer className="shell-foot">
         <p>{FOOTER_LINE}</p>
@@ -166,3 +154,43 @@ export function MissionScreen() {
     </div>
   );
 }
+
+/** The view tabs and the open view. The views are still placeholders (MC5 onwards). */
+const MainView = memo(function MainView() {
+  const store = useScenarioStore();
+  const view = useScenario(selectView);
+  const scenario = useScenario(selectScenario);
+  const setView = useCallback((id: ViewId) => store.getState().setView(id), [store]);
+  const active = VIEWS.find((v) => v.id === view) ?? VIEWS[0];
+
+  return (
+    <Panel as="main" className="shell-main" aria-label="Main view">
+      <NoticeStrip />
+      <Tabs idPrefix="view" label="Views" items={viewTabs} value={view} onChange={setView} />
+      {active ? (
+        <TabPanel idPrefix="view" id={active.id} className="view-body">
+          <p className="view-what">
+            {firstSentence(explanations[active.term]?.text ?? "")} <Explain term={active.term} label={active.name} />
+          </p>
+          <div className="view-stage">
+            <active.Panel scenario={scenario} mode="mission" />
+          </div>
+        </TabPanel>
+      ) : null}
+    </Panel>
+  );
+});
+
+const TimelineStrip = memo(function TimelineStrip() {
+  const scenario = useScenario(selectScenario);
+  return (
+    <Panel as="section" className="shell-strip" aria-label="Timeline and countdowns">
+      <div className="strip-timeline">
+        <Timeline scenario={scenario} mode="mission" />
+      </div>
+      <div className="strip-countdowns">
+        <Countdowns scenario={scenario} mode="mission" />
+      </div>
+    </Panel>
+  );
+});

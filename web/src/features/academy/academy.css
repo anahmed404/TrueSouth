@@ -989,14 +989,19 @@
   min-height: 0;
   overflow: auto;
   padding: 16px 20px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
 }
 
-/* ── The Under-the-hood card (A4 replaces its inside) ───────────────────── */
+/* ── The Under-the-hood card ────────────────────────────────────────────── */
+/* Every text in the card is at least 16 px (docs/academy/overview.md, "Accessibility"). */
 
 .ac-card h2 {
   margin: 0;
   font-size: var(--t-2xl);
   font-weight: 600;
+  line-height: 1.2;
+  text-wrap: balance;
 }
 
 .ac-card-head {
@@ -1008,39 +1013,39 @@
 
 .ac-card-free {
   margin-left: auto;
-  font-size: var(--t-md);
+  font-size: var(--t-ac-min);
   color: var(--ink-3);
 }
 
 .ac-card h3 {
-  margin: 24px 0 0;
+  margin: 32px 0 0;
   font-size: var(--t-xl);
   font-weight: 600;
+  line-height: 1.25;
+}
+
+.ac-card .ac-card-sub {
+  margin: 24px 0 0;
+  font-size: var(--t-ac-min);
+  font-weight: 600;
+  color: var(--ink);
 }
 
 .ac-card p {
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   font-size: var(--t-ac-min);
   color: var(--ink-2);
   line-height: 1.55;
   max-width: 68ch;
 }
 
-.ac-card-formula {
-  margin-top: 10px;
-  padding: 14px 16px;
-  border-radius: var(--r-md);
-  background: var(--plot);
-  border: 1px solid var(--line);
-  font-size: var(--t-xl);
-  color: var(--ink);
-  overflow-wrap: anywhere;
+.ac-card .ac-card-status {
+  margin-top: 12px;
+  color: var(--ink-3);
 }
 
-.ac-card-cite {
-  display: block;
-  margin-top: 6px;
-  font-size: var(--t-md);
+.ac-card .ac-card-note {
+  margin-top: 12px;
   color: var(--ink-3);
 }
 
@@ -1048,6 +1053,308 @@
   font-family: var(--font);
   font-weight: 500;
   color: var(--ink);
+}
+
+/* The designer's Fill chip: a number from worked_examples.json. */
+.ac-fill {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: var(--r-sm);
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* A key worked_examples.json does not have yet, or not yet loaded. */
+.ac-fill--missing {
+  background: transparent;
+  border-style: dashed;
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+/* Inside KaTeX the chip keeps the formula's own size and face. */
+.ac-tex .ac-fill {
+  line-height: 1.2;
+  padding: 0 0.25em;
+}
+
+/* One formula: its lead, the maths, its reading and where it is quoted from. */
+.ac-formula-item {
+  margin: 16px 0 0;
+}
+
+.ac-formula-item + .ac-formula-item {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.ac-formula-item > p:first-child {
+  margin-top: 0;
+}
+
+.ac-formula-item figcaption {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  font-size: var(--t-ac-min);
+  line-height: 1.55;
+}
+
+.ac-reading {
+  color: var(--ink-2);
+  max-width: 68ch;
+}
+
+.ac-reading-label {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.ac-cite {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  color: var(--ink-3);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+
+.ac-cite:hover {
+  color: var(--ink);
+  text-decoration-color: currentColor;
+}
+
+.ac-cite svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* Inline maths never breaks inside itself; it moves to the next line whole. */
+.ac-card .ac-tex:not(.ac-tex--block) {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* A display formula. Wider than the card, it scrolls inside its own box, not the page. */
+.ac-math {
+  margin-top: 10px;
+  min-width: 0;
+}
+
+.ac-math-scroll {
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: var(--plot);
+  border: 1px solid var(--line);
+  font-size: var(--t-xl);
+  color: var(--ink);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.ac-math-scroll[data-overflow] {
+  padding-bottom: 10px;
+  border-color: var(--line-strong);
+}
+
+.ac-math-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.ac-math-scroll::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: var(--r-pill);
+}
+
+.ac-math-scroll .katex-display {
+  margin: 0;
+  text-align: left;
+}
+
+.ac-math-scroll .katex-display > .katex {
+  text-align: left;
+}
+
+.ac-card .ac-math-more {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-3);
+}
+
+.ac-math-more svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* The TeX source, shown while KaTeX loads, if it fails to load, or if a formula fails to parse. */
+.ac-card .ac-tex-src {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace;
+  font-size: var(--t-ac-min);
+  font-weight: 400;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+.ac-card .ac-tex-src[data-state="loading"] {
+  color: var(--ink-3);
+}
+
+.ac-card .ac-tex-src--block {
+  display: block;
+  white-space: pre-wrap;
+}
+
+.ac-card .ac-tex-src .ac-fill {
+  font-family: var(--font);
+}
+
+/* What the letters mean. */
+.ac-symbols {
+  margin: 8px 0 0;
+  font-size: var(--t-ac-min);
+  line-height: 1.45;
+}
+
+.ac-symbol {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.ac-symbol dt {
+  color: var(--ink);
+  font-size: var(--t-xl);
+}
+
+.ac-symbol dd {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.ac-symbol .ac-symbol-unit {
+  color: var(--ink-3);
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* The worked example. */
+.ac-we {
+  margin-top: 12px;
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: var(--t-ac-min);
+  line-height: 1.45;
+}
+
+.ac-we th,
+.ac-we td {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: baseline;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.ac-we th {
+  width: 52%;
+  padding-right: 12px;
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+.ac-we td {
+  color: var(--ink);
+}
+
+.ac-we .ac-we-calc td {
+  padding: 12px 0;
+}
+
+.ac-we-label {
+  display: block;
+  color: var(--ink-2);
+}
+
+.ac-we-calc .ac-math {
+  margin-top: 8px;
+}
+
+/* In the code. */
+.ac-code-list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ac-codelink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line-strong);
+  font-size: var(--t-ac-min);
+  color: var(--ink);
+  text-decoration: none;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  transition: background-color 150ms var(--ease-ac);
+}
+
+.ac-codelink:hover {
+  background: var(--hover);
+}
+
+.ac-codelink svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.ac-codelink > span[aria-hidden] {
+  color: var(--ink-3);
+}
+
+/* What can go wrong. */
+.ac-wrong {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  list-style: disc;
+  font-size: var(--t-ac-min);
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 68ch;
+}
+
+.ac-wrong li + li {
+  margin-top: 8px;
+}
+
+.ac-wrong li::marker {
+  color: var(--ink-3);
 }
 
 /* ── Dialogs ─────────────────────────────────────────────────────────────── */
@@ -1635,6 +1942,16 @@
 
   .ac-hood {
     padding: 12px 16px;
+  }
+
+  .ac-math-scroll {
+    padding: 12px;
+    font-size: var(--t-ac-min);
+  }
+
+  .ac-symbol {
+    grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+    gap: 10px;
   }
 
   .ac-formula {

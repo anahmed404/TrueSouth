@@ -30,7 +30,7 @@ importers:
         specifier: ^3.0.1
         version: 3.0.1
       katex:
-        specifier: ^0.19.1
+        specifier: 0.19.1
         version: 0.19.1
       lucide-react:
         specifier: ^1.72.0

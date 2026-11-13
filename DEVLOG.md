@@ -42,7 +42,7 @@ each integration checkpoint.
 | Milestone | State |
 | :--- | :--- |
 | M0 Foundations | complete, 2026-11-13: S0 to S2, MC0 to MC2, T0, A0 and A1 verified; 151 Python and 1,058 web tests pass; the app loads all five fixture sites |
-| M1 Thin slice | in progress: S3 to S6, MC4a and A7 verified; S7 and MC3 in review; A2 and S9 being built |
+| M1 Thin slice | in progress: S3 to S7, S8 part 1, S9, MC3, MC4a, MC4b, the sweep worker, A2 and A7 verified; Mission Control's panels run on real Connecting Ridge data; the timeline (MC5), all catalog sites (S8 part 2) and the Academy card (A4) are being built; the centre views wait on the space-first design |
 | M2 Mission Control complete on catalog data | not started |
 | M3 Everything | not started |
 | M4 Tuned and submitted | not started |
@@ -210,6 +210,45 @@ each integration checkpoint.
 
 ## Mission Control
 
+#### 2026-11-13 · MC7a · Slip sweep in a Web Worker
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote the sweep worker, the message handler, the client and `useSweeps`, with vitest tests — agent ran `pnpm --dir web typecheck`, `pnpm --dir web test` and `pnpm --dir web build`; a human has not reviewed it yet
+- **State:** verified (orchestrator ran typecheck, 1,230 tests and build on the merge with main; Codex, gpt-6.1-terra compared the worker with slipSweep on fixtures and the real site, simulated a detaching worker and ran seven mutations; its findings were fixed)
+- **Changed:** `web/src/lib/scoring/` (worker, protocol, client, hooks and cache; `scoring.ts` unchanged), `web/vite.config.ts`, `web/src/state/scenario.test.ts` (the local-time Date scan now includes the worker files), this entry
+- **Notes:** Review fixes were made. The worker keeps each site's three sweep columns after the first request, at most twelve series, least recently used, and the client sends the columns again when the worker has dropped a token. A sweep is cached and deduped by the time grid's start, step and count, so a different manifest cannot reuse one. The client copies those columns and transfers the copies, so the data store's buffers stay usable. Later profile edits send no series. One worker: a profile edit is compute once the series is resident, and a pool would keep another copy per worker. A landing date does not change the sweep, so a newer request for the same site drops the previous reply. Where `Worker` is missing, `useSweep` still computes on the main thread. Measured on this machine: one site through the handler, 52,584 hours, 100-day window, 3.8 ms (after one warmup); structured clone of 8 columns × 52,584 float64, 4.4 ms; copying those columns 1.0 ms and transferring them 0.1 ms. The production build emits `sweep.worker-BMR0j0qN.js`, 4.17 kB (1.72 kB gzip). The shell does not import the sweep yet, so `vite.config.ts` lists the worker as a build input; remove that input once a screen imports `useSweep`, or the build will emit the worker twice.
+
+#### 2026-11-13 · MC4b · Mission Control panels on the scenario store and real data
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill — wrote the
+  scenario provider and URL binding for the screen, the top bar (profile picker, profile
+  editor, landing-date picker, slip, share), the sites rail on real evaluations (add,
+  remove, reorder by keyboard and pointer), the focused-site panel, the notice strip, a
+  shared `Popover` component, and vitest tests for the new display logic — checked by the
+  agent with typecheck, 1,116 vitest tests and the build, impeccable's detector (no
+  findings), and by eye in a browser on the fixtures at 1440 × 900, 1024 × 768 and
+  390 × 844; a human has not reviewed it yet
+- **State:** verified (orchestrator ran typecheck, 1,206 tests and build on the merge with main and opened the screen on the real Connecting Ridge data (no errors; a slip changes the link and the status); Codex, gpt-6.1-terra reviewed the logic and ran six mutations; its four must-fix findings were fixed)
+- **Changed:** `web/src/app/mission-screen.tsx`, `web/src/app/mission/`, `web/src/app/shell.css`,
+  `web/src/components/Popover.tsx`, `web/src/components/components.css`,
+  `docs/design/c2/built-mission-*.png`, this entry
+- **Notes:**
+  - `sample.ts` and the TEMP placeholder profile are deleted. The timeline placeholder did
+    not need sample values, so there is no `timeline-placeholder.ts`.
+  - The store clamps every landing date so the mission window fits the grid, so the "no
+    result: the mission window runs past 2031" state can only come from a custom site or a
+    shorter series; it is drawn but cannot be reached through the date picker on fixtures.
+  - The store refuses invalid profile edits silently, except "power and comms both zero",
+    which adds a notice. The editor detects a refusal and says what range is accepted.
+  - The shell now stacks on a phone (under 760 px) instead of scrolling sideways.
+  - Review fixes were made: each weight is a number from 0 to 1,000 (store, link reader,
+    editor, `docs/mission-profiles.md`); a value and its limit never round to the same
+    text when a rule compares them strictly, and the score is rounded down; the mission
+    duration carries its tag; a row fed by several profile settings is sourced only if
+    every one is; units and labels of every row are pinned by a test; the worst broken
+    rule uses the true share of a limit above 0; `ground_height` added to `explain.ts`;
+    the stale chip lines removed from `DESIGN.md`. On the real data, Connecting Ridge
+    loads with no errors: NO-GO for IM-2 Athena landing 2028-03-01 00:00 UTC, score 0.
+
 #### 2026-11-13 · MC3 · Scenario store, shareable link and evaluation hooks
 - **Who:** Cursor agent, for the orchestrator
 - **AI use:** Cursor, grok-4.7 — wrote the scenario store, the share-link reader and writer, the scoring cache and the evaluation hooks, with vitest tests — agent ran `pnpm --dir web typecheck`, `pnpm --dir web test` and `pnpm --dir web build`; a human has not reviewed it yet
@@ -297,6 +336,48 @@ each integration checkpoint.
   - `|latitude| > 89.999°` throws for the local frame and for walking. The sphere point and the Sun-elevation formula still accept the poles.
 
 ## Academy
+
+#### 2026-11-13 · A4 · Under the hood card renderer with KaTeX and Fill chips
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the card type, the renderer, the lazy
+  KaTeX loader, the card-text tokenizer, the one rounding rule, the sample card and 32
+  vitest tests — checked by the agent with typecheck, tests and build, the impeccable
+  detector (0 findings), and by eye in a browser at 1440 × 900 and 390 × 844 with reduce
+  motion on and off, including KaTeX held back (loading) and blocked (failed). A human has
+  not read the card yet.
+- **State:** verified (orchestrator ran typecheck, 1,310 tests and build on the merge with main and looked at the card at both sizes; Codex, gpt-6.1-terra compared the quoted formulas with science.md section 4, probed the renderer for unsafe output and ran seven mutations; its findings were fixed and the trust mutation now fails nine tests)
+- **Changed:** `web/src/features/academy/` (`card/`, `types.ts`, `format-example.ts`,
+  `placeholders.ts`, `ui/filled.tsx`, `lessons/sample.ts`, `academy.css`, and the
+  `pending` prop through `index.tsx`, `lesson-screen.tsx`, `lesson/conversation.tsx`),
+  `web/package.json` (`katex` pinned to 0.19.1), `docs/academy/overview.md`, screenshots
+  `docs/design/c2/built-academy-card*.png`
+- **Notes:**
+  - Cards are typed data (`UnderTheHoodCard` in `types.ts`), not Markdown files: the
+    overview said `cards/<id>.md` while the same doc and the A2 code made lessons and
+    cards typed. The overview now says `cards/<id>.ts`. A5 creates that folder.
+  - KaTeX is in its own chunk, loaded when the "Under the hood" tab first opens:
+    `katex-render` JS 259.45 kB (77.88 kB gzip), CSS 29.78 kB (7.98 kB gzip), 19 woff2
+    fonts 256 kB (only the ones a formula uses are fetched). First-page JS went from
+    545.69 kB to 572.54 kB (175.70 to 184.63 kB gzip): the renderer and the sample card,
+    no KaTeX. `card/bundle.test.ts` walks the static import graph to keep it that way.
+  - Numbers are rounded by key suffix in `format-example.ts` (degrees 2 decimals, km 1,
+    m 0, h 1, pct 0), trailing zeros dropped. Lesson text uses the same rule now.
+  - The sample route now merges the real `worked_examples.json` under the sample's toy
+    values, so the sample card shows lesson 3's fixture numbers.
+  - Review fixes made (same PR):
+    - An unusable value (null, NaN, Infinity, an object, empty text) shows "value not
+      built yet" and never throws.
+    - Angles keep at least one decimal, and `_pct` is matched as a segment.
+    - A test walks every worked-example key; unitless keys are listed in
+      `format-example.ts`.
+    - Compared sets gain decimals until their values print differently, and comparison
+      words come from the data (`compare.ts`).
+    - KaTeX's trust, `maxSize` (20 em) and `maxExpand` (1000) are tested.
+    - The boxed-number note says "sample values for testing, not real" on fixtures.
+    - Malformed `{{example.…}}` keys show as missing, and the worked example's title is
+      drawn as card text.
+  - The real `data/derived/` has no `academy/worked_examples.json` yet. On real data the
+    card shows every number as "value not built yet", and the browser logs that file's 404.
 
 #### 2026-11-13 · A2 · Academy screens in the picked form and the five step kinds
 - **Who:** Claude Code agent, for the orchestrator

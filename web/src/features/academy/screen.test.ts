@@ -32,7 +32,7 @@ describe("academy screens", () => {
     expect(html).not.toContain("{{example.");
     expect(html).toContain("Step 1 of 8");
     expect(html).toContain("Which of these stands straight up from the ground?");
-    expect(html).toContain("90°");
+    expect(html).toContain("90.0°"); // the filled {{example.sample.right_angle_deg}}: angles keep one decimal
     expect(html).toContain('role="radiogroup"');
     expect(html).toContain("Check");
     expect(html).toContain("Pip&#x27;s power: 80%");

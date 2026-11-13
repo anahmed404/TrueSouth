@@ -8,6 +8,8 @@ import { hourIndexToUtc, utcToHourIndex } from "../lib/time/index.ts";
 import {
   CHANGED_BY_YOU,
   DEFAULT_LANDING_UTC,
+  MAX_WEIGHT,
+  WEIGHT_RANGE_NOTICE,
   DEFAULT_SITE_IDS,
   PROFILE_FIELDS,
   bindScenarioUrl,
@@ -180,6 +182,20 @@ describe("scenario store", () => {
       "A profile's power and comms weights must not both be zero.",
     ]);
     expect(catalog.profiles.find((item) => item.id === "im2_athena")?.duration_days).toBe(10);
+  });
+
+  it("refuses a weight outside 0 to 1,000 in the editor, with a notice, so the score stays a number", () => {
+    const store = createScenarioStore(catalog);
+    const before = store.getState().profile;
+    for (const bad of [1e308, Infinity, -1, 1000.5]) {
+      store.getState().editProfileField("weights", { slope: bad, power: bad, comms: bad });
+    }
+    store.getState().editProfileField("weights", { slope: 0.4, power: Number.NaN, comms: 0.25 });
+    expect(store.getState().profile).toBe(before);
+    expect(store.getState().notices).toEqual(Array(5).fill(WEIGHT_RANGE_NOTICE));
+    store.getState().editProfileField("weights", { slope: 1000, power: 1000, comms: 0 });
+    expect(store.getState().profile.weights).toEqual({ slope: 1000, power: 1000, comms: 0 });
+    expect(MAX_WEIGHT).toBe(1000);
   });
 
   it("holds at most 8 sites, refuses duplicates, and focuses a neighbour when the focused site goes", () => {
@@ -480,6 +496,21 @@ describe("shareable scenario link", () => {
     expect(read.profile.min_sun_fraction).toBe(1e-7);
   });
 
+  it("rejects a weight outside 0 to 1,000 in a link, with a notice", () => {
+    const preset = catalog.profiles.find((item) => item.id === "im2_athena");
+    for (const raw of ["1e308:1e308:1e308", "Infinity:1:1", "-1:1:1", "0.4:1001:0.25"]) {
+      const read = readScenarioQuery(`?profile=custom:im2_athena;weights=${raw}`, catalog);
+      expect(read.profile.weights).toEqual(preset?.weights);
+      expect(read.changedFields).toEqual([]);
+      expect(read.notices).toEqual([
+        `Ignored weights because "${raw}" is out of range. ${WEIGHT_RANGE_NOTICE}`,
+      ]);
+    }
+    const edge = readScenarioQuery("?profile=custom:im2_athena;weights=1000:0:1000", catalog);
+    expect(edge.profile.weights).toEqual({ slope: 1000, power: 0, comms: 1000 });
+    expect(edge.notices).toEqual([]);
+  });
+
   it("rejects power and comms weights that are both zero", () => {
     const preset = catalog.profiles.find((item) => item.id === "im2_athena");
     const read = readScenarioQuery(
@@ -536,11 +567,14 @@ describe("shareable scenario link", () => {
     expect(store.getState().landingUtc).toBe("2028-03-17T00:00:00Z");
   });
 
-  it("does not use local-time Date methods in the scenario store or the scoring hooks", () => {
+  it("does not use local-time Date methods in the scenario store, the scoring hooks, or the sweep worker", () => {
     const here = path.dirname(fileURLToPath(import.meta.url));
     const sources = [
       readFileSync(path.join(here, "scenario.ts"), "utf8"),
       readFileSync(path.join(here, "../lib/scoring/hooks.ts"), "utf8"),
+      readFileSync(path.join(here, "../lib/scoring/sweep-protocol.ts"), "utf8"),
+      readFileSync(path.join(here, "../lib/scoring/sweep-client.ts"), "utf8"),
+      readFileSync(path.join(here, "../lib/scoring/sweep.worker.ts"), "utf8"),
     ];
     const forbidden =
       /\b(?:getHours|getDate|getDay|getMonth|getFullYear|getMinutes|setHours|setDate|setMonth|setFullYear|setMinutes|getTimezoneOffset|toLocale)/;

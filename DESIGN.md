@@ -380,10 +380,6 @@ exception is the 2px red outline of a broken-rule stretch. No coloured side bord
   - Quiet on purpose, and never coloured.
 - **3D badge:** a small Hover chip with a cube icon and "3D", inside the System view and
   Local terrain tabs.
-- **Placeholder slot:** a top-bar control not built yet. Final size, a dashed Control Edge
-  border, its label and value, and the word "placeholder" after a hairline.
-- **Sample mark:** a dashed pill, "Sample sites, not computed", at the foot of a panel
-  that shows sample data.
 
 ### Cards / Containers
 - **Corner Style:** 14px for panels, 10px for cards inside them.

@@ -76,6 +76,13 @@ An array of catalog sites.
 | `elevation_m` | number \| null | Ground height above the reference sphere |
 | `slope` | `{ deg, baseline_m, source }` \| null | See [`science.md`](science.md) §8 |
 | `quickmap_url`, `moontrek_url` | string | Links out to the NASA tools |
+| `variant_of` | string \| null | For a best-lit variant: the id of the catalog site it belongs to. `null` for every other site |
+| `offset_m` | number \| null | For a best-lit variant: its distance from that site's listed point, in metres. `null` otherwise |
+| `nearby_sun` | `{ radius_m, points, min, max }` \| null | For a `sunlit_peak` site and its variant: the lowest and highest mean `sun_frac` among the map pixels within `radius_m` of the listed point, and how many points that is. `null` for other sites. See [`science.md`](science.md) §7.1 |
+
+A best-lit variant has the id `<id>_best_lit`, the same group as its site, and a
+`description` and `source_url` written by the pipeline that say the point was chosen by
+TrueSouth. It is never listed in `data/catalog/sites.json`.
 
 ### `sites/<site_id>/meta.json`
 

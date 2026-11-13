@@ -50,10 +50,13 @@ function ownsEnter(target: EventTarget | null): boolean {
 export function LessonScreen({
   lesson,
   examples,
+  examplesPending = false,
   evaluator,
 }: {
   lesson: Lesson;
   examples: WorkedExamples;
+  /** `worked_examples.json` is still loading. */
+  examplesPending?: boolean;
   evaluator?: GoalEvaluator;
 }) {
   const navigate = useNavigate();
@@ -200,6 +203,7 @@ export function LessonScreen({
           runner={runner}
           views={views}
           examples={examples}
+          examplesPending={examplesPending}
           card={cards[lesson.card]}
           lessonTitle={lesson.title}
           tab={tab}
