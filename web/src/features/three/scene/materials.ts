@@ -62,7 +62,9 @@ void main() {
   dy.x -= floor(dy.x + .5);
   vec3 alb;
   if (uSplit > .5) {
-    vec2 u2 = vec2(fract(uv.x * 2.), uv.y);
+    // Each half spans 0 to 1 on its own. Not fract(): at the 180° seam uv.x is exactly 1,
+    // and fract() would wrap it to 0, the east half's 0° E column.
+    vec2 u2 = vec2(uv.x < .5 ? uv.x * 2. : uv.x * 2. - 1., uv.y);
     vec2 k = vec2(2., 1.);
     alb = uv.x < .5 ? textureGrad(uMap, u2, dx * k, dy * k).rgb : textureGrad(uMapE, u2, dx * k, dy * k).rgb;
   } else {

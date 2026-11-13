@@ -313,11 +313,12 @@ export function Overlay(props: OverlayProps) {
           className="scene-pin"
           data-focused={site.id === focusedId}
           onClick={() => props.onFocusSite(site.id)}
-          aria-label={site.name}
           title={site.name}
         >
           <PinLamp siteId={site.id} profile={props.profile} landingUtc={props.landingUtc} />
+          {/* The accessible name is the name and the status word: "Connecting Ridge, NO-GO". */}
           <span className="sr-only">
+            {site.name}
             <PinStatusWord siteId={site.id} profile={props.profile} landingUtc={props.landingUtc} />
           </span>
         </button>

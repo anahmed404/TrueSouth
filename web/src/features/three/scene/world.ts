@@ -84,6 +84,7 @@ export class World {
   private disposed = false;
   private readonly invalidate: () => void;
   private readonly maxAnisotropy: number;
+  private blankTexture: THREE.Texture;
 
   private readonly moon;
   private readonly moonMesh: THREE.Mesh;
@@ -114,6 +115,7 @@ export class World {
     this.invalidate = invalidate;
     this.maxAnisotropy = maxAnisotropy;
     const blank = this.own(solidTexture(40, 40, 40));
+    this.blankTexture = blank;
     const flat = this.own(solidTexture(180, 180, 180));
     const flatSlope = this.own(solidTexture(128, 128, 128));
 
@@ -256,6 +258,7 @@ export class World {
     if (this.disposed) return;
     if (m2) {
       u.uMap.value = m2;
+      this.showMoon([m2]);
       u.uLoaded.value = 1;
       this.textureState = { ...this.textureState, moon: "2k" };
     }
@@ -288,29 +291,63 @@ export class World {
   }
 
   private hiRes: { m4?: THREE.Texture | null; w?: THREE.Texture | null; e?: THREE.Texture | null } = {};
+  /** The Moon colour textures on screen now: the 2K, the 4K, or the two 8K halves. */
+  private shownMoon: THREE.Texture[] = [];
 
-  /** The 4K Moon (the default) or the optional 8K halves. */
+  private release(texture: THREE.Texture | null | undefined): void {
+    if (!texture) return;
+    texture.dispose();
+    this.textures.delete(texture);
+    if (this.hiRes.m4 === texture) this.hiRes.m4 = null;
+    if (this.hiRes.w === texture) this.hiRes.w = null;
+    if (this.hiRes.e === texture) this.hiRes.e = null;
+  }
+
+  /** Puts new Moon colour textures on screen and releases the ones they replace. */
+  private showMoon(textures: THREE.Texture[]): void {
+    const old = this.shownMoon;
+    this.shownMoon = textures;
+    for (const texture of old) if (!textures.includes(texture)) this.release(texture);
+  }
+
+  /**
+   * The 4K Moon (the default) or the optional 8K halves. The lower resolution stays on screen
+   * only while the higher one loads; once it is replaced it is released.
+   */
   async setMoonResolution(which: "4k" | "8k", onState: (state: TextureState) => void): Promise<void> {
     this.moonRes = which;
     const u = this.moon.uniforms;
     if (which === "8k") {
       this.hiRes.w ??= await this.load("scene/moon_8k_w.webp", true, true);
       this.hiRes.e ??= await this.load("scene/moon_8k_e.webp", true, true);
-      if (this.disposed || this.moonRes !== "8k") return;
+      if (this.disposed) return;
+      if (this.moonRes !== "8k") {
+        // Switched back while these loaded: they were never shown.
+        if (!this.shownMoon.includes(this.hiRes.w as THREE.Texture)) this.release(this.hiRes.w);
+        if (!this.shownMoon.includes(this.hiRes.e as THREE.Texture)) this.release(this.hiRes.e);
+        return;
+      }
       if (this.hiRes.w && this.hiRes.e) {
         u.uMap.value = this.hiRes.w;
         u.uMapE.value = this.hiRes.e;
         u.uSplit.value = 1;
         u.uLoaded.value = 1;
+        this.showMoon([this.hiRes.w, this.hiRes.e]);
         this.textureState = { ...this.textureState, moon: "8k" };
       }
     } else {
       this.hiRes.m4 ??= await this.load("scene/moon_4k.webp", true);
-      if (this.disposed || this.moonRes !== "4k") return;
+      if (this.disposed) return;
+      if (this.moonRes !== "4k") {
+        if (!this.shownMoon.includes(this.hiRes.m4 as THREE.Texture)) this.release(this.hiRes.m4);
+        return;
+      }
       if (this.hiRes.m4) {
         u.uMap.value = this.hiRes.m4;
+        u.uMapE.value = this.blankTexture;
         u.uSplit.value = 0;
         u.uLoaded.value = 1;
+        this.showMoon([this.hiRes.m4]);
         this.textureState = { ...this.textureState, moon: "4k" };
       }
     }
