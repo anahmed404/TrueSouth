@@ -57,13 +57,19 @@ function useOverflows(ref: RefObject<HTMLElement | null>): boolean {
 
 /**
  * A table that may scroll sideways inside its own box, never the page. When it does, a
- * line under it says so, and the box takes keyboard focus so arrow keys scroll it.
+ * line above it says so, and the box takes keyboard focus so arrow keys scroll it.
  */
 export function TableBox({ label, children }: { label: string; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const overflows = useOverflows(ref);
   return (
     <div className="vl-table-box">
+      {overflows ? (
+        <p className="vl-scroll-cue">
+          <MoveHorizontal size={14} strokeWidth={1.8} aria-hidden="true" />
+          Scroll the table sideways to see every column.
+        </p>
+      ) : null}
       <div
         ref={ref}
         className="vl-table-scroll"
@@ -73,12 +79,6 @@ export function TableBox({ label, children }: { label: string; children: ReactNo
       >
         {children}
       </div>
-      {overflows ? (
-        <p className="vl-scroll-cue">
-          <MoveHorizontal size={14} strokeWidth={1.8} aria-hidden="true" />
-          Scroll the table sideways to see every column.
-        </p>
-      ) : null}
     </div>
   );
 }

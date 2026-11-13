@@ -246,6 +246,13 @@
   display: inline;
 }
 
+/* The info icon keeps its 14 px look with a 44 px touch target. */
+.vl-page .explain-button {
+  min-width: 44px;
+  min-height: 44px;
+  margin: -10px -10px;
+}
+
 .vl-link-icon {
   display: inline-block;
   margin-left: 2px;
@@ -690,7 +697,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: var(--s2) 0 0;
+  margin: 0 0 var(--s2);
   color: var(--ink-3);
   font-size: var(--t-sm);
 }
@@ -919,10 +926,6 @@
 
   .vl-foot {
     padding: var(--s4);
-  }
-
-  .vl-top .brand > span {
-    display: none;
   }
 
   .vl-intro h1 {
