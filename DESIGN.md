@@ -166,8 +166,9 @@ porthole and the flat status lamp are the shared signature shapes.
 
 Rejected, at the team lead's request: purple, indigo or violet anywhere; glow on panels,
 chips, buttons, lamps or text; starfields behind data; all-caps letter-spaced labels; and
-showing everything at full volume. The scene has no stars either: a camera exposed for a
-sunlit Moon would not see them.
+showing everything at full volume. The scene's only stars are the real sky behind the
+3D scene, added at the team lead's request (2026-11-13): faint points from a star
+catalogue, never a decorative starfield behind the interface's data.
 
 **Key Characteristics:**
 - Neutral near-black greys with tonal depth.
@@ -342,7 +343,9 @@ The rules that keep it from spoiling the instrument:
   the scene can change it. See-through panels were tried and rejected: over a bright Moon
   they had to turn almost solid.
 - **The Moon's brightness rolls off softly,** so a face-on Moon never clips to white.
-- **No stars,** because a camera exposed for a sunlit Moon would not see them.
+- **Real stars only, and quiet:** the bright-star catalogue as faint points, sized by
+  magnitude, with no glow or twinkling, dimmer when the lit Moon fills the view. See
+  docs/features/system-view.md, "What it shows".
 - **The Only Hues Are Data Rule applies to the interface,** not to the photograph. The
   scene's blues, greys and warm Sun are NASA data, not chrome.
 - **Shadows and shading in the scene are decoration.** They never decide a result.
@@ -393,7 +396,7 @@ grey ring with an eye.
 
 Flat by default. Depth comes from tonal layering: Night under Panel, Panel under Raised,
 and Raised under Hover. Each layer has a 1px hairline. There is no backdrop blur, no
-gradient wash, no glow, and no starfield. The scene behind the interface is a photograph;
+gradient wash, no glow, and no decorative starfield. The scene behind the interface is a photograph;
 the interface stays flat above it. A floating panel has a 1px Control Edge border, because
 the scene needs the firmer edge, and no shadow.
 
@@ -534,7 +537,8 @@ or glow.
 
 ### Don't:
 - **Don't** use purple, indigo or violet, or any gradient as decoration.
-- **Don't** add glow, glass, backdrop blur or a starfield.
+- **Don't** add glow, glass, backdrop blur or a decorative starfield (the scene's catalogue
+  stars are the one sky there is).
 - **Don't** write labels in capitals or letter-space them. Only GO, CAUTION, NO-GO and
   acronyms are in capitals.
 - **Don't** make a panel see-through, or let the scene decide a contrast ratio.

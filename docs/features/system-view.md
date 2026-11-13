@@ -43,8 +43,20 @@ Prototype and designer's notes:
 - **Labels** for Earth and the Sun. A plate keeps each label readable and keeps it inside
   the free space, moving down to avoid other labels.
 - **The Moon's axis** and a faint equator, so the pole is easy to find.
-- **No stars.** A camera exposed for a sunlit Moon would not see them, and
-  [`../../DESIGN.md`](../../DESIGN.md) rejects a starfield.
+- **Stars,** at the team lead's request (2026-11-13): the real sky, the Yale Bright Star
+  Catalogue to magnitude 6.5 (about 8,400 stars), each drawn as a point sized and dimmed by
+  its magnitude and faintly tinted by its colour index. Mostly faint, a few bright; no glow,
+  no twinkling, no painted Milky Way. They sit behind everything and never over the Moon,
+  Earth or the Sun. They fade near the Sun, dim as the lit Moon fills the view (a camera
+  exposed for it would see fewer), and are dimmer in Local terrain and Lander's eye.
+  - **Orientation:** the Moon's pole points where it truly points in the sky (the IAU
+    model), so the Moon's equator lies among the ecliptic's stars; but the sky is turned
+    about that pole as on 2000-01-01, not for the scrubber's time. Turning it for a date
+    is ephemeris work, which the frontend does not do. Nothing on screen says the stars are
+    placed for the date.
+  - Stars are decoration. They never decide or imply a result.
+  - How `web/public/stars.bin` is made, and its source and licence:
+    `web/dev/build-stars.mjs`.
 
 All of it is a photograph of space under a flat interface. The scene's shading and shadows
 are decoration.

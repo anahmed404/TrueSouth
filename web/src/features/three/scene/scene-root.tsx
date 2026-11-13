@@ -40,6 +40,7 @@ import { sceneContent, type LoadState } from "./plates";
 import { southPolePose } from "./navigate";
 import { Rig } from "./rig";
 import { sightState, type SightState } from "./sight";
+import { Stars, starExposure } from "./stars";
 import { mul, type V3 } from "./vec";
 import { World, type WorldInputs, type WorldSite } from "./world";
 import "./scene.css";
@@ -652,6 +653,17 @@ function Director(props: DirectorProps) {
     };
   }, [scene, world, invalidate]);
 
+  // The star background: one draw of points behind everything (stars.ts).
+  const stars = useMemo(() => new Stars(), []);
+  useEffect(() => {
+    scene.add(stars.points);
+    void stars.load(() => invalidate());
+    return () => {
+      scene.remove(stars.points);
+      stars.dispose();
+    };
+  }, [scene, stars, invalidate]);
+
   // The optional 8K Moon, when the setting asks for it.
   const firstRes = useRef(true);
   useEffect(() => {
@@ -865,6 +877,16 @@ function Director(props: DirectorProps) {
     // three updates the camera's matrices during render; the overlay projects before that.
     frameCamera.updateMatrixWorld();
     const anchors = world.layout(frameCamera);
+    // Stars dim as the lit Moon fills the view, and on the sunlit ground.
+    const cam = frameCamera as THREE.PerspectiveCamera;
+    const inputs = latest.current.inputs;
+    let exposure = 0.45;
+    if (inputs.view !== "terrain" && inputs.view !== "panorama") {
+      const moonRadius = Math.asin(Math.min(1, 1 / Math.max(1, cam.position.length())));
+      const fovY = THREE.MathUtils.degToRad(cam.fov);
+      exposure = starExposure((Math.PI * moonRadius * moonRadius) / (fovY * fovY * cam.aspect));
+    }
+    stars.update(gl.getPixelRatio(), exposure, inputs.bodies ? inputs.sunDir : null);
     latest.current.bus.current.overlay?.(anchors, frameCamera as THREE.PerspectiveCamera, size);
     const m = measuring.current;
     if (m) {
