@@ -6,22 +6,22 @@ The prompt that drives the orchestrator is [`orchestrator-prompt.md`](orchestrat
 ## Now
 
 - **Milestone:** before M0. No application code exists.
-- **Next step:** checkpoint C0 (kickoff).
+- **Next step:** send checkpoint C0 (kickoff) and start M0 without waiting.
 - **Running:** nothing.
+- **Last checkpoint the team lead answered:** none yet.
 
 ## Model tiers
+
+Confirmed with the team lead on 2026-11-13.
 
 | Provider | Heavy | Everyday | Light |
 | :--- | :--- | :--- | :--- |
 | Claude Code | `claude-opus-5-5` | `claude-sonnet-5-5` | `claude-haiku-5-5` |
-| Codex | not confirmed | not confirmed | not confirmed |
-| Antigravity | not confirmed (`gemini-4-argon` or `gemini-4-hydrogen`) | not confirmed | `gemini-3.8-flash` |
-| Cursor | `grok-4.7` | `grok-4.7` | `grok-4.6` |
+| Codex | `gpt-6.1-sol` | `gpt-6.1-terra` | `gpt-6.1-terra` at low effort |
+| Antigravity (Google models only) | `gemini-4-argon` | `gemini-4-hydrogen` | `gemini-3.8-flash` |
+| Cursor (Grok models only) | `grok-4.7` | `grok-4.7` | `grok-4.6` |
 
-**Tiers confirmed with the team lead:** no. Ask at kickoff.
-
-Models seen on 2026-11-13: Codex offered `gpt-6.1-sol`, `gpt-6-astra`, `gpt-6.1-terra` and
-`gpt-6-luna`.
+All UI work goes to `claude-opus-5-5`.
 
 ## Work packages
 
@@ -33,6 +33,14 @@ All not started. Ids are from [`../build-plan.md`](../build-plan.md).
 | Mission Control (MC0–MC7, MC9, MC11) | — | — | — |
 | 3D and Map (T0–T8) | — | — | — |
 | Academy (A0–A11) | — | — | — |
+
+## Waiting on the team lead
+
+What is blocked on an answer, and what is running meanwhile.
+
+| Question | Asked at | Blocks | Running meanwhile |
+| :--- | :--- | :--- | :--- |
+| — | — | — | — |
 
 ## Design choices
 
@@ -46,7 +54,6 @@ _Empty._
 
 ## Open questions for the team lead
 
-1. Model tiers for Codex and Antigravity (kickoff).
-2. The Artemis region outlines need a free ScienceBase login to download. See
+1. The Artemis region outlines need a free ScienceBase login to download. See
    [`../site-catalog.md`](../site-catalog.md).
-3. Luna's reference photos, needed at checkpoint C4.
+2. Luna's reference photos, needed at checkpoint C4.
