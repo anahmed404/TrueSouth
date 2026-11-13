@@ -1013,7 +1013,7 @@ function Director(props: DirectorProps) {
   }, []);
   // Dev only: time the renderer's own work on the main thread.
   useEffect(() => {
-    if (!devMeter) return;
+    if (!import.meta.env.DEV || !devMeter) return;
     const original = gl.render.bind(gl);
     gl.render = (s: THREE.Object3D, c: THREE.Camera) => {
       const t = performance.now();
@@ -1025,7 +1025,7 @@ function Director(props: DirectorProps) {
     };
   }, [devMeter, gl]);
   useEffect(() => {
-    if (!devMeter) return;
+    if (!import.meta.env.DEV || !devMeter) return;
     (window as unknown as { __truesouthPerf?: unknown }).__truesouthPerf = {
       reset: () => {
         devMeter.meter.reset();
