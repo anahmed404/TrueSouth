@@ -789,7 +789,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   agent with the tests, typecheck, build and pytest, by playing lessons 1 to 4 in a
   browser at 1440 × 900 and 390 × 844 (and once with `VITE_DATA=fixtures`, and once by
   keyboard only), and with the Impeccable detector. A human has not played the lessons.
-- **State:** built, not verified (1,640 web tests, typecheck, build and 322 Python tests pass)
+- **State:** built, not verified (1,696 web tests, typecheck, build and 322 Python tests pass on the merge with main)
 - **Changed:** `web/src/features/academy/` (`lessons/l1.ts`–`l4.ts`, `lessons/index.ts`,
   `lessons/story.ts`, `lessons/COVERAGE.md`, `cards/`, `index.tsx`, `path-map.tsx`,
   `complete-screen.tsx`, `lesson-screen.tsx`, `lesson/stage.tsx`, `lesson/scenes.tsx`,
