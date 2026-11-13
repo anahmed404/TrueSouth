@@ -7,7 +7,8 @@ import pytest
 
 from truesouth.constants import MOON_RADIUS_M as R, OBSERVER_HEIGHT_M as H
 from truesouth.dem import DemStore
-from truesouth.frames import destination, polar_stereo_forward
+from truesouth.frames import (az_el, destination, polar_stereo_forward, polar_stereo_inverse,
+                              unit_vector)
 from truesouth.skyline import compute_skyline, elevation_angle, interpolate_skyline
 
 
@@ -224,3 +225,62 @@ def test_far_missing_pixel_and_chunk_invariance(tmp_path):
     assert small.missing_samples > 0
     assert small.method[np.argmax(small.el_deg)] == 'far'
     assert small.height_m[np.argmax(small.el_deg)] == 10000
+
+
+def _far_corner_peak(tmp_path, row, col):
+    """A far raster, 100 km east of the site, flat except one peak at (row, col)."""
+    site = (-89., 0.)
+    centre = destination(*site, 90., 100_000.)
+    data = np.zeros((9, 13))
+    data[row, col] = 4000.
+    core = prepared(tmp_path, f'site_rc_{row}_{col}', np.zeros((11, 11)), site)
+    wide = prepared(tmp_path, f'far_rc_{row}_{col}', data, centre, 240)
+    meta = json.loads(wide.with_suffix('.json').read_text(encoding='utf-8'))
+    return site, DemStore(core, wide), meta
+
+
+def _expected_from_pixel(site, meta, row, col, height):
+    """Where a pixel is and how it looks from the site, from the raster's own geometry.
+
+    Row 0 is the top edge (+y) and column 0 the left edge (-x); a value sits at its pixel's
+    centre. Then sections 2.1 and 5: position (R + z) u, direction from the observer,
+    azimuth and elevation in the site's frame. Nothing here goes through skyline.py.
+    """
+    x = meta['origin_x'] + (col + .5) * meta['pixel_x']
+    y = meta['origin_y'] + (row + .5) * meta['pixel_y']
+    lat, lon = polar_stereo_inverse(x, y)
+    observer = (R + H) * unit_vector(*site)
+    direction = (R + height) * unit_vector(lat, lon) - observer
+    direction = direction / np.linalg.norm(direction)
+    azimuth, elevation = az_el(*site, direction)
+    return float(lat), float(lon), float(azimuth), float(elevation)
+
+
+def test_far_field_reads_rows_top_down_and_columns_left_to_right(tmp_path):
+    # The peak sits in the top-right corner of a 9 x 13 raster, well off both middles, so
+    # reading the rows bottom-up or the columns right-to-left would move it. At 100 km one
+    # 0.25 degree bin is 436 m wide, and the top and bottom rows are 1,920 m apart.
+    site, store, meta = _far_corner_peak(tmp_path, 0, 12)
+    lat, lon, azimuth, elevation = _expected_from_pixel(site, meta, 0, 12, 4000.)
+    result = compute_skyline(store, *site)
+    k = int(np.floor(azimuth / .25 + .5)) % 1440
+    assert result.method[k] == 'far'
+    # 4,000 m at about 101.5 km: the Moon drops about 2,960 m, leaving about 0.59 degrees.
+    assert 0.4 < elevation < 0.8
+    assert abs(result.el_deg[k] - elevation) <= .001
+    np.testing.assert_allclose([result.lat_deg[k], result.lon_deg[k]], [lat, lon], atol=1e-9)
+    assert result.height_m[k] == 4000.
+
+    # The mirrored positions are in different bins or at a different distance, so a flipped
+    # read cannot pass by accident.
+    _, _, az_rows_flipped, _ = _expected_from_pixel(site, meta, 8, 12, 4000.)
+    assert int(np.floor(az_rows_flipped / .25 + .5)) % 1440 != k
+    lat_cols, lon_cols, _, _ = _expected_from_pixel(site, meta, 0, 0, 4000.)
+    assert abs(lon_cols - lon) > 1e-3 or abs(lat_cols - lat) > 1e-3
+    # The far edge of the raster is 2,880 m beyond the near edge: the blocker distance tells
+    # them apart.
+    near_site, near_store, near_meta = _far_corner_peak(tmp_path, 0, 0)
+    near = compute_skyline(near_store, *near_site)
+    _, _, az_near, _ = _expected_from_pixel(near_site, near_meta, 0, 0, 4000.)
+    k_near = int(np.floor(az_near / .25 + .5)) % 1440
+    assert result.dist_km[k] - near.dist_km[k_near] > 2.5
