@@ -11,7 +11,14 @@ export const dataPaths = {
   validation: "/data/validation.json",
   workedExamples: "/data/academy/worked_examples.json",
   system: "/data/system.bin",
+  sceneMeta: "/data/scene/meta.json",
 } as const;
+
+/** A scene or maps image path as listed in scene/meta.json, served under /data/. */
+export function sceneFile(file: string): string {
+  const clean = file.replace(/^\/+/, "");
+  return `/data/${clean}`;
+}
 
 export function isCustomSiteId(siteId: string): boolean {
   return CUSTOM_SITE_ID.test(siteId);

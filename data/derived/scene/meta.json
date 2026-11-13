@@ -1,0 +1,331 @@
+{
+  "schema_version": 1,
+  "generated_utc": "2026-11-13T19:10:58Z",
+  "images": [
+    {
+      "file": "scene/moon_2k.webp",
+      "width_px": 2048,
+      "height_px": 1024,
+      "encoding": "webp_q82_m6",
+      "orientation": "equirectangular_lon0_center_north_up",
+      "source": "lroc_color_poles_4k.tif: size 4096x2048, bands 3, dtype uint8, crs None, transform | 1.00, 0.00, 0.00|\n| 0.00, 1.00, 0.00|\n| 0.00, 0.00, 1.00|; tags TIFFTAG_DOCUMENTNAME=/svs/frames/etwright/moon3dkit/lroc_color_poles_4k.tif, TIFFTAG_IMAGEDESCRIPTION=IDL TIFF file, TIFFTAG_RESOLUTIONUNIT=2 (pixels/inch), TIFFTAG_XRESOLUTION=100, TIFFTAG_YRESOLUTION=100",
+      "operation": "Lanczos resize of the oriented 4K colour map.",
+      "credit": "NASA Scientific Visualization Studio; LRO LROC and LOLA teams. SVS 4720.",
+      "optional": false
+    },
+    {
+      "file": "scene/moon_4k.webp",
+      "width_px": 4096,
+      "height_px": 2048,
+      "encoding": "webp_q82_m6",
+      "orientation": "equirectangular_lon0_center_north_up",
+      "source": "lroc_color_poles_4k.tif: size 4096x2048, bands 3, dtype uint8, crs None, transform | 1.00, 0.00, 0.00|\n| 0.00, 1.00, 0.00|\n| 0.00, 0.00, 1.00|; tags TIFFTAG_DOCUMENTNAME=/svs/frames/etwright/moon3dkit/lroc_color_poles_4k.tif, TIFFTAG_IMAGEDESCRIPTION=IDL TIFF file, TIFFTAG_RESOLUTIONUNIT=2 (pixels/inch), TIFFTAG_XRESOLUTION=100, TIFFTAG_YRESOLUTION=100",
+      "operation": "Re-encoded at the source size. No resample.",
+      "credit": "NASA Scientific Visualization Studio; LRO LROC and LOLA teams. SVS 4720.",
+      "optional": false
+    },
+    {
+      "file": "scene/moon_8k_w.webp",
+      "width_px": 4096,
+      "height_px": 4096,
+      "encoding": "webp_q80_m6",
+      "orientation": "equirectangular_lon0_center_north_up",
+      "source": "lroc_color_poles_8k.tif: size 8192x4096, bands 3, dtype uint8, crs None, transform | 1.00, 0.00, 0.00|\n| 0.00, 1.00, 0.00|\n| 0.00, 0.00, 1.00|; tags TIFFTAG_DOCUMENTNAME=/svs/frames/etwright/moon3dkit/lroc_color_poles_8k.tif, TIFFTAG_IMAGEDESCRIPTION=IDL TIFF file, TIFFTAG_RESOLUTIONUNIT=2 (pixels/inch), TIFFTAG_XRESOLUTION=100, TIFFTAG_YRESOLUTION=100",
+      "operation": "Exact west half, 180 W to 0, columns [0, width/2).",
+      "credit": "NASA Scientific Visualization Studio; LRO LROC and LOLA teams. SVS 4720.",
+      "optional": true
+    },
+    {
+      "file": "scene/moon_8k_e.webp",
+      "width_px": 4096,
+      "height_px": 4096,
+      "encoding": "webp_q80_m6",
+      "orientation": "equirectangular_lon0_center_north_up",
+      "source": "lroc_color_poles_8k.tif: size 8192x4096, bands 3, dtype uint8, crs None, transform | 1.00, 0.00, 0.00|\n| 0.00, 1.00, 0.00|\n| 0.00, 0.00, 1.00|; tags TIFFTAG_DOCUMENTNAME=/svs/frames/etwright/moon3dkit/lroc_color_poles_8k.tif, TIFFTAG_IMAGEDESCRIPTION=IDL TIFF file, TIFFTAG_RESOLUTIONUNIT=2 (pixels/inch), TIFFTAG_XRESOLUTION=100, TIFFTAG_YRESOLUTION=100",
+      "operation": "Exact east half, 0 to 180 E, columns [width/2, width). The halves join with no overlap and no gap.",
+      "credit": "NASA Scientific Visualization Studio; LRO LROC and LOLA teams. SVS 4720.",
+      "optional": true
+    },
+    {
+      "file": "scene/moon_height_1440.png",
+      "width_px": 1440,
+      "height_px": 720,
+      "encoding": "png_grey8",
+      "orientation": "equirectangular_lon0_center_north_up",
+      "source": "ldem_4.tif: size 1440x720, bands 1, dtype float32, crs None, transform | 1.00, 0.00, 0.00|\n| 0.00, 1.00, 0.00|\n| 0.00, 0.00, 1.00|; tags TIFFTAG_DATETIME=2019:06:04 16:43:03, TIFFTAG_DOCUMENTNAME=/svs/frames/etwright/moon3dkit/ldem_4.tif, TIFFTAG_IMAGEDESCRIPTION=IDL TIFF file, TIFFTAG_RESOLUTIONUNIT=2 (pixels/inch), TIFFTAG_SOFTWARE=IDL 8.7.2, Harris Geospatial Solutions, Inc., TIFFTAG_XRESOLUTION=100",
+      "operation": "Heights in kilometres, from -9.0 to +10.6, mapped linearly to 0-255.",
+      "credit": "NASA Scientific Visualization Studio; LRO LROC and LOLA teams. SVS 4720.",
+      "optional": false
+    },
+    {
+      "file": "scene/earth_2k.jpg",
+      "width_px": 2048,
+      "height_px": 1024,
+      "encoding": "jpeg_q84_progressive",
+      "orientation": "equirectangular_lon0_center_north_up",
+      "source": "world.topo.bathy.200403.3x5400x2700.jpg: size 5400x2700, bands 3, dtype uint8, crs None, transform | 1.00, 0.00, 0.00|\n| 0.00, 1.00, 0.00|\n| 0.00, 0.00, 1.00|",
+      "operation": "Lanczos resize to 2048x1024.",
+      "credit": "NASA Earth Observatory, Reto Stöckli. Blue Marble Next Generation, March 2004.",
+      "optional": false
+    },
+    {
+      "file": "maps/hillshade_4k.webp",
+      "width_px": 4096,
+      "height_px": 4096,
+      "encoding": "webp_q80_m4",
+      "orientation": "south_polar_stereographic_x_right_y_up",
+      "source": "data/derived/maps/hillshade_4k.webp",
+      "operation": "Not copied. The scene reads the polar-map hillshade.",
+      "credit": "NASA LOLA / PGDA, LDEM_80S_80MPP_ADJ, via the TrueSouth pipeline.",
+      "optional": false
+    },
+    {
+      "file": "scene/hillshade_core_2048.webp",
+      "width_px": 2048,
+      "height_px": 2048,
+      "encoding": "webp_q85_m6",
+      "orientation": "south_polar_stereographic_x_right_y_up",
+      "source": "data/derived/maps/hillshade_8k.webp",
+      "operation": "Centre crop. At 8192 pixels over plus or minus 304 km this is plus or minus 76 km, centred on the pole to the pixel.",
+      "credit": "NASA LOLA / PGDA, LDEM_80S_80MPP_ADJ, via the TrueSouth pipeline.",
+      "optional": false
+    },
+    {
+      "file": "scene/sunlight_2k.webp",
+      "width_px": 2048,
+      "height_px": 2048,
+      "encoding": "webp_q85_m6",
+      "orientation": "south_polar_stereographic_x_right_y_up",
+      "source": "data/derived/maps/sunlight_4k.webp",
+      "operation": "Lanczos resize to grey. 0 is black and 1 is white, as in maps/.",
+      "credit": "NASA LOLA / PGDA, LDEM_80S_80MPP_ADJ, via the TrueSouth pipeline.",
+      "optional": false
+    },
+    {
+      "file": "scene/earthvis_2k.webp",
+      "width_px": 2048,
+      "height_px": 2048,
+      "encoding": "webp_q85_m6",
+      "orientation": "south_polar_stereographic_x_right_y_up",
+      "source": "data/derived/maps/earthvis_4k.webp",
+      "operation": "Lanczos resize to grey. 0 is black and 1 is white, as in maps/.",
+      "credit": "NASA LOLA / PGDA, LDEM_80S_80MPP_ADJ, via the TrueSouth pipeline.",
+      "optional": false
+    },
+    {
+      "file": "scene/cap_slope.webp",
+      "width_px": 1900,
+      "height_px": 1900,
+      "encoding": "webp_q92_m6",
+      "orientation": "south_polar_stereographic_x_right_y_up",
+      "source": "prepared LDEM_80S_80MPP_ADJ",
+      "operation": "Exact 4x4 block mean, then central differences. Red is dz/dx (+x east), green is dz/dy (+y north), stored as round(128 + 160 * slope).",
+      "credit": "NASA LOLA / PGDA, LDEM_80S_80MPP_ADJ, via the TrueSouth pipeline.",
+      "optional": false
+    },
+    {
+      "file": "scene/cap_slope_core.webp",
+      "width_px": 950,
+      "height_px": 950,
+      "encoding": "webp_lossless_m6",
+      "orientation": "south_polar_stereographic_x_right_y_up",
+      "source": "prepared LDEM_80S_80MPP_ADJ",
+      "operation": "Centre plus or minus 76 km, exact 2x2 block mean, same slope encoding, lossless.",
+      "credit": "NASA LOLA / PGDA, LDEM_80S_80MPP_ADJ, via the TrueSouth pipeline.",
+      "optional": false
+    }
+  ],
+  "aprons": [
+    {
+      "site_id": "artemis_de_gerlache_rim_2",
+      "file": "scene/aprons/artemis_de_gerlache_rim_2.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
+      "site_id": "artemis_haworth",
+      "file": "scene/aprons/artemis_haworth.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
+      "site_id": "artemis_malapert",
+      "file": "scene/aprons/artemis_malapert.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
+      "site_id": "artemis_mouton",
+      "file": "scene/aprons/artemis_mouton.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
+      "site_id": "artemis_nobile_rim_1",
+      "file": "scene/aprons/artemis_nobile_rim_1.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
+      "site_id": "artemis_nobile_rim_2",
+      "file": "scene/aprons/artemis_nobile_rim_2.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
+      "site_id": "chandrayaan3",
+      "file": "scene/aprons/chandrayaan3.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
+      "site_id": "connecting_ridge",
+      "file": "scene/aprons/connecting_ridge.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
+      "site_id": "de_gerlache_rim",
+      "file": "scene/aprons/de_gerlache_rim.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
+      "site_id": "im1_odysseus",
+      "file": "scene/aprons/im1_odysseus.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
+      "site_id": "im2_athena",
+      "file": "scene/aprons/im2_athena.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
+      "site_id": "luna25_target",
+      "file": "scene/aprons/luna25_target.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
+      "site_id": "malapert_peak",
+      "file": "scene/aprons/malapert_peak.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
+      "site_id": "peak_near_shackleton",
+      "file": "scene/aprons/peak_near_shackleton.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
+      "site_id": "shackleton_rim",
+      "file": "scene/aprons/shackleton_rim.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    }
+  ],
+  "apron": {
+    "dtype": "uint16",
+    "byte_order": "little",
+    "offset_m": 12000.0,
+    "scale": 2.0,
+    "missing": 65535,
+    "row_order": "north_to_south",
+    "column_order": "west_to_east"
+  },
+  "inputs": [
+    {
+      "name": "lroc_color_poles_4k.tif",
+      "bytes": 13095388,
+      "mtime_ns": 1794596269309864600
+    },
+    {
+      "name": "lroc_color_poles_8k.tif",
+      "bytes": 50641970,
+      "mtime_ns": 1794596281188241900
+    },
+    {
+      "name": "ldem_4.tif",
+      "bytes": 4153352,
+      "mtime_ns": 1794596282879826500
+    },
+    {
+      "name": "world.topo.bathy.200403.3x5400x2700.jpg",
+      "bytes": 2522112,
+      "mtime_ns": 1794596283309607500
+    },
+    {
+      "name": "LDEM_80S_80MPP_ADJ.npy",
+      "bytes": 231040128,
+      "mtime_ns": 1794583956199688600
+    },
+    {
+      "name": "LDEM_80S_80MPP_ADJ.json",
+      "bytes": 1018,
+      "mtime_ns": 1794583958513495000
+    },
+    {
+      "name": "LDEM_60S_240MPP_ADJ.npy",
+      "bytes": 240870528,
+      "mtime_ns": 1794585323675021100
+    },
+    {
+      "name": "LDEM_60S_240MPP_ADJ.json",
+      "bytes": 1021,
+      "mtime_ns": 1794585325783231700
+    },
+    {
+      "name": "hillshade_4k.webp",
+      "bytes": 1279620,
+      "mtime_ns": 1794595533567573000
+    },
+    {
+      "name": "hillshade_8k.webp",
+      "bytes": 3897152,
+      "mtime_ns": 1794595533588858400
+    },
+    {
+      "name": "sunlight_4k.webp",
+      "bytes": 1364104,
+      "mtime_ns": 1794595533597215000
+    },
+    {
+      "name": "earthvis_4k.webp",
+      "bytes": 1287842,
+      "mtime_ns": 1794595533522824800
+    },
+    {
+      "name": "meta.json",
+      "bytes": 480,
+      "mtime_ns": 1794595533592297200
+    },
+    {
+      "name": "sites.json",
+      "bytes": 12748,
+      "mtime_ns": 1794595533636688700
+    },
+    {
+      "name": "scene_assets.py",
+      "bytes": 30945,
+      "mtime_ns": 1794596812864827100
+    }
+  ]
+}

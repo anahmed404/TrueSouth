@@ -40,6 +40,46 @@ export interface TrueSouthContracts {
   [k: string]: unknown;
 }
 /**
+ * Surrounding-terrain apron: one little-endian uint16 grid.
+ *
+ * A finite value decodes as ``raw / scale - offset_m`` (step 0.5 m). The value
+ * 65535 is no height, never a real elevation. Row 0 is north and column 0 is west,
+ * the same axes as ``terrain.bin``.
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "ApronLayout".
+ */
+export interface ApronLayout {
+  /**
+   * Little-endian byte order.
+   */
+  byte_order?: "little";
+  /**
+   * Column 0 is the western edge.
+   */
+  column_order?: "west_to_east";
+  /**
+   * Unsigned 16-bit integers.
+   */
+  dtype?: "uint16";
+  /**
+   * 65535 means no height.
+   */
+  missing?: 65535;
+  /**
+   * Decode a finite value as raw / scale - offset_m.
+   */
+  offset_m?: 12000;
+  /**
+   * Row 0 is the northern edge.
+   */
+  row_order?: "north_to_south";
+  /**
+   * Decode a finite value as raw / scale - offset_m.
+   */
+  scale?: 2;
+}
+/**
  * Artemis candidate region.
  *
  * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
@@ -90,12 +130,46 @@ export interface Assumed {
  * via the `definition` "BinaryLayouts".
  */
 export interface BinaryLayouts {
+  apron?: ApronLayout1;
   closeup?: TerrainLayout;
   map_lookup?: MapLookupLayout;
   series?: SeriesLayout;
   skyline?: SkylineLayout;
   system?: SystemLayout;
   terrain?: TerrainLayout1;
+}
+/**
+ * Surrounding-terrain apron encoding.
+ */
+export interface ApronLayout1 {
+  /**
+   * Little-endian byte order.
+   */
+  byte_order?: "little";
+  /**
+   * Column 0 is the western edge.
+   */
+  column_order?: "west_to_east";
+  /**
+   * Unsigned 16-bit integers.
+   */
+  dtype?: "uint16";
+  /**
+   * 65535 means no height.
+   */
+  missing?: 65535;
+  /**
+   * Decode a finite value as raw / scale - offset_m.
+   */
+  offset_m?: 12000;
+  /**
+   * Row 0 is the northern edge.
+   */
+  row_order?: "north_to_south";
+  /**
+   * Decode a finite value as raw / scale - offset_m.
+   */
+  scale?: 2;
 }
 /**
  * Close-up mesh encoding.
@@ -1252,6 +1326,169 @@ export interface ProfileProvenance1 {
    * Source or assumption for weights.
    */
   weights: Sourced | Assumed;
+}
+/**
+ * One site's apron file.
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "SceneApronFile".
+ */
+export interface SceneApronFile {
+  /**
+   * Columns. Column 0 is the western edge.
+   */
+  columns: number;
+  /**
+   * Path under /data/, scene/aprons/<site_id>.bin.
+   */
+  file: string;
+  /**
+   * Rows. Row 0 is the northern edge.
+   */
+  rows: number;
+  /**
+   * Catalog site id. Sphere-tier sites have no apron.
+   */
+  site_id: string;
+  /**
+   * Width and height of the square, in metres.
+   */
+  window_m: number;
+}
+/**
+ * One image the scene draws, with the operation that made it.
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "SceneImage".
+ */
+export interface SceneImage {
+  /**
+   * Credit line for the source.
+   */
+  credit: string;
+  /**
+   * Encoder settings. Lossy WebP names are quality and method.
+   */
+  encoding:
+    | "webp_q82_m6"
+    | "webp_q80_m6"
+    | "webp_q85_m6"
+    | "webp_q92_m6"
+    | "webp_lossless_m6"
+    | "webp_lossless"
+    | "webp_q80_m4"
+    | "png_grey8"
+    | "jpeg_q84_progressive";
+  /**
+   * Path under /data/, such as scene/moon_4k.webp or maps/hillshade_4k.webp.
+   */
+  file: string;
+  /**
+   * Height in pixels.
+   */
+  height_px: number;
+  /**
+   * Resize, crop, split, re-encode, or slope, in plain language.
+   */
+  operation: string;
+  /**
+   * True when the scene can load without this file.
+   */
+  optional?: boolean;
+  /**
+   * Pixel axes.
+   */
+  orientation: "equirectangular_lon0_center_north_up" | "south_polar_stereographic_x_right_y_up";
+  /**
+   * Source file or derived product.
+   */
+  source: string;
+  /**
+   * Width in pixels.
+   */
+  width_px: number;
+}
+/**
+ * A file the scene build read, so a second run can skip unchanged work.
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "SceneInput".
+ */
+export interface SceneInput {
+  /**
+   * Size in bytes.
+   */
+  bytes: number;
+  /**
+   * Modification time in nanoseconds.
+   */
+  mtime_ns: number;
+  /**
+   * File name.
+   */
+  name: string;
+}
+/**
+ * scene/meta.json: every scene file, its pixels, encoding, orientation and source.
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "SceneMeta".
+ */
+export interface SceneMeta {
+  apron?: ApronLayout2;
+  /**
+   * One apron for each non-sphere site. The 20 km patch is terrain.bin, not repeated here.
+   */
+  aprons: SceneApronFile[];
+  /**
+   * Generation timestamp in UTC.
+   */
+  generated_utc: string;
+  /**
+   * Moon, Earth and polar-cap images, including maps the scene reads in place.
+   */
+  images: SceneImage[];
+  /**
+   * Input fingerprints for the up-to-date check.
+   */
+  inputs?: SceneInput[];
+  /**
+   * Contract version.
+   */
+  schema_version?: 1;
+}
+/**
+ * Shared apron encoding.
+ */
+export interface ApronLayout2 {
+  /**
+   * Little-endian byte order.
+   */
+  byte_order?: "little";
+  /**
+   * Column 0 is the western edge.
+   */
+  column_order?: "west_to_east";
+  /**
+   * Unsigned 16-bit integers.
+   */
+  dtype?: "uint16";
+  /**
+   * 65535 means no height.
+   */
+  missing?: 65535;
+  /**
+   * Decode a finite value as raw / scale - offset_m.
+   */
+  offset_m?: 12000;
+  /**
+   * Row 0 is the northern edge.
+   */
+  row_order?: "north_to_south";
+  /**
+   * Decode a finite value as raw / scale - offset_m.
+   */
+  scale?: 2;
 }
 /**
  * Centre point results.

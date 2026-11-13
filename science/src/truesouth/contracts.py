@@ -650,6 +650,99 @@ class MapLookupLayout(Contract):
         return self
 
 
+class ApronLayout(Contract):
+    """Surrounding-terrain apron: one little-endian uint16 grid.
+
+    A finite value decodes as ``raw / scale - offset_m`` (step 0.5 m). The value
+    65535 is no height, never a real elevation. Row 0 is north and column 0 is west,
+    the same axes as ``terrain.bin``.
+    """
+
+    dtype: Literal['uint16'] = Field(description='Unsigned 16-bit integers.', default='uint16')
+    byte_order: Literal['little'] = Field(description='Little-endian byte order.', default='little')
+    offset_m: float = Field(description='Decode a finite value as raw / scale - offset_m.', default=12000.0, json_schema_extra={'const': 12000.0})
+    scale: float = Field(description='Decode a finite value as raw / scale - offset_m.', default=2.0, json_schema_extra={'const': 2.0})
+    missing: Literal[65535] = Field(description='65535 means no height.', default=65535)
+    row_order: Literal['north_to_south'] = Field(description='Row 0 is the northern edge.', default='north_to_south')
+    column_order: Literal['west_to_east'] = Field(description='Column 0 is the western edge.', default='west_to_east')
+
+    @model_validator(mode='after')
+    def fixed_encoding(self):
+        if self.offset_m != 12000.0 or self.scale != 2.0:
+            raise ValueError('apron values are (height_m + 12000) * 2')
+        return self
+
+
+SceneEncoding = Literal['webp_q82_m6', 'webp_q80_m6', 'webp_q85_m6', 'webp_q92_m6', 'webp_lossless_m6', 'webp_lossless', 'webp_q80_m4', 'png_grey8', 'jpeg_q84_progressive']
+SceneOrientation = Literal['equirectangular_lon0_center_north_up', 'south_polar_stereographic_x_right_y_up']
+
+
+class SceneImage(Contract):
+    """One image the scene draws, with the operation that made it."""
+
+    file: str = Field(min_length=1, description='Path under /data/, such as scene/moon_4k.webp or maps/hillshade_4k.webp.')
+    width_px: int = Field(gt=0, description='Width in pixels.')
+    height_px: int = Field(gt=0, description='Height in pixels.')
+    encoding: SceneEncoding = Field(description='Encoder settings. Lossy WebP names are quality and method.')
+    orientation: SceneOrientation = Field(description='Pixel axes.')
+    source: str = Field(min_length=1, description='Source file or derived product.')
+    operation: str = Field(min_length=1, description='Resize, crop, split, re-encode, or slope, in plain language.')
+    credit: str = Field(min_length=1, description='Credit line for the source.')
+    optional: bool = Field(default=False, description='True when the scene can load without this file.')
+
+
+class SceneApronFile(Contract):
+    """One site's apron file."""
+
+    site_id: SiteId = Field(description='Catalog site id. Sphere-tier sites have no apron.')
+    file: str = Field(min_length=1, description='Path under /data/, scene/aprons/<site_id>.bin.')
+    rows: int = Field(gt=1, description='Rows. Row 0 is the northern edge.')
+    columns: int = Field(gt=1, description='Columns. Column 0 is the western edge.')
+    window_m: float = Field(gt=0, description='Width and height of the square, in metres.')
+
+    @model_validator(mode='after')
+    def square_named_for_the_site(self):
+        if self.rows != self.columns:
+            raise ValueError('an apron grid is square')
+        if not self.file.endswith(f'{self.site_id}.bin'):
+            raise ValueError('apron file name must end with the site id')
+        return self
+
+
+class SceneInput(Contract):
+    """A file the scene build read, so a second run can skip unchanged work."""
+
+    name: str = Field(min_length=1, description='File name.')
+    bytes: int = Field(ge=0, description='Size in bytes.')
+    mtime_ns: int = Field(ge=0, description='Modification time in nanoseconds.')
+
+
+class SceneMeta(Contract):
+    """scene/meta.json: every scene file, its pixels, encoding, orientation and source."""
+
+    schema_version: Literal[1] = Field(description='Contract version.', default=1)
+    generated_utc: UTC = Field(description='Generation timestamp in UTC.')
+    images: list[SceneImage] = Field(description='Moon, Earth and polar-cap images, including maps the scene reads in place.')
+    aprons: list[SceneApronFile] = Field(description='One apron for each non-sphere site. The 20 km patch is terrain.bin, not repeated here.')
+    apron: ApronLayout = Field(description='Shared apron encoding.', default_factory=ApronLayout)
+    inputs: list[SceneInput] = Field(description='Input fingerprints for the up-to-date check.', default_factory=list)
+
+    @model_validator(mode='after')
+    def unique_entries(self):
+        files = [image.file for image in self.images]
+        if not files:
+            raise ValueError('scene meta lists at least one image')
+        if len(files) != len(set(files)):
+            raise ValueError('scene image files must be unique')
+        ids = [apron.site_id for apron in self.aprons]
+        if len(ids) != len(set(ids)):
+            raise ValueError('scene apron sites must be unique')
+        apron_files = [apron.file for apron in self.aprons]
+        if len(apron_files) != len(set(apron_files)):
+            raise ValueError('scene apron files must be unique')
+        return self
+
+
 class BinaryLayouts(Contract):
     """Binary formats, with ordered arrays and orientation."""
 
@@ -659,6 +752,7 @@ class BinaryLayouts(Contract):
     closeup: TerrainLayout = Field(description='Close-up mesh encoding.', default_factory=TerrainLayout)
     system: SystemLayout = Field(description='Global ephemeris encoding.', default_factory=SystemLayout)
     map_lookup: MapLookupLayout = Field(description='Map lookup encoding.', default_factory=MapLookupLayout)
+    apron: ApronLayout = Field(description='Surrounding-terrain apron encoding.', default_factory=ApronLayout)
 
 
 BINARY_LAYOUTS = BinaryLayouts().model_dump(mode="json")

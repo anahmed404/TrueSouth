@@ -4,12 +4,14 @@ import type {
   Manifest,
   MapMeta,
   Profiles,
+  SceneMeta,
   SiteMeta,
   Sites,
   Validation,
   WorkedExamples,
 } from "../contracts/generated.ts";
-import { decodeLookup, decodeSeries, decodeSkyline, decodeSystem, decodeTerrain } from "./decode/index.ts";
+import { decodeApron, decodeLookup, decodeSeries, decodeSkyline, decodeSystem, decodeTerrain } from "./decode/index.ts";
+import type { DecodedApron } from "./decode/apron.ts";
 import type { DecodedSeries, DecodedSkyline, DecodedSystem, DecodedTerrain, SeriesColumnSpec } from "./decode/layouts.ts";
 import {
   parseArtemisRegions,
@@ -17,13 +19,14 @@ import {
   parseManifest,
   parseMapsMeta,
   parseProfiles,
+  parseSceneMeta,
   parseSeriesColumns,
   parseSiteMeta,
   parseSites,
   parseValidation,
   parseWorkedExamples,
 } from "./parse.ts";
-import { dataPaths, fileLabel, mapFile, siteFile } from "./paths.ts";
+import { dataPaths, fileLabel, mapFile, sceneFile, siteFile } from "./paths.ts";
 
 export type FetchLike = (url: string) => Promise<Response>;
 
@@ -198,4 +201,43 @@ export async function loadMapLookup(
 
 export function mapImageUrl(fileName: string): string {
   return mapFile(fileName);
+}
+
+export function sceneImageUrl(file: string): string {
+  return sceneFile(file);
+}
+
+export function loadSceneMeta(fetchImpl: FetchLike = defaultFetch): Promise<SceneMeta> {
+  return loadJson(dataPaths.sceneMeta, fetchImpl, parseSceneMeta);
+}
+
+/** An optional scene file that is missing is "not available". A required one still throws. */
+export async function loadSceneImage(
+  file: string,
+  optional: boolean,
+  fetchImpl: FetchLike = defaultFetch,
+): Promise<ArrayBuffer | "not available"> {
+  try {
+    return await fetchBytes(sceneImageUrl(file), fetchImpl);
+  } catch (error) {
+    if (optional && error instanceof MissingFileError) return "not available";
+    throw error;
+  }
+}
+
+export async function loadApron(
+  siteId: string,
+  fetchImpl: FetchLike = defaultFetch,
+): Promise<DecodedApron | "not available"> {
+  const meta = await loadSceneMeta(fetchImpl);
+  const apron = meta.aprons.find((item) => item.site_id === siteId);
+  if (!apron) return "not available";
+  try {
+    const bytes = await fetchBytes(sceneImageUrl(apron.file), fetchImpl);
+    const name = apron.file.slice(apron.file.lastIndexOf("/") + 1);
+    return decodeApron(bytes, apron.rows, apron.columns, name);
+  } catch (error) {
+    if (error instanceof MissingFileError) return "not available";
+    throw error;
+  }
 }
