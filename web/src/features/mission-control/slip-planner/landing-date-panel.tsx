@@ -493,6 +493,7 @@ function Dates(props: DatesProps) {
               <div
                 key={row.key}
                 className="ldp-strip"
+                data-focused={row.kind === "site" && row.siteId === scenario.focusedSiteId}
                 style={{ top: rowTop(i), height: metrics.height }}
                 tabIndex={compact ? -1 : 0}
                 role="slider"
@@ -706,7 +707,8 @@ const Axis = memo(function Axis({ start, span, width, gridStartMs, top, dayCount
       const month = date.getUTCMonth();
       if (all && month % 3) continue;
       const tx = ((day - start) / span) * width;
-      const labelled = month % step === 0 && tx < width - 30 && (!all || month === 0);
+      // Clear of "UTC" at the right end.
+      const labelled = month % step === 0 && tx < width - 56 && (!all || month === 0);
       const text = !labelled ? null : month === 0 || all ? String(date.getUTCFullYear()) : first && pxPerMonth * step >= 64 ? `${MONTHS[month]} ${date.getUTCFullYear()}` : (MONTHS[month] ?? "");
       if (labelled) first = false;
       out.push({ x: tx, text, major: month === 0 });

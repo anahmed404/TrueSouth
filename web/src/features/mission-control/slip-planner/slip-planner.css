@@ -4,6 +4,12 @@
   "Spot" and "Landing-date panel". Tokens only; no new colour.
 */
 
+/*
+  This file is imported with the shell, before theme.css. Name Tailwind's layer order first,
+  so this file cannot declare "components" ahead of "base" and let the base reset win.
+*/
+@layer theme, base, components, utilities;
+
 @layer components {
   /* ── The bottom strip in this view: one panel, sized to its content ─────── */
   .shell-strip[data-slip="true"] {
@@ -267,6 +273,11 @@
     right: 0;
     border-radius: var(--r-sm);
     outline: none;
+  }
+
+  /* The focused site's strip: a thin outline, as the prototype has. */
+  .ldp-strip[data-focused="true"] {
+    box-shadow: 0 0 0 1px var(--ink-3);
   }
 
   .ldp-strip:focus-visible {
@@ -839,16 +850,4 @@
     mask-size: 100% 100%;
     mask-repeat: no-repeat;
   }
-}
-
-/*
-  Outside the layer on purpose: in this panel the shared segmented control lost its padding
-  to a reset elsewhere, and its three zoom words ran together.
-*/
-.ldp-controls .seg {
-  padding: 3px;
-}
-
-.ldp-controls .seg-option {
-  padding: 0 10px;
 }

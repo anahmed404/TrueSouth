@@ -23,8 +23,11 @@ export const SLIP_REFIT_MS = 520;
 /** Ground kept around every site in the fit: 16 km, or 70 km for one or two sites. */
 export const SLIP_RING_M = 16_000;
 export const SLIP_RING_FEW_M = 70_000;
-/** Room left in the free space: for labels at the sides, plates at the top. */
-export const SLIP_FIT_INSET = { side: 90, top: 40, bottom: 16 } as const;
+/**
+ * Room left in the free space: for labels at the sides, plates at the top, and at the foot
+ * the view's controls and the before-and-after plate (the scene already keeps 60 px).
+ */
+export const SLIP_FIT_INSET = { side: 90, top: 40, bottom: 48 } as const;
 /** The camera aims this share of the free space's height above the sites, so the curve shows. */
 export const SLIP_AIM_SHARE = 0.2;
 

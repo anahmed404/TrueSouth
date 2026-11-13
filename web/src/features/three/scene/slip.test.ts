@@ -92,7 +92,7 @@ describe("the Slip Planner's camera fit", () => {
 
   it("refits for a new site set and for a smaller free space", () => {
     const wide = slipPose(polar, space);
-    const narrow = slipPose(polar, { ...space, width: 420 });
+    const narrow = slipPose(polar, { ...space, width: 330 });
     expect(len(sub(narrow.pos, narrow.centre))).toBeGreaterThan(len(sub(wide.pos, wide.centre)));
     const two = slipPose(polar.slice(0, 2), space);
     expect(len(sub(two.centre, wide.centre))).toBeGreaterThan(0);
