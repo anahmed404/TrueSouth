@@ -241,21 +241,6 @@
     text-wrap: balance;
   }
 
-  .badge-3d {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    height: 17px;
-    padding: 0 5px;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--r-sm);
-    background: var(--hover);
-    color: var(--ink-2);
-    font-size: var(--t-sm);
-    font-weight: 500;
-    line-height: 1;
-  }
-
   /* ── Status lamp ────────────────────────────────────────────────────────── */
   .lamp {
     display: inline-grid;

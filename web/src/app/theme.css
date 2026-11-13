@@ -132,12 +132,14 @@
   --ease-ac: cubic-bezier(0.16, 1, 0.3, 1); /* all Academy motion; no bounce */
 
   /* ── Mission Control shell ─────────────────────────────────────────────── */
+  /* The scene and the floating layout (DESIGN.md, "Proposed tokens for the scene"). */
+  --space: #0b0b0c; /* the scene's clear colour: Night, so a panel looks the same over empty space */
+  --float-gap: 16px; /* the margin around every floating panel; 8px on a phone (shell.css) */
+  --plate: rgb(20 20 21 / 0.92); /* the backing behind text over the scene: --surface at 92% */
   --shell-rail: 256px;
   --shell-focus: 328px;
   --shell-slim: 48px;
-  --shell-top: 52px;
   --shell-strip: 196px;
-  --shell-foot: 28px;
 
   /*
     Earlier token names, kept so existing code keeps working. They point at the C2
@@ -345,7 +347,6 @@
     --dur-panel: 0ms;
   }
 
-  .shell,
   .disclosure-chevron,
   .door .btn-door svg {
     transition: none;
