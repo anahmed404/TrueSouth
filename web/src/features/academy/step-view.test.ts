@@ -179,7 +179,7 @@ describe("tune-slider step states", () => {
 describe("panel steps before A3", () => {
   it("offer a skip instead of Check", () => {
     const step: Step = { ...base, id: "pin", kind: "drop-pin", map: { view: "polar", siteIds: [], sitesKey: null, aside: null } };
-    expect(primaryAction(step, initialRunnerState(), null, false)).toEqual({ kind: "skip", label: "Skip this step" });
+    expect(primaryAction(step, initialRunnerState(), null, false)).toEqual({ kind: "skip", label: "Continue" });
   });
 });
 
@@ -193,5 +193,14 @@ describe("Pip's meters", () => {
     expect(pipAt(steps, 0)).toEqual({ power: 80, link: true });
     expect(pipAt(steps, 2)).toEqual({ power: 20, link: true });
     expect(pipAt([{ ...base, id: "z", kind: "choice", options: ["x"], answer: 0 }], 0)).toBeNull();
+  });
+});
+
+describe("a slider value with its unit", () => {
+  it("puts degrees and percent on the number, and spaces other units", async () => {
+    const { withUnit } = await import("./step-view");
+    expect(withUnit(6.5, "°")).toBe("6.5°");
+    expect(withUnit(11, "%")).toBe("11%");
+    expect(withUnit(20, "km")).toBe("20 km");
   });
 });
