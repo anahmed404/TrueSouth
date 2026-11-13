@@ -140,8 +140,9 @@ are in [`../data-contracts.md`](../data-contracts.md), "API messages".
   given, the readout shows "Compute this site" and the nudge readout "Compute this point";
   without it there is no button. The map never calls the API itself. Mission Control
   passes `useRequestCustomSite()` from `web/src/app/mission/custom-site-actions.ts`, only
-  while the server can compute custom sites: it starts the same flow and the same row as
-  the form, with one POST per press.
+  while the server can compute custom sites (`/api/health`, asked once when the Polar map
+  view first opens): it starts the same flow and the same row as the form, with one POST
+  per press. A ready custom site's pin carries "Your site"; one still computing has no pin.
 - A POST is made only by a button press, once per press. A link, a remount, the page
   being shown again or the network coming back only look the id up (GET).
 

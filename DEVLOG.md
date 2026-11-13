@@ -608,6 +608,21 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - Not mine, seen while testing: Local terrain says the apron "could not be loaded" for a
     custom site, which never has one; the timeline shows "Loading the hourly data…" while a
     focused custom site is not computed yet.
+  - Review fixes (Codex review of #92): a POST only on a button press (polling, links,
+    remounts, focus and reconnecting are GET; counted in tests); answers must name the id
+    the server's rules make for the coordinates sent (`web/src/data/custom-site-id.ts`
+    ports `site_id` and its Python rounding); ready sites validated field by field; names
+    cleaned of control and bidirectional characters, 60 characters, shown isolated;
+    remove, failure and Stop waiting release polling, waiters, files and scores; request
+    timeouts, back-off, no polling while hidden, `Retry-After` kept to 1 s to 1 h; one
+    shared clock and one announcement per change of state; non-canonical ids in links are
+    left out with one notice.
+  - The Polar map's "Compute this site" is wired (`useRequestCustomSite()` in
+    `mission-screen.tsx`); the map gets no callback until `/api/health` says custom sites
+    work, checked once when the Polar map view first opens. A ready custom pin carries
+    "Your site" (one line in `features/polar-map/draw.ts`).
+  - Not doable on the web side without the scene: Local terrain's apron message for a
+    custom site (`useApron` has no "none" state the scene reads).
 
 #### 2026-11-14 · MC shell feedback · No view sentence; the landing date joins the timeline; "Next GO"
 - **Who:** Claude Code agent, for the orchestrator
