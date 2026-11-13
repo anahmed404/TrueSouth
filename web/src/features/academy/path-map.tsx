@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { Luna, LunaSays } from "../../components/luna";
+import { LunaSays } from "../../components/luna";
 import { ALL_EIGHT_PATCH_ID, LESSONS } from "./catalog";
 import { AcademyChrome } from "./chrome";
 import { sampleLesson } from "./lessons/sample";
@@ -26,9 +26,7 @@ export function PathMap() {
     <section>
       <h1>Academy</h1>
       <AcademyChrome close={false} />
-      <Luna />
-      <LunaSays />
-      <p>{next ? `Luna is at ${next.title}` : "Luna has finished every lesson."}</p>
+      <LunaSays>{next ? `Luna is at ${next.title}` : "Luna has finished every lesson."}</LunaSays>
       <p>XP: {xp}</p>
       <p>Mission patches: {patches.length === 0 ? "none" : patches.map(patchLabel).join(", ")}</p>
       <p>

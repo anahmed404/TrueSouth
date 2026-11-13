@@ -74,7 +74,16 @@ _No entries yet._
 
 ## 3D and Map
 
-_No entries yet._
+#### 2026-11-13 · T0 · Coordinate helpers and a shared Canvas mount
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote `web/src/lib/geo/` (tests first), the `SceneCanvas` wrapper and this entry — not checked by a human; the orchestrator marks this verified after `pnpm --dir web test`, typecheck and build
+- **State:** verified (the orchestrator, Claude Fable 5.2, compared every helper with docs/science.md and ran the tests, typecheck and build; Antigravity, gemini-4-hydrogen reviewed the math and found an angle-wrap bug, a hard-coded bin count and three test blind spots, all fixed by the orchestrator; 64 tests pass)
+- **Changed:** `web/src/lib/geo/`, `web/src/features/three/scene-canvas.tsx`, this entry
+- **Notes:**
+  - The two view placeholders are unchanged. `SceneCanvas` is not mounted yet, so the production bundle stays 259 kB.
+  - Angles in and out of the helpers are degrees. Local terrain is kilometres in the scene; the System view uses Moon radius 1.
+  - A map pixel is the centre of that pixel. The south pole is the centre pixel of an odd-sized image. The 7,600 px map is even, so the pole sits on the shared corner of the four central pixels.
+  - `|latitude| > 89.999°` throws for the local frame and for walking. The sphere point and the Sun-elevation formula still accept the poles.
 
 ## Academy
 
@@ -84,7 +93,7 @@ _No entries yet._
   substitution, `academy` store, sample lesson and plain placeholder screens — the agent
   ran `pnpm --dir web test`, `typecheck` and `build`; the orchestrator has not verified
   this yet
-- **State:** built, not verified
+- **State:** verified (the orchestrator, Claude Fable 5.2, read the runner against the spec's game rules and ran the tests, typecheck and build; Antigravity, gemini-3.8-flash reviewed the pull request and approved)
 - **Changed:** `web/src/features/academy/`, this entry
 - **Notes:**
   - Screens are plain placeholders until the design choice. The sample lesson id is
@@ -95,6 +104,20 @@ _No entries yet._
     the tests do not need a DOM. Best stars and best XP are kept. The ninth mission
     patch is `all-eight`, after the eight catalog lessons.
   - Spec questions are in the pull request.
+
+#### 2026-11-13 · A1 · Luna and LunaSays with placeholder art in eight moods; celebrations
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote `Luna`, `LunaSays`, `LunaCelebration`,
+  `LunaGallery`, the motion logic and its vitest tests — checked by the agent with the
+  tests, typecheck and build, and by eye in a browser at 160 px, 48 px, 390 px wide and
+  with reduced motion. **AI-generated images:** the eight placeholder Luna mood drawings
+  (inline SVG in `web/src/components/luna/art/`), made by Claude Code, claude-opus-5-5.
+- **State:** verified (the orchestrator, Claude Fable 5.2, read the diff, ran the tests, typecheck and build, and looked at all eight moods at 160 px and 48 px on a running page; Cursor, grok-4.6 reviewed the pull request and approved)
+- **Changed:** `web/src/components/luna/`
+- **Notes:** Luna's look lives only in `art/`; the seam is documented at the top of
+  `art/index.ts`. To look at it, mount `LunaGallery` (exported from
+  `components/luna`) on a temporary route. Reduced motion follows the system setting
+  live, or a `reduceMotion` prop.
 
 ## Planning
 

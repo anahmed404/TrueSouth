@@ -90,8 +90,7 @@ export function LessonScreen({
     return (
       <section>
         <AcademyChrome close />
-        <Luna />
-        <LunaSays />
+        <Luna mood="cheering" />
         <h1>{lesson.title}</h1>
         <p>{lesson.tagline}</p>
         <p>Lesson complete.</p>
@@ -131,11 +130,9 @@ export function LessonScreen({
         Step {runner.stepIndex + 1} of {lesson.steps.length}
       </p>
       <PipMeters step={step} />
-      <Luna />
-      <LunaSays />
-      <p>
+      <LunaSays mood={step.luna.mood} announce>
         <Filled value={step.luna.says} examples={examples} />
-      </p>
+      </LunaSays>
       <StepControls
         step={step}
         submission={submission}
