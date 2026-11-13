@@ -39,7 +39,7 @@ import {
   type SkylineVertex,
   type TrackPoint,
 } from "./geometry";
-import { bodyAt, labelDetail, labelTitle, skylineReading, tickWhen, type BodyId, type BodyNow, type ChartSeries } from "./readings";
+import { bodyAt, labelDetail, labelTitle, missionDay, skylineReading, tickTime, type BodyId, type BodyNow, type ChartSeries } from "./readings";
 
 export type ChartWindow = { from: number; to: number };
 
@@ -221,7 +221,7 @@ const StaticLayer = memo(function StaticLayer({
         {drawing.maskD ? <path d={drawing.maskD} className="pano-mask" /> : null}
       </g>
       {drawing.maskLabel && frame.width >= NARROW_PX && drawing.maskLabel.x > frame.left + 72 ? (
-        <text x={drawing.maskLabel.x} y={drawing.maskLabel.y + 4} textAnchor="end" className="pano-mask-label">
+        <text x={drawing.maskLabel.x} y={drawing.maskLabel.y - 5} textAnchor="end" className="pano-mask-label">
           antenna mask
         </text>
       ) : null}
@@ -376,19 +376,23 @@ function Readout({
   const width = Math.min(232, scales.frame.width - 16);
   const right = cursor.px > scales.frame.width / 2;
   const left = Math.min(Math.max(right ? cursor.px - width - 14 : cursor.px + 14, 8), scales.frame.width - width - 8);
-  // In a narrow box the readout would hide the whole plot: it hangs under the chart instead.
+  // In a narrow box a floating readout would hide the whole plot, and a lesson box clips what
+  // hangs out of it: there it sits in the flow, under the chart.
   const narrow = scales.frame.width < NARROW_PX;
-  const style = { left, top: narrow ? scales.frame.height + 6 : scales.frame.top + 4, width };
+  const style = narrow ? undefined : { left, top: scales.frame.top + 4, width };
+  const className = narrow ? "pano-readout pano-readout-inline" : "pano-readout";
 
   if (cursor.kind === "tick") {
     const now = series ? bodyAt(series, cursor.tick.body, cursor.tick.hour) : null;
     const utc = utcOfHour(cursor.tick.hour);
     return (
-      <div className="pano-readout" style={style}>
+      <div className={className} style={style}>
         <p className="pano-readout-title">{cursor.tick.body === "sun" ? "Sun's path" : "Earth's path"}</p>
-        <p className="pano-readout-big">{utc && landingHour !== null ? tickWhen(utc, cursor.tick.hour, landingHour) : "—"}</p>
+        <p className="pano-readout-big">{landingHour !== null ? missionDay(cursor.tick.hour, landingHour) : "—"}</p>
         {now ? (
           <dl>
+            <dt>Time</dt>
+            <dd>{utc ? tickTime(utc) : "—"}</dd>
             <dt>Elevation</dt>
             <dd>{formatNumber(now.elDeg, 2)}°</dd>
             <dt>Disc fraction</dt>
@@ -401,7 +405,7 @@ function Readout({
 
   const reading = skyline ? skylineReading(skyline, cursor.azDeg, features) : null;
   return (
-    <div className="pano-readout" style={style}>
+    <div className={className} style={style}>
       <p className="pano-readout-title">Skyline at {cursor.keyboard ? "the cursor" : "the pointer"}</p>
       <p className="pano-readout-big">
         {formatBearing(reading ? reading.azDeg : cursor.azDeg)}

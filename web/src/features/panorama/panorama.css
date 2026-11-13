@@ -455,3 +455,10 @@
   border: 1px solid var(--line);
   background: var(--raised);
 }
+
+/* In a narrow box the readout sits in the flow under the chart: a flat card, no shadow. */
+.pano-readout-inline {
+  position: static;
+  margin-top: var(--s2);
+  box-shadow: none;
+}

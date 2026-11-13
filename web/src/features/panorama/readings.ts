@@ -115,7 +115,12 @@ export function skylineReading(skyline: SkylineArrays, azDeg: number, features: 
   };
 }
 
-/** "Day 3 · 2028-03-03 00:00 UTC": the mission day counts from 1 at the landing hour. */
-export function tickWhen(utc: string, hour: number, landingHour: number): string {
-  return `Day ${Math.floor((hour - landingHour) / 24) + 1} · ${formatUtc(utc)}`;
+/** "Day 3": the mission day of an hour, counting from 1 at the landing hour. */
+export function missionDay(hour: number, landingHour: number): string {
+  return `Day ${Math.floor((hour - landingHour) / 24) + 1}`;
+}
+
+/** "2028-03-03 00:00 UTC". */
+export function tickTime(utc: string): string {
+  return formatUtc(utc);
 }
