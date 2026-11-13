@@ -7,7 +7,9 @@ import { SERIES_COLUMNS, decodeSeries } from "../../data/decode/index.ts";
 import { evaluationsAtUtcMidnight, slipSweep, type Series, type SlipSweep, type Status } from "./scoring.ts";
 import { siteSlopeDeg } from "./cache.ts";
 import {
+  SWEEP_SERIES_LIMIT,
   handleSweepRequest,
+  missingSeriesMessage,
   type SweepReply,
   type SweepRequest,
   type SweepSeries,
@@ -139,6 +141,83 @@ describe("sweep worker handler", () => {
     });
   });
 
+  it("keeps two sites' series apart, and a new token does not use the series it replaced", () => {
+    const stored = new Map<number, SweepSeries>();
+    const profile = shortProfile();
+    const ridge = constantSeries(1);
+    const sphere = constantSeries(0);
+    const ridgeSweep = slipSweep(ridge, profile, null);
+    const sphereSweep = slipSweep(sphere, profile, null);
+    expect(maxDelta(ridgeSweep, sphereSweep, "distinct")).toBeGreaterThan(1e-9);
+
+    expect(handleSweepRequest(tinyRequest(1, 11, "fixture_ridge", ridge), stored).type).toBe("sweep");
+    expect(handleSweepRequest(tinyRequest(2, 22, "fixture_sphere", sphere), stored).type).toBe("sweep");
+
+    const againRidge = handleSweepRequest(tinyRequest(3, 11, "fixture_ridge"), stored);
+    const againSphere = handleSweepRequest(tinyRequest(4, 22, "fixture_sphere"), stored);
+    expect(againRidge.type).toBe("sweep");
+    expect(againSphere.type).toBe("sweep");
+    if (againRidge.type !== "sweep" || againSphere.type !== "sweep") return;
+    expect(maxDelta(againRidge.sweep, ridgeSweep, "ridge token")).toBeLessThanOrEqual(1e-9);
+    expect(maxDelta(againSphere.sweep, sphereSweep, "sphere token")).toBeLessThanOrEqual(1e-9);
+
+    const replacement = constantSeries(0.25);
+    const replacementSweep = slipSweep(replacement, profile, null);
+    expect(handleSweepRequest(tinyRequest(5, 33, "fixture_ridge", replacement), stored).type).toBe("sweep");
+    const current = handleSweepRequest(tinyRequest(6, 33, "fixture_ridge"), stored);
+    expect(current.type).toBe("sweep");
+    if (current.type !== "sweep") return;
+    expect(maxDelta(current.sweep, replacementSweep, "new token")).toBeLessThanOrEqual(1e-9);
+    expect(maxDelta(current.sweep, ridgeSweep, "old series unused")).toBeGreaterThan(1e-9);
+
+    const stale = handleSweepRequest(tinyRequest(7, 11, "fixture_ridge"), stored);
+    expect(stale.type).toBe("sweep");
+    if (stale.type !== "sweep") return;
+    expect(maxDelta(stale.sweep, ridgeSweep, "old token still its own")).toBeLessThanOrEqual(1e-9);
+    expect(maxDelta(stale.sweep, current.sweep, "old token is not the replacement")).toBeGreaterThan(1e-9);
+  });
+
+  it("drops the least recently used series once the worker is past its cap", () => {
+    const stored = new Map<number, SweepSeries>();
+    const profile = shortProfile();
+    let requestId = 1;
+    for (let token = 1; token <= SWEEP_SERIES_LIMIT; token += 1) {
+      const reply = handleSweepRequest(tinyRequest(requestId, token, `site-${token}`, constantSeries(token)), stored);
+      requestId += 1;
+      expect(reply.type).toBe("sweep");
+    }
+    expect(stored.size).toBe(SWEEP_SERIES_LIMIT);
+
+    const overflow = handleSweepRequest(
+      tinyRequest(requestId, SWEEP_SERIES_LIMIT + 1, "overflow", constantSeries(100)),
+      stored,
+    );
+    requestId += 1;
+    expect(overflow.type).toBe("sweep");
+    expect(stored.size).toBe(SWEEP_SERIES_LIMIT);
+    expect(stored.has(1)).toBe(false);
+
+    const goneId = requestId;
+    const gone = handleSweepRequest(tinyRequest(goneId, 1, "site-1"), stored);
+    requestId += 1;
+    expect(gone).toEqual({
+      type: "error",
+      requestId: goneId,
+      message: missingSeriesMessage(1),
+    });
+
+    const kept = handleSweepRequest(tinyRequest(requestId, 2, "site-2"), stored);
+    requestId += 1;
+    expect(kept.type).toBe("sweep");
+    if (kept.type === "sweep") {
+      expect(maxDelta(kept.sweep, slipSweep(constantSeries(2), profile, null), "kept")).toBeLessThanOrEqual(1e-9);
+    }
+
+    handleSweepRequest(tinyRequest(requestId, SWEEP_SERIES_LIMIT + 2, "again", constantSeries(101)), stored);
+    expect(stored.has(2)).toBe(true);
+    expect(stored.has(3)).toBe(false);
+  });
+
   it("answers from the worker module and keeps the series for the next message", async () => {
     const posted: Array<{ data: SweepReply; transfer: Transferable[] }> = [];
     const globals = globalThis as { postMessage?: typeof postedPost; onmessage?: ((event: MessageEvent<SweepRequest>) => void) | null };
@@ -177,6 +256,33 @@ describe("sweep worker handler", () => {
     globals.onmessage = previousOn;
   });
 });
+
+function shortProfile(): MissionProfile {
+  const profile = presets[0];
+  if (!profile) throw new Error("missing preset");
+  return { ...profile, duration_days: 1 / 24 };
+}
+
+function constantSeries(value: number): SweepSeries {
+  return {
+    sun_frac: Float64Array.of(value, value, value, value),
+    sun_el: Float64Array.of(2, 2, 2, 2),
+    earth_clear: Float64Array.of(2, 2, 2, 2),
+  };
+}
+
+function tinyRequest(requestId: number, token: number, siteId: string, series?: SweepSeries): SweepRequest {
+  return {
+    type: "sweep",
+    requestId,
+    siteId,
+    seriesToken: token,
+    slopeDeg: null,
+    profile: shortProfile(),
+    timeGrid: { count: 4, start_utc: "2026-01-01T00:00:00Z", step_s: 3600 },
+    ...(series ? { series } : {}),
+  };
+}
 
 function postedPost(data: SweepReply, options?: { transfer?: Transferable[] }): void {
   void data;

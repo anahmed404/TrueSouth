@@ -1,11 +1,12 @@
 /**
  * Memoises the pure scoring functions.
  *
- * The key is the site, the series array the data store is holding, and only
- * the profile fields that computation reads. Dragging the scrubber changes
- * the current hour, which flags and the slip sweep do not read, so those
- * results keep their identity. The sweep worker fills the same `SlipSweep`
- * shape through `rememberSlipSweep`; a later read uses the same key.
+ * The key is the site, the series array the data store is holding, the time
+ * grid's start, step and count, and only the profile fields that computation
+ * reads. Dragging the scrubber changes the current hour, which flags and the
+ * slip sweep do not read, so those results keep their identity. A different
+ * manifest must not. The sweep worker fills the same `SlipSweep` shape
+ * through `rememberSlipSweep`; a later read uses the same key.
  */
 
 import {
@@ -146,14 +147,22 @@ export function cachedCountdowns(
   return lookup(countdownCache, COUNTDOWN_CACHE_LIMIT, key, () => countdowns(series, profile, currentHour));
 }
 
+/** Start, step and count. Enough to tell one manifest's grid from another. */
+export type SweepGridIdentity = {
+  start_utc: string;
+  step_s: number;
+  count: number;
+};
+
 /** Same key `cachedSlipSweep` uses. A hit and a worker store must agree. */
 export function slipSweepCacheKey(
   siteId: string,
   series: Series,
   profile: ScoringProfile,
   slopeDeg: number | null,
+  timeGrid?: SweepGridIdentity | null,
 ): string {
-  return cacheKey(siteId, series, [slopeDeg, ...picked(profile, SWEEP_FIELDS)]);
+  return cacheKey(siteId, series, [slopeDeg, ...picked(profile, SWEEP_FIELDS), gridIdentity(timeGrid)]);
 }
 
 /** The cached sweep, or undefined. A hit becomes the most recently used. */
@@ -162,8 +171,9 @@ export function peekSlipSweep(
   series: Series,
   profile: ScoringProfile,
   slopeDeg: number | null,
+  timeGrid?: SweepGridIdentity | null,
 ): SlipSweep | undefined {
-  const key = slipSweepCacheKey(siteId, series, profile, slopeDeg);
+  const key = slipSweepCacheKey(siteId, series, profile, slopeDeg, timeGrid);
   if (!sweepCache.has(key)) return undefined;
   const hit = sweepCache.get(key) as SlipSweep;
   sweepCache.delete(key);
@@ -178,8 +188,9 @@ export function rememberSlipSweep(
   profile: ScoringProfile,
   slopeDeg: number | null,
   sweep: SlipSweep,
+  timeGrid?: SweepGridIdentity | null,
 ): void {
-  const key = slipSweepCacheKey(siteId, series, profile, slopeDeg);
+  const key = slipSweepCacheKey(siteId, series, profile, slopeDeg, timeGrid);
   sweepCache.delete(key);
   sweepCache.set(key, sweep);
   if (sweepCache.size > SWEEP_CACHE_LIMIT) {
@@ -193,8 +204,9 @@ export function cachedSlipSweep(
   series: Series,
   profile: ScoringProfile,
   slopeDeg: number | null,
+  timeGrid?: SweepGridIdentity | null,
 ): SlipSweep {
-  const key = slipSweepCacheKey(siteId, series, profile, slopeDeg);
+  const key = slipSweepCacheKey(siteId, series, profile, slopeDeg, timeGrid);
   return lookup(sweepCache, SWEEP_CACHE_LIMIT, key, () => slipSweep(series, profile, slopeDeg));
 }
 
@@ -212,6 +224,11 @@ function lookup<T>(cache: Map<string, T>, limit: number, key: string, compute: (
     if (oldest !== undefined) cache.delete(oldest);
   }
   return value;
+}
+
+function gridIdentity(timeGrid?: SweepGridIdentity | null): [string, number, number] | null {
+  if (!timeGrid) return null;
+  return [timeGrid.start_utc, timeGrid.step_s, timeGrid.count];
 }
 
 function cacheKey(siteId: string, series: Series, parts: unknown[]): string {

@@ -261,6 +261,16 @@ describe("worker sweep cache", () => {
     expect(peekSlipSweep("site", samples, limits, 3)).toBeUndefined();
     expect(peekSlipSweep("pad-1", samples, limits, 3)).toBe(sweep);
   });
+
+  it("does not return a sweep stored for a different time grid count", () => {
+    const samples = series();
+    const limits = profile();
+    const sweep = slipSweep(samples, limits, 3);
+    const grid = { start_utc: "2026-01-01T00:00:00Z", step_s: 3600, count: samples.sun_frac.length };
+    rememberSlipSweep("site", samples, limits, 3, sweep, grid);
+    expect(peekSlipSweep("site", samples, limits, 3, { ...grid, count: grid.count + 1 })).toBeUndefined();
+    expect(peekSlipSweep("site", samples, limits, 3, grid)).toBe(sweep);
+  });
 });
 
 describe("fixture scoring through the cache", () => {

@@ -2,7 +2,9 @@
  * Messages for the slip-sweep worker, and the handler that answers one.
  *
  * The handler is pure aside from the series map the worker keeps. Tests call
- * it directly. The worker file only forwards `postMessage` here.
+ * it directly. The worker file only forwards `postMessage` here. That map
+ * holds at most `SWEEP_SERIES_LIMIT` series, least recently used: eight
+ * selected sites, plus a few replaced or custom ones.
  *
  * The time grid is checked, not sampled. `slipSweep` returns every landing
  * hour; the Slip Planner reads the 00:00 UTC rows on the main thread.
@@ -35,19 +37,30 @@ export type SweepReply =
   | { type: "sweep"; requestId: number; sweep: SlipSweep }
   | { type: "error"; requestId: number; message: string };
 
+/**
+ * How many transferred series the worker keeps. Eight selected sites, plus
+ * room for a reload or a recomputed custom site to arrive before the old
+ * one is asked for again.
+ */
+export const SWEEP_SERIES_LIMIT = 12;
+
+export function missingSeriesMessage(token: number): string {
+  return `series ${token} is not in the worker`;
+}
+
 export function handleSweepRequest(request: SweepRequest, stored: Map<number, SweepSeries>): SweepReply {
   const requestId = request?.requestId ?? 0;
   try {
     if (!request || request.type !== "sweep") {
       return { type: "error", requestId, message: "unknown sweep request" };
     }
-    if (request.series) stored.set(request.seriesToken, request.series);
-    const series = stored.get(request.seriesToken);
+    if (request.series) retainSeries(stored, request.seriesToken, request.series);
+    const series = recallSeries(stored, request.seriesToken);
     if (!series) {
       return {
         type: "error",
         requestId,
-        message: `series ${request.seriesToken} is not in the worker`,
+        message: missingSeriesMessage(request.seriesToken),
       };
     }
     assertTimeGrid(request.timeGrid, seriesLength(series));
@@ -77,6 +90,26 @@ export function sweepTransferables(sweep: SlipSweep): Transferable[] {
     sweep.landingLit.buffer,
   ];
   return [...new Set(buffers)];
+}
+
+/** Store `series` under `token` and drop the least recently used past the cap. */
+function retainSeries(stored: Map<number, SweepSeries>, token: number, series: SweepSeries): void {
+  stored.delete(token);
+  stored.set(token, series);
+  while (stored.size > SWEEP_SERIES_LIMIT) {
+    const oldest = stored.keys().next().value;
+    if (oldest === undefined) return;
+    stored.delete(oldest);
+  }
+}
+
+/** The series for `token`, or undefined. A hit becomes the most recently used. */
+function recallSeries(stored: Map<number, SweepSeries>, token: number): SweepSeries | undefined {
+  const series = stored.get(token);
+  if (!series) return undefined;
+  stored.delete(token);
+  stored.set(token, series);
+  return series;
 }
 
 function seriesLength(series: Series): number {

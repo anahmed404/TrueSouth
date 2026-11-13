@@ -196,7 +196,14 @@ export function useSweeps(siteIds: readonly string[], profile: MissionProfile): 
           (delivery) => {
             if (!active) return;
             if (delivery.ok) {
-              rememberSlipSweep(plan.siteId, plan.series, profile, plan.slopeDeg, delivery.sweep);
+              rememberSlipSweep(
+                plan.siteId,
+                plan.series,
+                profile,
+                plan.slopeDeg,
+                delivery.sweep,
+                plan.timeGrid,
+              );
             }
             if (!delivery.ok) {
               setFailures((current) => ({ ...current, [plan.cacheKey]: delivery.error }));
@@ -250,13 +257,19 @@ function planSweep(
   }
   if (slope.status !== "ready") return { kind: "result", result: loadingResult() };
 
+  if (manifest.status === "error") {
+    return { kind: "result", result: { status: "error", data: null, error: manifest.error } };
+  }
+  if (manifest.status !== "ready") return { kind: "result", result: loadingResult() };
+  const timeGrid = manifest.data.time_grid;
+
   if (!workerOn) {
     try {
       return {
         kind: "result",
         result: {
           status: "ready",
-          data: cachedSlipSweep(siteId, seriesEntry.data, profile, slope.data),
+          data: cachedSlipSweep(siteId, seriesEntry.data, profile, slope.data, timeGrid),
           error: null,
         },
       };
@@ -265,15 +278,10 @@ function planSweep(
     }
   }
 
-  if (manifest.status === "error") {
-    return { kind: "result", result: { status: "error", data: null, error: manifest.error } };
-  }
-  if (manifest.status !== "ready") return { kind: "result", result: loadingResult() };
-
-  const hit = peekSlipSweep(siteId, seriesEntry.data, profile, slope.data);
+  const hit = peekSlipSweep(siteId, seriesEntry.data, profile, slope.data, timeGrid);
   if (hit) return { kind: "result", result: { status: "ready", data: hit, error: null } };
 
-  const cacheKey = slipSweepCacheKey(siteId, seriesEntry.data, profile, slope.data);
+  const cacheKey = slipSweepCacheKey(siteId, seriesEntry.data, profile, slope.data, timeGrid);
   const failed = failures[cacheKey];
   if (failed) return { kind: "result", result: { status: "error", data: null, error: failed } };
 

@@ -3,8 +3,11 @@
  *
  * The data store still reads the series on the main thread, so those buffers
  * are never transferred. The first request for a series copies the three
- * columns the sweep reads and transfers the copies. The worker keeps them
- * and later requests for that series send the profile and the slope only.
+ * columns the sweep reads and transfers the copies. The worker keeps them,
+ * up to its own cap, and later requests for that series send the profile
+ * and the slope only. The client does not mirror the cap: the worker is
+ * the one that drops a token, and a copy of that set would drift. When the
+ * worker says the token is gone, the columns are sent once more.
  *
  * One worker is enough. After the series is resident, a profile edit is
  * compute, and eight sites one after another stay inside the sweep budget.
@@ -18,7 +21,7 @@
 import type { TimeGrid } from "../../contracts/generated.ts";
 import { slipSweepCacheKey } from "./cache.ts";
 import type { ScoringProfile, Series, SlipSweep } from "./scoring.ts";
-import type { SweepRequest, SweepReply, SweepSeries } from "./sweep-protocol.ts";
+import { missingSeriesMessage, type SweepRequest, type SweepReply, type SweepSeries } from "./sweep-protocol.ts";
 
 export type SweepJob = {
   siteId: string;
@@ -45,6 +48,10 @@ type Inflight = {
   siteId: string;
   key: string;
   listeners: Set<SweepListener>;
+  job: SweepJob;
+  seriesToken: number | null;
+  /** True once the columns have already been sent again for a missing token. */
+  resent: boolean;
 };
 
 export function sweepWorkerAvailable(): boolean {
@@ -127,6 +134,23 @@ export function createSweepClient(): SweepClient {
     if (!reply || (reply.type !== "sweep" && reply.type !== "error")) return;
     const inflight = byId.get(reply.requestId);
     if (!inflight) return;
+    if (
+      reply.type === "error" &&
+      inflight.seriesToken !== null &&
+      reply.message === missingSeriesMessage(inflight.seriesToken)
+    ) {
+      sentTokens.delete(inflight.seriesToken);
+      if (!inflight.resent) {
+        const listeners = inflight.listeners;
+        const job = inflight.job;
+        forget(inflight);
+        const error = send(job, listeners, true);
+        if (error) {
+          for (const listener of [...listeners]) listener({ ok: false, error });
+        }
+        return;
+      }
+    }
     forget(inflight);
     const generationAtDelivery = generation;
     const listeners = [...inflight.listeners];
@@ -151,31 +175,25 @@ export function createSweepClient(): SweepClient {
     for (const listener of listeners) listener({ ok: false, error: message });
   }
 
-  function request(job: SweepJob, listener: SweepListener): () => void {
-    const key = slipSweepCacheKey(job.siteId, job.series, job.profile, job.slopeDeg);
-    const existing = byKey.get(key);
-    if (existing) {
-      existing.listeners.add(listener);
-      return () => existing.listeners.delete(listener);
-    }
-
-    const previous = bySite.get(job.siteId);
-    if (previous) drop(previous);
-
+  function send(job: SweepJob, listeners: Set<SweepListener>, resent: boolean): string | null {
+    const key = slipSweepCacheKey(job.siteId, job.series, job.profile, job.slopeDeg, job.timeGrid);
     const requestId = nextRequestId;
     nextRequestId += 1;
+    const token = seriesToken(job.series);
     const inflight: Inflight = {
       requestId,
       siteId: job.siteId,
       key,
-      listeners: new Set([listener]),
+      listeners,
+      job,
+      seriesToken: token,
+      resent,
     };
     byKey.set(key, inflight);
     bySite.set(job.siteId, inflight);
     byId.set(requestId, inflight);
 
-    const token = seriesToken(job.series);
-    const includeSeries = token === null || !sentTokens.has(token);
+    const includeSeries = resent || token === null || !sentTokens.has(token);
     const series = includeSeries ? copySeries(job.series) : undefined;
     const payload: SweepRequest = {
       type: "sweep",
@@ -194,12 +212,30 @@ export function createSweepClient(): SweepClient {
       ensureWorker().postMessage(payload, { transfer });
     } catch (error) {
       forget(inflight);
-      const message = error instanceof Error ? error.message : String(error);
-      listener({ ok: false, error: message });
-      return () => undefined;
+      return error instanceof Error ? error.message : String(error);
     }
     if (includeSeries && token !== null) sentTokens.add(token);
-    return () => inflight.listeners.delete(listener);
+    return null;
+  }
+
+  function request(job: SweepJob, listener: SweepListener): () => void {
+    const key = slipSweepCacheKey(job.siteId, job.series, job.profile, job.slopeDeg, job.timeGrid);
+    const existing = byKey.get(key);
+    if (existing) {
+      existing.listeners.add(listener);
+      return () => existing.listeners.delete(listener);
+    }
+
+    const previous = bySite.get(job.siteId);
+    if (previous) drop(previous);
+
+    const listeners = new Set<SweepListener>([listener]);
+    const error = send(job, listeners, false);
+    if (error) {
+      listener({ ok: false, error });
+      return () => undefined;
+    }
+    return () => listeners.delete(listener);
   }
 
   function stop(): void {

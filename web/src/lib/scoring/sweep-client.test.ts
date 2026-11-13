@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { TimeGrid } from "../../contracts/generated.ts";
 import type { ScoringProfile, Series, SlipSweep } from "./scoring.ts";
 import { createSweepClient, type SweepJob, type SweepListener } from "./sweep-client.ts";
-import type { SweepRequest } from "./sweep-protocol.ts";
+import { missingSeriesMessage, type SweepRequest } from "./sweep-protocol.ts";
 
 type Posted = {
   requestId: number;
@@ -11,6 +11,7 @@ type Posted = {
   hasSeries: boolean;
   duration: number;
   slopeDeg: number | null;
+  gridCount: number;
   transferredSource: boolean;
 };
 
@@ -39,6 +40,7 @@ class FakeWorker {
       hasSeries: data.series !== undefined,
       duration: data.profile.duration_days,
       slopeDeg: data.slopeDeg,
+      gridCount: data.timeGrid.count,
       transferredSource: transfer.some((item) => FakeWorker.sourceBuffers.has(item as ArrayBuffer)),
     });
     for (const item of transfer) {
@@ -203,5 +205,65 @@ describe("sweep client", () => {
     expect(restarted.terminated).toBe(true);
     restarted.emit({ type: "sweep", requestId: restarted.posted[0]?.requestId, sweep: markerSweep(1) });
     expect(after).toEqual([]);
+  });
+
+  it("does not join an in-flight sweep when the time grid count changes", () => {
+    const client = createSweepClient();
+    const samples = series();
+    client.request(job("ridge", samples, 2), () => undefined);
+    client.request({ ...job("ridge", samples, 2), timeGrid: { ...grid, count: grid.count + 1 } }, () => undefined);
+    const worker = FakeWorker.instances[0];
+    if (!worker) throw new Error("missing worker");
+    expect(worker.posted.map((item) => item.gridCount)).toEqual([grid.count, grid.count + 1]);
+    client.stop();
+  });
+
+  it("sends the columns again when the worker no longer has the token", () => {
+    const client = createSweepClient();
+    const samples = series();
+    const delivered: string[] = [];
+    client.request(job("ridge", samples, 2), (delivery) => {
+      delivered.push(delivery.ok ? "ok" : delivery.error);
+    });
+    const worker = FakeWorker.instances[0];
+    if (!worker) throw new Error("missing worker");
+    const first = worker.posted[0];
+    if (!first) throw new Error("missing first post");
+    expect(first.hasSeries).toBe(true);
+    worker.emit({
+      type: "error",
+      requestId: first.requestId,
+      message: missingSeriesMessage(first.seriesToken),
+    });
+    expect(delivered).toEqual([]);
+    const resent = worker.posted[1];
+    if (!resent) throw new Error("missing resend");
+    expect(resent.hasSeries).toBe(true);
+    expect(resent.seriesToken).toBe(first.seriesToken);
+    worker.emit({ type: "sweep", requestId: resent.requestId, sweep: markerSweep(3) });
+    expect(delivered).toEqual(["ok"]);
+
+    client.request(job("ridge", samples, 4), (delivery) => {
+      delivered.push(delivery.ok ? "again" : delivery.error);
+    });
+    const omitted = worker.posted[worker.posted.length - 1];
+    if (!omitted) throw new Error("missing follow-up");
+    expect(omitted.hasSeries).toBe(false);
+    worker.emit({
+      type: "error",
+      requestId: omitted.requestId,
+      message: missingSeriesMessage(omitted.seriesToken),
+    });
+    const second = worker.posted[worker.posted.length - 1];
+    if (!second) throw new Error("missing second resend");
+    expect(second.hasSeries).toBe(true);
+    worker.emit({
+      type: "error",
+      requestId: second.requestId,
+      message: missingSeriesMessage(second.seriesToken),
+    });
+    expect(delivered).toEqual(["ok", missingSeriesMessage(first.seriesToken)]);
+    expect(worker.posted).toHaveLength(4);
+    client.stop();
   });
 });

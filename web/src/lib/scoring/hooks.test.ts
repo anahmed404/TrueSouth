@@ -553,7 +553,7 @@ describe("scoring hooks", () => {
     });
     root = null;
     const storedRidge = dataStore.getState().entries[seriesKey("fixture_ridge")]?.data as Series;
-    expect(peekSlipSweep("fixture_ridge", storedRidge, viper, slope)).toBe(seen.sweep?.data);
+    expect(peekSlipSweep("fixture_ridge", storedRidge, viper, slope, manifest.time_grid)).toBe(seen.sweep?.data);
     function Again() {
       useSweep("fixture_sphere", im2);
       return null;
@@ -571,7 +571,7 @@ describe("scoring hooks", () => {
     });
     const storedSphere = dataStore.getState().entries[seriesKey("fixture_sphere")]?.data as Series;
     expect(
-      peekSlipSweep("fixture_sphere", storedSphere, im2, siteSlopeDeg(sites, "fixture_sphere")),
+      peekSlipSweep("fixture_sphere", storedSphere, im2, siteSlopeDeg(sites, "fixture_sphere"), manifest.time_grid),
     ).toBeUndefined();
   });
 
@@ -596,5 +596,189 @@ describe("scoring hooks", () => {
     expect(seen.sweep?.status).toBe("error");
     expect(seen.sweep?.error).toBe("worker exploded");
     expect(series.sun_frac.buffer.byteLength).toBeGreaterThan(0);
+  });
+
+  it("does not return a cached sweep when the same series is read on a different grid", async () => {
+    seed();
+    installHookWorker();
+    const profile = requirePreset(0);
+    const seen: { sweep: HookResult<SlipSweep> | null } = { sweep: null };
+    function Probe() {
+      seen.sweep = useSweep("fixture_ridge", profile);
+      return null;
+    }
+    await renderProbe(Probe);
+    await settleSweep(new Map());
+    expect(seen.sweep?.status).toBe("ready");
+    const cached = seen.sweep?.data;
+    await act(async () => {
+      dataStore.setState((state) => ({
+        entries: {
+          ...state.entries,
+          manifest: ready({
+            ...manifest,
+            time_grid: { ...manifest.time_grid, count: manifest.time_grid.count + 1 },
+          }),
+        },
+      }));
+    });
+    expect(seen.sweep?.status).toBe("loading");
+    expect(seen.sweep?.data).toBeNull();
+    expect(seen.sweep?.data).not.toBe(cached);
+    expect(requireWorker().posted).toHaveLength(1);
+    expect(requireWorker().posted[0]?.timeGrid.count).toBe(manifest.time_grid.count + 1);
+  });
+
+  it("surfaces a messageerror as a hook error", async () => {
+    seed();
+    installHookWorker();
+    const profile = requirePreset(0);
+    const seen: { sweep: HookResult<SlipSweep> | null } = { sweep: null };
+    function Probe() {
+      seen.sweep = useSweep("fixture_ridge", profile);
+      return null;
+    }
+    await renderProbe(Probe);
+    const worker = requireWorker();
+    await act(async () => {
+      worker.onmessageerror?.({} as MessageEvent);
+    });
+    expect(seen.sweep?.status).toBe("error");
+    expect(seen.sweep?.error).toBe("sweep worker could not read a message");
+  });
+
+  it("reports a Worker constructor failure and does not stay loading", async () => {
+    seed();
+    class BlockedWorker {
+      constructor() {
+        throw new Error("content security policy");
+      }
+    }
+    (globalThis as { Worker: unknown }).Worker = BlockedWorker;
+    const profile = requirePreset(0);
+    const seen: { sweep: HookResult<SlipSweep> | null } = { sweep: null };
+    function Probe() {
+      seen.sweep = useSweep("fixture_ridge", profile);
+      return null;
+    }
+    await renderProbe(Probe);
+    expect(seen.sweep?.status).toBe("error");
+    expect(seen.sweep?.error).toBe("content security policy");
+    expect(seen.sweep?.data).toBeNull();
+  });
+
+  it("answers a later request after a worker error", async () => {
+    seed();
+    installHookWorker();
+    const im2 = requirePreset(0);
+    const viper = requirePreset(1);
+    const seen: {
+      sweep: HookResult<SlipSweep> | null;
+      setProfile: ((profile: MissionProfile) => void) | null;
+    } = { sweep: null, setProfile: null };
+    function Probe() {
+      const [profile, setProfile] = useState(im2);
+      seen.setProfile = setProfile;
+      seen.sweep = useSweep("fixture_ridge", profile);
+      return null;
+    }
+    await renderProbe(Probe);
+    const failed = requireWorker();
+    await act(async () => {
+      failed.onerror?.({ message: "boom" } as ErrorEvent);
+    });
+    expect(seen.sweep?.status).toBe("error");
+    expect(failed.terminated).toBe(true);
+    await act(async () => {
+      seen.setProfile?.(viper);
+    });
+    const restarted = requireWorker();
+    expect(restarted).not.toBe(failed);
+    expect(restarted.terminated).toBe(false);
+    expect(restarted.posted[0]?.series).toBeDefined();
+    await settleSweep(new Map());
+    expect(seen.sweep?.status).toBe("ready");
+    const series = loadSeries("fixture_ridge", manifest.time_grid.count);
+    const slope = siteSlopeDeg(sites, "fixture_ridge");
+    expect(maxDelta(seen.sweep?.data, scoring.slipSweep(series, viper, slope), "after error")).toBeLessThanOrEqual(
+      1e-9,
+    );
+  });
+
+  it("shares one sweep for duplicate ids, returns nothing for an empty list, and fills eight sites", async () => {
+    seed();
+    installHookWorker();
+    const profile = requirePreset(0);
+    const duplicate: { rows: HookResult<SlipSweep>[] | null } = { rows: null };
+    function Duplicates() {
+      duplicate.rows = useSweeps(["fixture_ridge", "fixture_ridge"], profile);
+      return null;
+    }
+    await renderProbe(Duplicates);
+    expect(requireWorker().posted).toHaveLength(1);
+    await settleSweep(new Map());
+    expect(duplicate.rows?.map((row) => row.status)).toEqual(["ready", "ready"]);
+    expect(duplicate.rows?.[0]?.data).toBe(duplicate.rows?.[1]?.data);
+
+    await act(async () => {
+      root?.unmount();
+    });
+    root = null;
+    stopSharedSweepClient();
+    clearScoringCache();
+    HookWorker.latest = null;
+
+    const empty: { rows: HookResult<SlipSweep>[] | null } = { rows: null };
+    function Empty() {
+      empty.rows = useSweeps([], profile);
+      return null;
+    }
+    await renderProbe(Empty);
+    expect(empty.rows).toEqual([]);
+    expect(HookWorker.latest).toBeNull();
+
+    await act(async () => {
+      root?.unmount();
+    });
+    root = null;
+
+    const count = 4;
+    const ids = Array.from({ length: 8 }, (_, index) => `c_${(index + 1).toFixed(4)}_${(index + 10).toFixed(4)}`);
+    const short = { ...profile, duration_days: 1 / 24 };
+    dataStore.setState({
+      entries: {
+        manifest: ready({ ...manifest, time_grid: { ...manifest.time_grid, count } }),
+        sites: ready(sites),
+        ...Object.fromEntries(
+          ids.map((siteId, index) => [
+            seriesKey(siteId),
+            ready({
+              sun_frac: Float64Array.of(index + 1, index + 1, index + 1, index + 1),
+              sun_el: Float64Array.of(2, 2, 2, 2),
+              earth_clear: Float64Array.of(2, 2, 2, 2),
+            }),
+          ]),
+        ),
+      },
+    });
+    const eight: { rows: HookResult<SlipSweep>[] | null } = { rows: null };
+    function Eight() {
+      eight.rows = useSweeps(ids, short);
+      return null;
+    }
+    await renderProbe(Eight);
+    expect(requireWorker().posted).toHaveLength(8);
+    await settleSweep(new Map());
+    expect(eight.rows?.map((row) => row.status)).toEqual(Array.from({ length: 8 }, () => "ready"));
+    ids.forEach((siteId, index) => {
+      const series = {
+        sun_frac: Float64Array.of(index + 1, index + 1, index + 1, index + 1),
+        sun_el: Float64Array.of(2, 2, 2, 2),
+        earth_clear: Float64Array.of(2, 2, 2, 2),
+      };
+      expect(
+        maxDelta(eight.rows?.[index]?.data, scoring.slipSweep(series, short, null), siteId),
+      ).toBeLessThanOrEqual(1e-9);
+    });
   });
 });
