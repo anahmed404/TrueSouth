@@ -882,7 +882,7 @@ export interface Feature {
  */
 export interface Gate {
   /**
-   * Optional plain sentence with the expected and measured values of a synthetic test, written by the pipeline from its own numbers. Null when there is nothing to add.
+   * Optional plain sentence with the expected and measured values of a synthetic test, written by the pipeline from its own numbers. Null when there is nothing to add. When passed is null, a sentence saying where the gate is checked.
    */
   detail?: string | null;
   /**
@@ -894,19 +894,19 @@ export interface Gate {
    */
   limit: number;
   /**
-   * Measured value in unit: for most gates the largest difference found.
+   * Measured value in unit, or null when this command did not measure the gate. For most gates the largest difference found.
    */
-  measured: number;
+  measured: number | null;
   /**
    * Gate name, a plain sentence.
    */
   name: string;
   /**
-   * Whether the gate passed.
+   * Whether the gate passed. Null when this command did not measure the gate.
    */
-  passed: boolean;
+  passed: boolean | null;
   /**
-   * Number of samples compared.
+   * Number of samples compared. Zero when the gate was not measured here.
    */
   samples: number;
   /**

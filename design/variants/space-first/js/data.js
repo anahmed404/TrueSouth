@@ -8,14 +8,38 @@ export const R_MOON_M = 1737400;
 export const LANDING0 = Date.UTC(2028, 2, 1); // 2028-03-01 00:00 UTC
 export const WINDOW_H = 240;                   // im2_athena, 10 d
 
-export const SITES = [
-  { id: 'cr',  name: 'Connecting Ridge',  ab: 'CR',  lat: -89.4555, lon: 222.6192, tier: 'core80', slope: 3.1 },
-  { id: 'mal', name: 'Malapert Massif',   ab: 'Mal', lat: -85.9948, lon: 359.7642, tier: 'core80', slope: 4.6 },
-  { id: 'mou', name: 'Mons Mouton',       ab: 'Mou', lat: -85.4266, lon: 31.7428,  tier: 'core80', slope: 2.4 },
-  { id: 'dgr', name: 'de Gerlache Rim 2', ab: 'dG2', lat: -88.2300, lon: 295.3716, tier: 'core80', slope: 6.8 },
-  { id: 'a11', name: 'Apollo 11',         ab: 'A11', lat: 0.67416,  lon: 23.47314, tier: 'sphere', slope: null },
+/* Every site the prototype knows. `p` holds the mock series' knobs for each site:
+   sky [turn, scale, shift] of the shared skyline, rot (Sun azimuth turn), se and ee
+   (Sun and Earth elevation shifts), ph (the cheap score sweep). */
+export const ALL_SITES = [
+  { id: 'cr',  name: 'Connecting Ridge',  ab: 'CR',  lat: -89.4555, lon: 222.6192, tier: 'core80', slope: 3.1,
+    p: { sky: [0, 1, 0], rot: 0, se: 0, ee: 0, ph: [3.1, 9.0, .15] } },
+  { id: 'crb', name: 'Connecting Ridge, best-lit', short: 'Best-lit variant', ab: 'CR+', lat: -89.46019, lon: 222.46341, tier: 'core80', slope: 3.6,
+    variantOf: 'cr', variantM: 149, terrain: 'cr',
+    p: { sky: [0, 1, -.16], rot: 0, se: 0, ee: 0, ph: [3.1, 9.0, .3] } },
+  { id: 'sr',  name: 'Shackleton rim',    ab: 'SR',  lat: -89.7742, lon: 203.4952, tier: 'core80', slope: 4.2, noPatch: true,
+    p: { sky: [25, .85, -.05], rot: 6, se: .3, ee: -.1, ph: [6, 10, .3] } },
+  { id: 'dgr1', name: 'de Gerlache rim',  ab: 'dGR', lat: -88.6952, lon: 291.7154, tier: 'core80', slope: 5.5, noPatch: true,
+    p: { sky: [215, .95, .05], rot: -6, se: .08, ee: -.4, ph: [11, 14, .2] } },
+  { id: 'mal', name: 'Malapert Massif',   ab: 'Mal', lat: -85.9948, lon: 359.7642, tier: 'core80', slope: 4.6,
+    p: { sky: [70, .7, -.2], rot: -12, se: .42, ee: -.3, ph: [-4, 2, .55] } },
+  { id: 'mou', name: 'Mons Mouton',       ab: 'Mou', lat: -85.4266, lon: 31.7428,  tier: 'core80', slope: 2.4,
+    p: { sky: [140, .8, -.3], rot: 9, se: .95, ee: -.15, ph: [7, 4, .35] } },
+  { id: 'dgr', name: 'de Gerlache Rim 2', ab: 'dG2', lat: -88.2300, lon: 295.3716, tier: 'core80', slope: 6.8,
+    p: { sky: [200, .9, 0], rot: -5, se: .12, ee: -.45, ph: [12, 15, .25] } },
+  { id: 'a11', name: 'Apollo 11',         ab: 'A11', lat: 0.67416,  lon: 23.47314, tier: 'sphere', slope: null,
+    p: { ph: [0, 0, .9] } },
 ];
-export const siteById = id => SITES.find(s => s.id === id);
+/* The scenario's selected sites. Up to 8. Mutated in place so every importer sees the change. */
+export const SITE_SETS = {
+  default: ['cr', 'mal', 'mou', 'dgr', 'a11'],
+  eight: ['cr', 'crb', 'sr', 'dgr1', 'dgr', 'mal', 'mou', 'a11'],
+  one: ['cr'],
+};
+export const SITES = [];
+export function setScenario(ids) { SITES.length = 0; for (const id of ids) SITES.push(ALL_SITES.find(s => s.id === id)); }
+setScenario(SITE_SETS.default);
+export const siteById = id => ALL_SITES.find(s => s.id === id);
 
 /* Named features (IAU positions, data/fixtures/features.json) */
 export const FEATURES = [
@@ -71,11 +95,18 @@ function base(a) {
   }
   return P[0][1];
 }
-const crSky = a => { const r = a * D2R; return base(a) + 0.045 * Math.sin(r * 37) + 0.03 * Math.sin(r * 91 + 1.3) + 0.02 * Math.sin(r * 173 + .4); };
-const SKY_TWEAK = { cr: [0, 1, 0], mal: [70, .7, -.2], mou: [140, .8, -.3], dgr: [200, .9, 0] };
+const crSkyExact = a => { const r = a * D2R; return base(a) + 0.045 * Math.sin(r * 37) + 0.03 * Math.sin(r * 91 + 1.3) + 0.02 * Math.sin(r * 173 + .4); };
+/* The shared skyline as a table every 0.01° (error under 1e-6°). Every view reads the skyline
+   through sky(), so the timeline, the panorama, the panel and the Slip Planner all agree. */
+const LUT_N = 36000, LUT = new Float64Array(LUT_N + 1);
+for (let i = 0; i <= LUT_N; i++) LUT[i] = crSkyExact(i / 100);
+function crSky(a) {
+  a = ((a % 360) + 360) % 360; const x = a * 100, i = Math.floor(x), f = x - i;
+  return LUT[i] + (LUT[i + 1] - LUT[i]) * f;
+}
 export function sky(siteId, a) {
   if (siteId === 'a11') return 0;
-  const [rot, k, b] = SKY_TWEAK[siteId];
+  const [rot, k, b] = siteById(siteId).p.sky;
   return crSky(a + rot) * k + b;
 }
 export const SUN_R = 0.2665, EARTH_R = 0.95;
@@ -95,7 +126,11 @@ export function bodies(h, off) {
   const c = crAzEl(h, off);
   return { sun: dirFromAzEl(CR.lat, CR.lon, c.sa, c.se), earth: dirFromAzEl(CR.lat, CR.lon, c.ea, c.ee) };
 }
+const SKY_SLACK = 0.25; // the skyline moves by under 0.17° across a Sun-sized span of azimuth (slope ≤ 0.6, span ±0.27°)
 function frac(siteId, az, el, rho) {
+  const c0 = el - sky(siteId, az);
+  if (c0 > rho + SKY_SLACK) return 1; // every chord is wholly above the skyline
+  if (c0 < -rho - SKY_SLACK) return 0; // every chord is wholly below it
   let n = 0, d = 0;
   for (let i = 0; i < 33; i++) {
     const x = -rho + (i + 0.5) * 2 * rho / 33, c = Math.sqrt(rho * rho - x * x), A = az + x / Math.max(.05, Math.cos(el * D2R));
@@ -104,16 +139,17 @@ function frac(siteId, az, el, rho) {
   return n / d;
 }
 const cache = new Map();
+let cacheOn = true;
+export function setSeriesCache(on) { cacheOn = on; cache.clear(); }
 export function series(siteId, h, off) {
-  const key = siteId + '|' + h + '|' + off;
-  if (cache.has(key)) return cache.get(key);
-  const s = siteById(siteId);
+  const s = siteById(siteId), key = (ALL_SITES.indexOf(s) * 1e4 + (h + 3000)) * 1e4 + (off + 5000);
+  if (cacheOn) { const c = cache.get(key); if (c) return c; }
   let sa, se, ea, ee;
   if (siteId !== 'a11') {
-    // polar sites share the approved series' shape; their own skyline (SKY_TWEAK) makes the difference
+    // polar sites share the approved series' shape; their own skyline makes the difference
     ({ sa, se, ea, ee } = crAzEl(h, off));
-    const rot = { cr: 0, mal: -12, mou: 9, dgr: -5 }[siteId]; sa = ((sa + rot) % 360 + 360) % 360; ea += rot / 3;
-    se += { cr: 0, mal: .42, mou: .95, dgr: .12 }[siteId]; ee += { cr: 0, mal: -.3, mou: -.15, dgr: -.45 }[siteId];
+    const p = s.p; sa = ((sa + p.rot) % 360 + 360) % 360; ea += p.rot / 3;
+    se += p.se; ee += p.ee;
   } else {
     const b = bodies(h, off), S = azElOf(s.lat, s.lon, b.sun), E = azElOf(s.lat, s.lon, b.earth);
     sa = S.az; se = S.el; ea = E.az; ee = E.el;
@@ -121,13 +157,11 @@ export function series(siteId, h, off) {
   const sf = se > 2 ? 1 : se < -2 ? 0 : frac(siteId, sa, se, SUN_R);
   const ec = ee - sky(siteId, ea);
   const out = { h, sa, se, sf, sc: se - sky(siteId, sa), ea, ee, ec, link: ec >= 1 };
-  if (cache.size > 20000) cache.clear();
-  cache.set(key, out);
+  if (cacheOn) { if (cache.size > 40000) cache.clear(); cache.set(key, out); }
   return out;
 }
 
 /* ── Status by landing date (the Slip Planner's mock sweep) ── */
-const PH = { cr: [3.1, 9.0, .15], mal: [-4, 2, .55], mou: [7, 4, .35], dgr: [12, 15, .25], a11: [0, 0, .9] };
 const FIXED = { cr: { 0: 'nogo', 7: 'nogo', 14: 'nogo', 21: 'go' }, mal: { 0: 'go' }, mou: { 0: 'caution' }, dgr: { 0: 'caution' } };
 export const TIME_GRID = { start: Date.UTC(2026, 0, 1), end: Date.UTC(2031, 11, 31) };
 export function dayOff(ms) { return Math.round((ms - LANDING0) / 864e5); }
@@ -135,10 +169,10 @@ export function status(siteId, off) {
   const ms = LANDING0 + off * 864e5;
   if (ms + WINDOW_H * 36e5 > TIME_GRID.end || ms < TIME_GRID.start) return { st: 'none', score: 0 };
   if (FIXED[siteId] && FIXED[siteId][off]) return { st: FIXED[siteId][off], score: SCORE0[siteId][off] ?? 72 };
-  const [a, b, k] = PH[siteId];
+  const [a, b, k] = siteById(siteId).p.ph;
   if (siteId === 'a11') { // the equator's rhythm: GO while the Sun is up for the whole window
     const ph = (((off + 4) % 29.53) + 29.53) % 29.53;
-    return ph < 5 ? { st: 'go', score: 100 } : ph < 6.5 ? { st: 'caution', score: 60 } : { st: 'nogo', score: 0 };
+    return ph < 5 ? { st: 'go', score: 92 } : ph < 6.5 ? { st: 'caution', score: 60 } : { st: 'nogo', score: 34 };
   }
   const v = Math.cos(2 * Math.PI * (off + a) / 29.53) + .7 * Math.cos(2 * Math.PI * (off + b) / 27.32) + .3 * Math.cos(2 * Math.PI * off / 206) + k;
   const score = Math.round(Math.max(0, Math.min(99, 55 + v * 22)));
@@ -151,6 +185,7 @@ function rnd(seed) { let t = seed + 0x6D2B79F5; return () => { t = Math.imul(t ^
 export function detail(siteId, off) {
   const s = siteById(siteId), sw = status(siteId, off);
   let st = sw.st, score = sw.score;
+  if (st === 'none') return { st, score: 0, broken: null, passes: [], metrics: null };
   if (siteId === 'cr' && off === 0) return {
     st, score: 51, broken: { name: 'Longest blackout', value: 31, unit: 'h', limit: 12, text: 'Earth is out of contact for 31 hours in a row from 09 Mar 17:00 UTC.' },
     passes: [['Longest dark', '4 h', 'limit 6 h'], ['Slope', '3.1°', 'limit 10°'], ['Lit at landing, disc', '1.00', 'needs 0.5']],

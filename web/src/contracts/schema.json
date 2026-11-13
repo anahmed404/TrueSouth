@@ -913,7 +913,7 @@
             }
           ],
           "default": null,
-          "description": "Optional plain sentence with the expected and measured values of a synthetic test, written by the pipeline from its own numbers. Null when there is nothing to add.",
+          "description": "Optional plain sentence with the expected and measured values of a synthetic test, written by the pipeline from its own numbers. Null when there is nothing to add. When passed is null, a sentence saying where the gate is checked.",
           "title": "Detail"
         },
         "id": {
@@ -927,9 +927,16 @@
           "type": "number"
         },
         "measured": {
-          "description": "Measured value in unit: for most gates the largest difference found.",
-          "title": "Measured",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Measured value in unit, or null when this command did not measure the gate. For most gates the largest difference found.",
+          "title": "Measured"
         },
         "name": {
           "description": "Gate name, a plain sentence.",
@@ -937,12 +944,19 @@
           "type": "string"
         },
         "passed": {
-          "description": "Whether the gate passed.",
-          "title": "Passed",
-          "type": "boolean"
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Whether the gate passed. Null when this command did not measure the gate.",
+          "title": "Passed"
         },
         "samples": {
-          "description": "Number of samples compared.",
+          "description": "Number of samples compared. Zero when the gate was not measured here.",
           "minimum": 0,
           "title": "Samples",
           "type": "integer"

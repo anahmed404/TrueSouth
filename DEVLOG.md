@@ -42,12 +42,163 @@ each integration checkpoint.
 | Milestone | State |
 | :--- | :--- |
 | M0 Foundations | complete, 2026-11-13: S0 to S2, MC0 to MC2, T0, A0 and A1 verified; 151 Python and 1,058 web tests pass; the app loads all five fixture sites |
-| M1 Thin slice | in progress: S3 to S7, S8 part 1, S9, MC3, MC4a, MC4b, the sweep worker, A2 and A7 verified; Mission Control's panels run on real Connecting Ridge data; the timeline (MC5), all catalog sites (S8 part 2) and the Academy card (A4) are being built; the centre views wait on the space-first design |
-| M2 Mission Control complete on catalog data | not started |
+| M1 Thin slice | done in substance: the panels and the timeline run on real data for all 20 catalog sites (S3 to S9, MC3 to MC5 verified); validation against NASA is published (S12) |
+| M2 Mission Control complete on catalog data | in progress: the space-first shell (MC4c) is in review and the 3D scene (T1, T2) is being built; the Polar map, Local terrain, Lander's eye, Slip Planner and Compare follow it |
 | M3 Everything | not started |
 | M4 Tuned and submitted | not started |
 
 ## Science
+
+#### 2026-11-13 · S12 · Validation comparisons and worked-example definition proposal
+- **Who:** Codex implementation agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — wrote synthetic tests before implementation, validation calculations and CLI, the derived validation evidence, and the Academy definition proposal; ran offline pytest and read-only real-data measurements — and Cursor, grok-4.7 — fixed the review findings on pixel indexing, skyline convergence, the G2 raw azimuth, unmeasured gates and specific explanations — human and orchestrator review pending.
+- **State:** verified (orchestrator ran 294 Python and 1,504 web tests, typecheck, build and schema export on the merge with main; Antigravity, gemini-4-hydrogen reproduced every R1, R2 and R3 row with separate code, reran validate byte for byte and ran thirteen mutations; the three that survived now fail tests added by Cursor, grok-4.7, which also made the unmeasured gates and the explanations honest)
+- **Review fixes:** Cursor, grok-4.7 made the review fixes. Tests now catch a flipped reference row, a coarse skyline compared with itself, and a G2 gate that uses raw compass azimuth. G10 and G11 are null rather than failed. Outside-mark explanations quote this run's own pixels, and Chandrayaan-3's Not run reason names the maps that were tried. `uv run pytest`: 282 passed. Web typecheck, 1,500 web tests and the production build passed. Regenerating types left no diff. Comparison values in `validation.json` are unchanged. State remains built, not verified.
+- **Changed:** `science/src/truesouth/validation.py`, `commands/validate.py`, two new test files, `data/derived/validation.json`, the proposed section at the end of `docs/academy/lessons.md`, this entry.
+- **Checks:** `uv run pytest`: 237 passed in 66.85 s; real process exit code 0, captured in the log and read back. New synthetic checks cover known fractions, exact marks, scale/offset/masks, 120 m fallback, unavailable references including `.part`, shared geometry gates, G1 parser fault detection, G2 near-zenith bearings and full body coverage, flat/tilted convergence, atomic failure preservation, and fixed-timestamp byte identity. Real `uv run truesouth validate --generated-utc 2026-11-13T00:00:00Z`: exit 0, including the completed R3 slope map. All new/edited files use UTF-8 without BOM and LF. No shared NASA data was written or downloaded.
+- **Notes:** Built read-only NASA pixel sampling, pure R1/R2/R3/R5 comparisons, measured G1-G9, G2 daily charts and raw-azimuth diagnostics, and an atomic `validate --generated-utc` command. Published the real validation file. Added the 65-key worked-example definition proposal with real-data readings. No worked-example command or Academy output is included.
+
+NASA slope TIF: 241,594,035 bytes; Float32; 80 m pixels; scale 1; offset 0; NaN no-data; lunar south-polar stereographic on a 1,737,400 m sphere. Its unit and baseline tags are absent. [NASA product 90](https://pgda.gsfc.nasa.gov/products/90) identifies LDSM values as degrees; the file does not establish its measurement baseline, so it is not assumed equal to ours (160 m). All 13 core80 sites were compared. R1/R2 cover the 14 sites in their tables. Chandrayaan-3 and the five sphere sites have no reference pixel. R5 uses the first three sunlit_peak ids, sorted by id, recomputing both resolutions.
+
+G10 and G11 are not measured from Python: passed=false, samples=0; the mandatory measured=0 is explicitly labelled a contract placeholder in detail. Their checks live in the web test/types checks. G1-G9 passed. A measured hard-gate failure still writes the evidence and returns nonzero. An unavailable comparison is omitted and printed in the Not run list. No contracts, terrain, profiles or tolerances changed.
+
+**R1: mean Sun disc fraction.** Difference is ours minus reference.
+
+| Site | Ours | Reference | Difference | Outside mark |
+| :--- | ---: | ---: | ---: | :--- |
+| `artemis_de_gerlache_rim_2` | 0.363024798 | 0.372960000 | -0.009935202 | no |
+| `artemis_haworth` | 0.123245445 | 0.084880000 | +0.038365445 | no |
+| `artemis_malapert` | 0.297243637 | 0.281600000 | +0.015643637 | no |
+| `artemis_mouton` | 0.216295185 | 0.204240000 | +0.012055185 | no |
+| `artemis_nobile_rim_1` | 0.307241229 | 0.297320000 | +0.009921229 | no |
+| `artemis_nobile_rim_2` | 0.411448218 | 0.416120000 | -0.004671782 | no |
+| `connecting_ridge` | 0.598582287 | 0.661080000 | -0.062497713 | no |
+| `de_gerlache_rim` | 0.607358328 | 0.612960000 | -0.005601672 | no |
+| `im1_odysseus` | 0.393990556 | 0.355680000 | +0.038310556 | no |
+| `im2_athena` | 0.453739913 | 0.451040000 | +0.002699913 | no |
+| `luna25_target` | 0.455682358 | 0.458080000 | -0.002397642 | no |
+| `malapert_peak` | 0.727993601 | 0.748360000 | -0.020366399 | no |
+| `peak_near_shackleton` | 0.601720921 | 0.361280000 | +0.240440921 | yes |
+| `shackleton_rim` | 0.746861726 | 0.695640000 | +0.051221726 | no |
+
+**R2: share of hours with any Earth.** Difference is ours minus reference.
+
+| Site | Ours | Reference | Difference | Outside mark |
+| :--- | ---: | ---: | ---: | :--- |
+| `artemis_de_gerlache_rim_2` | 0.548436787 | 0.547840000 | +0.000596787 | no |
+| `artemis_haworth` | 0.441769360 | 0.439400000 | +0.002369360 | no |
+| `artemis_malapert` | 0.537482885 | 0.524120000 | +0.013362885 | no |
+| `artemis_mouton` | 0.418473300 | 0.391400000 | +0.027073300 | no |
+| `artemis_nobile_rim_1` | 0.367393123 | 0.344960000 | +0.022433123 | no |
+| `artemis_nobile_rim_2` | 0.689087935 | 0.687840000 | +0.001247935 | no |
+| `connecting_ridge` | 0.549140423 | 0.556880000 | -0.007739577 | no |
+| `de_gerlache_rim` | 0.581792941 | 0.563160000 | +0.018632941 | no |
+| `im1_odysseus` | 1.000000000 | 1.000000000 | +0.000000000 | no |
+| `im2_athena` | 0.931424007 | 0.920800000 | +0.010624007 | no |
+| `luna25_target` | 1.000000000 | 1.000000000 | +0.000000000 | no |
+| `malapert_peak` | 0.624904914 | 0.634640000 | -0.009735086 | no |
+| `peak_near_shackleton` | 0.411513008 | 0.375960000 | +0.035553008 | no |
+| `shackleton_rim` | 0.518389624 | 0.496840000 | +0.021549624 | no |
+
+**R3: polar-map slope, degrees.** Difference is ours minus reference.
+
+| Site | Ours | Reference | Difference | Outside mark |
+| :--- | ---: | ---: | ---: | :--- |
+| `artemis_de_gerlache_rim_2` | 10.824032502 | 11.181346893 | -0.357314392 | no |
+| `artemis_haworth` | 3.860687452 | 3.665967464 | +0.194719988 | no |
+| `artemis_malapert` | 3.276886675 | 3.869591236 | -0.592704561 | no |
+| `artemis_mouton` | 7.482868018 | 7.675848484 | -0.192980466 | no |
+| `artemis_nobile_rim_1` | 15.734712742 | 15.801492691 | -0.066779949 | no |
+| `artemis_nobile_rim_2` | 4.349376581 | 4.289270878 | +0.060105703 | no |
+| `connecting_ridge` | 4.052094097 | 3.325883389 | +0.726210708 | no |
+| `de_gerlache_rim` | 2.154988323 | 1.122872591 | +1.032115732 | no |
+| `im1_odysseus` | 11.510853833 | 11.191024780 | +0.319829053 | no |
+| `im2_athena` | 2.684766518 | 2.219825983 | +0.464940535 | no |
+| `malapert_peak` | 4.070659005 | 4.130123138 | -0.059464133 | no |
+| `peak_near_shackleton` | 1.839560375 | 1.883983254 | -0.044422880 | no |
+| `shackleton_rim` | 1.151163668 | 2.384227753 | -1.233064085 | no |
+
+**R5: skyline convergence RMS, degrees.** Difference is ours minus reference.
+
+| Site | Ours | Reference | Difference | Outside mark |
+| :--- | ---: | ---: | ---: | :--- |
+| `connecting_ridge` | 0.120816809 | 0.000000000 | +0.120816809 | yes |
+| `de_gerlache_rim` | 0.014725153 | 0.000000000 | +0.014725153 | no |
+| `malapert_peak` | 0.038990643 | 0.000000000 | +0.038990643 | no |
+
+**Gates.** G2 covers 20 sites, 2 bodies and 52,584 hours: 2,103,360 site/body hours, with 40 daily charts of 2,191 maxima each.
+
+Compared directions from stored Float32 system.bin at ground height 0 plus 2 m (science section 3.3); each azimuth sky angle and elevation is gated at 0.02 deg. az: max 0.00600724942124 deg at im1_odysseus/earth 2027-01-07T22:00:00Z, RMS 0.00263495075648 deg. el: max 0.00600637441696 deg at apollo11/earth 2027-02-06T15:00:00Z, RMS 0.00108412583568 deg. sky: max 0.00602921260851 deg at apollo11/earth 2027-01-07T22:00:00Z, RMS 0.00284926143678 deg. raw: max 0.0823560453039 deg at apollo11/sun 2031-10-14T01:00:00Z. Raw compass azimuth is diagnostic only: 28 site/body hours above 0.02 deg; daily chart uses full sky separation.
+
+| Gate | Measured | Limit | Unit | Samples | State |
+| :--- | ---: | ---: | :--- | ---: | :--- |
+| G1 | 0 | 0 | difference | 315504 | pass |
+| G2 | 0.00600724942124 | 0.02 | deg | 2103360 | pass |
+| G3 | 3.08864400722e-09 | 0.01 | m | 2232 | pass |
+| G4 | 8.98041993269e-08 | 0.001 | deg | 1440 | pass |
+| G5 | 1.57429624892e-13 | 0.001 | deg | 2 | pass |
+| G6 | 1.386391002e-13 | 0.02 | deg | 2 | pass |
+| G7 | 0.0013027560869 | 0.005 | fraction | 24012 | pass |
+| G8 | 4.1915316551e-07 | 0.001 | deg | 18 | pass |
+| G9 | 0.00499960023978 | 0.005 | deg | 80056 | pass |
+| G10 | 0 | 1e-09 | difference | 0 | not measured |
+| G11 | 0 | 0 | difference | 0 | not measured |
+
+**Not run (exact command list).**
+
+```text
+R1 apollo11: sphere-tier site outside the polar reference maps
+R1 apollo17: sphere-tier site outside the polar reference maps
+R1 blue_ghost1: sphere-tier site outside the polar reference maps
+R1 chandrayaan3: reference pixel is no-data or outside both maps
+R1 change4: sphere-tier site outside the polar reference maps
+R1 change6: sphere-tier site outside the polar reference maps
+R2 apollo11: sphere-tier site outside the polar reference maps
+R2 apollo17: sphere-tier site outside the polar reference maps
+R2 blue_ghost1: sphere-tier site outside the polar reference maps
+R2 chandrayaan3: reference pixel is no-data or outside both maps
+R2 change4: sphere-tier site outside the polar reference maps
+R2 change6: sphere-tier site outside the polar reference maps
+R4: close-up reference maps are not downloaded
+R6: the sensitivity grid is not built in this version
+```
+
+**Story values the data does not support.**
+
+- Lesson 2's existing rule finds a Sun elevation of −1.28 degrees, terrain 344.339330 m
+  below the observer, and a Sun disc fraction of 0.2249. This is not the stated example
+  of a ridge above Pip with the Sun up. It does show more than half the disc hidden.
+- Lesson 3's proposed first hidden-Sun bin is about 80 m away. Its flat and curved
+  elevations are 0.420619217 and 0.418870151 degrees. This is a true but small curvature
+  example, not the distant-mountain example described by the opening illustration.
+- In Lesson 4's 720 hours, any Earth is visible for 59.722222 percent, not the fixed
+  38 percent in the text. A zero-degree mask permits a link for 55.694444 percent.
+  A 5-degree mask still permits 25.833333 percent, above the step's 15 percent target.
+- Lesson 5's 10 m and 100 m readings and plane coefficients cannot be measured today.
+  The coarse 160 m reading is 4.052094097 degrees. It cannot supply the missing rulers.
+- At the proposed story hour, only one polar site passes every veto. There is no Lesson 6
+  B. A is Connecting Ridge, score 100, with slope, power and comms utilities all 1.
+  Reweighting cannot make a second site's score exceed 100 with these utilities.
+- Lesson 7's slipped date is NO-GO for darkness (61 h, assumed limit 6 h), blackout
+  (119 h, assumed limit 12 h), and landing in darkness. The link fraction is 0.504166667,
+  so Earth is not below the link threshold for most of the mission. No polar catalog
+  site is GO on that slipped date. The first later GO is 2028-01-27T00:00:00Z.
+- Lesson 8's four candidates have 0, 0, 0 and 15 GO midnights in 2028, respectively.
+  Its documented fallback handles the first three. The NASA-region reveal is not
+  established without official outlines. No overlap result is claimed.
+
+No site, hour, slope, profile limit or weight was changed to repair these stories.
+
+Every one of the 65 proposed keys has a definition, source arrays, availability, real reading where possible and story-support note in `docs/academy/lessons.md`. Story landing: 2028-01-01T00:00:00Z, Connecting Ridge, unchanged im2_athena, GO score 100. Nine keys cannot be computed under the proposal.
+
+**Spec questions for the orchestrator.**
+
+- Accept this first-GO story landing rule and its 720-hour month?
+- Accept the proposed hour, blocker, A/B and candidate ordering rules, despite the
+  unsupported stories listed above, or revise the lesson before implementation?
+- Define Lesson 5's 10 m slope in science section 8 before any implementation.
+- Approve a missing-value representation before building all required keys. Lessons 5
+  to 8 remain outside the deadline; they are documented here for the later package.
 
 #### 2026-11-13 · S16 · Scene image files and aprons
 - **Who:** Cursor agent, for the orchestrator

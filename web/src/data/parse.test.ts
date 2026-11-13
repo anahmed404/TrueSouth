@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { parseSites } from "./parse.ts";
+import { parseSites, parseValidation } from "./parse.ts";
 
 const fixtures = JSON.parse(
   readFileSync(new URL("../../../data/fixtures/sites.json", import.meta.url), "utf8"),
@@ -13,6 +13,51 @@ function oldSite(): Record<string, unknown> {
   delete site.nearby_sun;
   return site;
 }
+
+function validation(gate: Record<string, unknown>) {
+  return {
+    generated_utc: "2026-11-13T00:00:00Z",
+    gates: [gate],
+    comparisons: [],
+  };
+}
+
+describe("validation gates", () => {
+  const measured = {
+    id: "G2",
+    name: "Directions match",
+    passed: true,
+    measured: 0.01,
+    limit: 0.02,
+    unit: "deg",
+    samples: 4,
+    detail: null,
+  };
+
+  it("accepts a measured gate and a gate this command did not measure", () => {
+    expect(parseValidation(validation(measured)).gates[0]?.passed).toBe(true);
+    const unchecked = parseValidation(validation({
+      ...measured,
+      id: "G10",
+      passed: null,
+      measured: null,
+      samples: 0,
+      detail: "It is checked by the web tests.",
+    }));
+    expect(unchecked.gates[0]?.passed).toBeNull();
+    expect(unchecked.gates[0]?.measured).toBeNull();
+  });
+
+  it.each([
+    { passed: "true", measured: null },
+    { passed: null, measured: "0" },
+    { passed: 1, measured: 0 },
+    { passed: null, measured: 0 },
+    { passed: false, measured: null },
+  ])("rejects a wrong passed or measured type %j", (fields) => {
+    expect(() => parseValidation(validation({ ...measured, ...fields }))).toThrow(/validation\.json/);
+  });
+});
 
 describe("sites placement fields", () => {
   it("accepts old fixture sites and explicit null defaults", () => {

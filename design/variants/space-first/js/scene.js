@@ -23,9 +23,9 @@ void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * v
 #include <logdepthbuf_vertex>
 }`;
 const moonFrag = LOGDEPTH_F + SRGB + `
-uniform sampler2D uMap, uMapE, uH, uCap, uCore, uCapN, uCoreN;
-uniform float uLoaded, uCapLoaded, uSplit, uDraw, uHideCos, uGain, uBump;
-uniform vec3 uSun, uHideDir;
+uniform sampler2D uMap, uMapE, uH, uCap, uCore, uCapN, uCoreN, uAvg;
+uniform float uLoaded, uCapLoaded, uSplit, uDraw, uHideCos, uGain, uBump, uAvgK, uSlip;
+uniform vec3 uSun, uHideDir, uWarm;
 varying vec3 vP;
 const float HW = ${HW.toFixed(7)}; const float HWC = ${HWC.toFixed(7)};
 void main(){
@@ -71,6 +71,17 @@ void main(){
   float detail = mix(1., hs / .707, capW * .2);
   vec3 real = vec3(1.) - exp(-(alb * detail * light * uGain + alb * .012)); // soft roll-off: a face-on Moon never clips
   vec3 drawn = s2l(vec3(hs));
+  // Slip Planner: the ground is lit by a fixed light (it never changes with the date), and
+  // NASA's average sunlight can be draped on it in one warm tone. Context only, never a result.
+  real *= mix(1., .5, uSlip);
+  if (uAvgK > 0.) {
+    float av = texture(uAvg, xy / HW * .5 + .5).r;
+    float inMap = (1. - smoothstep(HW * .9, HW * .985, rho)) * step(lat, 0.);
+    float rel = clamp(light * 1.25, 0., 1.);
+    float lum = (.01 + .52 * av) * (.5 + .5 * rel);
+    vec3 tone = mix(vec3(lum * .8), uWarm * lum, .35 + .65 * av); // dark grey for never lit, Sun cream for always lit
+    real = mix(real, tone, uAvgK * inMap);
+  }
   gl_FragColor = vec4(mix(real, drawn, uDraw * capW), 1.);
   #include <colorspace_fragment>
 }`;
@@ -180,6 +191,7 @@ export function createScene(canvas, opt = {}) {
     uMap: { value: blank }, uMapE: { value: blank }, uH: { value: flat }, uCap: { value: flat }, uCore: { value: flat }, uCapN: { value: flatN }, uCoreN: { value: flatN },
     uLoaded: { value: 0 }, uCapLoaded: { value: 0 }, uSplit: { value: 0 }, uDraw: { value: 0 }, uHideCos: { value: 2 }, uGain: { value: 2.6 }, uBump: { value: 1.6 },
     uSun: { value: new THREE.Vector3(1, 0, 0) }, uHideDir: { value: new THREE.Vector3(0, -1, 0) },
+    uAvg: { value: blank }, uAvgK: { value: 0 }, uSlip: { value: 0 }, uWarm: { value: new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--sun').trim()) },
   };
   const moon = new THREE.Mesh(new THREE.SphereGeometry(1, 384, 192), new THREE.ShaderMaterial({ uniforms: moonU, vertexShader: moonVert, fragmentShader: moonFrag }));
   scene.add(moon);
@@ -221,8 +233,9 @@ export function createScene(canvas, opt = {}) {
   ground.add(outline);
 
   async function loadTerrain(site) {
-    if (!terrCache.has(site.id)) terrCache.set(site.id, fetch(`assets/terrain_${site.id}.bin`).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null));
-    return terrCache.get(site.id);
+    const tid = site.terrain || site.id; // the best-lit variant borrows its site's patch (149 m away)
+    if (!terrCache.has(tid)) terrCache.set(tid, fetch(`assets/terrain_${tid}.bin`).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null));
+    return terrCache.get(tid);
   }
   function buildGrid(site, raw, n, half, offsetEl, exag, z0, hole) {
     const R = R_MOON_M, B = basis(site.lat, site.lon), step = 2 * half / (n - 1);
@@ -256,7 +269,7 @@ export function createScene(canvas, opt = {}) {
     return g;
   }
   async function setGround(site, exag = 1) {
-    if (!site || site.tier === 'sphere') { if (terr) { ground.remove(terr.patch, terr.apron); terr.patch.geometry.dispose(); terr.apron.geometry.dispose(); } terr = null; ground.visible = false; invalidate(); return false; }
+    if (!site || site.tier === 'sphere' || site.noPatch) { if (terr) { ground.remove(terr.patch, terr.apron); terr.patch.geometry.dispose(); terr.apron.geometry.dispose(); } terr = null; ground.visible = false; invalidate(); return false; }
     const buf = await loadTerrain(site); if (!buf) return false;
     const raw = new Uint16Array(buf);
     const z0 = raw[128 * 257 + 128] / 2 - 12000;
@@ -337,7 +350,7 @@ export function createScene(canvas, opt = {}) {
   function setBodies(sunM, earthM, hAbs) {
     st.sunDir.set(...toScene(sunM)).normalize();
     st.earthDir.set(...toScene(earthM)).normalize();
-    moonU.uSun.value.copy(st.sunDir); earthU.uSun.value.copy(st.sunDir);
+    earthU.uSun.value.copy(st.sunDir);
     if (terr) shadeSoon();
     st.earthSpin = (hAbs / 23.934) * Math.PI * 2;
     invalidate();
@@ -356,6 +369,11 @@ export function createScene(canvas, opt = {}) {
   /* place bodies, guides and lines for the current camera */
   function layout() {
     const alt = camera.position.length() - 1;
+    // the Slip Planner holds the Moon's light fixed, so the ground never changes with the date
+    const sk = st.slipK || 0;
+    if (sk > 0 && st.fixL) moonU.uSun.value.copy(slerpV(st.sunDir, st.fixL, sk)); else moonU.uSun.value.copy(st.sunDir);
+    moonU.uSlip.value = sk; moonU.uAvgK.value = sk * (st.avgOn ? 1 : 0) * (st.avgLoaded ? 1 : 0);
+    earth.visible = sun.visible = sk < .5;
     st.near = smooth(.06, .012, alt);           // 1 when close to the ground
     const ts = st.trueScale;
     // System view: squeezed. Near the ground: true angular size, centred on the site.
@@ -376,10 +394,10 @@ export function createScene(canvas, opt = {}) {
     // guides fade as the camera gets close to the ground
     const far = 1 - smooth(.5, .15, alt);
     guideMat.opacity = .35 * far; equator.material.opacity = .16 * far; term.material.opacity = .45 * far;
-    axis.visible = equator.visible = term.visible = far > .01 && st.mode !== 'polar';
+    axis.visible = equator.visible = term.visible = far > .01 && st.mode !== 'polar' && sk < .5;
     term.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), st.sunDir);
     // sight-lines: true directions from the site
-    const show = !!st.site && !st.noSight && st.mode !== 'polar' && st.mode !== 'eye';
+    const show = !!st.site && !st.noSight && st.mode !== 'polar' && st.mode !== 'eye' && sk < .5;
     const len = THREE.MathUtils.lerp(1.15, 8000 / R_MOON_M, smooth(.4, .005, alt));
     const from = st.site ? st.siteP.clone().add(st.siteUp.clone().multiplyScalar(THREE.MathUtils.lerp(.004, 2 / R_MOON_M, st.near))) : new THREE.Vector3();
     for (const key of ['sun', 'earth']) {
@@ -508,14 +526,15 @@ export function createScene(canvas, opt = {}) {
       const up = upHint.clone().sub(look.clone().multiplyScalar(upHint.dot(look))); if (up.lengthSq() < 1e-6) up.set(0, 0, 1); up.normalize();
       ctl.upHint = up.clone();
       camera.up.copy(up); camera.lookAt(0, 0, 0);
-    } else if (st.mode === 'terrain') {
-      const rel = camera.position.clone().sub(st.siteP), r = rel.length();
-      const F = frameOf(st.siteUp);
-      let el = Math.asin(clamp(rel.clone().normalize().dot(st.siteUp), -1, 1)) / D2R;
+    } else if (st.mode === 'terrain' || st.mode === 'slip') {
+      const slip = st.mode === 'slip', C = slip ? st.orbitC : st.siteP, U = slip ? st.orbitUp : st.siteUp;
+      const rel = camera.position.clone().sub(C), r = rel.length();
+      const F = frameOf(U);
+      let el = Math.asin(clamp(rel.clone().normalize().dot(U), -1, 1)) / D2R;
       let az = Math.atan2(rel.dot(F.e), rel.dot(F.n)) / D2R;
-      az -= dx * .3; el = clamp(el + dy * .2, 6, 85);
-      const d = F.n.clone().multiplyScalar(Math.cos(el * D2R) * Math.cos(az * D2R)).add(F.e.clone().multiplyScalar(Math.cos(el * D2R) * Math.sin(az * D2R))).add(st.siteUp.clone().multiplyScalar(Math.sin(el * D2R)));
-      camera.position.copy(st.siteP).add(d.multiplyScalar(r)); camera.up.copy(st.siteUp); camera.lookAt(st.siteP);
+      az -= dx * (slip ? .2 : .3); el = clamp(el + dy * .2, slip ? 28 : 6, slip ? 88 : 85);
+      const d = F.n.clone().multiplyScalar(Math.cos(el * D2R) * Math.cos(az * D2R)).add(F.e.clone().multiplyScalar(Math.cos(el * D2R) * Math.sin(az * D2R))).add(U.clone().multiplyScalar(Math.sin(el * D2R)));
+      camera.position.copy(C).add(d.multiplyScalar(r)); camera.up.copy(U); camera.lookAt(C);
     } else if (st.mode === 'eye') {
       const F = frameOf(st.siteUp), look = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
       let el = Math.asin(clamp(look.dot(st.siteUp), -1, 1)) / D2R, az = Math.atan2(look.dot(F.e), look.dot(F.n)) / D2R;
@@ -536,6 +555,9 @@ export function createScene(canvas, opt = {}) {
     } else if (st.mode === 'terrain') {
       const rel = camera.position.clone().sub(st.siteP), r = clamp(rel.length() * f, 1800 / R_MOON_M, 90000 / R_MOON_M);
       camera.position.copy(st.siteP).add(rel.setLength(r));
+    } else if (st.mode === 'slip') {
+      const rel = camera.position.clone().sub(st.orbitC), r = clamp(rel.length() * f, 60000 / R_MOON_M, 2600000 / R_MOON_M);
+      camera.position.copy(st.orbitC).add(rel.setLength(r));
     } else if (st.mode === 'eye') {
       camera.fov = clamp(camera.fov * f, 8, 75); updateProj();
     }
@@ -610,6 +632,10 @@ export function createScene(canvas, opt = {}) {
     invalidate();
     await setMoonRes(which);
   }
+  let avgP = null;
+  function loadAvg() {
+    return avgP || (avgP = tex('assets/sunlight_2k.webp', false).then(t => { if (t) { capTex(t); moonU.uAvg.value = t; st.avgLoaded = true; invalidate(); } return !!t; }));
+  }
   const hiRes = {};
   async function setMoonRes(which) {
     if (which === '8k') {
@@ -681,6 +707,10 @@ export function createScene(canvas, opt = {}) {
     onFrame(cb) { frameCb = cb; }, loadTextures, setMoonRes, forceGrey, probe, bench, glInfo, frameTimes, resize,
     get tweening() { return !!tween; }, get size() { return { W, H }; }, eyePose, sitePoseLocal, azElOfScene,
     setColourMode(m) { terrU.uMode.value = m; invalidate(); },
+    loadAvg, slerpV, frameOf,
+    setSlip(k, fixL) { st.slipK = k; if (fixL) st.fixL = fixL.clone().normalize(); invalidate(); },
+    setAvg(on) { st.avgOn = on; if (on) loadAvg(); invalidate(); },
+    setOrbit(C, U) { st.orbitC = C.clone(); st.orbitUp = U.clone().normalize(); },
     get terr() { return terr; },
   };
 }
