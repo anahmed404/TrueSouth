@@ -31,11 +31,13 @@ Polar map and Local terrain.
   set, or folding a panel, refits the camera in 450 to 600 ms.
 - **Orbit and zoom.** Drag orbits around the sites' centre, from 28° to 88° up. Scroll zooms
   from 60 km to 2,600 km.
-- **The scene in this view.** Earth, the Sun, the guide lines and the sight-lines are hidden.
-  The Moon's light is a fixed drawing light, not the real Sun (see "Honesty").
+- **The scene in this view.** Earth, the Sun, the guide lines, the sight-lines and the
+  focused site's close-up ground are hidden. The Moon's light is a fixed drawing light, not
+  the real Sun (see "Honesty").
 - **Leaving.** The light blends back to the real Sun in the first 60 % of the next flight.
 - **Sites outside the view.** A site far from the pole, such as Apollo 11 near the equator, is
-  not in the picture. A note in the free space says so, for example "Apollo 11 NO-GO, near
+  not in the picture. "Far" means a sphere-tier site or one north of 80°S (the polar cap's
+  edge); the camera fit uses only the others. A note in the free space says so, for example "Apollo 11 NO-GO, near
   the equator, far off this view". Clicking it focuses the site, and its strip is in the
   landing-date panel as usual.
 
@@ -161,8 +163,9 @@ Before any slip, none of these are shown.
 
 ## Hover and focus
 
-- **Hover a strip:** a readout with the date, the status, the score and each veto with its
-  measured value, for that site. The words name the status.
+- **Hover a strip:** a readout with the date, the status, the score and each broken veto with
+  its measured value and limit, for that site; when every rule passes it says so. The words
+  name the status.
 - **Hover a spot:** the site's name, status, score and the broken rule, for the landing date.
 - **Focus.** Clicking a spot, a strip row or a site in the sites rail focuses it. The focused
   site gets the outer ring on its spot, and the focused-site panel shows it.
@@ -220,8 +223,9 @@ Before any slip, none of these are shown.
   it.
 - **Many sites.** With seven or eight sites, strips are 12 px tall with a 5 px gap. Spots and
   labels follow the close-sites rules.
-- **No site selected.** The panel and the scene show a prompt to add one, and the Polar map
-  opens, as in [`mission-control.md`](mission-control.md).
+- **No site selected.** The panel and the scene show a prompt to add one, and the panel's
+  "Open the Polar map" opens it, as in [`mission-control.md`](mission-control.md). The view
+  does not switch by itself.
 - **Every date NO-GO.** A strip shows only low lines. Its right-hand column says "no GO
   before 2032". "Any site" shows no GO either. The spot of that site is a NO-GO lamp with an
   empty ring on every date.
@@ -264,7 +268,10 @@ the view uses the flat Polar map with the same spots.
 - A note says: "3D is off, so your sites are shown on the flat Polar map. The spots, the
   landing dates and the panels work as in 3D."
 
-This replaces the still picture for this view only.
+This replaces the still picture for this view only. Until the flat Polar map (work package
+T7) can draw under the spots, the Slip Planner draws a stand-in: the polar relief image,
+dimmed, placed by the same projection, with the average sunlight on it when the shading is
+on.
 
 ## Done when
 

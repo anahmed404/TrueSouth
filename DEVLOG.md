@@ -488,6 +488,41 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-13 · MC7 · The Slip Planner, a camera view on the Moon
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (design already
+  picked; critique pass run) — moved the Slip Planner from the windows to the camera views;
+  wrote its camera pose, orbit and zoom limits and fixed drawing light, the spots with the
+  close-sites rules, the off-view notes, the landing-date panel (Canvas strips, "Any site",
+  "next GO", slider, keys, hover readouts, zoom, fold), the before-and-after state, the 3D-off
+  ground, the average-sunlight shading and vitest tests — checked by the agent with
+  typecheck, the vitest suite (including the spot = strip = hover = sites rail agreement test
+  on every fixture site), the build, and by eye in headless Chrome on the machine's GPU on
+  the real data at 1440 × 900, 1024 × 768 and 390 × 844; a human has not reviewed it yet
+- **State:** built, not verified
+- **Changed:** `web/src/features/mission-control/slip-planner/` (new), `web/src/lib/scoring/`
+  (`slip-days.ts`, `next-go.ts`, index exports), `web/src/features/three/scene/` (`slip.ts`
+  and its test new; small additions to `rig.ts`, `world.ts`, `materials.ts`,
+  `scene-root.tsx`), `web/src/app/scene.ts` (optional `onProjector`, `slipShading`),
+  `web/src/app/mission/` (`views.ts`, `scene-slot.tsx`, `scene-status.ts`, `view-bar.tsx`
+  comment, three tests), `web/src/app/mission-screen.tsx`, `web/src/components/StatusLamp.tsx`
+  (exports `GLYPH`), `web/vite.config.ts` (the worker build input is gone),
+  `docs/features/slip-planner.md`, `docs/design/c2/built-slip-*.png`, this entry
+- **Notes:**
+  - Every status, score and veto is the sweep's (`useSweeps`), packed per 00:00 UTC day by
+    `lib/scoring/slip-days.ts` from `evaluationAt`. No new scoring code. `nextGoDay(result,
+    fromDay)` is in `lib/scoring/next-go.ts` for the shell's "Next GO" button.
+  - The landing date is read and written only through the scenario store. The panel header
+    has an empty `data-slot="landing-date-control"` for `LandingDateControl`.
+  - 3D off: the scene still reports no flat views; the shell's still picture is skipped for
+    this view only and the Slip Planner draws a dimmed polar relief under the same spots,
+    with the spec's note. T7's flat Polar map should take that place: it needs to accept
+    sites to place (or expose the same `SceneProjector` as the 3D scene), hide crater
+    names in this view, and draw the average-sunlight layer when asked.
+  - A view opened from a link refits when its first (locked) flight lands, since the sites
+    and the free space can arrive during it.
+  - The build emits the sweep worker once (`dist/assets/sweep.worker-*.js`).
+
 #### 2026-11-13 · MC4c · The space-first shell
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (question
