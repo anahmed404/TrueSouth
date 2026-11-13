@@ -168,11 +168,11 @@ limit away; penalising the same thing twice; weights that silently fail to add u
 
 | # | Kind | Luna asks | Answer and what happens |
 | :--- | :--- | :--- | :--- |
-| 1 | `predict` | "Pip's site is GO for landing on {{l7.go_date}}. The launch slips three weeks. Still GO?" | Still GO / **NO-GO**. Reveal: the Slip Planner row, with the marker moving. |
+| 1 | `predict` | "Pip's site is GO for landing on {{l7.go_date}}. The launch slips three weeks. Still GO?" | Still GO / **NO-GO**. Reveal: the Slip Planner's landing-date strip for Pip's site, with the landing-date line moving. |
 | 2 | `choice` | "What changed in three weeks?" | The slope / **Earth sank below the skyline for most of the mission** / My size |
 | 3 | `tune-slider` | "Slide the landing date to the next GO day." | Goal: {{l7.next_go_date}}. |
 | 4 | `choice` | "Earth's ups and downs repeat about every…" | Day / **27 days** / Year |
-| 5 | `choice` | "Or keep the date and move. Which site is GO on the slipped date?" | The learner reads a three-row Slip Planner. Answer: **{{l7.alt_site}}**. |
+| 5 | `choice` | "Or keep the date and move. Which site is GO on the slipped date?" | The learner reads a Slip Planner with three strips, one per site. Answer: **{{l7.alt_site}}**. |
 
 **Card:** the mission window and its metrics (§9); the sweep over every landing date
 (§11). Worked example: the same site on two dates, metric by metric. What can go wrong:
@@ -190,7 +190,7 @@ judging a month where the mission lasts ten days; a window one hour too long or 
 
 | # | Kind | Luna asks | Answer and what happens |
 | :--- | :--- | :--- | :--- |
-| 1 | `drop-pin` | "Four candidate sites. Pick Pip's." | Any site is accepted. A small Slip Planner shows all four. |
+| 1 | `drop-pin` | "Four candidate sites. Pick Pip's." | Any site is accepted. A small Slip Planner shows all four as spots. |
 | 2 | `tune-slider` | "Now pick the landing date. Find a GO." | Goal: status GO for the chosen site. If the site has no GO date in range, Luna says so and offers the best CAUTION date or a different site. |
 | 3 | `choice` | "Pip has landed. Read the countdown: how long until sunset?" | Three readings; the learner picks the one the countdown card shows. |
 | 4 | `predict` | "Will Pip have a link to Earth for the whole mission?" | Yes / No. Reveal: the timeline for the learner's own choice. |

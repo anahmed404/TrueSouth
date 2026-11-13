@@ -40,7 +40,7 @@ them.
 │ │ TrueSouth [MC|Acad.] │ │ Profile ▾   │ │ Landing date  Slip │ │ Share │         │
 │ └──────────────────────┘ └─────────────┘ └────────────────────┘ └───────┘         │
 │  ┌───────────────────────────────────────────────────────────────────────────┐    │
-│  │ System · Polar map · Terrain · Lander's eye │ Slip Planner ▭ · Compare ▭  │    │
+│  │ System · Polar map · Slip Planner · Terrain · Lander's eye │ Compare ▭    │    │
 │  └───────────────────────────────────────────────────────────────────────────┘    │
 │                   one sentence saying what this view shows                        │
 │ ┌──────────────┐                                              ┌───────────────┐   │
@@ -64,7 +64,7 @@ them.
 | **View sentence** | One plain sentence on a plate under the view bar, saying what the current view shows. At most 72 characters wide. |
 | **Sites rail** | Selected sites, each with a status chip for the current landing date. Click to focus. Up to 8 sites. 256 px wide, or 48 px folded. |
 | **Focused-site panel** | Status, the broken rule, passing rules, metrics, slope with its baseline, links out to Quickmap and Moon Trek. 328 px wide, or 48 px folded. Content below. |
-| **Timeline** | A floating bar along the bottom with the countdowns. 196 px tall, or one row (52 px) folded. Spec: [`site-detail.md`](site-detail.md). |
+| **Timeline** | A floating bar along the bottom with the countdowns. 196 px tall, or one row (52 px) folded. Spec: [`site-detail.md`](site-detail.md). In the Slip Planner its slot holds the landing-date panel instead (see [`slip-planner.md`](slip-planner.md)). |
 | **View controls** | The current view's controls (presets, overlays, exaggeration, and so on), in a small panel at the foot of the free space. Each view's spec lists them. |
 | **Footer line** | "Planning aid, not flight certification. Limits marked assumed are our estimates." Always on screen, on a plate. |
 
@@ -80,16 +80,16 @@ scene sits on a plate.
 
 ## The view bar
 
-One floating bar with six entries. A hairline divides the four views from the two windows.
-Each window entry carries a small window icon and `aria-expanded`.
+One floating bar with six entries. A hairline divides the five views from the one window.
+The window entry carries a small window icon and `aria-expanded`.
 
 | Entry | Kind | What happens | Spec |
 | :--- | :--- | :--- | :--- |
 | System view | Camera view | Home. The camera returns to the whole scene. | [`system-view.md`](system-view.md) |
 | Polar map | Camera view | The camera flies under the south pole, then the flat map takes over. | [`polar-map.md`](polar-map.md) |
+| Slip Planner | Camera view | The camera flies to a stop above the south pole, tilted so the Moon curves away, and the sites become spots. The bottom panel shows landing dates. | [`slip-planner.md`](slip-planner.md) |
 | Local terrain | Camera view | The camera continues down to the focused site. | [`local-terrain.md`](local-terrain.md) |
 | Lander's eye | Camera view | The camera drops to 2 m above the ground. | [`panorama.md`](panorama.md) |
-| Slip Planner | Floating window | Opens over the scene. The camera does not move. | [`slip-planner.md`](slip-planner.md) |
 | Compare | Floating window | Opens over the scene. The camera does not move. | [`compare.md`](compare.md) |
 
 - The selected camera view has a Raised fill and a Moonlight underline. An open window's
@@ -97,12 +97,13 @@ Each window entry carries a small window icon and `aria-expanded`.
 - The bar has no "what it is for" lines. The view sentence under the bar does that job.
 - A pick during a camera move interrupts the move and starts a new one from where the
   camera is. A drag or scroll in the scene does the same.
-- Slip Planner and Compare are tables, not places. That is why they are windows.
+- Compare is a table, not a place. That is why it is a window. The Slip Planner is a place,
+  the south pole with your sites on it, so it is a camera view.
 - The old "split" toggle (two views side by side) is dropped. The scene is always behind
   the interface, so there is no main view to split.
 - Proposed: the shareable link's `view` parameter keeps its values (`slip`, `system`,
-  `map`, `terrain`, `panorama`, `compare`). `system`, `map`, `terrain` and `panorama`
-  restore the camera view; `slip` and `compare` open that window over the System view.
+  `map`, `terrain`, `panorama`, `compare`). `system`, `map`, `slip`, `terrain` and `panorama`
+  restore the camera view; `compare` opens that window over the System view.
   Reason: old links keep working and no new parameter is needed. The format lives in
   [`../data-contracts.md`](../data-contracts.md).
 
@@ -112,7 +113,10 @@ Each window entry carries a small window icon and `aria-expanded`.
   passes through the Moon.
 - System view to Polar map is one flight to the pole; at the end the flat map replaces the
   globe in a short fade.
-- Polar map to Local terrain and on to Lander's eye continue from where the camera is.
+- System view to Slip Planner is one flight to a stop above the pole. The Moon's light blends
+  to a fixed drawing light, and back on leaving.
+- Polar map to Slip Planner, or to Local terrain and on to Lander's eye, continue from where
+  the camera is.
 - With **reduce motion** on (the operating system's setting), every camera move is a short
   cross-fade, and panel and window animations are removed.
 - A site with no terrain data (a sphere-tier site such as Apollo 11) cannot be flown to.
@@ -123,7 +127,7 @@ Each window entry carries a small window icon and `aria-expanded`.
 
 ## Floating windows
 
-The Slip Planner and Compare share these rules:
+Compare follows these rules. The Slip Planner is a camera view and does not.
 
 - A window is a solid panel with the popover shadow, centred horizontally, between the
   view bar and the timeline. It is at most 1,120 px wide. On a phone it fills the screen.
@@ -134,8 +138,9 @@ The Slip Planner and Compare share these rules:
 - **The timeline stays visible** below the window, and the scrubber keeps driving the
   windows' content where it depends on the current time.
 - **Escape closes it,** and focus returns to the button that opened it. The close button
-  does the same. Clicking the other window's button replaces it.
+  does the same.
 - Opening a window does not change the camera or the selected view.
+- Picking a camera view while the window is open closes it, and the camera moves there.
 
 ## Folding
 
@@ -156,8 +161,8 @@ The sites rail, the focused-site panel and the timeline each fold away.
 
 When WebGL is missing, or the first camera flight is too slow, a still picture of the
 System view replaces the scene, with the note "Try 3D anyway". Everything else keeps
-working: panels, timeline, the Slip Planner and Compare. The flat Polar map still works,
-since it is a 2D canvas. Local terrain and Lander's eye show their 2D parts only. The
+working: panels, timeline and Compare. The flat Polar map still works, since it is a 2D
+canvas, and the Slip Planner uses it with the same spots. Local terrain and Lander's eye show their 2D parts only. The
 threshold and the details are in [`system-view.md`](system-view.md).
 
 ## The phone
@@ -186,7 +191,8 @@ Mission Control may ask for a wider screen, but the layout holds at 390 px wide.
 - `[` and `]` fold the side panels.
 - The scrubber is a slider: arrow keys move one hour (with Shift, one day), Page Up and
   Page Down move 24 hours, Home and End go to the ends of the mission window.
-- In the Slip Planner window, the arrow keys move the landing date by a day.
+- In the Slip Planner, the landing-date slider takes the arrow keys, one day each. The
+  other keys are in [`slip-planner.md`](slip-planner.md).
 - **Escape** closes, in this order: an open popover or tooltip, then the open window. Focus
   returns to what opened it.
 - Every control has an accessible name. Status is never colour alone.
@@ -290,10 +296,11 @@ teaches it. The same text is used in the Academy.
 - Changing any profile field updates every visible status with no network request.
 - Focusing a site, changing the date or dragging the scrubber updates the scene and every
   open window together.
-- Each of the four camera views is reached from the view bar by a camera move, and a
+- Each of the five camera views is reached from the view bar by a camera move, and a
   second pick during a move starts from where the camera is.
-- Slip Planner and Compare open as windows; Escape closes them and returns focus; the
-  timeline stays visible.
+- Compare opens as a window; Escape closes it and returns focus; the timeline stays
+  visible. The Slip Planner is reached by a camera move like the other views, and its
+  bottom panel shows landing dates.
 - With "reduce motion" on, no camera flight or panel animation plays.
 - With WebGL off, the still picture shows and every panel and window still works.
 - Folding the three panels works with the keys and the toggles, and the Moon is never

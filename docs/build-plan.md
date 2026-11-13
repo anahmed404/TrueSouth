@@ -51,7 +51,7 @@ Under-the-hood cards is how the math gets a second pair of eyes.
 | :--- | :--- | :--- |
 | M0 | Foundations | Everyone can run the app on fixtures. Contracts and types exist. |
 | M1 | Thin slice | One real site, end to end: real series and skyline for Connecting Ridge drive the System view scene, the Lander's eye view, the timeline, the countdowns and a status, in the floating shell. |
-| M2 | Mission Control complete on catalog data | All catalog sites; the scene and its four camera views (System view, Polar map, Local terrain, Lander's eye); the Slip Planner and Compare windows; Academy lessons 1–4. |
+| M2 | Mission Control complete on catalog data | All catalog sites; the scene and its five camera views (System view, Polar map, Slip Planner, Local terrain, Lander's eye); the Compare window; Academy lessons 1–4. |
 | M3 | Everything for the deadline | Validation page, share and export, Docker, the sharper Moon and the performance pass. Custom sites, the sensitivity grid and lessons 5–8 are out of scope for the deadline; see "Out of scope for the deadline". |
 | M4 | Tuned and submitted | Presets tuned, validation reviewed, polish, submission materials. |
 
@@ -127,7 +127,7 @@ Extra checks:
 | MC4c | The space-first shell: float the MC4 panels, the app bar, the view bar and the timeline over the scene; folding; the free-space insets for the camera; the phone layout; keyboard use; the still-picture note. Placeholders stand in for the window contents until MC7 and MC9. | [`features/mission-control.md`](features/mission-control.md), [`../DESIGN.md`](../DESIGN.md) | MC4, T1 | M1 |
 | MC5 | Timeline, scrubber, countdown cards, "why is it dark" card. A floating bar along the bottom that folds to one row. | [`features/site-detail.md`](features/site-detail.md) | MC4 | M1 |
 | MC6 | Lander's eye: the horizon chart, its card and its controls, floating under the 3D horizon. The camera and the 3D horizon are T5. | [`features/panorama.md`](features/panorama.md) | MC4c | M1 |
-| MC7 | The Slip Planner's floating window: the long grid with the six-year bar, hover, slip card. Its sweep worker is done (MC7a). | [`features/slip-planner.md`](features/slip-planner.md) | MC4c | M2 |
+| MC7 | The Slip Planner as a camera view on the Moon: the flight to the pole, a spot for each site, the landing-date panel (strips, "Any site", slider), hover and keyboard use, before and after a slip, and the flat-map fallback. Its sweep worker is done (MC7a). Design picked 2026-11-13: [`../design/variants/c2-slip-on-moon.md`](../design/variants/c2-slip-on-moon.md). | [`features/slip-planner.md`](features/slip-planner.md) | MC4c, T1 | M2 |
 | MC9 | The Compare window; share and export; confirm the Quickmap and Moon Trek link formats | [`features/compare.md`](features/compare.md), [`features/share-export.md`](features/share-export.md) | MC7 | M3 |
 | MC11 | Every loading, empty and error state, including the still picture and reduced motion; keyboard use; performance pass | all feature specs | all | M4 |
 
@@ -195,7 +195,7 @@ M0   S0 ─► S1 ─► S2 ──────────────► MC1, M
 M1   S3 ─► S4 ─┐                    MC3 ─► MC4 ─┐              T1 ─► T2     A7, A2, A4
            S5 ─► S6 ─► S7  (real site replaces fixture)   T1 ─► MC4c ─► MC5, MC6
            S5, S9 ─► S16 (scene images) ─► T1 textures, T3
-M2   S8, S9                         MC7 (window)               T7, T3 ─► T4   A3, A5
+M2   S8, S9                         MC7 (view)                 T7, T3 ─► T4   A3, A5
 M3   S10 (static, health), S13   S12   MC9 (window)            T5, T6         A8, A9
 M4   S14                            MC11                                  A10, A11
      out of scope: T8, S10 (job queue), S11, A6
@@ -226,9 +226,10 @@ From the Space Apps Cairo judging guide.
 - **A map from challenge objectives to features,** one line each.
 - **The demo story,** about three minutes:
   1. Open on the System view: the Sun, Earth and Moon, with the sites on the pole.
-  2. "Pip's launch just slipped three weeks." Open the Slip Planner window.
+  2. "Pip's launch just slipped three weeks." Open the Slip Planner: the camera
+     flies to the pole and the sites become spots.
   3. The site turns NO-GO. Hover to see why: a blackout.
-  4. Slide to the next GO date; or switch to a site that is GO now. Close the window.
+  4. Slide to the next GO date; or switch to a site that is GO now.
   5. Fly down to the Lander's eye view and read the countdowns for that date.
   6. Scrub to a dark hour; the "why is it dark" card names the ridge; fly up to Local
      terrain, which shows it.

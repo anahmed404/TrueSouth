@@ -5,7 +5,7 @@ Read [`README.md`](README.md) in this folder first.
 
 **Mission Control is space-first.** A 3D scene of the Sun, Earth and Moon (the 3D and Map
 track's) fills the window, and your panels float above it. The view bar picks the view:
-four are camera moves, and the Slip Planner and Compare are floating windows. Read
+five are camera moves (the Slip Planner is one), and Compare is a floating window. Read
 [`../decisions/0013-space-first-mission-control.md`](../decisions/0013-space-first-mission-control.md)
 and [`../../design/variants/c2-space-first.md`](../../design/variants/c2-space-first.md).
 
@@ -66,7 +66,7 @@ Details and checks for each id are in [`../build-plan.md`](../build-plan.md).
 - [ ] **MC6** Lander's eye: the horizon chart, its card and controls (the camera and 3D
       horizon are T5)
 
-**M2.** MC7 (the Slip Planner's window; its sweep worker is done as MC7a).
+**M2.** MC7 (the Slip Planner view; its sweep worker is done as MC7a).
 
 **M3.** MC9 (the Compare window, share and export, NASA tool links).
 
@@ -126,8 +126,9 @@ Tell the team in chat the moment each of these lands on `main`.
   plate. Use the tokens; never type a colour value.
 - **The interface tells the scene where the free space is,** so the camera can keep the
   Moon clear of the panels. When a panel folds, the free space changes with it.
-- **Slip Planner and Compare are windows,** with `role="dialog"` and `aria-modal="false"`.
-  Escape closes them and returns focus. The timeline stays visible.
+- **Compare is a window,** with `role="dialog"` and `aria-modal="false"`. Escape closes it
+  and returns focus. The timeline stays visible. **The Slip Planner is a camera view,** and
+  its bottom panel shows landing dates in place of the timeline.
 - **Results never come from the scene.** A status, a lamp or a "lit" label comes from the
   evaluation hooks, not from 3D shading or shadows.
 - **Respect reduced motion** in every panel and window animation.
