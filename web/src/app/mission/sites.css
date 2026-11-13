@@ -142,8 +142,8 @@
 
   /* ── "Your own coordinates", in the add-site picker ────────────────────── */
   .cs {
-    border-top: 1px solid var(--line);
-    padding-top: var(--s2);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: var(--s2);
   }
 
   .cs-head {
@@ -377,9 +377,17 @@
     color: var(--ink);
   }
 
-  dd .focus-link-button {
-    display: block;
-    margin-top: 4px;
+  .nearby-dd {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    text-align: right;
+  }
+
+  .nearby-dd .focus-link-button {
+    align-self: flex-end;
+    margin-top: 2px;
   }
 
   /* ── The phone ─────────────────────────────────────────────────────────── */

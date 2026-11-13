@@ -574,6 +574,7 @@ function AddSite({ selected, pendingCount, compact = false }: { selected: readon
                 {used} of {MAX_SITES} selected
               </span>
             </div>
+            <CustomCoordinates full={full} onStarted={close} />
             {groups.length === 0 ? <p className="pick-note">Every catalog site is already selected.</p> : null}
             {groups.map(({ group, items }) => (
               <section key={group} className="pick-group" aria-label={GROUP_NAMES[group]}>
@@ -605,7 +606,6 @@ function AddSite({ selected, pendingCount, compact = false }: { selected: readon
                 </ul>
               </section>
             ))}
-            <CustomCoordinates full={full} onStarted={close} />
             <Button
               className="pick-map"
               icon={<MapPin size={14} strokeWidth={1.8} aria-hidden="true" />}

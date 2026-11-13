@@ -511,8 +511,9 @@ function GroundSection({ site, sites }: { site: Site; sites: readonly Site[] }) 
             <dt>
               <Explain term="nearby_range">Sunlight nearby</Explain>
             </dt>
-            <dd>
-              <span className="tabular">{nearby}</span> <span className="dd-sub">six-year average</span>
+            <dd className="nearby-dd">
+              <span className="tabular">{nearby}</span>
+              <span className="dd-sub">six-year average</span>
               {variant && (variantSelected || selected.length < MAX_SITES) ? (
                 <button type="button" className="focus-link-button" onClick={() => showSite(store, variant.id)}>
                   {variantSelected ? "Show its best-lit point" : "Add its best-lit point"}

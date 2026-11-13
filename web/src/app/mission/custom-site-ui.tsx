@@ -126,7 +126,7 @@ export function CustomCoordinates({ full, onStarted }: { full: boolean; onStarte
   const id = useId();
   const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => {
-    if (open) formRef.current?.scrollIntoView({ block: "end" });
+    if (open) formRef.current?.scrollIntoView({ block: "nearest" });
   }, [open]);
 
   useEffect(() => {
@@ -157,7 +157,14 @@ export function CustomCoordinates({ full, onStarted }: { full: boolean; onStarte
   return (
     <section className="cs" aria-labelledby={`${id}-h`}>
       <h3 className="cs-head" id={`${id}-h`}>
-        <button type="button" className="cs-toggle" aria-expanded={open} aria-controls={`${id}-body`} onClick={() => setOpen(!open)}>
+        <button
+          type="button"
+          className="cs-toggle"
+          aria-expanded={open}
+          aria-controls={`${id}-body`}
+          aria-describedby={open && (unavailable || full) ? `${id}-why` : undefined}
+          onClick={() => setOpen(!open)}
+        >
           Your own coordinates
           <ChevronDown size={14} strokeWidth={1.8} aria-hidden="true" className="cs-chevron" />
         </button>
@@ -173,8 +180,16 @@ export function CustomCoordinates({ full, onStarted }: { full: boolean; onStarte
             submit();
           }}
         >
-          {unavailable ? <p className="cs-unavailable">Custom sites are not available on this server.</p> : null}
-          {!unavailable && full ? <p className="cs-unavailable">The scenario has 8 sites, the most it holds. Remove one first.</p> : null}
+          {unavailable ? (
+            <p id={`${id}-why`} className="cs-unavailable">
+              Custom sites are not available on this server.
+            </p>
+          ) : null}
+          {!unavailable && full ? (
+            <p id={`${id}-why`} className="cs-unavailable">
+              The scenario has 8 sites, the most it holds. Remove one first.
+            </p>
+          ) : null}
           <fieldset className="cs-fields" disabled={disabled}>
             <legend className="sr-only">A point on the Moon</legend>
             <div className="cs-pair">
