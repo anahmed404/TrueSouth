@@ -99,9 +99,10 @@ shows the series' answer:
 > drawing differs, the series is right.
 
 When the series says dark, the first line reads "The series says: dark. Sun disc fraction
-0.12 above the skyline." Without the series, the plate shows the second line only. The
-plate sits at the foot of the free space, above the view's controls, in Local terrain and
-in Lander's eye; at the top it covered Earth, which Lander's eye centres.
+0.12 above the skyline." Without the series, the plate shows the second line only. In
+Lander's eye the plate is that second line only, because the horizon bar there already gives
+the series' answer. The plate sits at the foot of the free space, above the view's
+controls; at the top it covered Earth, which Lander's eye centres.
 
 The drawn shadow at the lander can differ from the series, and that is expected: the
 drawing marches over the 20 km patch and the 300 km terrain around it, at 80 m and 1.9 km,

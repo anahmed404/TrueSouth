@@ -102,7 +102,9 @@ export function sceneContent(input: PlateInput): SceneContent {
 
   // Wherever the ground is drawn with shading and shadows, the series' answer and what the
   // drawing is (docs/features/local-terrain.md, "Shadows are decoration").
-  if (groundView(view) && ground !== "none") plates.push(decorationPlate(input.sun ?? null));
+  // In Lander's eye the horizon bar already gives the series' answer, so the plate is one line
+  // there and covers less of the horizon.
+  if (groundView(view) && ground !== "none") plates.push(decorationPlate(view === "panorama" ? null : (input.sun ?? null)));
 
   if (site && input.series === "error" && view !== "map") {
     plates.push({ id: "series-error", text: `The Sun and Earth series for ${site.name} could not be loaded, so its sight-lines are not drawn.` });

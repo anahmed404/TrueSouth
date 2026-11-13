@@ -175,14 +175,16 @@ vec4 craters(vec2 p, float S, float seed, float density, vec2 sd, float tanEl) {
     float x = rho / rad;
     if (x > 1.8 || rho < 1e-6) continue;
     // Most small lunar craters are worn: depth a tenth of the diameter or less; fresher ones deeper.
-    float fresh = fract(r.z * 7.31 + r.w * 3.7);
-    float depth = rad * mix(.07, .2, fresh * fresh);
+    // Four in five are worn: soft rims and shallow bowls.
+    float fresh = pow(fract(r.z * 7.31 + r.w * 3.7), 4.);
+    float depth = rad * mix(.05, .18, fresh);
     float e = x - 1.;
-    float rimH = .22 * depth;
+    float rimH = mix(.1, .22, fresh) * depth;
     float rim = rimH * exp(-e * e / .06);
     float dhdx = (x < 1. ? 2. * depth * x : 0.) - rim * 2. * e / .06;
     acc.xy += dhdx / rad * d / rho;
-    acc.z += (x < 1. ? -.04 : .05 * exp(-e * e / .25)) * fresh;
+    // Fresh craters have slightly brighter walls; no halo outside the rim.
+    acc.z += (x < 1. ? .03 * (1. - x * x) : 0.) * fresh;
     if (x < 1.) {
       float along = dot(d, sd);
       float t = -along + sqrt(max(along * along - rho * rho + rad * rad, 0.));
@@ -423,7 +425,7 @@ export class GroundLook {
       uPatch: { value: new THREE.Vector4(10, 2, 1, 0) },
       uApron: { value: new THREE.Vector4(150, 2, 1, 0) },
       uGain: { value: 3.4 },
-      uBounce: { value: 0.16 },
+      uBounce: { value: 0.12 },
       uEarthLight: { value: 0 },
       uEarth: { value: new THREE.Vector3(0, 1, 0) },
       uFade: { value: 1 },

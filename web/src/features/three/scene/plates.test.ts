@@ -111,13 +111,19 @@ describe("the plate that says the drawn ground is decoration", () => {
       note: "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right.",
       place: "foot",
     });
-    expect(plate({ view: "panorama", sun: { lit: false, discFraction: 0.1234 } })?.text).toBe(
+    expect(plate({ view: "terrain", sun: { lit: false, discFraction: 0.1234 } })?.text).toBe(
       "The series says: dark. Sun disc fraction 0.12 above the skyline.",
     );
   });
 
   it("follows the series' flag, never the drawing: a dark hour with part of the disc up still says dark", () => {
     expect(plate({ view: "terrain", sun: { lit: false, discFraction: 0.59 } })?.text).toMatch(/^The series says: dark\./);
+  });
+
+  it("in Lander's eye is one line: the horizon bar there already gives the series' answer", () => {
+    const eye = plate({ view: "panorama", sun: { lit: true, discFraction: 0.59 } });
+    expect(eye?.text).toMatch(/^Shading, shadows and the fine ground texture are drawn for understanding only\./);
+    expect(eye?.note).toBeUndefined();
   });
 
   it("without the series' answer says only what the drawing is", () => {
