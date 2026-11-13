@@ -1,0 +1,59 @@
+{
+  "closeup": null,
+  "earth_radius_deg": 0.95,
+  "series": {
+    "columns": [
+      {
+        "name": "sun_az",
+        "offset": 180.0,
+        "scale": 0.01
+      },
+      {
+        "name": "sun_el",
+        "offset": 0.0,
+        "scale": 0.01
+      },
+      {
+        "name": "sun_frac",
+        "offset": 0.0,
+        "scale": 0.0001
+      },
+      {
+        "name": "sun_clear",
+        "offset": 0.0,
+        "scale": 0.01
+      },
+      {
+        "name": "earth_az",
+        "offset": 180.0,
+        "scale": 0.01
+      },
+      {
+        "name": "earth_el",
+        "offset": 0.0,
+        "scale": 0.01
+      },
+      {
+        "name": "earth_frac",
+        "offset": 0.0,
+        "scale": 0.0001
+      },
+      {
+        "name": "earth_clear",
+        "offset": 0.0,
+        "scale": 0.01
+      }
+    ]
+  },
+  "site_id": "fixture_wide",
+  "skyline": {
+    "bins": 1440,
+    "max_range_km": 300.0,
+    "missing_samples": 0
+  },
+  "sun_radius_deg": 0.266,
+  "terrain": {
+    "size": 33,
+    "window_km": 20.0
+  }
+}

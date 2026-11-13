@@ -1,0 +1,12 @@
+{
+  "generated_utc": "2026-01-01T00:00:00Z",
+  "moon_radius_m": 1737400.0,
+  "observer_height_m": 2.0,
+  "schema_version": 1,
+  "skyline_bins": 1440,
+  "time_grid": {
+    "count": 52584,
+    "start_utc": "2026-01-01T00:00:00Z",
+    "step_s": 3600
+  }
+}

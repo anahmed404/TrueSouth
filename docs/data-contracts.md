@@ -280,3 +280,12 @@ into individual dotted keys. Candidates and vetoes are arrays of identifiers; ov
 uses `site_id`, `region_name` and `overlaps`.
 The JSON Schema includes `BinaryLayouts`, describing the binary files' array order,
 data types and series scaling for decoders.
+
+### S2 fixture choices
+
+Fixture map images and lookup grids are 64 × 64 pixels, despite their production file
+names; map metadata gives the actual lookup size. The scoring cases refer to a fixture
+`series.bin` and a half-open range of global hour indices. Landing and current hours are
+global indices; subtract the range start before scoring the referenced slice. Each run
+of `build-fixtures` rewrites the files. Fixture validation results and worked examples
+are synthetic demonstrations, not measurements from NASA data.

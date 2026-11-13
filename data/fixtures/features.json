@@ -1,0 +1,122 @@
+[
+  {
+    "diameter_km": 20.92,
+    "iau_id": 5450,
+    "kind": "crater",
+    "lat_deg": -89.67,
+    "lon_deg": 129.78,
+    "name": "Shackleton"
+  },
+  {
+    "diameter_km": 32.71,
+    "iau_id": 1439,
+    "kind": "crater",
+    "lat_deg": -88.48,
+    "lon_deg": 271.66,
+    "name": "de Gerlache"
+  },
+  {
+    "diameter_km": 32.83,
+    "iau_id": 5782,
+    "kind": "crater",
+    "lat_deg": -88.32,
+    "lon_deg": 206.61,
+    "name": "Sverdrup"
+  },
+  {
+    "diameter_km": 51.82,
+    "iau_id": 5494,
+    "kind": "crater",
+    "lat_deg": -88.14,
+    "lon_deg": 45.91,
+    "name": "Shoemaker"
+  },
+  {
+    "diameter_km": 25.12,
+    "iau_id": 15325,
+    "kind": "crater",
+    "lat_deg": -88.08,
+    "lon_deg": 111.29,
+    "name": "Slater"
+  },
+  {
+    "diameter_km": 51.42,
+    "iau_id": 14502,
+    "kind": "crater",
+    "lat_deg": -87.45,
+    "lon_deg": 354.83,
+    "name": "Haworth"
+  },
+  {
+    "diameter_km": 42.48,
+    "iau_id": 1919,
+    "kind": "crater",
+    "lat_deg": -87.18,
+    "lon_deg": 84.31,
+    "name": "Faustini"
+  },
+  {
+    "diameter_km": 67.0,
+    "iau_id": 16338,
+    "kind": "mountain",
+    "lat_deg": -85.98,
+    "lon_deg": 358.33,
+    "name": "Mons Malapert"
+  },
+  {
+    "diameter_km": 100.58,
+    "iau_id": 953,
+    "kind": "crater",
+    "lat_deg": -85.33,
+    "lon_deg": 317.87,
+    "name": "Cabeus"
+  },
+  {
+    "diameter_km": 79.27,
+    "iau_id": 4321,
+    "kind": "crater",
+    "lat_deg": -85.28,
+    "lon_deg": 53.27,
+    "name": "Nobile"
+  },
+  {
+    "diameter_km": 72.38,
+    "iau_id": 3603,
+    "kind": "crater",
+    "lat_deg": -85.0,
+    "lon_deg": 11.4,
+    "name": "Malapert"
+  },
+  {
+    "diameter_km": 130.0,
+    "iau_id": 16070,
+    "kind": "mountain",
+    "lat_deg": -84.6,
+    "lon_deg": 31.0,
+    "name": "Mons Mouton"
+  },
+  {
+    "diameter_km": 103.39,
+    "iau_id": 247,
+    "kind": "crater",
+    "lat_deg": -84.44,
+    "lon_deg": 83.07,
+    "name": "Amundsen"
+  },
+  {
+    "diameter_km": 40.82,
+    "iau_id": 6541,
+    "kind": "crater",
+    "lat_deg": -84.03,
+    "lon_deg": 164.7,
+    "name": "Wiechert"
+  },
+  {
+    "diameter_km": 107.82,
+    "iau_id": 5395,
+    "kind": "crater",
+    "lat_deg": -82.35,
+    "lon_deg": 48.52,
+    "name": "Scott"
+  }
+]
