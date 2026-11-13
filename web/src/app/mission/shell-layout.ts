@@ -1,26 +1,33 @@
 /**
- * The Mission Control shell's view state: which side panels are collapsed.
+ * The Mission Control shell's view state: which side panels are collapsed, and whether the
+ * timeline is folded to one row.
  *
  * This is view state, not part of the scenario. It is not in the URL and does not go into
  * a shared link. It is remembered in the browser's local storage across reloads.
  */
 
-export type ShellPanel = "sitesRail" | "focusPanel";
+export type ShellPanel = "sitesRail" | "focusPanel" | "timeline";
+
+/** The two side panels, which have keyboard shortcuts. */
+export type SidePanel = Exclude<ShellPanel, "timeline">;
 
 export type ShellLayout = Readonly<Record<ShellPanel, { collapsed: boolean }>>;
 
-export const SHELL_PANELS: readonly ShellPanel[] = ["sitesRail", "focusPanel"];
+export const SHELL_PANELS: readonly ShellPanel[] = ["sitesRail", "focusPanel", "timeline"];
+
+const SIDE_PANELS: readonly SidePanel[] = ["sitesRail", "focusPanel"];
 
 export const DEFAULT_SHELL_LAYOUT: ShellLayout = {
   sitesRail: { collapsed: false },
   focusPanel: { collapsed: false },
+  timeline: { collapsed: false },
 };
 
 /** Local-storage key. Bump the version if the stored shape changes. */
 export const SHELL_STORAGE_KEY = "truesouth.shell.v1";
 
 /** Keyboard shortcuts: "[" folds the left panel, "]" the right one. */
-export const SHELL_SHORTCUTS: Readonly<Record<ShellPanel, string>> = {
+export const SHELL_SHORTCUTS: Readonly<Record<SidePanel, string>> = {
   sitesRail: "[",
   focusPanel: "]",
 };
@@ -52,13 +59,14 @@ export function parseShellLayout(raw: string | null | undefined): ShellLayout {
     }
     return DEFAULT_SHELL_LAYOUT[panel];
   };
-  return { sitesRail: read("sitesRail"), focusPanel: read("focusPanel") };
+  return { sitesRail: read("sitesRail"), focusPanel: read("focusPanel"), timeline: read("timeline") };
 }
 
 export function serializeShellLayout(layout: ShellLayout): string {
   return JSON.stringify({
     sitesRail: { collapsed: layout.sitesRail.collapsed },
     focusPanel: { collapsed: layout.focusPanel.collapsed },
+    timeline: { collapsed: layout.timeline.collapsed },
   });
 }
 
@@ -105,9 +113,9 @@ export type ShortcutEvent = {
 };
 
 /** The panel a key press folds or unfolds, or null if the key is not a shell shortcut. */
-export function shortcutPanel(event: ShortcutEvent): ShellPanel | null {
+export function shortcutPanel(event: ShortcutEvent): SidePanel | null {
   if (event.ctrlKey || event.metaKey || event.altKey || event.inEditableField) return null;
-  for (const panel of SHELL_PANELS) {
+  for (const panel of SIDE_PANELS) {
     if (event.key === SHELL_SHORTCUTS[panel]) return panel;
   }
   return null;
