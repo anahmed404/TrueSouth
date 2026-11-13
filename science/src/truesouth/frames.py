@@ -1,4 +1,6 @@
 """Moon-fixed vectors, site-centred directions and the south polar map."""
+from truesouth.constants import MAX_SITE_LATITUDE_DEG
+
 
 import numpy as np
 
