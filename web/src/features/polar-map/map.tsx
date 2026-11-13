@@ -85,6 +85,36 @@ export type MapCoreProps = {
    * the nudge readout offer a button that calls it; without it there is no button.
    */
   onRequestSite?: (latDeg: number, lonDeg: number) => void;
+  /**
+   * Optional: the sites to place, in place of the whole catalog (for example only the selected
+   * sites). Selection and focus still come from the scenario.
+   */
+  sites?: readonly Site[];
+  /** Name craters and mountains once zoomed in enough. Default true. */
+  showFeatureNames?: boolean;
+  /**
+   * Optional: the overlay, set from outside. When given, the map shows that layer and hides
+   * its own overlay choice; NASA's averages stay context, never a result.
+   */
+  overlay?: OverlayId | "none";
+  /** The overlay's opacity when `overlay` is set from outside, 0 to 1. Default 0.65. */
+  overlayOpacity?: number;
+  /**
+   * Optional: receives a projector with the same shape as the 3D scene's (`SceneProjector`
+   * on the Slip Planner's branch): where a place is on screen now, and a callback after every
+   * drawn frame, so things drawn over the map can follow it without React. Called with null
+   * when the map unmounts.
+   */
+  onProjector?: (projector: MapProjector | null) => void;
+};
+
+/** Where a place is on the map's screen now, in CSS pixels from the map box's top left. */
+export type MapScreenPoint = { x: number; y: number; visible: boolean };
+
+/** The map's projector: the same shape as the 3D scene's `SceneProjector`. */
+export type MapProjector = {
+  project: (latDeg: number, lonDeg: number) => MapScreenPoint;
+  subscribe: (onFrame: () => void) => () => void;
 };
 
 type Point = { latDeg: number; lonDeg: number };
@@ -99,6 +129,8 @@ const KEY_PAN_PX = 60;
 const KEY_MOVE_PX = 8;
 const KEY_NUDGE_M = 100;
 const KEY_NUDGE_BIG_M = 1000;
+/** Starting a nudge zooms in to at least 40 m a pixel, so a 100 m step shows. */
+const NUDGE_MIN_K = 1000 / 40;
 const ZOOM_STEP = 1.6;
 
 /** Reports a selected site's status for the landing date, from the evaluation hooks. */
@@ -156,7 +188,8 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
   const sitesResult = useSites();
   const featuresResult = useFeatures();
   const metaResult = useMapsMeta();
-  const sites = sitesResult.status === "ready" ? sitesResult.data : null;
+  const catalog = sitesResult.status === "ready" ? sitesResult.data : null;
+  const sites = props.sites ?? catalog;
   const features = featuresResult.status === "ready" ? featuresResult.data : null;
   const halfWidthM = metaResult.status === "ready" ? metaResult.data.half_width_m : DEFAULT_HALF_WIDTH_M;
   const lookupSize = (layer: OverlayId) => {
@@ -194,10 +227,14 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
   const [wantSharp, setWantSharp] = useState(false);
   const relief8k = useMapImage(wantSharp ? "hillshade_8k.webp" : null);
   const firstPaint = relief4k.status === "ready" || relief4k.status === "error";
-  const [overlay, setOverlay] = useState<OverlayId | "none">("none");
-  const [opacity, setOpacity] = useState(0.65);
-  const sunImage = useMapImage(firstPaint && !lesson ? "sunlight_4k.webp" : null);
-  const earthImage = useMapImage(firstPaint && !lesson ? "earthvis_4k.webp" : null);
+  const [ownOverlay, setOverlay] = useState<OverlayId | "none">("none");
+  const [ownOpacity, setOpacity] = useState(0.65);
+  const outsideOverlay = props.overlay !== undefined;
+  const overlay = props.overlay ?? ownOverlay;
+  const opacity = outsideOverlay ? (props.overlayOpacity ?? 0.65) : ownOpacity;
+  const wantOverlays = firstPaint && (!lesson || outsideOverlay);
+  const sunImage = useMapImage(wantOverlays ? "sunlight_4k.webp" : null);
+  const earthImage = useMapImage(wantOverlays ? "earthvis_4k.webp" : null);
   const [grids, setGrids] = useState<Partial<Record<OverlayId, Uint8Array>>>({});
   const gridFor = useCallback(
     (layer: OverlayId): LookupGrid | null => {
@@ -334,17 +371,30 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
     if (!userMoved.current) apply(fit);
   }, [fit, box.width, box.height]);
 
+  // A point that is outside the free space slides into its middle, zooming in to `minK` if
+  // the map is further out than that.
+  const bringIntoView = useCallback(
+    (latDeg: number, lonDeg: number, minK = 0) => {
+      const v = viewRef.current;
+      const at = latLonToScreen(latDeg, lonDeg, v);
+      const inside = at.x > frame.x + 24 && at.x < frame.x + frame.width - 24 && at.y > frame.y + 24 && at.y < frame.y + frame.height - 24;
+      if (inside && v.k >= minK) return;
+      const k = Math.max(v.k, minK);
+      const centre = { x: frame.x + frame.width / 2, y: frame.y + frame.height / 2 };
+      // Put the point at the centre, at scale k: the pole moves with the zoom about the point.
+      const f = k / v.k;
+      animateTo({ k, x: centre.x - (at.x - v.x) * f, y: centre.y - (at.y - v.y) * f });
+    },
+    [frame, animateTo],
+  );
+
   // A newly focused site that is off screen slides into view.
   const lastFocused = useRef(focusedId);
   useEffect(() => {
     if (lastFocused.current === focusedId) return;
     lastFocused.current = focusedId;
     if (!focusedSite || !onMap(focusedSite, halfWidthM)) return;
-    const at = latLonToScreen(focusedSite.lat_deg, focusedSite.lon_deg, viewRef.current);
-    const inside = at.x > frame.x + 24 && at.x < frame.x + frame.width - 24 && at.y > frame.y + 24 && at.y < frame.y + frame.height - 24;
-    if (inside) return;
-    const v = viewRef.current;
-    animateTo({ k: v.k, x: v.x + (frame.x + frame.width / 2 - at.x), y: v.y + (frame.y + frame.height / 2 - at.y) });
+    bringIntoView(focusedSite.lat_deg, focusedSite.lon_deg);
   }, [focusedId]);
 
   useEffect(() => {
@@ -401,11 +451,33 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
           : null,
       scratch: scratchRef.current,
       pins,
-      features: features ?? [],
+      features: props.showFeatureNames === false ? [] : (features ?? []),
       compact: lesson,
       marker,
     });
-  }, [view, box.width, box.height, dpr, pins, features, marker, relief4k.status, relief8k.status, overlay, overlayImage?.status, opacity, fontsReady, halfWidthM, lesson]);
+    for (const listener of frameListeners.current) listener();
+  }, [view, box.width, box.height, dpr, pins, features, props.showFeatureNames, marker, relief4k.status, relief8k.status, overlay, overlayImage?.status, opacity, fontsReady, halfWidthM, lesson]);
+
+  // The projector for things drawn over the map (`onProjector`).
+  const frameListeners = useRef(new Set<() => void>());
+  const { onProjector } = props;
+  useEffect(() => {
+    if (!onProjector) return;
+    const projector: MapProjector = {
+      project: (latDeg, lonDeg) => {
+        const at = latLonToScreen(latDeg, lonDeg, viewRef.current);
+        const node = boxRef.current;
+        const visible = Boolean(node) && at.x >= 0 && at.y >= 0 && at.x <= (node?.clientWidth ?? 0) && at.y <= (node?.clientHeight ?? 0);
+        return { x: at.x, y: at.y, visible };
+      },
+      subscribe: (onFrame) => {
+        frameListeners.current.add(onFrame);
+        return () => frameListeners.current.delete(onFrame);
+      },
+    };
+    onProjector(projector);
+    return () => onProjector(null);
+  }, [onProjector]);
 
   // ── Input ──
   const activeRef = useRef(active);
@@ -428,8 +500,11 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
       const site = siteById(siteId);
       if (!site) return;
       setReadout({ kind: "nudge", siteId, at: { latDeg: site.lat_deg, lonDeg: site.lon_deg }, dragging: false });
+      // Close enough that a 100 m step shows (40 m a pixel).
+      bringIntoView(site.lat_deg, site.lon_deg, NUDGE_MIN_K);
+      userMoved.current = true;
     },
-    [siteById],
+    [siteById, bringIntoView],
   );
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -666,7 +741,7 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
             <IconButton label="Zoom in" hint="(+)" icon={<Plus size={16} strokeWidth={1.8} />} onClick={() => zoomBy(ZOOM_STEP)} />
             <IconButton label="Reset the map" hint="(0)" icon={<RotateCcw size={15} strokeWidth={1.8} />} onClick={reset} />
           </div>
-          {lesson ? null : (
+          {lesson || outsideOverlay ? null : (
             <div className="pm-overlay">
               {narrow ? (
                 <label className="pm-select">
@@ -834,7 +909,10 @@ function ReadoutCard(props: ReadoutCardProps) {
     const h = node.offsetHeight;
     const gap = 18;
     const roomRight = frame.x + frame.width - (anchor.x + gap);
-    let left = roomRight >= w ? anchor.x + gap : anchor.x - gap - w;
+    const roomLeft = anchor.x - gap - frame.x;
+    // A nudge card opens to the left: a best-lit variant's callout sits up and to the right.
+    const preferLeft = readout.kind === "nudge" && roomLeft >= w;
+    let left = !preferLeft && roomRight >= w ? anchor.x + gap : anchor.x - gap - w;
     left = Math.max(frame.x + 8, Math.min(left, frame.x + frame.width - w - 8));
     let top = anchor.y - h / 2;
     top = Math.max(frame.y + 8, Math.min(top, frame.y + frame.height - h - 8));

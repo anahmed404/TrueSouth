@@ -65,9 +65,12 @@ map is flat, and the globe lives in the [System view](system-view.md).
   16 px status lamp with its glyph, ringed and named; a catalog site that is not selected is
   a quiet grey dot (its status needs its series, which loads when it is added), named once
   zoomed in. Pins closer than 18 px fold into one, which shows "+N" (the focused one says
-  "and N more sites here"); clicking a fold zooms in. A best-lit variant has a dotted ring,
-  a hairline to its parent and, when the two would overlap, a callout beside the parent with
-  a dot at its true point, so it is never under its parent.
+  "and N more sites here"); clicking a fold zooms in. A best-lit variant (71 to 149 m from its
+  parent, so under two relief pixels away) has a dotted ring and a hairline to its parent.
+  When the parent's own pin is drawn and the two would overlap, the variant stands in a
+  callout beside it, with a dot at its true point; both stay clickable. When the parent is
+  folded into another pin, a quiet variant folds there with it, so no callout stands beside
+  an unrelated pin.
 - **Named features:** crater and mountain labels, shown when zoomed in enough.
 - **Artemis candidate regions:** outlines, off by default. As built: not drawn.
   `artemis_regions.json` holds names and source links only (every centre and size is
@@ -85,7 +88,8 @@ map is flat, and the globe lives in the [System view](system-view.md).
   space; reset (or `0`) returns to the fit.
 - **Keyboard (as built).** The map is one Tab stop. Arrows pan (Shift for more), `+` and `−`
   zoom, `0` resets, Enter marks a "New site here?" point at the centre and the arrows then
-  move it, `N` starts a nudge of the focused pin and the arrows move it 100 m a press (1 km
+  move it, `N` starts a nudge of the focused pin (sliding it into the free space and zooming
+  in to at least 40 m a pixel, so a step shows) and the arrows move it 100 m a press (1 km
   with Shift), Escape clears. A key list shows on a plate while the map has keyboard focus.
   Pins are reached from the sites rail; focusing a site that is off screen slides it into
   view.
@@ -163,6 +167,12 @@ Selecting one works as usual.
   controls fit beside the zoom buttons on a phone.
 - **In a lesson box** (`mode: "lesson"`, as built): the same map with zoom, reset and the
   scale bar; no overlays and no off-map list.
+- **Used by another view** (as built, for the Slip Planner's flat mode and the Academy): the
+  `PolarMap` default export also takes `sites` (the pins to place, in place of the whole
+  catalog), `showFeatureNames` (default true), `overlay` and `overlayOpacity` (set the
+  layer from outside, which hides the map's own overlay choice) and `onProjector` (a
+  projector with the same shape as the 3D scene's `SceneProjector`: `project(lat, lon)` and
+  `subscribe(onFrame)`).
   Proposed. Reason: the overlays arrive after the first paint, so the choice must not be
   live before they do.
 - **No WebGL or the still picture:** the flat map is a 2D canvas, so it still opens, with a

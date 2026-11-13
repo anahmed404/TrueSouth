@@ -860,8 +860,14 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     moves by more than about 0.6 % of the map's width at 80°S (a pinhole projection of the
     cap, tested against `polarPose` and `polarScale`). Matching the pole exactly left pins
     near 80°S up to 1.1 % off.
-  - `sites.json` on main has no best-lit variants and no `nearby_sun` yet; the map draws
-    and words them when they arrive (tested with a made-up variant).
+  - Best-lit variants (#77, merged in): tested against the five real ones. A variant whose
+    parent is drawn stands in a callout beside it; one whose parent is folded into another
+    pin folds with it. Seen at Connecting Ridge and Shackleton rim at 40 m a pixel. The
+    nudge readout there reads "Average sunlight 54 % → 43 %, lower" 300 m from Connecting
+    Ridge, with its 40 to 87 % nearby range and the best-lit point 150 m away.
+  - For the Slip Planner (#87) and the Academy, `PolarMap` takes `sites`,
+    `showFeatureNames`, `overlay`, `overlayOpacity` and `onProjector` (the same shape as
+    `SceneProjector`). Nothing is built for the Slip Planner here.
   - `artemis_regions.json` has no centres or sizes, so no outlines are drawn.
   - Catalog sites that are not selected are grey dots without a status: a status needs the
     site's 0.8 MB series, which loads when the site is added.

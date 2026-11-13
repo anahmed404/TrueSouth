@@ -1,16 +1,17 @@
 import { useCallback, useSyncExternalStore } from "react";
 import type { PanelProps } from "../../app/panel";
-import { MapCore } from "./map";
+import { MapCore, type MapCoreProps } from "./map";
 
 export { POLAR_MAP_LAYER, polarMapLayer, type PolarMapLayerOptions } from "./layer";
+export type { MapProjector, MapScreenPoint } from "./map";
+export type { OverlayId } from "./readout";
 
-export type PolarMapProps = PanelProps & {
-  /**
-   * Optional: compute a custom site at a point. When given, the "New site here?" readout shows
-   * "Compute this site" (and the nudge readout "Compute this point"); without it, no button.
-   */
-  onRequestSite?: (latDeg: number, lonDeg: number) => void;
-};
+/**
+ * The flat map's props: the panel props, plus the optional ones another view can use (the
+ * Slip Planner's flat mode, the Academy's drop-pin step). See `MapCoreProps` for each.
+ */
+export type PolarMapProps = PanelProps &
+  Pick<MapCoreProps, "onRequestSite" | "sites" | "showFeatureNames" | "overlay" | "overlayOpacity" | "onProjector">;
 
 const REDUCE_MOTION = "(prefers-reduced-motion: reduce)";
 
@@ -32,7 +33,7 @@ function useReduceMotion(): boolean {
  * control set (zoom and reset, and the scale bar). Focusing and adding sites go through
  * `onScenarioChange`.
  */
-export default function PolarMap({ scenario, onScenarioChange, mode, onRequestSite }: PolarMapProps) {
+export default function PolarMap({ scenario, onScenarioChange, mode, onRequestSite, ...extra }: PolarMapProps) {
   const reduceMotion = useReduceMotion();
   const focus = useCallback(
     (siteId: string) => {
@@ -59,6 +60,11 @@ export default function PolarMap({ scenario, onScenarioChange, mode, onRequestSi
         onFocusSite={onScenarioChange ? focus : undefined}
         onAddSite={onScenarioChange ? add : undefined}
         onRequestSite={onRequestSite}
+        sites={extra.sites}
+        showFeatureNames={extra.showFeatureNames}
+        overlay={extra.overlay}
+        overlayOpacity={extra.overlayOpacity}
+        onProjector={extra.onProjector}
       />
     </div>
   );
