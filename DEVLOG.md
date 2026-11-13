@@ -488,6 +488,41 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-13 · MC6 · Lander's eye: the horizon chart
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (building the
+  approved C2 chart, no redesign) — wrote `LandersEye` (the hand-built SVG chart with
+  `d3-scale` and `d3-shape`, its control row, legend, states, hover readout, marker, drag,
+  scroll zoom and keyboard use), its mount under the horizon in Mission Control, the lit
+  line's share in the shared "Why is it dark?" card, and 54 vitest tests; then fixed the
+  review of PR #78 (Gemini): the antenna mask on the chart's seam, true-size discs, the
+  legend and contrast, the lit line, label placement and the shell's measuring — checked by
+  the agent with typecheck, the vitest suite, the build and `uv run pytest`, impeccable's
+  detector (no findings) and an inline audit pass, and by eye in a browser on the real data
+  with the 3D scene behind the panel at 1440 × 900, 1024 × 768 and 390 × 844 and in a 360 px
+  lesson box (a local route, never committed); a human has not reviewed it yet
+- **State:** verified (322 Python tests, 1,691 web tests, typecheck and build pass on the merge with main, which has the 3D scene; reviewed by Gemini (no frontend science, geometry spot-checked, three mutations caught; six findings, all fixed with tests); the chart and the scene's labels agree at every hour of three fixture windows; not yet seen by the team lead)
+- **Changed:** `web/src/features/panorama/` (new: `chart.tsx`, `geometry.ts`,
+  `readings.ts`, `panorama.css`, four tests; `index.tsx`), `web/src/app/mission-screen.tsx`
+  (the foot stack mounts the chart in Lander's eye, the free space ends above it, the
+  shell reads only its own plate and remeasures on a camera change), `web/src/app/shell.css`
+  (one phone rule), `web/src/app/mission/timeline/why-dark.ts` and `why-dark-card.tsx`
+  (the lit line's share), `docs/features/panorama.md`, `docs/features/site-detail.md`,
+  `docs/design/c2/built-landers-eye*.png`, this entry
+- **Notes:**
+  - Every value drawn or read out comes from `skyline.bin`, the series and the site meta as
+    stored. The state words are the 3D scene's (in view, partly in view, behind the ridge,
+    below the horizon), from the series' disc fraction and clearance; a test checks the two
+    agree at every hour of three fixture windows.
+  - Discs are drawn at their true angular size. On Connecting Ridge the share drawn above
+    the skyline is within 0.019 of the series' disc fraction. The fixtures store a linear
+    ramp, not the §6 circle, so there the gap reaches 0.058, which is the ramp's own error.
+  - The skyline, paths and axes are one memoised layer: render-count tests (on the chart
+    and on the whole view with its data hooks) show no rebuild while the hour changes.
+  - On a dark or blackout hour the panel shows the one-line "why" with its "Why?" button.
+  - The marker is not shared with Local terrain yet: a later package wires `marker` and
+    `onMarkerChange` through the shell.
+
 #### 2026-11-13 · MC4c · The space-first shell
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (question
@@ -706,6 +741,63 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - Measured: 4 vitest tests pass; production bundle 259 kB (82 kB gzipped).
 
 ## 3D and Map
+
+#### 2026-11-13 · T1, T2 · The 3D scene behind Mission Control
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (question
+  round skipped, as briefed) — wrote the scene in `web/src/features/three/scene/` (the
+  Moon, polar cap, Earth and Sun shaders adapted from the approved prototype; the camera
+  rig, flights and controls; the ground built from the patch and apron; the pins, plates
+  and controls; the Pip lander built in code), the placement helpers in
+  `web/src/lib/geo/placement.ts`, vitest tests for both, and the still picture (a render of
+  the scene's own NASA textures; no AI-generated imagery) — checked by the agent with
+  typecheck, the vitest suite, the build, impeccable's detector (no findings) and by eye
+  and by the numbers in a browser with WebGL (NVIDIA RTX 2060, ANGLE D3D11) on the real
+  data and the fixtures at 1440 × 900, 1024 × 768 and 390 × 844; a human has not reviewed
+  it yet
+- **State:** verified (322 Python tests, 1,637 web tests, typecheck and build pass on the merge with main; reviewed by Gemini (geometry and the data rule confirmed, three mutations caught; six findings, all fixed with tests); seen by the builder on hardware WebGL; a weak laptop and a hidden tab are not measured)
+- **Changed:** `web/src/features/three/scene/` (new), `web/src/lib/geo/placement.ts` and
+  its test (new), `web/src/lib/geo/index.ts`, `web/src/app/scene.ts` (adds
+  `SceneArrival`, the optional `onArrive` and `STILL_PICTURE_URL`), one line in
+  `web/src/app/mission-screen.tsx`, the still picture in `web/src/app/mission/scene-slot.tsx`
+  and its label in `web/src/app/mission/scene-status.ts`,
+  `web/public/still/system-view.webp` (new), `docs/design/c2/built-scene-*.png`, this entry
+- **Notes:**
+  - By the numbers at Connecting Ridge (hours 18,960, 18,997 and 19,091): the Sun's
+    elevation from the scene's sub-solar direction agrees with the series' `sun_el` within
+    0.005°. The Earth sight-line and the Earth drawn in Lander's eye use the series'
+    `earth_az` and `earth_el`, so they agree exactly. The System view's Earth sits along the
+    sub-Earth point as science.md §14 says; seen from the site it differs from `earth_el`
+    by 0.25° to 0.27°, which is Earth's parallax between the Moon's centre and its surface.
+  - Shackleton's 20.9 km rim drawn at its IAU position sits on the crater in the cap image;
+    the Connecting Ridge pin lands on the ridge toward de Gerlache.
+  - Frame time at 1440 × 900, pixel ratio 1, RTX 2060: 4.2 ms median and 4.3 ms 95th
+    percentile both orbiting and during a flight (capped by the 240 Hz display). A still
+    scene draws 0 frames in 2 s. A weak laptop is still not measured.
+  - Bundles: the first page's `index` chunk is 704.3 kB (224.7 kB gzipped) with no three.js
+    in it; the lazy `scene-root` chunk is 973.2 kB (261.7 kB gzipped).
+  - Pip is drawn 300 times larger than life in Local terrain, with a "Lander not to scale"
+    plate. As the camera drops to Lander's eye it shrinks away and is hidden, so it never
+    blocks the horizon.
+  - The still picture: `sessionStorage["truesouth.scene.capture"] = "1"` in the dev
+    server, open `/mission?...&land=2028-03-01T00%3A00Z&t=0&view=system` at 1440 × 900, wait
+    for `window.__truesouthStill` (a WebP data URL), decode it into
+    `web/public/still/system-view.webp`. It is 27 kB, over the spec's 0.01 MB guess.
+  - Dev only: `window.__truesouthScene` exposes the world, rig, camera and renderer for
+    checks like the ones above.
+  - Flat mode (the shell's `mode: "flat"`): the scene draws nothing, unmounts its Canvas and
+    reports `flatViews: []`, so the shell's still picture stands for every view.
+  - Review fixes (Gemini review of #75): the System view can pitch away from the pole (a step
+    toward it stops at the limit and never flips); a flight that changes the camera view is
+    locked against drags, scrolls and keys, another pick re-targets it, and the Polar map's
+    lighting blend lives in the rig and ends at 0 or 1; failed loads say so on a plate and
+    never draw a made-up Sun, Earth or distance (`plates.ts`); the apron is lowered only
+    under the patch; Lander's eye labels read "Sun, 1.1° below level · in view" from the
+    series' disc fraction and clearance; replaced Moon textures are released; the 8K seam
+    no longer wraps at 180°; pins are named with their status. Checked with rig, plate,
+    ground and label tests, and in the browser with hardware WebGL (the failure states were
+    forced through the app's own data store).
+  - three.js r187 prints a `THREE.Clock` deprecation warning from inside React Three Fiber.
 
 #### 2026-11-13 · T0 · Coordinate helpers and a shared Canvas mount
 - **Who:** Cursor agent, for the orchestrator

@@ -19,6 +19,25 @@ export type { CameraViewId } from "./mission/views";
 export type SceneStatus = "ready" | "slow" | "no-webgl";
 
 /**
+ * The still picture: one render of the System view at 2028-03-01T00:00Z, from the scene's own
+ * textures, with no pins, sight-lines or words baked in. Served from web/public/. How to
+ * render it again: DEVLOG.md, 3D and Map, T1 and T2.
+ */
+export const STILL_PICTURE_URL = "/still/system-view.webp";
+
+/**
+ * Reported when a camera flight lands. After the flight to the Polar map it also says where
+ * the pole is on screen and at what scale, so the flat map (work package MC6) can take over
+ * from the 3D cap without a visible jump: the pole is at (x, y) in CSS pixels from the top
+ * left of the window, and one CSS pixel there is `metresPerPixel` metres. North of the map
+ * (+y, toward 0° E: docs/science.md §2.3) is up the screen.
+ */
+export type SceneArrival = {
+  view: CameraViewId;
+  pole?: { x: number; y: number; metresPerPixel: number };
+};
+
+/**
  * What the scene can draw without WebGL, sent with its status. `flatViews` lists the camera
  * views it draws in flat mode (for example the Polar map, a 2D canvas). For any other view
  * in flat mode the shell puts its still picture over the scene. Omitted, it means none.
@@ -73,4 +92,6 @@ export type SceneProps = {
    * unmounted for this: it is told, and draws its 2D parts or nothing.
    */
   mode: SceneMode;
+  /** Optional: a camera flight has landed (see `SceneArrival`). */
+  onArrive?: (arrival: SceneArrival) => void;
 };
