@@ -34,4 +34,4 @@ export {
   siteSlopeDeg,
 } from "./cache";
 
-export { useCountdowns, useEvaluation, useHourFlags, useSweep } from "./hooks";
+export { useCountdowns, useEvaluation, useHourFlags, useSweep, useSweeps } from "./hooks";
