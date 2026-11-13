@@ -947,6 +947,8 @@
 
   @media (max-width: 760px) {
     .start-top {
+      flex-wrap: wrap;
+      row-gap: var(--s2);
       padding: 20px var(--s4) 0;
     }
 

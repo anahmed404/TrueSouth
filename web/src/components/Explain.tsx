@@ -43,7 +43,9 @@ export function Explain({ term, children, label }: ExplainProps) {
 
   const tip = (
     <Tip
-      interactive={Boolean(lesson)}
+      // Always interactive, so a tap opens and pins the explanation on a touch screen,
+      // where there is no hover. A term with no lesson simply has no link inside.
+      interactive
       content={
         <>
           <span>{entry.text}</span>
