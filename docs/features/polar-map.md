@@ -84,7 +84,9 @@ map is flat, and the globe lives in the [System view](system-view.md).
 - **Pan and zoom** with `d3-zoom`: drag to pan; scroll, or the + and − buttons, to zoom. The
   sharper 8K relief image loads once zoomed in. As built: zoom runs from 70 % of the opening
   fit in to 25 m a pixel (the 8K image's pixel is 74 m); the 8K image loads once a 4K pixel
-  would cover more than one device pixel. Until the user moves the map it follows the free
+  would cover more than one device pixel, and is let go after 20 s zoomed back out and when
+  the view is left (with the overlay images). Pan stops while a third of the map's width (or
+  half the free space, zoomed in) is still inside the free space. Until the user moves the map it follows the free
   space; reset (or `0`) returns to the fit.
 - **Keyboard (as built).** The map is one Tab stop. Arrows pan (Shift for more), `+` and `−`
   zoom, `0` resets, Enter marks a "New site here?" point at the centre and the arrows then
@@ -93,7 +95,8 @@ map is flat, and the globe lives in the [System view](system-view.md).
   with Shift), Escape clears. A key list shows on a plate while the map has keyboard focus.
   Pins are reached from the sites rail; focusing a site that is off screen slides it into
   view.
-- **Hover:** latitude, east longitude, and the overlay's value at that point.
+- **Hover:** latitude, east longitude, and the overlay's value at that point. As built: the
+  value is labelled as NASA's ("NASA's average sunlight 54 %").
 - **Click a pin:** focus that site. **Click "Add":** add it to the selection. As built: a
   click on a catalog site that is not selected opens a small card with "Add to sites".
 - **Click empty ground:** shows a "New site here?" readout with NASA's average sunlight
@@ -128,14 +131,19 @@ point. Example: "Average sunlight 83 % → 55 %, lower". This uses the lookup gr
 no API.
 
 As built: the readout's title is the distance from the site ("640 m from Connecting Ridge");
-the direction word compares the whole percentages shown ("the same" when they match; none
-when either end has no data). Releasing returns the pin to its listed point and leaves the
-readout, with a dashed tie to the nudged point, until it is closed. It says: "This reads
-NASA's long-term average maps, not TrueSouth's result for your dates. The site itself does
-not move." A sunlit-peak site adds its nearby range from `sites.json` ("Within 160 m of the
-listed point, average sunlight ranges from 40 % to 87 % (TrueSouth's six-year estimate).")
-and, when the catalog has one, its best-lit variant with "Focus it" or "Add it". A lookup
-value is the nearest grid cell's byte.
+every value is labelled "NASA's average sunlight" or "NASA's average Earth visibility"; the
+start is always the site's listed point; the direction word compares the whole percentages
+shown ("the same" when they match; none when either end has no data). Whose number it is
+stays on screen for the whole gesture: while dragging, "NASA's long-term averages, not for
+your dates."; after release, "This reads NASA's long-term average maps, not TrueSouth's
+result for your dates. The site itself does not move." Releasing returns the pin to its
+listed point and leaves the readout, with a dashed tie to the nudged point, until it is
+closed. A sunlit-peak site adds its nearby range from `sites.json` as TrueSouth's six-year
+average sunlight, in the sites package's wording, rounded outward so it never looks
+narrower than it is ("Within 160 m: 39 % to 87 %"), and, when the catalog has one, its
+best-lit variant ("Best-lit map pixel, 149 m from Connecting Ridge, chosen by TrueSouth")
+with "Focus it" or "Add it". A lookup value is the nearest grid cell's byte; the top byte
+(254, which the encoding caps at) reads "over 99 %", never "100 %".
 
 **Exact: compute for my dates.** Out of scope for the deadline; the spec stays. A button
 calls `POST /api/sensitivity` for the pin's position, the landing date and the profile. It

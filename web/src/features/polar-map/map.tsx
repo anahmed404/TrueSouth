@@ -710,6 +710,7 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
     <div
       ref={boxRef}
       className={cx("pm", lesson && "pm-lesson")}
+      data-frame={`${Math.round(frame.x)},${Math.round(frame.y)},${Math.round(frame.width)},${Math.round(frame.height)}`}
       data-active={active}
       role="application"
       aria-roledescription="map"

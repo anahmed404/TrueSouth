@@ -937,6 +937,15 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     pin folds with it. Seen at Connecting Ridge and Shackleton rim at 40 m a pixel. The
     nudge readout there reads "Average sunlight 54 % → 43 %, lower" 300 m from Connecting
     Ridge, with its 40 to 87 % nearby range and the best-lit point 150 m away.
+  - Review of #89 (Cursor): the coordinate work checked out independently. Fixed: the "not
+    for your dates" caveat stays on screen while a pin is dragged; every NASA average is
+    labelled as NASA's; nearby ranges round outward in PR #92's wording ("Within 160 m: 39 %
+    to 87 %"), and byte 254 reads "over 99 %"; pan stops with a third of the map in the free
+    space; the 8K relief is let go after 20 s zoomed out and with the overlays on leaving.
+    New rendered tests (`readout-card.test.ts`) cover the caveat mid-drag, the start value
+    at the listed point, the request button and the longitude passed to `onRequestSite`.
+    Checked by eye once on the merged shell (#83): the map centres in the taller free space
+    and its controls sit above the timeline.
   - For the Slip Planner (#87) and the Academy, `PolarMap` takes `sites`,
     `showFeatureNames`, `overlay`, `overlayOpacity` and `onProjector` (the same shape as
     `SceneProjector`). Nothing is built for the Slip Planner here.
