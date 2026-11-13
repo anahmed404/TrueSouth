@@ -900,19 +900,29 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   their tests are new; `rig.ts`, `scene-root.tsx`, `overlay.tsx`, and one additive method in
   `world.ts`, `setMoonSegments`), `web/public/stars.bin` and `web/dev/build-stars.mjs` (new),
   `web/src/lib/explain.ts` (an optional `controls` line for the System view and Local
-  terrain) and `web/src/components/Explain.tsx` (shows it), `docs/features/system-view.md`,
+  terrain) and `web/src/components/Explain.tsx` (shows it), `web/src/app/scene.ts` (the
+  `"slow"` comment), `pointers.ts` and its test (new), `docs/features/system-view.md`,
   `DESIGN.md` (stars), `docs/decisions/0014-the-scene-steps-quality-down.md`,
   `docs/design/c2/built-scene-polish-*.png`, this entry
 - **Notes:**
   - **Controls.** Every drag follows "grab the globe": the surface under the pointer moves
     with it. The sideways drag was inverted in Local terrain, and in the System view
-    whenever the south was at the top of the screen. Close in, drags turn about the point of
-    interest (the pole, the followed site, a double-clicked spot, or the centre of the
-    view); far out, about the Moon's centre; the pivot slides between 1.6 and 4 Moon radii
-    with no jump. Pan: right-drag, Shift-drag, two fingers. Wheel and pinch zoom toward the
-    pointer. "South pole" frames the whole cap poleward of about 80°S; clicking it again
-    brings the cap back. Keys: arrows move the camera (the picture moves the other way),
-    Shift and an arrow pans, plus and minus zoom. The first load still lands on home.
+    whenever the south was at the top of the screen. The System view's drag is a free
+    trackball (team lead, 2026-11-14): a horizontal drag turns the camera about its own up
+    axis, a vertical drag about its own right axis, through the pivot, with no pole limit,
+    over either pole and all the way round. Far out the pivot is the Moon's centre; close in
+    the point of interest (the pole, the followed site, a double-clicked spot, or the centre
+    of the view), sliding between 0.5 and 2 Moon radii; a preset's point fades as it leaves
+    the centre or nears its horizon. A turn never goes below 60 km: it slides along it. Each
+    view's drag is a per-view setting (`ORBIT_STYLE` in `rig.ts`): Local terrain and Lander's
+    eye keep their limits, the Polar map stays north-up. Pan: right-drag, Shift-drag, two
+    fingers. Wheel and pinch zoom toward the pointer. "South pole" frames the whole cap
+    poleward of about 80°S, level; a double-click on empty space flies back to the preset's
+    level framing. Keys: arrows move the camera (the picture moves the other way), Shift and
+    an arrow pans, plus and minus zoom. The first load still lands on home.
+  - **The "Distances not to scale" plate is gone** (team lead). The About text still says
+    distances are squeezed and every direction is true; the "True scale" button's description
+    says what it switches.
   - **Stars.** The Yale Bright Star Catalogue, 5th revised edition (Hoffleit and Warren
     1991, CDS V/50), from HEASARC's public `bsc5p` table, reduced to 8,404 stars to
     magnitude 6.5 in 67 kB. Placed by one fixed rotation: the Moon's pole points where the
@@ -926,6 +936,37 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     real laptop's built-in graphics. Still slow on SwiftShader: Local terrain (about 240 ms
     a frame at 6× CPU) because of the ground's mesh, left for the ground package; and the
     first flight into Local terrain has a one-off upload stall (about 375 ms).
+  - **Quality stages** are decided by `QualityGovernor` (`perf.ts`, tested): only visible
+    flight frames count; stalls (over a second, or over four times the last window's median)
+    are dropped; three fast windows step back up; a stage that fails right after recovering
+    is not re-entered. The intro has no separate measurement any more.
+  - **The WebGL context** asks for the fast GPU: `powerPreference: "high-performance"` was
+    already set when the scene was made (#75), and the live context reports it on the RTX
+    2060; no other attribute fights it (`antialias` on, `preserveDrawingBuffer` off but in
+    the dev still capture, `failIfMajorPerformanceCaveat` off). Its cost: on a laptop with
+    two graphics chips it wakes the discrete one, so it uses more battery.
+  - **For the ground package (Local terrain on a weak GPU):** on SwiftShader with 6× CPU,
+    Local terrain draws at about 240 ms a frame (765 ms at a 4K-sized window, DPR 2), against
+    36 ms for the System view after the Moon's level of detail. Main-thread work there is
+    small (render submit 4 to 13 ms, overlay 4 to 8 ms), so the cost is the GPU drawing the
+    apron and patch meshes plus the globe at its full 384-segment mesh. What would fix it,
+    as was done for the Moon: draw fewer apron and patch triangles while the camera moves
+    (a coarser index buffer over the same vertices, swapped in while `inMotion`, full mesh
+    for the rest frame), and skip the globe's hidden pixels under the apron earlier. The
+    first flight into Local terrain also stalls about 375 ms while those meshes upload;
+    uploading them while the camera rests in another view would hide that.
+  - **Review fixes (Gemini review of #88):** a drag can no longer get stuck (pointer
+    bookkeeping in `pointers.ts`: up, cancel, lost capture, window blur, hidden tab, and a
+    mouse moving with no button all end it; tested in every order); after a pan, a sideways
+    drag moves the surface sideways (the trackball; a property test over orientations with
+    the pole up, down, sideways and in the middle); the pivot is continuous (sweeps through
+    the blend zone, across the equator, past a followed site's horizon and off the limb);
+    frame timing ignores hidden tabs and stalls and recovers (governor tests); the rest frame
+    waits 300 ms, longer than the 250 ms motion cutoff; `user-select: none` on the scene.
+    Checked in Chrome on the RTX 2060: an upward drag goes over the pole and round; after
+    panning the pole to each side all four drag directions move the centre point the drag's
+    way; a blur mid-drag leaves nothing turning; zooming out with the minus key from a
+    followed site and dragging moves smoothly; "South pole" levels the view.
   - The timeline's play button advances one hour per drawn frame at 6 h a second, so its
     frame gap (about 167 ms) is the play rate, not a cost.
   - **Dev only:** `?perf` shows frame times over the scene; `window.__truesouthPerf` reads
