@@ -880,6 +880,30 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     5° link time for other 30-day windows (about 32.6% from February and 32.9% from
     October 2028), so lesson 4 could show the month-to-month spread.
 
+#### 2026-11-13 · A9 · Math review of all fifteen science sections
+- **Who:** Codex review agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — read the science document against Python and
+  TypeScript, wrote independent numerical probes, checked saved Horizons responses
+  and read-only prepared terrain, and wrote the review report. No human or owning
+  track has checked the report yet.
+- **State:** built, not verified
+- **Changed:** `docs/reviews/a9-math-review.md`, the short reproducer in
+  `docs/reviews/a9-scripts/boundaries.py`, and two wrong TypeScript file paths in
+  `docs/science.md`. No formulas, code or derived data changed.
+- **Notes:**
+  - Reviewed all 15 numbered sections and inventoried 40 formula groups. Recorded
+    128 case-level numerical checks, including 36 additional Python/TypeScript
+    scoring scenarios. Found 1 A, 11 B and 5 C findings. The A finding is a shared
+    prefix-sum rounding error that can turn an exact score of 70 into CAUTION.
+  - Full saved-response G2 passes at all 20 sites over 52,584 hours. Rebuilt one
+    real skyline and checked four bins independently. The report states the
+    unimplemented paths and every material verification limit.
+  - Required checks pass: pytest 322 tests (exit 0), frozen-lockfile install
+    (exit 0), and, after bringing in A8 from main, web 1,744 tests and typecheck
+    (both exit 0). The report and retained script were rechecked after the disk-full
+    interval; a PowerShell text-encoding issue was repaired. State remains built,
+    not verified pending independent review.
+
 #### 2026-11-13 · A8 · Validation page, "How we know it's right"
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — wrote the page at `/validation`, its model,
@@ -1101,6 +1125,29 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   live, or a `reduceMotion` prop.
 
 ## Planning
+
+#### 2026-11-13 · A11 · Submission materials (drafts)
+- **Who:** team lead
+- **AI use:** Claude Code, claude-sonnet-5-5 — wrote the project description (three
+  lengths), the objective-to-feature map, the three-minute demo script with its
+  one-minute version and judge questions, the AI-use disclosure, the links checklist and a
+  proposed README, from the repository's own documents and `data/derived/validation.json`;
+  ran the Python scoring reference on the stored series to check the demo's dates — not yet
+  read by the team lead; every number is footnoted to a file and every unsure point is
+  marked "CHECK:"
+- **State:** built, not verified
+- **Changed:** `docs/submission/` (new), this entry
+- **Notes:**
+  - States in the objective map were checked against `origin/main` and the open pull
+    requests, and must be checked again on the day (the validation page, #79, had merged): #81 (Academy lessons 1 to 4), #83 (landing date in the timeline and "Next GO"),
+    #77 (sunlit-peak variants) and #80 (custom-site server) were open. The Slip Planner, the
+    Compare window, the flat Polar map and the custom-coordinates form are not built and
+    have no pull request, so the demo script reaches the slip story with the landing-date
+    buttons instead.
+  - Two gaps are written down plainly: sunlight at Connecting Ridge is well below the
+    published 92.27% (different point spans; not closed), and `docs/orchestration/status.md`
+    totals do not match its own ledger table.
+  - The README is not changed. A proposed version is `docs/submission/README-proposed.md`.
 
 #### 2026-11-13 · MC7 (spec) · The Slip Planner spec rewritten as a view on the Moon
 - **Who:** team lead
