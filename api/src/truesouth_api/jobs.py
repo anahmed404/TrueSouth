@@ -35,6 +35,9 @@ class Computer:
 
     def tier(self, request):
         from truesouth.dem import DemStore, site_tier
+        # A running calculation must not block admission to the waiting queue.
+        if self.store is not None:
+            return self.store.tiers(request.lat_deg, request.lon_deg).item()
         with self.lock:
             if self.store is None:
                 if not all((self.prepared / n).is_file() and (self.prepared / n).with_suffix('.json').is_file() for n in MAPS):
@@ -113,16 +116,17 @@ class Jobs:
                 raise Rejected(429, 'The custom-site queue is full. Please try again later.')
             history.append(now)
             self.states[identity] = dict(site_id=identity, status='queued', site=None, error=None)
-            if tier == 'sphere':
-                self._compute(identity, request, tier)
-                return dict(site_id=identity, status=self.states[identity]['status'], position_in_queue=0)
-            self.waiting.append((identity, request, tier))
-            position = len(self.waiting)
-            if self.worker is None:
-                self.worker = Thread(target=self._run, name='custom-sites', daemon=True)
-                self.worker.start()
-            self.condition.notify()
-            return dict(site_id=identity, status='queued', position_in_queue=position)
+            if tier != 'sphere':
+                self.waiting.append((identity, request, tier))
+                position = len(self.waiting)
+                if self.worker is None:
+                    self.worker = Thread(target=self._run, name='custom-sites', daemon=True)
+                    self.worker.start()
+                self.condition.notify()
+                return dict(site_id=identity, status='queued', position_in_queue=position)
+            self.states[identity]['status'] = 'running'
+        self._compute(identity, request, tier)
+        return dict(site_id=identity, status=self.status(identity)['status'], position_in_queue=0)
 
     def _compute(self, identity, request, tier):
         with self.condition:

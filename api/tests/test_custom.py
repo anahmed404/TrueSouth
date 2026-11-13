@@ -221,3 +221,22 @@ def test_restart_forgets_waiting_jobs(tmp_path):
         fake.release.set()
         jobs.close()
         restarted.close()
+
+
+def test_running_calculation_does_not_block_terrain_admission(synthetic):
+    from threading import Thread
+    derived, prepared, cache = synthetic
+    computer = Computer(derived, prepared, cache)
+    assert computer.tier(request(-89.99, 0)) == 'core80'
+    finished = Event()
+    result = []
+    def lookup():
+        result.append(computer.tier(request(-89.97, 0)))
+        finished.set()
+    with computer.lock:
+        thread = Thread(target=lookup)
+        thread.start()
+        admitted = finished.wait(2)
+    thread.join()
+    assert admitted
+    assert result == ['wide240']
