@@ -681,6 +681,50 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     note; Polar map and Slip Planner in both orders, in 3D and with 3D off, leave exactly one
     layer mounted; a click on the map in the Slip Planner opens no readout.
 
+#### 2026-11-14 · MC9 · The Compare window, share, CSV and JSON export, confirmed NASA links
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (building the
+  approved C2 window, no redesign) — wrote the Compare model and table, the CSV and scenario
+  JSON exports, the Share button with its hand-copy fallback, the NASA link builders, 47
+  vitest tests and the spec edits; a background research agent read the QuickMap and Moon
+  Trek bundles for their link parameters — checked by the agent with typecheck, the vitest
+  suite, the build and `uv run pytest`; by opening both NASA links for Apollo 11 and
+  Connecting Ridge and reading each tool's own coordinate readout; and by eye at 1440 × 900,
+  1024 × 768 and 390 × 844 with four, eight, one and best-lit sites, keyboard only, real
+  downloads read back with Python's csv module, and a copied link opened in a fresh browser
+  context. Reviewed by Gemini (request changes, two defects; substance confirmed on real
+  data); the agent then fixed all eight review items: the Share fallback moved into the
+  shell's popover, CSV formula injection, the variant's "not ranked" sentence, the shared
+  site wording and rounding, rendered-panel tests, the summary and Sun-at-landing edges, the
+  CSV's precision note, and custom sites. A human has not reviewed it yet
+- **State:** verified (2,091 web tests, typecheck and build pass on the merge with main (the orchestrator's run), and 425 Python tests (the builder's run); reviewed by Gemini, which checked every cell against the focused-site panel and a direct evaluation on real data, parsed both exports and checked the NASA links' projection; eight findings fixed with tests (the Share fallback is no longer covered and Escape closes only it; CSV text cells that begin like a formula are neutralised; the best-lit point's missing mark is explained; ranges round outward); not yet tried by the team lead)
+- **Changed:** `web/src/features/mission-control/compare/` (model, table, exports, tests),
+  `web/src/features/mission-control/share/` (new: Share button, link, NASA links, tests),
+  `web/src/lib/export/` (new: CSV writer and reader, with the formula guard),
+  `web/src/components/Popover.tsx` (an optional handle to open it from code),
+  `web/src/app/mission/top-bar.tsx`
+  (Share moved out to its own component; merged with #83, so the app bar holds the brand,
+  the mode switch, the profile and Share), `web/src/lib/explain.ts` (Compare's text),
+  `docs/features/compare.md`, `docs/features/share-export.md`,
+  `docs/features/mission-control.md`, `docs/build-plan.md`,
+  `docs/design/c2/built-compare-*.png`, this entry
+- **Notes:**
+  - Each column is built from the focused-site panel's own functions (`useSiteStatus`,
+    `describeEvaluation`, `describeMetrics`, `scoreText`); a test checks every cell
+    against the panel for five presets and three dates on the fixture.
+  - Spec changes: up to eight sites (the rail's limit), not four; the summary and the
+    export buttons sit in the window's body; the Timeline, Skyline and Nearby dates rows
+    are deferred. The Timeline CSV, the Slip Planner CSV and the PNG export are not built.
+  - Share copies a link built from the store, because the address bar can lag a scrub by
+    up to 250 ms.
+  - NASA links: QuickMap moved to `quickmap.lroc.im-ldi.com`; both tools open in their
+    south-pole projection south of 80° S. The formats are in `share-export.md`. The links
+    are in the Compare table only; adding them to the focused-site panel is a follow-up.
+  - A scrub does not re-render the table (a render-count test).
+  - The variant and nearby-range words are copied into `compare/site-wording.ts` from the
+    sites package's `site-labels.ts` (#92); import them from there once #92 is on main.
+  - Every CSV string cell that would run as a formula gets a leading `'`; numbers never do.
+
 #### 2026-11-14 · MC shell feedback · No view sentence; the landing date joins the timeline; "Next GO"
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (a rearrangement
