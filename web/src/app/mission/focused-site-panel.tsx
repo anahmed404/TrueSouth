@@ -1,5 +1,5 @@
-import { ArrowUpRight, Check, PanelRightClose, PanelRightOpen } from "lucide-react";
-import { memo, type Ref } from "react";
+import { ArrowUpRight, Check, ChevronDown, ChevronUp, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { memo, type ReactNode, type Ref } from "react";
 import type { MissionProfile, Site } from "../../contracts/generated";
 import { IconButton } from "../../components/Button";
 import { Disclosure } from "../../components/Disclosure";
@@ -8,11 +8,10 @@ import { cx, formatNumber } from "../../components/format";
 import { NumberUnit } from "../../components/NumberUnit";
 import { Card, Panel } from "../../components/Panel";
 import { StatusBadge, StatusLamp } from "../../components/StatusLamp";
-import { Tip } from "../../components/Tip";
 import { useSites } from "../../data/hooks";
 import type { Evaluation } from "../../lib/scoring";
 import { windowLength } from "../../lib/scoring";
-import { describeEvaluation, describeMetrics, describeUtilities, scoreText, scoreTitle, type RuleView } from "./rules";
+import { describeEvaluation, describeMetrics, describeUtilities, railFact, scoreText, scoreTitle, type RuleView } from "./rules";
 import { SettingsTag } from "./settings-tag";
 import { useScenario } from "./scenario-context";
 import { SHELL_SHORTCUTS } from "./shell-layout";
@@ -23,6 +22,12 @@ type FocusedSitePanelProps = {
   onToggle: () => void;
   regionRef?: Ref<HTMLElement>;
   toggleRef?: Ref<HTMLButtonElement>;
+  /**
+   * On a phone the panel is a sheet: one line (the name and the status) that expands.
+   * `collapsed` is then the one-line state, `onToggle` expands it, and `actions` (the
+   * "Sites" button) sits beside the expand control.
+   */
+  sheet?: { actions?: ReactNode };
 };
 
 const REGION_ID = "focused-site";
@@ -33,13 +38,43 @@ const REGION_ID = "focused-site";
  * ground, and links out. It reads the focused site, the profile and the landing date.
  * Collapsed, it keeps the focused site's status lamp.
  */
-export const FocusedSitePanel = memo(function FocusedSitePanel({ collapsed, onToggle, regionRef, toggleRef }: FocusedSitePanelProps) {
+export const FocusedSitePanel = memo(function FocusedSitePanel({ collapsed, onToggle, regionRef, toggleRef, sheet }: FocusedSitePanelProps) {
   const siteId = useScenario((s) => s.focusedSiteId);
   const profile = useScenario((s) => s.profile);
   const landingUtc = useScenario((s) => s.landingUtc);
   const sites = useSites();
   const site = siteId && sites.status === "ready" ? (sites.data.find((s) => s.id === siteId) ?? null) : null;
   const toggleLabel = collapsed ? "Show the focused-site panel" : "Hide the focused-site panel";
+
+  if (sheet) {
+    return (
+      <Panel as="aside" ref={regionRef} id={REGION_ID} aria-label="Focused site" className="shell-focus focus-sheet" data-collapsed={collapsed}>
+        <div className="sheet-head">
+          <div className="sheet-title">
+            <h2 className="focus-name">{siteId ? siteName(site, siteId) : "No site selected"}</h2>
+            {siteId ? <SheetSummary siteId={siteId} profile={profile} landingUtc={landingUtc} /> : null}
+          </div>
+          {sheet.actions}
+          <IconButton
+            ref={toggleRef}
+            label={collapsed ? "Show the focused site's details" : "Hide the focused site's details"}
+            aria-expanded={!collapsed}
+            aria-controls={`${REGION_ID}-body`}
+            icon={collapsed ? <ChevronUp size={18} strokeWidth={1.8} /> : <ChevronDown size={18} strokeWidth={1.8} />}
+            onClick={onToggle}
+            className="shell-toggle"
+          />
+        </div>
+        <div id={`${REGION_ID}-body`} className="focus-body" hidden={collapsed}>
+          {collapsed ? null : !siteId ? (
+            <p className="focus-empty">Add a site to see its status here.</p>
+          ) : (
+            <FocusedSiteBody siteId={siteId} site={site} profile={profile} landingUtc={landingUtc} collapsed={false} onToggle={onToggle} />
+          )}
+        </div>
+      </Panel>
+    );
+  }
 
   return (
     <Panel as="aside" ref={regionRef} id={REGION_ID} aria-label="Focused site" className="shell-focus" data-collapsed={collapsed}>
@@ -131,23 +166,40 @@ function FocusedSiteBody({ siteId, site, profile, landingUtc, collapsed, onToggl
   );
 }
 
+/** The phone sheet's one line under the name: the status and the one fact that matters. */
+function SheetSummary({ siteId, profile, landingUtc }: { siteId: string; profile: MissionProfile; landingUtc: string }) {
+  const status = useSiteStatus(siteId, profile, landingUtc);
+  if (status.kind === "ready") {
+    return (
+      <p className="sheet-summary">
+        <StatusBadge status={status.evaluation.status} />
+        <span className="sheet-fact">{railFact(status.evaluation)}</span>
+      </p>
+    );
+  }
+  return <p className="sheet-summary sheet-fact">{status.kind === "none" ? NO_RESULT_TEXT : status.kind === "loading" ? "Loading…" : "Could not load"}</p>;
+}
+
+/**
+ * The folded panel's slim rail: the focused site's lamp, then its name and verdict written
+ * down the rail. The whole rail is one button that opens the panel again.
+ */
 function CollapsedLamp({ name, status, onToggle }: { name: string; status: SiteStatus; onToggle: () => void }) {
   const word = status.kind === "ready" ? status.evaluation.status : status.kind === "none" ? "no result" : status.kind;
+  const fact = status.kind === "ready" ? railFact(status.evaluation) : null;
   return (
-    <Tip
-      content={
-        <>
-          <span className="tip-title">{name}</span>
-          <span>{word}</span>
-        </>
-      }
+    <button
+      type="button"
+      className="rail-lamp rail-verdict"
+      aria-label={`${name}, ${word}${fact ? `, ${fact}` : ""}. Show the focused-site panel`}
+      onClick={onToggle}
     >
-      {(trigger) => (
-        <button {...trigger} type="button" className="rail-lamp" aria-label={`${name}, ${word}. Show the focused-site panel`} onClick={onToggle}>
-          {status.kind === "ready" ? <StatusLamp status={status.evaluation.status} /> : <span className="lamp-none" aria-hidden="true" />}
-        </button>
-      )}
-    </Tip>
+      {status.kind === "ready" ? <StatusLamp status={status.evaluation.status} /> : <span className="lamp-none" aria-hidden="true" />}
+      <span className="rail-vline" aria-hidden="true">
+        <b>{name}</b> · {word}
+        {fact ? ` · ${fact}` : ""}
+      </span>
+    </button>
   );
 }
 

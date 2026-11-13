@@ -20,6 +20,8 @@ type PopoverProps = {
   align?: "start" | "end";
   /** Width in px on a wide screen. A phone gets the window width less 16 px each side. */
   width?: number;
+  /** Open under the trigger (the default), or above it, for a trigger at the foot of the window. */
+  placement?: "below" | "above";
   className?: string;
 };
 
@@ -27,14 +29,14 @@ const MARGIN = 16;
 const GAP = 6;
 
 /**
- * A panel of controls that opens under its button: a non-modal dialog in the browser's
+ * A panel of controls that opens under its button (or above it): a non-modal dialog in the browser's
  * top layer (the popover API), so no panel's scrolling or clipping cuts it off.
  *
  * - The button toggles it; Escape or a click outside closes it (light dismiss).
  * - On open, focus moves to the first control inside. On close, it returns to the button.
  * - Flat Raised surface, Control Edge border and the popover shadow (DESIGN.md, Elevation).
  */
-export function Popover({ label, trigger, children, align = "start", width = 360, className }: PopoverProps) {
+export function Popover({ label, trigger, children, align = "start", width = 360, placement = "below", className }: PopoverProps) {
   const id = `popover-${useId()}`;
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -50,12 +52,19 @@ export function Popover({ label, trigger, children, align = "start", width = 360
     const w = Math.min(width, viewW - MARGIN * 2);
     let left = align === "end" ? rect.right - w : rect.left;
     left = Math.min(Math.max(left, MARGIN), viewW - MARGIN - w);
-    const top = rect.bottom + GAP;
     panel.style.width = `${w}px`;
     panel.style.left = `${left}px`;
+    if (placement === "above") {
+      panel.style.top = "auto";
+      panel.style.bottom = `${viewH - rect.top + GAP}px`;
+      panel.style.maxHeight = `${Math.max(rect.top - GAP - MARGIN, 160)}px`;
+      return;
+    }
+    const top = rect.bottom + GAP;
+    panel.style.bottom = "auto";
     panel.style.top = `${top}px`;
     panel.style.maxHeight = `${Math.max(viewH - top - MARGIN, 160)}px`;
-  }, [align, width]);
+  }, [align, width, placement]);
 
   useEffect(() => {
     const panel = panelRef.current;

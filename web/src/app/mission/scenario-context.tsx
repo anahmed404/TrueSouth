@@ -31,6 +31,14 @@ export function useScenario<T>(selector: (state: ScenarioState) => T): T {
   return useStore(useScenarioStore(), selector);
 }
 
+/**
+ * Provides an existing store, without loading data or binding the address bar: for tests of
+ * the shell's parts.
+ */
+export function ScenarioStoreProvider({ store, children }: { store: ScenarioStore; children: ReactNode }) {
+  return <ScenarioContext value={store}>{children}</ScenarioContext>;
+}
+
 type ScenarioProviderProps = {
   children: ReactNode;
   /** Shown until the manifest, `sites.json` and `profiles.json` have loaded. */

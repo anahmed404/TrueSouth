@@ -260,3 +260,39 @@ function partialRule(explanation: Explanation, rule: { minFraction: number }): s
   const f = distinctDecimals(explanation.now.frac, rule.minFraction, 2);
   return `Only ${formatNumber(explanation.now.frac, f)} of its disc shows; this profile needs ${formatLimit(rule.minFraction, "")}`;
 }
+
+/**
+ * The explanation in a few words, for the one-line plate over the scene: "Sun hidden: skyline
+ * 0.97° above it, set by ground 560 m away", "No link: Earth 0.07° under the antenna's limit".
+ * The full card says the rest.
+ */
+export function shortReason(
+  explanation: Explanation,
+  rule: { minFraction: number; minElDeg: number | null; antennaMaskDeg: number },
+): string {
+  const { now, blocker } = explanation;
+  const sun = explanation.body === "sun";
+  const lead = sun ? "Sun hidden" : "No link";
+  const ground = blocker ? `, set by ground ${formatDistance(blocker.distKm)} away` : "";
+  switch (explanation.cause) {
+    case "clear":
+      return sun ? "Sun clear of the skyline" : "Earth in view";
+    case "relay":
+      return "Link by relay";
+    case "too_low": {
+      const min = rule.minElDeg ?? 0;
+      return `Sun too low: ${angle(now.elDeg, distinctDecimals(now.elDeg, min, 2))} up, the rule needs ${formatLimit(min, "°")}`;
+    }
+    case "under_mask": {
+      const short = rule.antennaMaskDeg - now.clearDeg;
+      return `No link: Earth ${angle(short, distinctDecimals(now.clearDeg, rule.antennaMaskDeg, 2))} under the antenna's limit`;
+    }
+    case "smooth_horizon":
+      return sun ? "Sun hidden: below the smooth horizon" : "No link: Earth below the smooth horizon";
+    case "terrain":
+    case "below_horizon": {
+      const above = -now.clearDeg;
+      return `${lead}: skyline ${angle(above, 2)} above ${sun ? "it" : "Earth"}${ground}`;
+    }
+  }
+}
