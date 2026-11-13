@@ -1,7 +1,21 @@
 /**
  * Just enough of a DOM for React to mount into, in Node, for tests of the shell's parts.
- * The repo has no browser test suite (AGENTS.md); this lets a test count renders and call a
- * button's own handler through the props React keeps on each node.
+ * The repo has no browser test suite (AGENTS.md); this lets a test count renders, read the
+ * text and props React last rendered, and call a button's own handler through those props.
+ *
+ * What it does NOT model, so these tests cannot catch a fault in any of it (check those by
+ * eye in a browser):
+ * - layout, sizes and positions: no target sizes, no overlap, no `getBoundingClientRect`;
+ * - CSS: nothing is hidden by a stylesheet, a container query or `display: none`;
+ * - focus and the tab order (`focus()` does nothing, `activeElement` never changes);
+ * - events: no bubbling, no keyboard, no pointer; `click` calls the handler directly;
+ * - live regions: nothing is announced; a test can only read a status line's text;
+ * - the popover and tip top layer: a closed popover's content is not rendered at all;
+ * - attributes set with `setAttribute` (dropped); read `propsOf` instead.
+ *
+ * It does honour `disabled`: `click` on a button whose props say `disabled` does nothing,
+ * as in a browser. A button marked only `aria-disabled` is still clicked, as in a browser;
+ * its own handler must refuse.
  */
 
 export class FakeNode {
@@ -124,8 +138,10 @@ export function buttons(root: FakeNode, name: string): FakeNode[] {
   });
 }
 
-/** Calls a button's click handler, as a click would. */
+/** Calls a button's click handler, as a click would; a `disabled` button ignores it. */
 export function click(node: FakeNode): void {
-  const onClick = propsOf(node).onClick;
+  const props = propsOf(node);
+  if (props.disabled === true) return;
+  const onClick = props.onClick;
   if (typeof onClick === "function") onClick({ preventDefault() {}, stopPropagation() {} });
 }
