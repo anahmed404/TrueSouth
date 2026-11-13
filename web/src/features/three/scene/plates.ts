@@ -34,6 +34,8 @@ export type Plate = {
   text: string;
   /** A second, quieter line. */
   note?: string;
+  /** At the foot of the free space, above the view's controls, instead of at the top. */
+  place?: "foot";
   /** A button on the plate: back to the System view. */
   action?: "show-system";
   /** Announced politely, for a state that will change by itself. */
@@ -117,10 +119,10 @@ export function sceneContent(input: PlateInput): SceneContent {
 export function decorationPlate(sun: { lit: boolean; discFraction: number } | null): Plate {
   const note =
     "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right.";
-  if (!sun || !Number.isFinite(sun.discFraction)) return { id: "decoration", text: note };
+  if (!sun || !Number.isFinite(sun.discFraction)) return { id: "decoration", text: note, place: "foot" };
   const fraction = Math.min(1, Math.max(0, sun.discFraction));
   const text = sun.lit
     ? `The series says: lit. ${Math.round(fraction * 100)} % of the Sun's disc is above the skyline.`
     : `The series says: dark. Sun disc fraction ${fraction.toFixed(2)} above the skyline.`;
-  return { id: "decoration", text, note };
+  return { id: "decoration", text, note, place: "foot" };
 }

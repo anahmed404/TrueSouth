@@ -77,7 +77,7 @@ describe("what the scene draws for each load state", () => {
     expect(content.ground).toBe("smooth");
     expect(content.plates).toEqual([
       { id: "sphere", text: "No terrain data for Apollo 11. This is the smooth Moon.", action: "show-system" },
-      { id: "decoration", text: "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right." },
+      { id: "decoration", text: "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right.", place: "foot" },
     ]);
   });
 
@@ -109,6 +109,7 @@ describe("the plate that says the drawn ground is decoration", () => {
       id: "decoration",
       text: "The series says: lit. 62 % of the Sun's disc is above the skyline.",
       note: "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right.",
+      place: "foot",
     });
     expect(plate({ view: "panorama", sun: { lit: false, discFraction: 0.1234 } })?.text).toBe(
       "The series says: dark. Sun disc fraction 0.12 above the skyline.",
@@ -120,7 +121,11 @@ describe("the plate that says the drawn ground is decoration", () => {
   });
 
   it("without the series' answer says only what the drawing is", () => {
-    expect(plate({ view: "terrain", sun: null })).toEqual({ id: "decoration", text: "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right." });
+    expect(plate({ view: "terrain", sun: null })).toEqual({
+      id: "decoration",
+      text: "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right.",
+      place: "foot",
+    });
     expect(plate({ view: "terrain", sun: { lit: true, discFraction: Number.NaN } })?.note).toBeUndefined();
   });
 });

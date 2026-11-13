@@ -280,10 +280,12 @@ export function Overlay(props: OverlayProps) {
   const fsStyleTop = { left: freeSpace.x + freeSpace.width / 2, top: freeSpace.y + 8, maxWidth: Math.min(room, 640) };
   const fsStyleFoot = { left: freeSpace.x + freeSpace.width / 2, top: freeSpace.y + freeSpace.height - 8, ...fit };
   const small = tooSmall(freeSpace) || freeSpace.windowOpen;
-  const topPlates =
-    props.plates.length > 0 ? (
+  // A plate placed at the foot sits above the view's controls, so it never covers the sky,
+  // where Lander's eye centres Earth and the Sun.
+  const plateStack = (plates: readonly Plate[]) =>
+    plates.length > 0 ? (
       <div className="scene-plate-stack">
-        {props.plates.map((plate) => (
+        {plates.map((plate) => (
           <div
             key={plate.id}
             className={plate.action ? "plate scene-plate scene-plate-top scene-plate-interactive" : "plate scene-plate scene-plate-top"}
@@ -296,6 +298,8 @@ export function Overlay(props: OverlayProps) {
         ))}
       </div>
     ) : null;
+  const topPlates = plateStack(props.plates.filter((plate) => plate.place !== "foot"));
+  const footPlates = plateStack(props.plates.filter((plate) => plate.place === "foot"));
 
   const state = sight?.state ?? null;
   const focusedName = props.sites.find((s) => s.id === focusedId)?.name ?? focusedId ?? "";
@@ -369,6 +373,7 @@ export function Overlay(props: OverlayProps) {
             </div>
           ) : null}
           <div ref={footRef} className="scene-anchor scene-anchor-foot" style={fsStyleFoot}>
+            {footPlates}
             {view === "system" ? (
               <div className="plate scene-controls scene-plate-interactive" style={fit}>
                 <SegmentedControl label="Camera" options={PRESETS.map((p) => ({ ...p, disabled: p.value === "follow_site" && !focusedId }))} value={props.preset} onChange={props.onPreset} />
