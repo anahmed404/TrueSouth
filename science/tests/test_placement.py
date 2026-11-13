@@ -166,3 +166,20 @@ def test_no_visibility_map_dependency():
     assert imports <= {'dataclasses', 'collections.abc', 'contracts', 'dem', 'frames', 'series', 'skyline'}
     assert 'maps' not in imports
     assert not any(token in source for token in ('LPSR', 'average_visibility', 'sunlight_u8', 'open(', 'np.load('))
+
+
+def test_measure_is_mean_disc_fraction_not_hours_with_any_sun(tmp_path, monkeypatch):
+    # The Sun's disc is half visible for half the hours and hidden for the rest: the mean
+    # disc fraction is 0.25, while the share of hours with any Sun is 0.5. Section 7.1 asks
+    # for the mean. The skyline and series are replaced so the series is known exactly.
+    from types import SimpleNamespace
+
+    from truesouth import placement
+
+    store = terrain(tmp_path)
+    point = candidate_points(store.core, *polar_stereo_inverse(10000., 20000.))[0]
+    series = SimpleNamespace(columns={'sun_frac': np.array([.5, .5, 0., 0.])})
+    monkeypatch.setattr(placement, 'compute_skyline',
+                        lambda *args, **kwargs: SimpleNamespace(el_deg=np.zeros(1440)))
+    monkeypatch.setattr(placement, 'build_series', lambda *args, **kwargs: series)
+    assert placement.mean_sun_for_point(store, point, {}) == pytest.approx(.25)
