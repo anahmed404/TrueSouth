@@ -17,7 +17,8 @@ import type { Scenario } from "../app/panel.ts";
 
 export const DEFAULT_PROFILE_ID = "im2_athena";
 export const DEFAULT_LANDING_UTC = "2028-03-01T00:00:00Z";
-export const DEFAULT_VIEW = "slip";
+/** A new visitor lands on the System view: Mission Control is space-first (decision 0013). */
+export const DEFAULT_VIEW = "system";
 export const MAX_SITES = 8;
 /** Faint bands in the timeline: 3 days either side of the mission window. */
 export const TIMELINE_CONTEXT_HOURS = 72;

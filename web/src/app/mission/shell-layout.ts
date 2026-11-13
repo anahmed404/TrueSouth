@@ -93,14 +93,46 @@ export function saveShellLayout(storage: WritableStorage | null | undefined, lay
   }
 }
 
+/** Names for the three folding panels, as the announcements and toggles say them. */
+const PANEL_NAMES: Readonly<Record<ShellPanel, string>> = {
+  sitesRail: "Sites rail",
+  focusPanel: "Focused-site panel",
+  timeline: "Timeline",
+};
+
 /**
- * The shell's grid columns: sites rail, main view, focused-site panel. A collapsed panel
- * keeps a slim rail; the main view takes every pixel that is freed.
+ * The sentence a screen reader hears when a panel folds or opens. The toggle's
+ * `aria-expanded` says it when the toggle is pressed; this covers the `[` and `]` keys,
+ * which fold a panel without focusing its toggle.
  */
-export function shellColumns(layout: ShellLayout): string {
-  const rail = layout.sitesRail.collapsed ? "var(--shell-slim)" : "var(--shell-rail)";
-  const focus = layout.focusPanel.collapsed ? "var(--shell-slim)" : "var(--shell-focus)";
-  return `${rail} minmax(0, 1fr) ${focus}`;
+export function foldAnnouncement(panel: ShellPanel, collapsed: boolean): string {
+  return `${PANEL_NAMES[panel]} ${collapsed ? "folded" : "open"}.`;
+}
+
+/**
+ * The widths the floating layout uses, in CSS pixels (DESIGN.md, "Layout"). They match the
+ * `--shell-*` and `--float-gap` tokens in theme.css.
+ */
+export const FLOAT_SIZES = {
+  gap: 16,
+  rail: 256,
+  focus: 328,
+  slim: 48,
+  /** The view bar's width with its six entries, at the C2 type sizes. */
+  viewBar: 640,
+} as const;
+
+/**
+ * Whether the view bar and its sentence fit between the two side panels. When they do not
+ * (a 1,024 px window with both panels open), they sit above the side panels instead, across
+ * the whole width, so nothing overlaps or clips.
+ */
+export function viewBarFitsBetween(viewportWidth: number, layout: ShellLayout): boolean {
+  const { gap, rail, focus, slim, viewBar } = FLOAT_SIZES;
+  const left = layout.sitesRail.collapsed ? slim : rail;
+  const right = layout.focusPanel.collapsed ? slim : focus;
+  const between = viewportWidth - 4 * gap - left - right;
+  return between >= viewBar;
 }
 
 export type ShortcutEvent = {

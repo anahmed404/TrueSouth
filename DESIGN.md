@@ -297,7 +297,8 @@ Moon in the free space between the panels, so a panel never covers the Moon.
 **Collapsing the side panels.** Each side panel has a toggle at its top (also the keys
 `[` and `]`). Collapsed, it keeps a 48px slim rail: the toggle on top, then the status
 lamps. The sites rail keeps one lamp per site, each still focusing its site; the
-focused-site panel keeps the focused site's lamp. The timeline folds to one row. The scene
+focused-site panel keeps the focused site's lamp, with its name and verdict written down the
+rail (as in the prototype). The timeline folds to one row. The scene
 takes all the freed room: its centre slides to the new free space, and with everything
 folded the home camera moves in so the Moon fills the window. The view's sentence stays
 capped at 72ch. The change animates in 200ms with an ease-out and does not animate under
@@ -348,7 +349,9 @@ The rules that keep it from spoiling the instrument:
 ### Proposed tokens for the scene
 
 Proposed by the designer; no existing token changes. They live in `web/src/app/theme.css`
-when adopted.
+when adopted. Adopted in MC4c: `--space`, `--float-gap` and `--plate`. The popover shadow
+keeps its existing name, `--shadow-popover`, and `--ease-out` and `--dur-panel` already
+existed.
 
 | Token | Value | Use |
 | :--- | :--- | :--- |
