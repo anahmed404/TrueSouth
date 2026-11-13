@@ -4,11 +4,13 @@ import type { Site, Validation } from "../../contracts/generated.ts";
 import { BrandMark } from "../../components/BrandMark";
 import { formatUtc } from "../../components/format";
 import { useSites, useValidation, type HookResult } from "../../data";
+import type { CheckedReport } from "./check";
 import { Method } from "./Method";
 import {
   COMPARISON_TITLES,
   MAP_COMPARISONS,
   NOT_RUN_MESSAGE,
+  brokenWithoutId,
   comparisonIds,
   groupGates,
   pageState,
@@ -17,7 +19,7 @@ import {
   summariseComparisons,
   summariseGates,
 } from "./model";
-import { GateList, MapComparison, NotModelled, OtherComparison, SkySection, Sources } from "./sections";
+import { GateList, IncompleteComparisons, MapComparison, NotModelled, OtherComparison, SkySection, Sources } from "./sections";
 import "./validation.css";
 
 const SECTIONS = [
@@ -107,19 +109,29 @@ export function ValidationView({ validation, sites }: ValidationViewProps) {
   );
 }
 
-function RunLine({ report }: { report: Validation }) {
-  // Counts of the file's own rows: display values only.
+function RunLine({ report }: { report: CheckedReport }) {
+  // Counts of the file's own rows: display values only. An incomplete record is never
+  // counted as passed or as within its mark.
   const gates = summariseGates(report.gates);
   const comparisons = summariseComparisons(report.comparisons);
+  const within = comparisons.total - comparisons.outside - comparisons.incomplete;
   const gateText =
     `${gates.measured} of ${gates.total} checks were measured by this run: ${gates.passed} passed` +
     (gates.failed > 0 ? ` and ${gates.failed} failed` : "") +
     "." +
-    (gates.elsewhere > 0 ? ` ${gates.elsewhere} more are checked in the web tests.` : "");
+    (gates.elsewhere > 0 ? ` ${gates.elsewhere} more ${gates.elsewhere === 1 ? "is" : "are"} checked in the web tests.` : "") +
+    (gates.incomplete > 0
+      ? ` ${gates.incomplete} ${gates.incomplete === 1 ? "check's record is" : "checks' records are"} incomplete in this build.`
+      : "");
   const comparisonText =
-    comparisons.outside === 0
-      ? ` All ${comparisons.total} comparisons are within their mark.`
-      : ` ${comparisons.outside} of ${comparisons.total} comparisons are outside their mark; each is explained where it appears.`;
+    (comparisons.outside === 0
+      ? comparisons.incomplete === 0
+        ? ` All ${comparisons.total} comparisons are within their mark.`
+        : ` ${within} of ${comparisons.total} comparisons are within their mark.`
+      : ` ${comparisons.outside} of ${comparisons.total} comparisons are outside their mark; each is explained where it appears.`) +
+    (comparisons.incomplete > 0
+      ? ` ${comparisons.incomplete} comparison ${comparisons.incomplete === 1 ? "record is" : "records are"} incomplete in this build.`
+      : "");
   return (
     <>
       <p className="vl-run">
@@ -158,7 +170,7 @@ function LoadingFrame() {
   );
 }
 
-function Report({ report, names }: { report: Validation; names: ReadonlyMap<string, string> }) {
+function Report({ report, names }: { report: CheckedReport; names: ReadonlyMap<string, string> }) {
   const groups = groupGates(report.gates);
   const otherIds = slopeSectionIds(report.comparisons);
   const ids = new Set(comparisonIds(report.comparisons));
@@ -178,14 +190,14 @@ function Report({ report, names }: { report: Validation; names: ReadonlyMap<stri
       </Section>
 
       <Section id="sun-and-earth">
-        <SkySection gate={groups.sky} series={report.g2_over_time} names={names} />
+        <SkySection item={groups.sky} series={report.g2_over_time} brokenSeries={report.brokenSeries} names={names} />
       </Section>
 
       <Section
         id="terrain"
         lead="We build made-up terrain whose answer is known exactly, such as a flat Moon, a wall at a known distance and a plane tilted at a known angle, and check that our code gets that answer."
       >
-        <GateList gates={groups.terrain} label="Terrain geometry checks" />
+        <GateList items={groups.terrain} label="Terrain geometry checks" />
         <h3 className="vl-h3" id="terrain-other">
           Other checks
         </h3>
@@ -193,7 +205,7 @@ function Report({ report, names }: { report: Validation; names: ReadonlyMap<stri
           Checks on reading NASA's files, on map projections, on storing the numbers and on the scoring in your
           browser.
         </p>
-        <GateList gates={groups.other} label="Other checks" />
+        <GateList items={groups.other} label="Other checks" />
       </Section>
 
       <Section
@@ -217,6 +229,7 @@ function Report({ report, names }: { report: Validation; names: ReadonlyMap<stri
             ) : null}
           </Fragment>
         ))}
+        <IncompleteComparisons rows={brokenWithoutId(report.comparisons, names)} />
       </Section>
 
       <Section
@@ -228,6 +241,13 @@ function Report({ report, names }: { report: Validation; names: ReadonlyMap<stri
 
       <Section id="sources" lead="Every NASA product this run used, with its link.">
         <Sources sources={report.sources} />
+        {report.brokenSources > 0 ? (
+          <p className="vl-prose vl-quiet">
+            {report.brokenSources === 1
+              ? "One more source is incomplete in this build and is not listed."
+              : `${report.brokenSources} more sources are incomplete in this build and are not listed.`}
+          </p>
+        ) : null}
       </Section>
     </>
   );

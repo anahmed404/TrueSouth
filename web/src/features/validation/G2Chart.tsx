@@ -36,7 +36,7 @@ export function G2Chart({ lines, limit, summary }: G2ChartProps) {
     for (const point of points) {
       if (point.time < start) start = point.time;
       if (point.time > end) end = point.time;
-      if (Number.isFinite(point.value) && point.value > top) top = point.value;
+      if (point.value !== null && Number.isFinite(point.value) && point.value > top) top = point.value;
     }
     const x = scaleUtc()
       .domain([start, end])
@@ -46,9 +46,10 @@ export function G2Chart({ lines, limit, summary }: G2ChartProps) {
       .range([HEIGHT - MARGIN.bottom, MARGIN.top])
       .nice(4);
     const path = line<G2Point>()
-      .defined((point) => Number.isFinite(point.value))
+      // A value the file leaves out is a gap in the line, never a point at zero.
+      .defined((point) => point.value !== null && Number.isFinite(point.value))
       .x((point) => x(point.time))
-      .y((point) => y(point.value));
+      .y((point) => y(point.value ?? 0));
     return {
       x,
       y,

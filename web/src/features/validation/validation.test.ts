@@ -8,6 +8,7 @@ import type { Gate, Site, Validation } from "../../contracts/generated.ts";
 import type { HookResult } from "../../data/hooks.ts";
 import { parseValidation } from "../../data/parse.ts";
 import { formatCount, formatPercent, formatPoints, formatValue, withUnit } from "./format";
+import { checkGate, checkReport, type GateItem } from "./check";
 import { ValidationView } from "./index";
 import { isPlayableLesson } from "./Method";
 import {
@@ -20,6 +21,7 @@ import {
   g2YearPeaks,
   gateVerdict,
   groupGates,
+  itemId,
   pageState,
   scatterPoints,
   siteNames,
@@ -36,6 +38,9 @@ const readRepo = (path: string) => readFileSync(`${repoRoot}${path}`, "utf8");
 const fixture = parseValidation(JSON.parse(readRepo("data/fixtures/validation.json")));
 const fixtureSites = JSON.parse(readRepo("data/fixtures/sites.json")) as Site[];
 const names = siteNames(fixtureSites);
+/** The fixture as the page reads it, after checkReport. */
+const checked = checkReport(fixture)!;
+const gateItem = (gate: Gate): GateItem => ({ kind: "gate", gate });
 
 function html(element: ReturnType<typeof createElement>): string {
   return renderToStaticMarkup(createElement(MemoryRouter, null, element));
@@ -68,7 +73,7 @@ describe("page state", () => {
   });
 
   it("is ready with the report", () => {
-    expect(pageState({ status: "ready", data: fixture, error: null })).toEqual({ kind: "ready", report: fixture });
+    expect(pageState({ status: "ready", data: fixture, error: null })).toEqual({ kind: "ready", report: checked });
   });
 });
 
@@ -80,7 +85,7 @@ describe("gates", () => {
     expect(gateVerdict(gate)).toBe("elsewhere");
     expect(GATE_VERDICT_LABEL[gateVerdict(gate)]).toBe("Checked in the web tests");
 
-    const markup = html(createElement(GateList, { gates: [gate], label: "Other checks" }));
+    const markup = html(createElement(GateList, { items: [gateItem(gate)], label: "Other checks" }));
     expect(markup).toContain("Checked in the web tests");
     expect(markup).toContain("Not measured here");
     expect(markup).not.toMatch(/>Passed</);
@@ -90,26 +95,33 @@ describe("gates", () => {
   it("shows the fixture's failing gate as failed, in its group", () => {
     const g6 = fixture.gates.find((gate) => gate.id === "G6")!;
     expect(gateVerdict(g6)).toBe("failed");
-    const groups = groupGates(fixture.gates);
-    expect(groups.terrain.map((gate) => gate.id)).toContain("G6");
-    expect(groups.sky?.id).toBe("G2");
+    const groups = groupGates(checked.gates);
+    expect(groups.terrain.map(itemId)).toContain("G6");
+    expect(groups.sky && itemId(groups.sky)).toBe("G2");
     // No gate is left off the page.
     const shown = [groups.sky, ...groups.terrain, ...groups.other].filter(Boolean);
     expect(shown).toHaveLength(fixture.gates.length);
 
-    const markup = html(createElement(GateList, { gates: groups.terrain, label: "Terrain geometry checks" }));
+    const markup = html(createElement(GateList, { items: groups.terrain, label: "Terrain geometry checks" }));
     expect(markup).toContain("Failed");
   });
 
   it("counts the file's gates", () => {
     const withNull = fixture.gates.map((gate) => (gate.id === "G10" || gate.id === "G11" ? unmeasured(gate) : gate));
-    expect(summariseGates(withNull)).toEqual({ total: 11, measured: 9, passed: 8, failed: 1, elsewhere: 2 });
+    expect(summariseGates(withNull.map(checkGate))).toEqual({
+      total: 11,
+      measured: 9,
+      passed: 8,
+      failed: 1,
+      elsewhere: 2,
+      incomplete: 0,
+    });
   });
 });
 
 describe("comparisons", () => {
   it("turns R1 into rows with the site's name, the file's flag and its explanation", () => {
-    const rows = comparisonRows(fixture.comparisons, "R1", names);
+    const rows = comparisonRows(checked.comparisons, "R1", names);
     expect(rows).toHaveLength(1);
     const row = rows[0]!;
     expect(row.siteName).toBe("Fixture Ridge");
@@ -119,11 +131,11 @@ describe("comparisons", () => {
   });
 
   it("keeps the fixture's deliberately failing comparison visible and labelled", () => {
-    expect(summariseComparisons(fixture.comparisons)).toEqual({ total: 6, outside: 1 });
-    const points = scatterPoints(comparisonRows(fixture.comparisons, "R1", names));
+    expect(summariseComparisons(checked.comparisons)).toEqual({ total: 6, outside: 1, incomplete: 0 });
+    const points = scatterPoints(comparisonRows(checked.comparisons, "R1", names));
     expect(points).toEqual([expect.objectContaining({ label: "Fixture Ridge", outside: true, x: 0, y: 0.3 })]);
 
-    const markup = html(createElement(MapComparison, { id: "R1", comparisons: fixture.comparisons, names }));
+    const markup = html(createElement(MapComparison, { id: "R1", comparisons: checked.comparisons, names }));
     expect(markup).toContain("Outside the mark");
     expect(markup).toContain("Synthetic values deliberately exceed the investigation mark.");
     // The diamond and the site's label are drawn in the chart.
@@ -135,16 +147,16 @@ describe("comparisons", () => {
   });
 
   it("falls back to the site id when the site is not in sites.json", () => {
-    const rows = comparisonRows(fixture.comparisons, "R2");
+    const rows = comparisonRows(checked.comparisons, "R2");
     expect(rows[0]?.siteName).toBe("fixture_ridge");
   });
 
   it("puts every comparison other than R1 and R2 in the slope section, in file order", () => {
-    expect(slopeSectionIds(fixture.comparisons)).toEqual(["R3", "R4", "R5", "R6"]);
+    expect(slopeSectionIds(checked.comparisons)).toEqual(["R3", "R4", "R5", "R6"]);
   });
 
   it("shows a comparison with ourselves without a NASA column", () => {
-    const markup = html(createElement(OtherComparison, { id: "R5", comparisons: fixture.comparisons, names }));
+    const markup = html(createElement(OtherComparison, { id: "R5", comparisons: checked.comparisons, names }));
     expect(markup).toContain("The skyline at a finer step");
     expect(markup).not.toContain("NASA&#x27;s</th>");
   });
@@ -153,7 +165,7 @@ describe("comparisons", () => {
     // Built from the fixture's R5 row: the fixture's own failing case is R1.
     const r5 = fixture.comparisons.find((item) => item.id === "R5")!;
     const failing = { ...r5, ours: 0.12, outside_mark: true, explanation: "Made up for this test." };
-    const markup = html(createElement(OtherComparison, { id: "R5", comparisons: [failing], names }));
+    const markup = html(createElement(OtherComparison, { id: "R5", comparisons: checkReport({ ...fixture, comparisons: [failing] })!.comparisons, names }));
     expect(markup).toContain("Outside the mark");
     expect(markup).toContain("Made up for this test.");
   });

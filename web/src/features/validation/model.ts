@@ -6,8 +6,9 @@
  * largest of its numbers). Nothing is measured or computed afresh: the science behind
  * these numbers runs in Python (`uv run truesouth validate`).
  */
-import type { Comparison, DifferenceOverTime, Gate, Site, Validation } from "../../contracts/generated.ts";
+import type { Comparison, Gate, Site, Validation } from "../../contracts/generated.ts";
 import type { HookResult } from "../../data/hooks.ts";
+import { checkReport, type BrokenRecord, type CheckedReport, type ComparisonItem, type G2Series, type GateItem } from "./check";
 
 // ── Page state ───────────────────────────────────────────────────────────────
 
@@ -15,16 +16,18 @@ export type PageState =
   | { kind: "loading" }
   /** The file is missing or cannot be read: the page shows no numbers. */
   | { kind: "not-run" }
-  | { kind: "ready"; report: Validation };
+  | { kind: "ready"; report: CheckedReport };
 
 /**
  * `loadValidation` gives null for a missing file; a file that cannot be read or parsed
- * is an error. Both read "Validation has not been run on this build".
+ * is an error; a file without the outline the page needs fails `checkReport`. All three
+ * read "Validation has not been run on this build".
  */
 export function pageState(result: HookResult<Validation | null>): PageState {
   if (result.status === "loading") return { kind: "loading" };
   if (result.status === "error" || result.data === null) return { kind: "not-run" };
-  return { kind: "ready", report: result.data };
+  const report = checkReport(result.data);
+  return report ? { kind: "ready", report } : { kind: "not-run" };
 }
 
 export const NOT_RUN_MESSAGE = "Validation has not been run on this build";
@@ -54,19 +57,26 @@ export const SKY_GATE_ID = "G2";
 
 export type GateGroups = {
   /** Gate G2, the Sun and Earth directions against JPL Horizons. */
-  sky: Gate | null;
+  sky: GateItem | null;
   /** The synthetic terrain tests. */
-  terrain: Gate[];
-  /** Every other gate, in file order, so none is left off the page. */
-  other: Gate[];
+  terrain: GateItem[];
+  /** Every other gate, in file order, so none is left off the page. Unknown ids land here. */
+  other: GateItem[];
 };
 
-export function groupGates(gates: readonly Gate[]): GateGroups {
-  const sky = gates.find((gate) => gate.id === SKY_GATE_ID) ?? null;
+/** A record's id, whole or broken. */
+export function itemId(item: GateItem | ComparisonItem): string | null {
+  if (item.kind === "broken") return item.id;
+  return item.kind === "gate" ? item.gate.id : item.comparison.id;
+}
+
+export function groupGates(items: readonly GateItem[]): GateGroups {
+  const sky = items.find((item) => itemId(item) === SKY_GATE_ID) ?? null;
+  const terrain = (item: GateItem) => TERRAIN_GATES.has(itemId(item) ?? "");
   return {
     sky,
-    terrain: gates.filter((gate) => TERRAIN_GATES.has(gate.id)),
-    other: gates.filter((gate) => gate !== sky && !TERRAIN_GATES.has(gate.id)),
+    terrain: items.filter(terrain),
+    other: items.filter((item) => item !== sky && !terrain(item)),
   };
 }
 
@@ -76,18 +86,21 @@ export type GateSummary = {
   passed: number;
   failed: number;
   elsewhere: number;
+  /** Records the page could not read. Never counted as passed. */
+  incomplete: number;
 };
 
 /** Counts of the file's gates, for the summary line. */
-export function summariseGates(gates: readonly Gate[]): GateSummary {
-  const verdicts = gates.map(gateVerdict);
+export function summariseGates(items: readonly GateItem[]): GateSummary {
+  const verdicts = items.flatMap((item) => (item.kind === "gate" ? [gateVerdict(item.gate)] : []));
   const count = (verdict: GateVerdict) => verdicts.filter((item) => item === verdict).length;
   return {
-    total: gates.length,
+    total: items.length,
     measured: count("passed") + count("failed"),
     passed: count("passed"),
     failed: count("failed"),
     elsewhere: count("elsewhere"),
+    incomplete: items.length - verdicts.length,
   };
 }
 
@@ -127,6 +140,7 @@ export const COMPARISON_VERDICT_LABEL: Record<ComparisonVerdict, string> = {
 };
 
 export type ComparisonRow = {
+  kind: "row";
   key: string;
   id: string;
   siteId: string;
@@ -148,6 +162,7 @@ export function siteNames(sites: readonly Site[] | null | undefined): Map<string
 
 function toRow(comparison: Comparison, index: number, names: ReadonlyMap<string, string>): ComparisonRow {
   return {
+    kind: "row",
     key: `${comparison.id}-${comparison.site_id}-${index}`,
     id: comparison.id,
     siteId: comparison.site_id,
@@ -164,32 +179,75 @@ function toRow(comparison: Comparison, index: number, names: ReadonlyMap<string,
   };
 }
 
-/** The rows of one comparison, in file order. A row outside its mark is never dropped. */
+/** A row whose record is incomplete: shown in its place with its id and site. */
+export type BrokenRow = { kind: "broken"; key: string; id: string | null; name: string | null };
+
+export type TableRow = ComparisonRow | BrokenRow;
+
+function brokenRow(record: BrokenRecord, index: number, names: ReadonlyMap<string, string>): BrokenRow {
+  return {
+    kind: "broken",
+    key: `broken-${index}`,
+    id: record.id,
+    name: record.name === null ? null : (names.get(record.name) ?? record.name),
+  };
+}
+
+/** The complete rows of one comparison, in file order. A row outside its mark is never dropped. */
 export function comparisonRows(
-  comparisons: readonly Comparison[],
+  items: readonly ComparisonItem[],
   id: string,
   names: ReadonlyMap<string, string> = new Map(),
 ): ComparisonRow[] {
-  return comparisons.flatMap((comparison, index) => (comparison.id === id ? [toRow(comparison, index, names)] : []));
+  return items.flatMap((item, index) =>
+    item.kind === "comparison" && item.comparison.id === id ? [toRow(item.comparison, index, names)] : [],
+  );
 }
 
-/** Comparison ids in the file, in first-seen order. */
-export function comparisonIds(comparisons: readonly Comparison[]): string[] {
-  return [...new Set(comparisons.map((comparison) => comparison.id))];
+/** Every row of one comparison, complete or not, in file order: what its table shows. */
+export function tableRows(
+  items: readonly ComparisonItem[],
+  id: string,
+  names: ReadonlyMap<string, string> = new Map(),
+): TableRow[] {
+  return items.flatMap((item, index): TableRow[] => {
+    if (itemId(item) !== id) return [];
+    return item.kind === "comparison" ? [toRow(item.comparison, index, names)] : [brokenRow(item, index, names)];
+  });
 }
 
-export type ComparisonSummary = { total: number; outside: number };
+/** Records with no usable id, so no comparison to show them under: listed on their own. */
+export function brokenWithoutId(
+  items: readonly ComparisonItem[],
+  names: ReadonlyMap<string, string> = new Map(),
+): BrokenRow[] {
+  return items.flatMap((item, index) =>
+    item.kind === "broken" && item.id === null ? [brokenRow(item, index, names)] : [],
+  );
+}
 
-export function summariseComparisons(comparisons: readonly Comparison[]): ComparisonSummary {
-  return { total: comparisons.length, outside: comparisons.filter((item) => item.outside_mark).length };
+/** Comparison ids in the file, in first-seen order, including those of incomplete rows. */
+export function comparisonIds(items: readonly ComparisonItem[]): string[] {
+  return [...new Set(items.map(itemId).filter((id): id is string => id !== null))];
+}
+
+export type ComparisonSummary = { total: number; outside: number; incomplete: number };
+
+export function summariseComparisons(items: readonly ComparisonItem[]): ComparisonSummary {
+  const whole = items.flatMap((item) => (item.kind === "comparison" ? [item.comparison] : []));
+  return {
+    total: items.length,
+    outside: whole.filter((item) => item.outside_mark).length,
+    incomplete: items.length - whole.length,
+  };
 }
 
 /** Section 4 holds R1 and R2; section 5 holds every other comparison in the file. */
 export const MAP_COMPARISONS = ["R1", "R2"] as const;
 
-export function slopeSectionIds(comparisons: readonly Comparison[]): string[] {
+export function slopeSectionIds(items: readonly ComparisonItem[]): string[] {
   const map = new Set<string>(MAP_COMPARISONS);
-  return comparisonIds(comparisons).filter((id) => !map.has(id));
+  return comparisonIds(items).filter((id) => !map.has(id));
 }
 
 // ── Scatter chart (R1, R2) ───────────────────────────────────────────────────
@@ -225,16 +283,17 @@ export function sharedMark(rows: readonly ComparisonRow[]): number | null {
 
 const HOUR_MS = 3_600_000;
 
-export type G2Point = { time: Date; value: number };
+/** A value the file leaves out is null: a gap in the line. */
+export type G2Point = { time: Date; value: number | null };
 
 export type G2Line = { body: "sun" | "earth"; points: G2Point[] };
 
 /** Sites that have a G2 series, in file order. */
-export function g2Sites(series: readonly DifferenceOverTime[] | null | undefined): string[] {
+export function g2Sites(series: readonly G2Series[] | null | undefined): string[] {
   return [...new Set((series ?? []).map((item) => item.site_id))];
 }
 
-function seriesPoints(item: DifferenceOverTime): G2Point[] {
+function seriesPoints(item: G2Series): G2Point[] {
   const start = Date.parse(item.start_utc);
   if (!Number.isFinite(start)) return [];
   const step = item.step_h * HOUR_MS;
@@ -242,7 +301,7 @@ function seriesPoints(item: DifferenceOverTime): G2Point[] {
 }
 
 /** The Sun and Earth lines for one site. */
-export function g2Lines(series: readonly DifferenceOverTime[] | null | undefined, siteId: string): G2Line[] {
+export function g2Lines(series: readonly G2Series[] | null | undefined, siteId: string): G2Line[] {
   return (series ?? [])
     .filter((item) => item.site_id === siteId)
     .map((item) => ({ body: item.body, points: seriesPoints(item) }));
@@ -251,11 +310,11 @@ export function g2Lines(series: readonly DifferenceOverTime[] | null | undefined
 export type G2Peak = { siteId: string; body: "sun" | "earth"; time: Date; value: number };
 
 /** The largest value among the given series: the largest of the file's own numbers. */
-export function g2Peak(series: readonly DifferenceOverTime[] | null | undefined): G2Peak | null {
+export function g2Peak(series: readonly G2Series[] | null | undefined): G2Peak | null {
   let peak: G2Peak | null = null;
   for (const item of series ?? []) {
     for (const point of seriesPoints(item)) {
-      if (!Number.isFinite(point.value)) continue;
+      if (point.value === null || !Number.isFinite(point.value)) continue;
       if (peak === null || point.value > peak.value) {
         peak = { siteId: item.site_id, body: item.body, time: point.time, value: point.value };
       }
@@ -265,7 +324,7 @@ export function g2Peak(series: readonly DifferenceOverTime[] | null | undefined)
 }
 
 /** The site shown first in the chart: the one holding the largest difference. */
-export function defaultG2Site(series: readonly DifferenceOverTime[] | null | undefined): string | null {
+export function defaultG2Site(series: readonly G2Series[] | null | undefined): string | null {
   return g2Peak(series)?.siteId ?? g2Sites(series)[0] ?? null;
 }
 
@@ -276,7 +335,7 @@ export function g2YearPeaks(lines: readonly G2Line[]): YearPeak[] {
   const years = new Map<number, YearPeak>();
   for (const line of lines) {
     for (const point of line.points) {
-      if (!Number.isFinite(point.value)) continue;
+      if (point.value === null || !Number.isFinite(point.value)) continue;
       const year = point.time.getUTCFullYear();
       const entry = years.get(year) ?? { year, sun: null, earth: null };
       const current = entry[line.body];

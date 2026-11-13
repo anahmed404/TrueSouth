@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { Validation } from "../../contracts/generated.ts";
 import { gateLimitText, gateMeasuredText, kindOf, largestDegreesText, markText, measureText } from "./display";
 import { formatFixed, formatPercent, formatPoints, formatSignedDegrees, formatValue, roundAt } from "./format";
+import { checkReport } from "./check";
 import { comparisonIds, comparisonRows, gateVerdict, g2Peak } from "./model";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
@@ -90,8 +91,9 @@ describe("printed numbers agree with printed results, in both data files", () =>
     });
 
     it(`${label}: every comparison row against its mark`, () => {
-      for (const id of comparisonIds(file.comparisons)) {
-        const rows = comparisonRows(file.comparisons, id);
+      const items = checkReport(file)!.comparisons;
+      for (const id of comparisonIds(items)) {
+        const rows = comparisonRows(items, id);
         const kind = kindOf(rows);
         for (const row of rows) {
           const shown = Math.abs(shownNumber(measureText(row, kind)));

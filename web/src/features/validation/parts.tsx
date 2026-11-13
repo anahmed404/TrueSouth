@@ -1,4 +1,4 @@
-import { FlaskConical, MoveHorizontal } from "lucide-react";
+import { CircleDashed, FlaskConical, MoveHorizontal } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { StatusLamp } from "../../components/StatusLamp";
 import { cx } from "../../components/format";
@@ -23,6 +23,16 @@ export function GateResult({ verdict }: { verdict: GateVerdict }) {
         <StatusLamp status={verdict === "passed" ? "GO" : "NO-GO"} size="xs" />
       )}
       {GATE_VERDICT_LABEL[verdict]}
+    </span>
+  );
+}
+
+/** A record the page could not read: neither passed nor failed, and never counted. */
+export function IncompleteResult() {
+  return (
+    <span className="vl-verdict vl-verdict-elsewhere">
+      <CircleDashed size={14} strokeWidth={1.8} aria-hidden="true" className="vl-verdict-icon" />
+      Record incomplete
     </span>
   );
 }

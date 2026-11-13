@@ -959,3 +959,14 @@
     justify-content: start;
   }
 }
+
+/* ── Incomplete records: shown in place, quietly, never as a pass ────────── */
+
+.vl-gate-broken .vl-gate-name,
+.vl-row-broken th {
+  color: var(--ink-2);
+}
+
+.vl-row-broken td {
+  white-space: normal;
+}

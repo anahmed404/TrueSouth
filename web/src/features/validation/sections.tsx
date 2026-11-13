@@ -1,6 +1,7 @@
 import { ArrowUpRight } from "lucide-react";
 import { useId, useMemo, useState, type ReactNode } from "react";
-import type { Comparison, DataSource, DifferenceOverTime, Gate } from "../../contracts/generated.ts";
+import type { DataSource, Gate } from "../../contracts/generated.ts";
+import { INCOMPLETE_MESSAGE, type ComparisonItem, type G2Series, type GateItem } from "./check";
 import { Disclosure } from "../../components/Disclosure";
 import { Explain } from "../../components/Explain";
 import { REPO_BLOB_URL } from "../academy/card/links";
@@ -27,13 +28,15 @@ import {
   g2YearPeaks,
   gateVerdict,
   isSelfComparison,
+  tableRows,
+  type TableRow,
   isWebLink,
   scatterPoints,
   sharedMark,
   utcDay,
   type ComparisonRow,
 } from "./model";
-import { ComparisonResult, GateResult, TableBox } from "./parts";
+import { ComparisonResult, GateResult, IncompleteResult, TableBox } from "./parts";
 
 type Names = ReadonlyMap<string, string>;
 
@@ -71,17 +74,21 @@ function skySentence(gate: Gate): string {
 }
 
 export function SkySection({
-  gate,
+  item,
   series,
+  brokenSeries,
   names,
 }: {
-  gate: Gate | null;
-  series: readonly DifferenceOverTime[] | undefined;
+  item: GateItem | null;
+  series: readonly G2Series[];
+  brokenSeries: number;
   names: Names;
 }) {
-  if (!gate) {
+  if (!item) {
     return <p className="vl-prose">This run has no result for the Sun and Earth positions (gate G2).</p>;
   }
+  if (item.kind === "broken") return <GateList items={[item]} label="Sun and Earth positions" />;
+  const gate = item.gate;
   const verdict = gateVerdict(gate);
   return (
     <>
@@ -97,6 +104,13 @@ export function SkySection({
         rather than raw bearings; the raw bearing difference is in the pipeline's note below.
       </p>
       <G2Over series={series} gate={gate} names={names} />
+      {brokenSeries > 0 ? (
+        <p className="vl-prose vl-quiet">
+          {brokenSeries === 1
+            ? "One chart series is incomplete in this build and is not drawn."
+            : `${brokenSeries} chart series are incomplete in this build and are not drawn.`}
+        </p>
+      ) : null}
       {gate.detail ? (
         <Disclosure title="The pipeline's full note on this check">
           <p className="vl-note">{gate.detail}</p>
@@ -106,7 +120,7 @@ export function SkySection({
   );
 }
 
-function G2Over({ series, gate, names }: { series: readonly DifferenceOverTime[] | undefined; gate: Gate; names: Names }) {
+function G2Over({ series, gate, names }: { series: readonly G2Series[]; gate: Gate; names: Names }) {
   const sites = useMemo(() => g2Sites(series), [series]);
   const [chosen, setChosen] = useState<string | null>(null);
   const selectId = useId();
@@ -183,14 +197,32 @@ function G2Over({ series, gate, names }: { series: readonly DifferenceOverTime[]
 
 // ── Section 3: gates as a list ───────────────────────────────────────────────
 
-export function GateList({ gates, label }: { gates: readonly Gate[]; label: string }) {
-  if (gates.length === 0) return <p className="vl-prose vl-quiet">This run has no results here.</p>;
+export function GateList({ items, label }: { items: readonly GateItem[]; label: string }) {
+  if (items.length === 0) return <p className="vl-prose vl-quiet">This run has no results here.</p>;
   return (
     <ul className="vl-gates" aria-label={label}>
-      {gates.map((gate) => {
+      {items.map((item, index) => {
+        if (item.kind === "broken") {
+          return (
+            <li key={`broken-${index}`} className="vl-gate vl-gate-broken">
+              <div className="vl-gate-main">
+                <p className="vl-gate-name">
+                  {item.id ? <span className="vl-id">{item.id}</span> : null}
+                  {item.name ?? "A check with no name"}
+                </p>
+                <p className="vl-note">{INCOMPLETE_MESSAGE}.</p>
+              </div>
+              <div className="vl-gate-values" />
+              <div className="vl-gate-result">
+                <IncompleteResult />
+              </div>
+            </li>
+          );
+        }
+        const gate = item.gate;
         const verdict = gateVerdict(gate);
         return (
-          <li key={gate.id} className={`vl-gate vl-gate-${verdict}`}>
+          <li key={`${gate.id}-${index}`} className={`vl-gate vl-gate-${verdict}`}>
             <div className="vl-gate-main">
               <p className="vl-gate-name">
                 <span className="vl-id">{gate.id}</span>
@@ -250,7 +282,8 @@ function Outliers({ rows, kind, self }: { rows: readonly ComparisonRow[]; kind: 
   );
 }
 
-function ComparisonTable({ rows, kind, self, title }: { rows: readonly ComparisonRow[]; kind: ValueKind; self: boolean; title: string }) {
+function ComparisonTable({ rows, kind, self, title }: { rows: readonly TableRow[]; kind: ValueKind; self: boolean; title: string }) {
+  const columns = self ? 2 : 4;
   return (
     <TableBox label={`${title}: one row per site`}>
       <table className="vl-table">
@@ -278,7 +311,15 @@ function ComparisonTable({ rows, kind, self, title }: { rows: readonly Compariso
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
+          {rows.map((row) =>
+            row.kind === "broken" ? (
+              <tr key={row.key} className="vl-row-broken">
+                <th scope="row">{row.name ?? "A site with no name"}</th>
+                <td colSpan={columns}>
+                  <IncompleteResult /> <span className="vl-quiet">{INCOMPLETE_MESSAGE}.</span>
+                </td>
+              </tr>
+            ) : (
             <tr key={row.key} className={row.verdict === "outside" ? "vl-row-outside" : undefined}>
               <th scope="row">{row.siteName}</th>
               {self ? (
@@ -294,7 +335,8 @@ function ComparisonTable({ rows, kind, self, title }: { rows: readonly Compariso
                 <ComparisonResult verdict={row.verdict} />
               </td>
             </tr>
-          ))}
+            ),
+          )}
         </tbody>
       </table>
     </TableBox>
@@ -338,7 +380,7 @@ const MAP_INTRO: Record<string, { lead: string; x: string; y: string; body: "sun
   },
 };
 
-function mapSummary(rows: readonly ComparisonRow[], mark: number | null): string {
+function mapSummary(rows: readonly ComparisonRow[], mark: number | null, incomplete: number): string {
   const outside = rows.filter((row) => row.verdict === "outside");
   // Counts of the file's rows: display values.
   const within = rows.length - outside.length;
@@ -347,14 +389,22 @@ function mapSummary(rows: readonly ComparisonRow[], mark: number | null): string
   const tail = outside
     .map((row) => ` ${row.siteName} is outside the mark: ours ${formatPercent(row.ours)}, NASA's ${formatPercent(row.reference)}.`)
     .join("");
-  return head + tail;
+  // A record the page could not read is said, not drawn and not counted as within.
+  const missing =
+    incomplete === 0
+      ? ""
+      : incomplete === 1
+        ? " One more record is incomplete in this build and is not drawn."
+        : ` ${incomplete} more records are incomplete in this build and are not drawn.`;
+  return head + tail + missing;
 }
 
-export function MapComparison({ id, comparisons, names }: { id: "R1" | "R2"; comparisons: readonly Comparison[]; names: Names }) {
+export function MapComparison({ id, comparisons, names }: { id: "R1" | "R2"; comparisons: readonly ComparisonItem[]; names: Names }) {
   const rows = useMemo(() => comparisonRows(comparisons, id, names), [comparisons, id, names]);
+  const all = useMemo(() => tableRows(comparisons, id, names), [comparisons, id, names]);
   const title = COMPARISON_TITLES[id] ?? id;
   const intro = MAP_INTRO[id];
-  if (rows.length === 0 || !intro) {
+  if (all.length === 0 || !intro) {
     return (
       <div className="vl-block">
         <h3 className="vl-h3">
@@ -366,7 +416,7 @@ export function MapComparison({ id, comparisons, names }: { id: "R1" | "R2"; com
     );
   }
   const mark = sharedMark(rows);
-  const summary = mapSummary(rows, mark);
+  const summary = mapSummary(rows, mark, all.length - rows.length);
   return (
     <div className="vl-block" id={`comparison-${id.toLowerCase()}`}>
       <h3 className="vl-h3">
@@ -379,6 +429,9 @@ export function MapComparison({ id, comparisons, names }: { id: "R1" | "R2"; com
       </p>
       <Outliers rows={rows} kind="percent" self={false} />
       <div className="vl-pair">
+        {rows.length === 0 ? (
+          <p className="vl-prose vl-quiet">No record of {id} is complete in this build, so there is no chart.</p>
+        ) : (
         <figure className="vl-figure vl-figure-scatter">
           <Scatter
             points={scatterPoints(rows)}
@@ -392,8 +445,9 @@ export function MapComparison({ id, comparisons, names }: { id: "R1" | "R2"; com
             {summary} A point on the diagonal agrees exactly; the shaded band is the mark.
           </figcaption>
         </figure>
+        )}
         <div className="vl-pair-table">
-          <ComparisonTable rows={rows} kind="percent" self={false} title={`${id} ${title}`} />
+          <ComparisonTable rows={all} kind="percent" self={false} title={`${id} ${title}`} />
         </div>
       </div>
       <RowNotes rows={rows} />
@@ -409,8 +463,9 @@ const OTHER_INTRO: Record<string, string> = {
   R6: "The fast skyline used for the sensitivity grid, against the full method, at a few sites. This compares our method with itself.",
 };
 
-export function OtherComparison({ id, comparisons, names }: { id: string; comparisons: readonly Comparison[]; names: Names }) {
+export function OtherComparison({ id, comparisons, names }: { id: string; comparisons: readonly ComparisonItem[]; names: Names }) {
   const rows = useMemo(() => comparisonRows(comparisons, id, names), [comparisons, id, names]);
+  const all = useMemo(() => tableRows(comparisons, id, names), [comparisons, id, names]);
   const title = COMPARISON_TITLES[id] ?? `Comparison ${id}`;
   const self = isSelfComparison(id);
   const kind = kindOf(rows);
@@ -426,9 +481,33 @@ export function OtherComparison({ id, comparisons, names }: { id: string; compar
         {mark === null ? null : ` We look into any site where ${self ? "the difference is" : "the two differ by"} more than ${markText(mark, kind)}.`}
       </p>
       <Outliers rows={rows} kind={kind} self={self} />
-      <ComparisonTable rows={rows} kind={kind} self={self} title={`${id} ${title}`} />
+      <ComparisonTable rows={all} kind={kind} self={self} title={`${id} ${title}`} />
       <RowNotes rows={rows} />
       {self ? null : <SourceLine urls={sources(rows)} />}
+    </div>
+  );
+}
+
+/** Comparison records with no usable id, listed on their own so none is dropped. */
+export function IncompleteComparisons({ rows }: { rows: readonly TableRow[] }) {
+  if (rows.length === 0) return null;
+  return (
+    <div className="vl-block">
+      <h3 className="vl-h3">Records we could not read</h3>
+      <ul className="vl-gates">
+        {rows.map((row) => (
+          <li key={row.key} className="vl-gate vl-gate-broken">
+            <div className="vl-gate-main">
+              <p className="vl-gate-name">{row.kind === "broken" && row.name ? row.name : "A comparison with no id"}</p>
+              <p className="vl-note">{INCOMPLETE_MESSAGE}.</p>
+            </div>
+            <div className="vl-gate-values" />
+            <div className="vl-gate-result">
+              <IncompleteResult />
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
