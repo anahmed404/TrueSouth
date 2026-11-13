@@ -49,12 +49,12 @@ each integration checkpoint.
 
 ## Science
 
-#### 2026-11-13 · S9 · Polar maps blocked on encoding and hillshade specification
-- **Who:** Codex (gpt-6.1-terra)
-- **AI use:** Codex — inspected the map contracts, specifications and raster metadata — no human review yet.
-- **State:** blocked
-- **Changed:** DEVLOG only; no map outputs generated.
-- **Notes:** The 60 m Earth-visibility raster has 152,192 valid pixels at 1.0, but the lookup contract decodes bytes as v/255 and reserves 255 for no data. It cannot encode 1.0 exactly or specify the permitted endpoint error. The specifications also give no hillshade light direction or lookup precision tolerance. Both raster scales are 0.00004, offsets 0, and nodata −32768. No downloads were started.
+#### 2026-11-13 · S9 · Polar map images and lookup grids
+- **Who:** Codex (gpt-6.1-terra), for the orchestrator
+- **AI use:** Codex — implemented the map pipeline and synthetic tests — automated tests and real-data checks run by the agent; human review pending.
+- **State:** built, not verified
+- **Changed:** science map functions, build-maps command, tests, and data/derived/maps/.
+- **Notes:** The initial encoding and light-direction questions were settled in #47. Real build 98.3 s; output 16,217,806 bytes; 8K relief 3,897,152 bytes. Connecting Ridge sunlight 0.541 and Earth visibility 0.490; Shackleton floor sunlight 0.000. Missing lookup cells 0% in both layers. Twelve near-seam samples differ by up to 0.01316 sunlight and 0.12388 Earth visibility between source resolutions. Synthetic orientation mutations and repeatability checks passed; full pytest: 156 passed, exit 0.
 
 #### 2026-11-13 · S6 · Terrain skylines and blocker geometry
 - **Who:** Codex agent, for the orchestrator
