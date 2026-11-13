@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GoalEvaluator } from "./evaluator";
+import { sampleProfile } from "./lessons/sample-profile";
 import {
   initialRunnerState,
   reduceRunner,
@@ -263,7 +264,7 @@ describe("goal steps", () => {
         kind: "draw-skyline",
         scene: {
           scenario: {
-            profile: { id: "sample" },
+            profile: sampleProfile,
             siteIds: ["sample-site"],
             focusedSiteId: "sample-site",
             landingUtc: "2028-01-01T00:00:00Z",
