@@ -2,14 +2,17 @@
 
 Who builds what, in what order, and how each piece is checked.
 
-Each person's own guide is in [`tracks/`](tracks/): what to do first, what to hand to
-whom, and how to brief an AI agent. This page is the full list of work.
+Each track's guide is in [`tracks/`](tracks/): what to do first, what to hand to whom, and
+how to brief an AI agent. This page is the full list of work.
+
+One orchestrator runs all four tracks and hands each work package to a coding agent. Its
+prompt, its checkpoints and its record are in [`orchestration/`](orchestration/).
 
 ## Tracks
 
-Four tracks, one person each, each working with their own AI agent. A track owns folders.
-Tracks meet only at the seams listed in [`tracks/README.md`](tracks/README.md), so four
-agents can write code at once without colliding.
+Four tracks. A track owns folders. Tracks meet only at the seams listed in
+[`tracks/README.md`](tracks/README.md), so several agents can write code at once without
+colliding.
 
 | Track | Owns | In one line |
 | :--- | :--- | :--- |

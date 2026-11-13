@@ -48,7 +48,13 @@ function.
 
 **Tests come with the code.** Python science code needs pytest tests against known
 geometry. TypeScript scoring code needs vitest tests against the shared fixture. UI is
-tested by hand; do not add Playwright.
+checked by eye; do not add Playwright or any browser test suite to the repo. Screenshots
+for design review are taken with the session's own browser tools.
+
+**No final UI before a design choice.** A user-facing screen is built in its final form
+only after the team lead has picked a variant. Until then, build its data and logic behind
+a plain placeholder. See
+[`docs/orchestration/orchestrator-prompt.md`](docs/orchestration/orchestrator-prompt.md).
 
 **Data.** Never commit `data/raw/` or `data/prepared/`. Do commit `data/derived/` and
 `data/fixtures/`.

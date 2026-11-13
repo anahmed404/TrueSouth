@@ -7,8 +7,10 @@ Owner: Academy track. Folder: `web/src/components/luna/`.
 
 ## Status
 
-**Final art is waiting on reference photos from the team lead.** Until they arrive, the
-app uses a placeholder: a simple round moon with two eyes, a mouth and a few craters.
+**Luna is a placeholder until the end.** The app uses a simple round moon with two eyes, a
+mouth and a few craters. Her final design is a polish task in the last milestone (work
+package A10), using reference photos from the team lead. Do not spend effort on her look
+before then.
 
 Build everything against the placeholder. Swapping in final art must need no code change
 outside `web/src/components/luna/art/`.

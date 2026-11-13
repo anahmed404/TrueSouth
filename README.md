@@ -21,8 +21,10 @@ LOLA laser-altimeter terrain for the skyline.
 
 ## Status
 
-Planning is complete. No application code exists yet. Start with
-[`docs/tracks/README.md`](docs/tracks/README.md), then your own track's guide.
+Planning is complete. No application code exists yet. The build is run by an orchestrator
+agent; its prompt is
+[`docs/orchestration/orchestrator-prompt.md`](docs/orchestration/orchestrator-prompt.md)
+and its progress is in [`docs/orchestration/status.md`](docs/orchestration/status.md).
 
 ## Where things are
 
@@ -30,7 +32,8 @@ Planning is complete. No application code exists yet. Start with
 | :--- | :--- |
 | [`AGENTS.md`](AGENTS.md) | The rules for working in this repo (humans and AI agents). |
 | [`CONTEXT.md`](CONTEXT.md) | The meaning of a project term. |
-| [`docs/tracks/`](docs/tracks/) | Your own guide: one per person, plus how the four fit together. |
+| [`docs/orchestration/`](docs/orchestration/) | The prompt for the orchestrator that runs the build, and its running status. |
+| [`docs/tracks/`](docs/tracks/) | One guide per track, plus how the four fit together. |
 | [`docs/build-plan.md`](docs/build-plan.md) | Who builds what, in what order, and how "done" is checked. |
 | [`docs/architecture.md`](docs/architecture.md) | The stack, the repo layout, how data flows, how to run it. |
 | [`docs/science.md`](docs/science.md) | Every formula, derived once. |

@@ -1,30 +1,39 @@
 # Tracks: who does what
 
-TrueSouth is built by four people, each working with their own AI agent. Each person has
-one track and one guide in this folder. Read this page first, then your own guide.
+TrueSouth is built in four tracks. A track is a lane of work with its own folders and its
+own guide in this folder.
 
-| Track | Guide | Owner | Builds |
-| :--- | :--- | :--- | :--- |
-| Science | [`science.md`](science.md) | _name_ | The Python pipeline, the derived data, the API |
-| Mission Control | [`mission-control.md`](mission-control.md) | _name_ | The web app's shell, scoring, timeline, Lander's eye, Slip Planner, Compare |
-| 3D and Map | [`3d-and-map.md`](3d-and-map.md) | _name_ | System view, local terrain, polar map, custom sites |
-| Academy | [`academy.md`](academy.md) | _name_ | Lessons, Luna, explanations, validation page, submission |
+| Track | Guide | Builds |
+| :--- | :--- | :--- |
+| Science | [`science.md`](science.md) | The Python pipeline, the derived data, the API |
+| Mission Control | [`mission-control.md`](mission-control.md) | The web app's shell, scoring, timeline, Lander's eye, Slip Planner, Compare |
+| 3D and Map | [`3d-and-map.md`](3d-and-map.md) | System view, local terrain, polar map, custom sites |
+| Academy | [`academy.md`](academy.md) | Lessons, Luna, explanations, validation page, submission |
 
-Write your name in the Owner column in your first pull request.
+## Who runs the tracks
 
-**Suggested assignment.** Science suits whoever is strongest in Python and numerical work.
-Mission Control suits whoever is strongest in React, because that person also keeps the
-app shell together. 3D and Map suits whoever knows three.js. Academy suits whoever
-explains things well and wants to understand the math; they also check it.
+One orchestrator runs all four. It is a Claude Fable 5.2 session driven by
+[`../orchestration/orchestrator-prompt.md`](../orchestration/orchestrator-prompt.md). It
+hands each work package to a coding agent on Claude Code, Codex, Cursor or Antigravity,
+checks the result and merges it. The team lead reviews at checkpoints.
+
+So in the guides:
+
+- "You" is the coding agent doing a work package in that track.
+- "Tell the team" means report to the orchestrator.
+- A track's "owner" is the orchestrator, acting for that track.
+
+The tracks still matter. They are what lets several agents work at once without touching
+the same files.
 
 The work packages, their order and their checks are in
-[`../build-plan.md`](../build-plan.md). The guides here do not repeat them. They tell each
-person what to do first, what to hand to whom, and how to brief their agent.
+[`../build-plan.md`](../build-plan.md). The guides here do not repeat them. They say what
+to do first, what each track hands to the others, and how to brief an agent.
 
 ## The first day
 
-Three people cannot start until two things exist. Do these first, and push them to `main`
-within the first hours.
+Most work cannot start until two things exist. Do these first, and merge them to `main`
+before anything else.
 
 1. **Science: S0.** The Python workspace and `contracts.py`. This defines every data
    format.
@@ -32,8 +41,8 @@ within the first hours.
    "The seams" below).
 3. **Science: S1 and S2.** The catalog input files and the fixtures.
 
-After step 2, the 3D and Map owner and the Academy owner can start. After step 3, every
-screen has data to show. Until then, those two owners read their specs and prepare.
+After step 2, the 3D and Map track and the Academy track can start. After step 3, every
+screen has data to show.
 
 ## The seams
 
@@ -170,8 +179,9 @@ Some files are touched by more than one track. These rules stop collisions.
   `science/s6-skyline` or `map/t7-polar-map`. The track prefixes are `science`, `mc`,
   `map` and `academy`.
 - Open a pull request into `main`. Keep it to one work package.
-- A pull request needs one review from another person. A change to a seam needs a review
-  from that seam's owner.
+- A pull request needs one review from an agent on a different provider than its author,
+  and the orchestrator's own check. A change to a seam is also checked against every track
+  that uses the seam.
 - `main` must always run on fixtures: `pnpm --dir web dev` with `VITE_DATA=fixtures`,
   `pnpm --dir web test`, `pnpm --dir web typecheck` and `uv run pytest` all pass.
 - Pull `main` into your branch before you open a pull request, and again before merging.
@@ -179,7 +189,9 @@ Some files are touched by more than one track. These rules stop collisions.
 
 ## Integration checkpoints
 
-At the end of each milestone, everyone pulls `main` and runs this together on one screen.
+At the end of each milestone the orchestrator runs this on `main`, then stops and shows
+the team lead. The checkpoint format, and the design variants shown at each one, are in
+[`../orchestration/orchestrator-prompt.md`](../orchestration/orchestrator-prompt.md).
 
 | After | Check |
 | :--- | :--- |
@@ -189,11 +201,15 @@ At the end of each milestone, everyone pulls `main` and runs this together on on
 | M3 | A custom site from the map appears in the Slip Planner. All eight lessons play in 10–15 minutes. The validation page shows real numbers. The Docker build runs. |
 | M4 | The demo story in [`../build-plan.md`](../build-plan.md), start to finish, twice, with a stopwatch. |
 
-Each checkpoint ends with a short list of defects, each given to one owner.
+Each checkpoint ends with a short list of defects, each given to one track.
 
-## Working with your AI agent
+**No user-facing screen is built in its final form until the team lead has seen variants
+and picked one.** Until then, a panel is built with its data and logic behind a plain
+placeholder.
 
-These rules are the same for all four people and all four tools.
+## Working with a coding agent
+
+These rules are the same for every track and every tool.
 
 1. **One work package per session.** Start a fresh session for each one. Long sessions
    drift.

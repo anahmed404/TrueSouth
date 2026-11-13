@@ -65,13 +65,24 @@ _No entries yet._
 
 ## Planning
 
+#### 2026-11-13 · planning · One orchestrator runs all four tracks
+- **Who:** team lead
+- **AI use:** Claude Code — wrote `docs/orchestration/` — team lead set the rules it
+  encodes
+- **State:** verified (documents only)
+- **Changed:** `docs/orchestration/`, `docs/tracks/README.md`, `docs/build-plan.md`,
+  `docs/academy/luna.md`
+- **Notes:** A Claude Fable 5.2 session hands work packages to agents on Claude Code,
+  Codex, Cursor (Grok models only) and Antigravity (Google models only). All UI work goes
+  to Claude Opus 5.5. It stops at six checkpoints for review and shows design variants
+  before any final UI. Luna stays a placeholder until the last milestone.
+
 #### 2026-11-13 · planning · Work split into four tracks with a guide each
 - **Who:** team lead
 - **AI use:** Claude Code — wrote `docs/tracks/` and moved the polar map and custom sites
   from Mission Control to the 3D and Map track — team lead reviewed the split
 - **State:** verified (documents only)
 - **Changed:** `docs/tracks/`, `docs/build-plan.md`, `AGENTS.md`, `README.md`, this file
-- **Notes:** Owner names are still blank in `docs/tracks/README.md`.
 
 #### 2026-11-13 · planning · Plan rewritten as an implementation-ready doc set
 - **Who:** team lead
