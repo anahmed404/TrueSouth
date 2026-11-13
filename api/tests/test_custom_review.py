@@ -204,3 +204,35 @@ def test_storage_publication_does_not_evict(tmp_path):
     assert full.value.status == 507
     assert (root/'one/series.bin').read_bytes() == b'1234567'
     assert not (root/'two').exists()
+
+
+@pytest.mark.parametrize('identity', ['c_-089.2000_130.5000', 'c_-0.0000_0.0000',
+    'c_00.0000_0.0000', 'c_0.0000_360.0000', 'c_91.0000_0.0000', 'c_90.0000_1.0000',
+    'c_+0.0000_0.0000', 'c_1e0_0.0000', 'c_\u0660.0000_0.0000'])
+def test_noncanonical_cache_folders_are_never_served(empty_tree, identity):
+    derived, prepared, cache = empty_tree
+    folder = cache/identity; folder.mkdir(parents=True)
+    site = entry(request(0, 0)).model_dump(); site['id'] = identity
+    (folder/'site.json').write_text(json.dumps(site))
+    for filename in ('meta.json', 'series.bin', 'skyline.bin'):
+        (folder/filename).write_bytes(b'SECRET_NONCANONICAL')
+    with TestClient(create_app(derived=derived, prepared=prepared, cache=cache)) as client:
+        assert client.get('/api/sites/custom/'+identity).status_code == 404
+        response = client.get('/api/custom/'+identity+'/series.bin')
+        assert response.status_code == 404 and b'SECRET' not in response.content
+        assert identity not in client.get('/api/health').text
+
+
+def test_clean_name_and_pole_identity(synthetic):
+    from truesouth_api.jobs import ID
+    import re
+    assert ID.flags & re.ASCII
+    assert site_id(request(90, 123)) == 'c_90.0000_0.0000'
+    assert site_id(request(-90, 321)) == 'c_-90.0000_0.0000'
+    body = request(0, 0, name=' \x00\n../display\t\u200b only\x7f ')
+    assert body.name == '../display only'
+    derived, prepared, cache = synthetic
+    jobs = Jobs(cache, Computer(derived, prepared, cache))
+    assert jobs.submit(body, 'one')['status'] == 'ready'
+    assert sorted(p.name for p in cache.iterdir()) == ['c_0.0000_0.0000']
+    assert jobs.cached(site_id(body))['name'] == '../display only'

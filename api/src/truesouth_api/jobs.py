@@ -13,7 +13,7 @@ from truesouth_api.settings import cache_limit_bytes as configured_cache_limit
 
 from truesouth.contracts import CatalogSite, CustomSiteRequest, Site
 
-ID = re.compile(r'^c_-?\d+\.\d{4}_\d+\.\d{4}$')
+ID = re.compile(r'^c_-?(?:0|[1-9][0-9]*)\.[0-9]{4}_(?:0|[1-9][0-9]*)\.[0-9]{4}$', re.ASCII)
 NEED_MAPS = 'Custom sites need the terrain maps, which are not installed on this server.'
 START = 'Custom site is not ready. Start it with POST /api/sites/custom.'
 MAPS = ('LDEM_80S_80MPP_ADJ.npy', 'LDEM_60S_240MPP_ADJ.npy')
@@ -21,8 +21,18 @@ MAPS = ('LDEM_80S_80MPP_ADJ.npy', 'LDEM_60S_240MPP_ADJ.npy')
 
 def site_id(request):
     lat = round(request.lat_deg, 4) or 0.
-    lon = round(request.lon_deg, 4) % 360 or 0.
+    lon = 0. if abs(lat) == 90 else (round(request.lon_deg, 4) % 360 or 0.)
     return f'c_{lat:.4f}_{lon:.4f}'
+
+
+def canonical_id(identity):
+    if not ID.fullmatch(identity):
+        return False
+    _, lat, lon = identity.split('_')
+    lat, lon = float(lat), float(lon)
+    if not (-90 <= lat <= 90 and 0 <= lon < 360):
+        return False
+    return identity == site_id(CustomSiteRequest.model_construct(lat_deg=lat, lon_deg=lon))
 
 
 class Computer:
@@ -83,7 +93,7 @@ class Jobs:
             computer.budget = self.budget
 
     def cached(self, identity):
-        if not ID.fullmatch(identity):
+        if not canonical_id(identity):
             return None
         folder = self.cache / identity
         try:

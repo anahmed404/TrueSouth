@@ -568,6 +568,13 @@ class CustomSiteRequest(Contract):
     lon_deg: float = Field(strict=True, allow_inf_nan=False, description='Finite east longitude; normalised to [0, 360).')
     name: Annotated[str, StringConstraints(strict=True, strip_whitespace=True, max_length=120)] = Field(default='Custom site', description='Optional display name, trimmed and length limited.')
 
+    @field_validator('name', mode='before')
+    @classmethod
+    def printable_name(cls, value):
+        if isinstance(value, str):
+            return ''.join(character for character in value if character.isprintable()).strip()
+        return value
+
     @field_validator('lon_deg')
     @classmethod
     def normalise_longitude(cls, value):
