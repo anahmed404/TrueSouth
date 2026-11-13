@@ -76,6 +76,16 @@ describe("the frame meter", () => {
     expect(meter.count).toBe(0);
     expect(median([3, 1, 2])).toBe(2);
   });
+
+  it("counts slow back-to-back frames up to its longest gap", () => {
+    const meter = new FrameMeter(8, 1_000);
+    meter.tick(0);
+    meter.tick(400);
+    meter.tick(800);
+    meter.tick(5_000);
+    expect(meter.count).toBe(2);
+    expect(meter.median()).toBe(400);
+  });
 });
 
 describe("the Moon's level of detail", () => {

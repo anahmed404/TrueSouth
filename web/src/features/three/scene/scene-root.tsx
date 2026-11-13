@@ -762,7 +762,7 @@ function Director(props: DirectorProps) {
     () => ({
       stages: qualityStages(typeof window === "undefined" ? 1 : window.devicePixelRatio || 1),
       stage: 0,
-      meter: new FrameMeter(WINDOW_FRAMES),
+      meter: new FrameMeter(WINDOW_FRAMES, 1_000),
       restTimer: 0,
       lastFrame: 0,
       resting: false,
@@ -928,7 +928,7 @@ function Director(props: DirectorProps) {
       // Only flight frames judge the stage: they are drawn back to back, so the time between
       // them is the frame's cost. A drag's frames follow the pointer, and a pause in a drag
       // must not look like a slow frame.
-      // The meter keeps its frames from one flight to the next (a gap over 250 ms is dropped).
+      // The meter keeps its frames from one flight to the next (a gap over a second is dropped).
       if (rig.flying) quality.meter.tick(now);
       const enough = quality.meter.count >= WINDOW_FRAMES || (quality.meter.count >= 6 && quality.meter.median() > 3 * STEP_DOWN_MS);
       if (enough) {
@@ -1013,7 +1013,7 @@ function Director(props: DirectorProps) {
   // Dev only: frame times for measuring (window.__truesouthPerf), and the `?perf` readout.
   const devMeter = useMemo(() => {
     if (!import.meta.env.DEV) return null;
-    const meter = new FrameMeter(2_000);
+    const meter = new FrameMeter(2_000, 1_000);
     let hud: HTMLDivElement | null = null;
     if (perfHud()) {
       hud = document.createElement("div");

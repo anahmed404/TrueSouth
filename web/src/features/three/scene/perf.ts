@@ -78,24 +78,31 @@ export function judgeWindow(stage: number, lastStage: number, medianMs: number):
 }
 
 /**
- * Collects the time between drawn frames while something moves. A gap over 250 ms means the
- * scene rested in between; it is not a frame time. A fixed ring: no allocation per frame.
+ * Collects the time between drawn frames while something moves. A gap over `maxGap` means
+ * the scene rested in between; it is not a frame time. A fixed ring: no allocation per frame.
  */
 export class FrameMeter {
   readonly times: Float64Array;
   count = 0;
   private next = 0;
-  private last = 0;
+  private last = Number.NaN;
 
-  constructor(size = 120) {
+  /**
+   * `maxGap`: the longest gap still counted as a frame. Frames drawn back to back (a flight)
+   * can be slow on a weak machine, so the scene counts them up to a second.
+   */
+  constructor(
+    size = 120,
+    readonly maxGap = 250,
+  ) {
     this.times = new Float64Array(size);
   }
 
   /** Records a frame drawn at `now` (ms). Returns the gap to the frame before, or 0 after a rest. */
   tick(now: number): number {
-    const gap = this.last > 0 ? now - this.last : 0;
+    const gap = Number.isNaN(this.last) ? 0 : now - this.last;
     this.last = now;
-    if (gap <= 0 || gap > 250) return 0;
+    if (gap <= 0 || gap > this.maxGap) return 0;
     this.times[this.next] = gap;
     this.next = (this.next + 1) % this.times.length;
     this.count = Math.min(this.count + 1, this.times.length);
@@ -106,7 +113,7 @@ export class FrameMeter {
   reset(): void {
     this.count = 0;
     this.next = 0;
-    this.last = 0;
+    this.last = Number.NaN;
   }
 
   median(): number {
