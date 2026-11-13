@@ -9,7 +9,7 @@ The same window therefore has identical metrics, utilities, score and status
 at every offset. Both languages use the same 12-decimal comparison rule,
 utility endpoint handling, weighted operation order and returned-score rounding.
 There is no screen or contract change. The trade-off is recorded in
-[decision 0014](../decisions/0014-exact-count-scoring.md).
+[decision 0015](../decisions/0015-exact-count-scoring.md).
 
 ## Catalog audit
 

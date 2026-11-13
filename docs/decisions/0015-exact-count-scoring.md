@@ -1,4 +1,4 @@
-# 0014. Scoring accumulates exact stored counts
+# 0015. Scoring accumulates exact stored counts
 
 **Decision.** Window means and numerical boundaries follow
 [`science.md`](../science.md), sections 9 to 11. Recover stored Sun-fraction

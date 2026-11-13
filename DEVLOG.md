@@ -57,7 +57,7 @@ each integration checkpoint.
 - **State:** built, not verified
 - **Changed:** scoring functions and their tests, the fixture generator and shared
   cases, a scoring-only fixture series, `docs/science.md` sections 9–11, decision
-  0014 and `docs/reviews/s2b-score-boundary.md`. No screens or contracts changed.
+  0015 and `docs/reviews/s2b-score-boundary.md`. No screens or contracts changed.
 - **Notes:**
   - Exact integer prefix counts replace floating prefix subtraction; a stated
     12-decimal rule handles comparisons and the returned score in both copies.
