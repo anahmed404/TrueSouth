@@ -74,9 +74,16 @@ type PlaceInput = {
 };
 
 /**
- * Places every catalog site on the map, folds crowded pins, and moves a crowded best-lit
- * variant out to a callout so it is never hidden under its parent. The focused pin leads its
- * fold; a variant never folds into its parent or anything else.
+ * Places every catalog site on the map, folds crowded pins, and keeps each best-lit variant
+ * tied to its parent so it is never hidden under it (decision 0012):
+ *
+ * - When the parent's own pin is drawn and the variant would sit under it, the variant moves
+ *   out to a callout beside the parent, with its true point marked.
+ * - When the parent is folded into another pin, a quiet variant folds there too, so the
+ *   "+N" counts both and no callout stands beside an unrelated pin. A selected or focused
+ *   variant is never folded away: it keeps a callout beside the pin that holds its parent.
+ *
+ * The focused pin leads its fold.
  */
 export function placePins({ sites, selectedIds, focusedId, states, view, halfWidthM }: PlaceInput): PlacedPin[] {
   const selected = new Set(selectedIds);
@@ -95,32 +102,38 @@ export function placePins({ sites, selectedIds, focusedId, states, view, halfWid
         parentId: site.variant_of ?? null,
       };
     });
+  const ids = new Set(base.map((pin) => pin.site.id));
+  const isVariant = (pin: PlacedPin) => pin.parentId !== null && ids.has(pin.parentId);
 
   // Leaders first: the focused pin, then selected pins, then the rest, each in catalog order.
   const rank = (pin: PlacedPin) => (pin.focused ? 0 : pin.selected ? 1 : 2);
   const ordered = [...base].sort((a, b) => rank(a) - rank(b));
   const leaders: PlacedPin[] = [];
   for (const pin of ordered) {
-    if (pin.parentId !== null) {
-      leaders.push(pin);
-      continue;
-    }
-    const near = leaders.find(
-      (leader) => leader.parentId === null && Math.hypot(leader.at.x - pin.at.x, leader.at.y - pin.at.y) < FOLD_PX,
-    );
+    if (isVariant(pin)) continue;
+    const near = leaders.find((leader) => Math.hypot(leader.at.x - pin.at.x, leader.at.y - pin.at.y) < FOLD_PX);
     if (near) near.folded.push(pin.site.id);
     else leaders.push(pin);
   }
 
-  // A variant crowded by the pin that stands for its parent moves out to a callout.
+  // Then each variant, beside or with its parent.
   const leaderOf = (id: string) => leaders.find((pin) => pin.site.id === id || pin.folded.includes(id)) ?? null;
-  for (const pin of leaders) {
-    if (pin.parentId === null) continue;
-    const parent = leaderOf(pin.parentId);
-    if (!parent) continue;
-    if (Math.hypot(parent.at.x - pin.at.x, parent.at.y - pin.at.y) < VARIANT_CALLOUT_PX) {
-      pin.drawAt = { x: parent.at.x + VARIANT_CALLOUT_OFFSET.x, y: parent.at.y + VARIANT_CALLOUT_OFFSET.y };
+  for (const pin of ordered) {
+    if (!isVariant(pin)) continue;
+    const holder = leaderOf(pin.parentId as string);
+    if (!holder) {
+      leaders.push(pin);
+      continue;
     }
+    const parentDrawn = holder.site.id === pin.parentId;
+    if (!parentDrawn && !pin.selected && !pin.focused) {
+      holder.folded.push(pin.site.id);
+      continue;
+    }
+    if (Math.hypot(holder.at.x - pin.at.x, holder.at.y - pin.at.y) < VARIANT_CALLOUT_PX) {
+      pin.drawAt = { x: holder.at.x + VARIANT_CALLOUT_OFFSET.x, y: holder.at.y + VARIANT_CALLOUT_OFFSET.y };
+    }
+    leaders.push(pin);
   }
   // Draw order: quiet pins first, the focused pin last, so it is never under another.
   return leaders.sort((a, b) => rank(b) - rank(a));

@@ -277,18 +277,9 @@ describe("the nudge readout", () => {
 
 describe("pins and labels keep their screen size", () => {
   const states = new Map<string, PinState>([["connecting_ridge", { kind: "status", status: "GO" }]]);
-  const withVariant: Site[] = [
-    ...realSites,
-    {
-      ...(realSites.find((s) => s.id === "connecting_ridge") as Site),
-      id: "connecting_ridge_best_lit",
-      name: "Connecting Ridge, best lit",
-      lat_deg: -89.4567,
-      lon_deg: 222.5,
-      variant_of: "connecting_ridge",
-      offset_m: 149,
-    },
-  ];
+  // The real catalog (#77) has five best-lit variants, 71 to 149 m from their parents.
+  const variants = realSites.filter((s) => s.variant_of);
+  const withVariant = realSites;
 
   it("draws each kind of pin at one radius at every zoom", () => {
     const radii = (view: MapView) =>
@@ -317,27 +308,61 @@ describe("pins and labels keep their screen size", () => {
     expect(named).toContain("Shackleton");
   });
 
-  it("never hides a best-lit variant under its parent", () => {
-    const view: MapView = { k: 0.7, x: 600, y: 400 };
-    const pins = placePins({
-      sites: withVariant,
-      selectedIds: ["connecting_ridge", "connecting_ridge_best_lit"],
-      focusedId: "connecting_ridge",
-      states,
-      view,
-    });
-    const parent = pins.find((p) => p.site.id === "connecting_ridge");
-    const variant = pins.find((p) => p.site.id === "connecting_ridge_best_lit");
-    expect(parent && variant).toBeTruthy();
-    if (!parent || !variant) return;
-    expect(parent.folded).not.toContain("connecting_ridge_best_lit");
-    expect(Math.hypot(variant.drawAt.x - parent.drawAt.x, variant.drawAt.y - parent.drawAt.y)).toBeGreaterThan(
-      pinRadius(parent) + PIN.catalog,
-    );
-    expect(variant.parentId).toBe("connecting_ridge");
-    // A click on the callout picks the variant, not its parent.
-    expect(pinAt(pins, variant.drawAt)?.site.id).toBe("connecting_ridge_best_lit");
-    // Far enough apart on screen, it is drawn where it really is.
+  it("has the five real best-lit variants to test against", () => {
+    expect(variants.map((v) => v.id).sort()).toEqual([
+      "connecting_ridge_best_lit",
+      "de_gerlache_rim_best_lit",
+      "malapert_peak_best_lit",
+      "peak_near_shackleton_best_lit",
+      "shackleton_rim_best_lit",
+    ]);
+    for (const v of variants) expect(v.offset_m).toBeLessThan(160);
+  });
+
+  it("never hides a best-lit variant under its parent, at any zoom", () => {
+    for (const k of [0.7, 2, 8, 40]) {
+      const view: MapView = { k, x: 600, y: 400 };
+      for (const variant of variants) {
+        const parentId = variant.variant_of as string;
+        const pins = placePins({ sites: withVariant, selectedIds: [parentId], focusedId: parentId, states, view });
+        const parent = pins.find((p) => p.site.id === parentId);
+        const drawn = pins.find((p) => p.site.id === variant.id);
+        expect(parent).toBeTruthy();
+        expect(drawn).toBeTruthy();
+        if (!parent || !drawn) continue;
+        expect(parent.folded).not.toContain(variant.id);
+        // Out from under the parent's ring, and a click on it picks the variant.
+        expect(Math.hypot(drawn.drawAt.x - parent.drawAt.x, drawn.drawAt.y - parent.drawAt.y)).toBeGreaterThan(
+          pinRadius(parent) + PIN.catalog,
+        );
+        expect(pinAt(pins, drawn.drawAt)?.site.id).toBe(variant.id);
+        // The parent stays findable too.
+        expect(pinAt(pins, parent.drawAt)?.site.id).toBe(parentId);
+        expect(drawn.parentId).toBe(parentId);
+      }
+    }
+  });
+
+  it("folds a quiet variant with its parent when the parent is folded into another pin", () => {
+    // At the opening zoom Shackleton rim folds into the focused Connecting Ridge.
+    const pins = placePins({ sites: withVariant, selectedIds: ["connecting_ridge"], focusedId: "connecting_ridge", states, view: { k: 0.7, x: 0, y: 0 } });
+    const ridge = pins.find((p) => p.site.id === "connecting_ridge");
+    expect(ridge?.folded).toContain("shackleton_rim");
+    expect(ridge?.folded).toContain("shackleton_rim_best_lit");
+    // Every callout stands beside its own parent's pin, so callouts never pile up beside
+    // an unrelated one, and no two share a place.
+    const callouts = pins.filter((p) => p.drawAt.x !== p.at.x || p.drawAt.y !== p.at.y);
+    expect(callouts.map((p) => p.site.id)).toContain("connecting_ridge_best_lit");
+    expect(callouts.map((p) => p.site.id)).not.toContain("shackleton_rim_best_lit");
+    for (const callout of callouts) {
+      const parent = pins.find((p) => p.site.id === callout.parentId);
+      expect(parent).toBeTruthy();
+    }
+    const places = new Set(callouts.map((p) => `${Math.round(p.drawAt.x)},${Math.round(p.drawAt.y)}`));
+    expect(places.size).toBe(callouts.length);
+  });
+
+  it("draws a variant at its true point once it is far enough from its parent on screen", () => {
     const close = placePins({ sites: withVariant, selectedIds: [], focusedId: null, states, view: { k: 600, x: 0, y: 0 } });
     const free = close.find((p) => p.site.id === "connecting_ridge_best_lit");
     expect(free?.drawAt).toEqual(free?.at);
