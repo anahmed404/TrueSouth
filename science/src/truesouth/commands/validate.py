@@ -25,7 +25,8 @@ from truesouth.horizons import global_request, parse_global, parse_site, site_re
 from truesouth.skyline import compute_skyline
 from truesouth.validation import (ILLUMINATION_SOURCE, TERRAIN_SOURCE, compare_sunlight, compare_earth,
                                   compare_slope, compare_convergence, geometry_gates,
-                                  measured_gate, unmeasured_gate)
+                                  measured_gate, unmeasured_gate, gate_checked_elsewhere,
+                                  illumination_explanation, slope_explanation, convergence_explanation)
 
 HORIZONS_SOURCE = 'https://ssd.jpl.nasa.gov/horizons/'
 
@@ -38,6 +39,9 @@ def add_arguments(parser):
 class ReferencePixel:
     value: float
     detail: str
+    pixel_m: float
+    neighbour_min: float | None
+    neighbour_max: float | None
 
 
 def reference_pixel(path, lat, lon, pixel_m, *, slope=False):
@@ -64,12 +68,22 @@ def reference_pixel(path, lat, lon, pixel_m, *, slope=False):
             row, col = ds.index(float(x), float(y))
             if not (0 <= row < ds.height and 0 <= col < ds.width):
                 return None
-            raw = ds.read(1, window=Window(col, row, 1, 1), masked=True)
-            if np.ma.getmaskarray(raw).any():
+            r0, c0 = max(row-1, 0), max(col-1, 0)
+            r1, c1 = min(row+2, ds.height), min(col+2, ds.width)
+            raw = ds.read(1, window=Window(c0, r0, c1-c0, r1-r0), masked=True)
+            scaled = np.ma.filled(np.ma.asarray(raw, dtype=float)*scale+offset, np.nan)
+            local_r, local_c = row-r0, col-c0
+            if not np.isfinite(scaled[local_r, local_c]):
                 return None
-            value = float(raw[0, 0])*scale+offset
-            if not np.isfinite(value) or not (0 <= value <= (90 if slope else 1)):
+            value = float(scaled[local_r, local_c])
+            if not (0 <= value <= (90 if slope else 1)):
                 raise ValueError(f'{path.name}: reference value outside its physical range')
+            neighbours = np.array(scaled, copy=True)
+            neighbours[local_r, local_c] = np.nan
+            finite = neighbours[np.isfinite(neighbours)]
+            finite = finite[(0 <= finite) & (finite <= (90 if slope else 1))]
+            neighbour_min = float(np.min(finite)) if finite.size else None
+            neighbour_max = float(np.max(finite)) if finite.size else None
             detail = f'{path.name}, pixel ({row}, {col}), scale={scale:g}, offset={offset:g}, no-data={ds.nodata:g}'
             if slope:
                 unit = ds.units[0] or ds.tags(1).get('UNITTYPE')
@@ -80,16 +94,53 @@ def reference_pixel(path, lat, lon, pixel_m, *, slope=False):
                 detail += (f'; units={unit}' if unit else '; file has no unit tag; NASA product 90 identifies degrees')
                 detail += f'; NASA baseline metadata={baseline}' if baseline else '; NASA baseline not recorded in file metadata'
                 detail += '; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline.'
-            return ReferencePixel(value, detail)
+            return ReferencePixel(value, detail, pixel_m, neighbour_min, neighbour_max)
+
+
+VISIBILITY_MAPS = (('85S_060M', 60), ('75S_120M', 120))
+
+
+def visibility_path(raw_dir, body, name):
+    suffix = '' if body == 'sun' else '_EARTH'
+    return raw_dir/f'AVGVISIB_{name}_201608{suffix}.TIF'
 
 
 def visibility_reference(raw_dir, body, lat, lon):
-    suffix = '' if body == 'sun' else '_EARTH'
-    for name, pixel in (('85S_060M', 60), ('75S_120M', 120)):
-        result = reference_pixel(raw_dir/f'AVGVISIB_{name}_201608{suffix}.TIF', lat, lon, pixel)
+    for name, pixel in VISIBILITY_MAPS:
+        result = reference_pixel(visibility_path(raw_dir, body, name), lat, lon, pixel)
         if result is not None:
             return result
     return None
+
+
+def visibility_skip_reason(raw_dir, body, lat, lon):
+    """Name every average-visibility map this command actually opened or looked for."""
+    present, missing = [], []
+    for name, _pixel in VISIBILITY_MAPS:
+        path = visibility_path(raw_dir, body, name)
+        (present if path.is_file() else missing).append(path.name)
+    if not present:
+        return 'reference file missing'
+    reason = 'reference pixel is no-data or outside '+' and '.join(present)
+    if missing:
+        reason += '; not on disk: '+' and '.join(missing)
+    return reason
+
+
+def other_visibility(raw_dir, body, lat, lon, pixel_m):
+    """The other published resolution at this point, when that map has data there."""
+    for name, pixel in VISIBILITY_MAPS:
+        if pixel == pixel_m:
+            continue
+        result = reference_pixel(visibility_path(raw_dir, body, name), lat, lon, pixel)
+        if result is not None:
+            return result
+    return None
+
+
+def _period(detail):
+    detail = detail.strip()
+    return detail if detail.endswith('.') else detail+'.'
 
 
 def slope_reference(raw_dir, lat, lon):
@@ -135,7 +186,7 @@ def parser_gate(response):
                          f'Maximum difference {max(errors):.12g}.')
 
 
-def direction_evidence(site_id, predicted, reference, times, step_h=24):
+def direction_evidence(site_id, body, predicted, reference, times, step_h=24):
     """G2 summary plus daily maxima of full direction separation on the sky."""
     result = compare_site(predicted, reference, times)
     raw = np.abs((predicted.az_deg-reference['az_deg']+180) % 360-180)
@@ -146,7 +197,7 @@ def direction_evidence(site_id, predicted, reference, times, step_h=24):
     result.update(raw_max_deg=float(raw[i]), raw_max_utc=str(times[i])+'Z',
                   raw_above_mark=int(np.count_nonzero(raw > .02)), samples=len(raw))
     daily = np.maximum.reduceat(sky, np.arange(0, len(sky), step_h))
-    return result, DifferenceOverTime(site_id=site_id, body='sun', start_utc=str(times[0])+'Z',
+    return result, DifferenceOverTime(site_id=site_id, body=body, start_utc=str(times[0])+'Z',
                                      step_h=step_h, max_difference_deg=daily.tolist())
 
 
@@ -164,10 +215,10 @@ def directions_gate(sites, system, times, directory):
             prefix = 'subsolar' if body == 'sun' else 'subearth'
             predicted = topocentric(site.lat_deg, site.lon_deg, system[prefix+'_lat'], system[prefix+'_lon'],
                                     system[body+'_dist_km'], radius)
-            report, chart = direction_evidence(site.id, predicted, reference.columns, times)
+            report, chart = direction_evidence(site.id, body, predicted, reference.columns, times)
             report.update(site_id=site.id, body=body)
             reports.append(report)
-            charts.append(chart.model_copy(update={'body': body}))
+            charts.append(chart)
             print('G2 '+site.id+' '+body+' '+json.dumps(report, sort_keys=True))
     if not reports:
         return unmeasured_gate('G2', 'Sun and Earth directions match JPL Horizons', .02, 'deg',
@@ -232,17 +283,19 @@ def run(args):
         for identifier, body, compare in (('R1', 'sun', compare_sunlight), ('R2', 'earth', compare_earth)):
             ref = visibility_reference(raw, body, site.lat_deg, site.lon_deg)
             if ref is None:
-                suffix = '' if body == 'sun' else '_EARTH'
-                present = any((raw/f'AVGVISIB_{area}_201608{suffix}.TIF').is_file()
-                              for area in ('85S_060M', '75S_120M'))
-                reason = 'reference pixel is no-data or outside both maps' if present else 'reference file missing'
-                not_run.append((identifier, site.id, reason))
+                not_run.append((identifier, site.id, visibility_skip_reason(raw, body, site.lat_deg, site.lon_deg)))
             else:
                 comparison = compare(site.id, series[body+'_frac'], ref.value)
-                # Retain reference metadata even for in-mark results, without adding contract fields.
-                comparison = comparison.model_copy(update={'explanation':
-                    ((comparison.explanation+' ') if comparison.explanation else '')+ref.detail+'.'})
-                comparisons.append(comparison)
+                if comparison.outside_mark:
+                    other = other_visibility(raw, body, site.lat_deg, site.lon_deg, ref.pixel_m)
+                    explanation = illumination_explanation(
+                        ref.pixel_m, ref.value, ref.neighbour_min, ref.neighbour_max,
+                        None if other is None else other.pixel_m, None if other is None else other.value,
+                        comparison.ours)
+                else:
+                    # Keep the pixel's own provenance on an in-mark result.
+                    explanation = _period(ref.detail)
+                comparisons.append(comparison.model_copy(update={'explanation': explanation}))
                 covered[identifier].append(site.id)
         if site.terrain_tier == 'core80':
             ref = slope_reference(raw, site.lat_deg, site.lon_deg)
@@ -255,8 +308,13 @@ def run(args):
             elif site.slope.baseline_m != 160:
                 raise ValueError(f'{site.id}: R3 needs the stored 160 m polar-map slope')
             else:
-                comparison = compare_slope(site.id, site.slope.deg, ref.value, reference_detail=ref.detail+'.')
-                comparisons.append(comparison.model_copy(update={'explanation': comparison.explanation or ref.detail+'.'}))
+                detail = _period(ref.detail)
+                comparison = compare_slope(site.id, site.slope.deg, ref.value, reference_detail=detail)
+                if comparison.outside_mark:
+                    explanation = slope_explanation(ref.value, ref.neighbour_min, ref.neighbour_max, comparison.ours)
+                else:
+                    explanation = detail
+                comparisons.append(comparison.model_copy(update={'explanation': explanation}))
     chosen = [s for s in sites if s.group == 'sunlit_peak'][:3]
     core, wide = prepared/'LDEM_80S_80MPP_ADJ.npy', prepared/'LDEM_60S_240MPP_ADJ.npy'
     if chosen:
@@ -271,7 +329,11 @@ def run(args):
             print(f'R5 {site.id}: recomputing 1440 bins and 2880 bins with half the step', flush=True)
             coarse = compute_skyline(store, site.lat_deg, site.lon_deg)
             fine = compute_skyline(store, site.lat_deg, site.lon_deg, bins=2880, step_scale=.5)
-            comparisons.append(compare_convergence(site.id, coarse.el_deg, fine.el_deg))
+            comparison = compare_convergence(site.id, coarse.el_deg, fine.el_deg)
+            if comparison.outside_mark:
+                comparison = comparison.model_copy(update={'explanation': convergence_explanation(
+                    coarse.el_deg, fine.el_deg, coarse.dist_km, fine.dist_km, comparison.investigate_above)})
+            comparisons.append(comparison)
     if len(chosen) < 3:
         not_run.append(('R5', None, f'only {len(chosen)} sunlit_peak sites available; need three'))
     not_run.extend([('R4', None, 'close-up reference maps are not downloaded'),
@@ -279,10 +341,12 @@ def run(args):
     with tempfile.TemporaryDirectory(prefix='truesouth-validation-') as directory:
         gates.extend(geometry_gates(Path(directory)))
     gates.extend([
-        unmeasured_gate('G10', 'TypeScript scoring matches the Python reference', 1e-9, 'difference',
-                        'checked by pnpm --dir web test against the shared scoring fixture; Python did not run it'),
-        unmeasured_gate('G11', 'Generated TypeScript types are current', 0., 'difference',
-                        'checked by the web generated-types check; Python did not run it'),
+        gate_checked_elsewhere(
+            'G10', 'TypeScript scoring matches the Python reference', 1e-9, 'difference',
+            'Not measured by this command. It is checked by pnpm --dir web test against the shared scoring fixture.'),
+        gate_checked_elsewhere(
+            'G11', 'Generated TypeScript types are current', 0., 'difference',
+            'Not measured by this command. It is checked by pnpm --dir web gen:types followed by a clean diff.'),
     ])
     print('R5 selection: first three sunlit_peak ids in sites.json, sorted by id.')
     for identifier, ids in covered.items():
@@ -294,7 +358,9 @@ def run(args):
     for identifier, site_id, reason in sorted(not_run, key=lambda r: (r[0], r[1] or '')):
         print(f'{identifier}'+(f' {site_id}' if site_id else '')+': '+reason)
     for g in gates:
-        print(f'{g.id} passed={g.passed} measured={g.measured:.12g} {g.unit} samples={g.samples}: {g.detail}')
+        passed = 'null' if g.passed is None else str(g.passed)
+        measured = 'null' if g.measured is None else f'{g.measured:.12g}'
+        print(f'{g.id} passed={passed} measured={measured} {g.unit} samples={g.samples}: {g.detail}')
     sources = [DataSource(name='JPL Horizons', url=HORIZONS_SOURCE, used_for='G1 parser and G2 directions'),
                DataSource(name='LOLA 80 m and 240 m polar terrain', url=TERRAIN_SOURCE,
                           used_for='terrain behind the series and R5 skyline convergence'),
@@ -308,5 +374,5 @@ def run(args):
                         g2_over_time=charts, sources=sources)
     write_validation(output/'validation.json', report)
     # An actual failed hard gate is a failed run, but still publish its evidence.
-    # G10/G11 and wholly missing inputs carry no claimed measurement or sample.
-    return int(any(not g.passed and g.samples > 0 for g in gates))
+    # A gate this command did not measure has passed null, so it is not a failure.
+    return int(any(g.passed is False and g.samples > 0 for g in gates))

@@ -374,16 +374,33 @@ class Gate(Contract):
 
     id: str = Field(description='Gate identifier, G1 to G11.')
     name: str = Field(description='Gate name, a plain sentence.')
-    passed: bool = Field(description='Whether the gate passed.')
-    measured: float = Field(description='Measured value in unit: for most gates the largest difference found.')
+    passed: bool | None = Field(
+        description='Whether the gate passed. Null when this command did not measure the gate.',
+    )
+    measured: float | None = Field(
+        description='Measured value in unit, or null when this command did not measure the gate. '
+        'For most gates the largest difference found.',
+    )
     limit: float = Field(description='Passing limit in unit.')
     unit: str = Field(description='Unit of measured value and limit.')
-    samples: int = Field(ge=0, description='Number of samples compared.')
+    samples: int = Field(ge=0, description='Number of samples compared. Zero when the gate was not measured here.')
     detail: str | None = Field(
         default=None,
         description='Optional plain sentence with the expected and measured values of a synthetic test, '
-        'written by the pipeline from its own numbers. Null when there is nothing to add.',
+        'written by the pipeline from its own numbers. Null when there is nothing to add. '
+        'When passed is null, a sentence saying where the gate is checked.',
     )
+
+    @model_validator(mode='after')
+    def unmeasured_pair(self):
+        if (self.passed is None) != (self.measured is None):
+            raise ValueError('passed and measured are both null when this command did not measure the gate')
+        if self.passed is None:
+            if self.samples != 0:
+                raise ValueError('a gate that was not measured here has no samples')
+            if not self.detail or not self.detail.strip() or '.' not in self.detail:
+                raise ValueError('a gate that was not measured here needs a sentence saying where it is checked')
+        return self
 
 
 class Comparison(Contract):

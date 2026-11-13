@@ -94,22 +94,22 @@
     {
       "id": "G10",
       "name": "TypeScript scoring matches the Python reference",
-      "passed": false,
-      "measured": 0.0,
+      "passed": null,
+      "measured": null,
       "limit": 1e-09,
       "unit": "difference",
       "samples": 0,
-      "detail": "Not measured: checked by pnpm --dir web test against the shared scoring fixture; Python did not run it; measured=0 is a contract placeholder, not a result."
+      "detail": "Not measured by this command. It is checked by pnpm --dir web test against the shared scoring fixture."
     },
     {
       "id": "G11",
       "name": "Generated TypeScript types are current",
-      "passed": false,
-      "measured": 0.0,
+      "passed": null,
+      "measured": null,
       "limit": 0.0,
       "unit": "difference",
       "samples": 0,
-      "detail": "Not measured: checked by the web generated-types check; Python did not run it; measured=0 is a contract placeholder, not a result."
+      "detail": "Not measured by this command. It is checked by pnpm --dir web gen:types followed by a clean diff."
     }
   ],
   "comparisons": [
@@ -254,7 +254,7 @@
       "reference_source": "https://pgda.gsfc.nasa.gov/products/69",
       "investigate_above": 0.1,
       "outside_mark": true,
-      "explanation": "NASA uses an observer on the surface, 18.6 years and its own terrain grid; ours uses an observer 2 m above ground, six years and the 80 m map (240 m beyond its coverage). At sharp ridges, nearby pixels can have very different skylines (decision 0012). These differences do not establish the cause of this gap; it remains a reported discrepancy, without tuning. AVGVISIB_85S_060M_201608.TIF, pixel (2889, 3053), scale=4e-05, offset=0, no-data=-32768."
+      "explanation": "NASA's 60 m pixel is 0.361. Neighbouring pixels on that map run from 0.447 to 0.580. NASA's 120 m map is 0.601 at the same point. Ours is 0.602. NASA models an observer on the surface, 18.6 years and its own terrain grid; ours uses an observer 2 m above the ground, six years and the 80 m map."
     },
     {
       "id": "R1",
@@ -430,7 +430,7 @@
       "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
       "investigate_above": 2.0,
       "outside_mark": false,
-      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (3512, 3193), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline.."
+      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (3512, 3193), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
     },
     {
       "id": "R3",
@@ -441,7 +441,7 @@
       "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
       "investigate_above": 2.0,
       "outside_mark": false,
-      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (2668, 3324), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline.."
+      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (2668, 3324), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
     },
     {
       "id": "R3",
@@ -452,7 +452,7 @@
       "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
       "investigate_above": 2.0,
       "outside_mark": false,
-      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (2281, 3793), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline.."
+      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (2281, 3793), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
     },
     {
       "id": "R3",
@@ -463,7 +463,7 @@
       "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
       "investigate_above": 2.0,
       "outside_mark": false,
-      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (2325, 4712), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline.."
+      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (2325, 4712), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
     },
     {
       "id": "R3",
@@ -474,7 +474,7 @@
       "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
       "investigate_above": 2.0,
       "outside_mark": false,
-      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (2425, 4850), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline.."
+      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (2425, 4850), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
     },
     {
       "id": "R3",
@@ -485,7 +485,7 @@
       "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
       "investigate_above": 2.0,
       "outside_mark": false,
-      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (2612, 5762), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline.."
+      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (2612, 5762), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
     },
     {
       "id": "R3",
@@ -496,7 +496,7 @@
       "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
       "investigate_above": 2.0,
       "outside_mark": false,
-      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (3951, 3660), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline.."
+      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (3951, 3660), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
     },
     {
       "id": "R3",
@@ -507,7 +507,7 @@
       "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
       "investigate_above": 2.0,
       "outside_mark": false,
-      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (3617, 3340), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline.."
+      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (3617, 3340), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
     },
     {
       "id": "R3",
@@ -518,7 +518,7 @@
       "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
       "investigate_above": 2.0,
       "outside_mark": false,
-      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (50, 3894), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline.."
+      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (50, 3894), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
     },
     {
       "id": "R3",
@@ -529,7 +529,7 @@
       "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
       "investigate_above": 2.0,
       "outside_mark": false,
-      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (2075, 4763), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline.."
+      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (2075, 4763), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
     },
     {
       "id": "R3",
@@ -540,7 +540,7 @@
       "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
       "investigate_above": 2.0,
       "outside_mark": false,
-      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (2274, 3743), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline.."
+      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (2274, 3743), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
     },
     {
       "id": "R3",
@@ -551,7 +551,7 @@
       "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
       "investigate_above": 2.0,
       "outside_mark": false,
-      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (4070, 4193), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline.."
+      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (4070, 4193), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
     },
     {
       "id": "R3",
@@ -562,7 +562,7 @@
       "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
       "investigate_above": 2.0,
       "outside_mark": false,
-      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (3878, 3765), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline.."
+      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (3878, 3765), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
     },
     {
       "id": "R5",
@@ -573,7 +573,7 @@
       "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
       "investigate_above": 0.05,
       "outside_mark": true,
-      "explanation": "Doubling the bins and halving the ray step changes which terrain sets a bin. The RMS at shared azimuths exceeds 0.05 degrees; the production skyline has not been tuned to reduce the gap."
+      "explanation": "405 of 1,440 bins differ by more than 0.05 degrees, by at most 0.36 degrees. The blockers for those bins are within 0.56 km. The difference comes from terrain within a few map pixels of the site, where halving the ray step samples different points."
     },
     {
       "id": "R5",

@@ -15,7 +15,8 @@ from truesouth.dem import EXPECTED_CRS, DemStore
 from truesouth.derived_io import write_series, write_system
 from truesouth.frames import polar_stereo_forward, polar_stereo_inverse
 from truesouth.validation import geometry_gates, prepared_geometry, compare_convergence
-from truesouth.commands.validate import visibility_reference, slope_reference, direction_evidence, parser_gate
+from truesouth.commands.validate import (visibility_reference, slope_reference, direction_evidence, parser_gate,
+                                        reference_pixel, visibility_skip_reason, directions_gate)
 
 
 def raster(path, centre, pixel, raw=12500, *, scale=.00004, offset=0, crs=EXPECTED_CRS, unit=None):
@@ -67,6 +68,62 @@ def test_r3_reads_scaled_degrees_and_reports_unknown_baseline(tmp_path):
     assert 'baseline' in ref.detail and 'not recorded' in ref.detail
 
 
+def test_reference_pixel_reads_the_pixel_that_contains_the_point(tmp_path):
+    """Every pixel is unique, the grid is not square, and a flip or a shift would miss."""
+    pixel = 80.
+    height, width = 4, 7
+    values = np.arange(1, height*width+1, dtype=np.int16).reshape(height, width)
+    assert height != width
+    assert not np.array_equal(values, values[::-1])
+    assert not np.array_equal(values, values[:, ::-1])
+    assert len(set(values.ravel().tolist())) == values.size
+    x0, y0 = polar_stereo_forward(-89., 12.)
+    west, north = x0-width*pixel/2, y0+height*pixel/2
+    path = tmp_path/'patch.tif'
+    with rasterio.open(path, 'w', driver='GTiff', width=width, height=height, count=1, dtype='int16',
+                       crs=EXPECTED_CRS, transform=from_origin(west, north, pixel, pixel), nodata=-32768) as ds:
+        ds.write(values, 1)
+        ds.scales = (4e-05,)
+        ds.offsets = (0,)
+
+    def read(x, y):
+        lat, lon = polar_stereo_inverse(x, y)
+        return reference_pixel(path, float(lat), float(lon), pixel)
+
+    def centre(row, col):
+        return west+(col+.5)*pixel, north-(row+.5)*pixel
+
+    # One point in each quadrant of the raster. Corners would hide a one-pixel shift.
+    for row, col in ((0, 1), (0, 5), (3, 1), (3, 5)):
+        got = read(*centre(row, col)).value
+        expected = float(values[row, col])*4e-05
+        assert got == pytest.approx(expected)
+        assert abs(got-float(values[height-1-row, col])*4e-05) > 1e-8
+        assert abs(got-float(values[row, width-1-col])*4e-05) > 1e-8
+
+    row, col = 1, 2
+    x, y = centre(row, col)
+    expected = float(values[row, col])*4e-05
+    hair = .05
+    edges = ((west+col*pixel+hair, y), (west+(col+1)*pixel-hair, y),
+             (x, north-row*pixel-hair), (x, north-(row+1)*pixel+hair))
+    for point in edges:
+        assert read(*point).value == pytest.approx(expected)
+    assert abs(expected-float(values[row, col+1])*4e-05) > 1e-8
+    assert abs(expected-float(values[row+1, col])*4e-05) > 1e-8
+    assert abs(expected-float(values[height-1-row, col])*4e-05) > 1e-8
+    assert abs(expected-float(values[row, width-1-col])*4e-05) > 1e-8
+
+
+def test_skip_reason_names_each_visibility_map_that_was_tried(tmp_path):
+    raster(tmp_path/'AVGVISIB_85S_060M_201608.TIF', (-89, 0), 60)
+    raster(tmp_path/'AVGVISIB_75S_120M_201608.TIF', (-89, 0), 120)
+    reason = visibility_skip_reason(tmp_path, 'sun', -69.3741, 32.32)
+    assert reason == ('reference pixel is no-data or outside '
+                      'AVGVISIB_85S_060M_201608.TIF and AVGVISIB_75S_120M_201608.TIF')
+    assert visibility_reference(tmp_path, 'sun', -69.3741, 32.32) is None
+
+
 def test_untrusted_raster_wrong_projection_is_rejected(tmp_path):
     raster(tmp_path/'AVGVISIB_85S_060M_201608.TIF', (-89, 0), 60, crs='EPSG:4326')
     with pytest.raises(ValueError, match='projection'):
@@ -78,13 +135,14 @@ def test_g2_reports_raw_azimuth_without_gating_it_near_zenith():
     # A 90-degree compass change at 0.001 degree from zenith is a tiny sky angle.
     predicted = SimpleNamespace(az_deg=np.zeros(25), el_deg=np.full(25, 89.999))
     reference = {'az_deg': np.r_[90., np.zeros(24)], 'el_deg': np.full(25, 89.999)}
-    report, chart = direction_evidence('test_site', predicted, reference, times)
+    report, chart = direction_evidence('test_site', 'sun', predicted, reference, times)
     assert report['raw_max_deg'] == 90
     assert report['raw_above_mark'] == 1
     assert report['az_max_deg'] == pytest.approx(.001414213562, abs=1e-11)
     assert report['el_max_deg'] == 0
     assert chart.max_difference_deg == pytest.approx([.001414213562, 0], abs=1e-11)
     assert chart.start_utc == '2026-01-01T00:00:00Z'
+    assert chart.body == 'sun'
 
 
 def synthetic_global_response():
@@ -154,6 +212,42 @@ Date__(UT)__HR:MN, , , Azimuth_(a-app), Elevation_(a-app),
         directions_gate([site], system, times[:-1], tmp_path)
 
 
+def test_directions_gate_passes_a_large_raw_azimuth_near_the_zenith(tmp_path):
+    """Raw compass azimuth can swing near the zenith while the sky and elevation stay inside the gate."""
+    import hashlib
+    import json
+    import re
+    from truesouth.horizons import site_request
+    from truesouth.contracts import Site
+    site = Site(id='test_site', name='Test', group='contrast', lat_deg=-89, lon_deg=0,
+                description='Synthetic', source_url='https://example.test', outcome=None,
+                terrain_tier='core80', has_closeup=False, elevation_m=0, slope=None,
+                quickmap_url='https://example.test', moontrek_url='https://example.test')
+    times = np.datetime64('2026-01-01T00:00:00')+np.arange(4)*np.timedelta64(1, 'h')
+    system = {prefix+suffix: np.full(4, value) for prefix in ('subsolar', 'subearth')
+              for suffix, value in (('_lat', -89), ('_lon', 0))}
+    system.update(sun_dist_km=np.full(4, 150000000), earth_dist_km=np.full(4, 380000))
+    header = '''Center body name: Moon (301)
+Center pole/equ : MEAN_ME (high precision) {East-longitude positive}
+Center radii : 1737.4, 1737.4, 1737.4 km
+Atmos refraction: NO (AIRLESS)
+Date__(UT)__HR:MN, , , Azimuth_(a-app), Elevation_(a-app),
+'''
+    rows = {('sun'): ''.join(f'2026-Jan-01 0{i}:00, , , 90, 89.999,\n' for i in range(4)),
+            ('earth'): ''.join(f'2026-Jan-01 0{i}:00, , , 0, 90,\n' for i in range(4))}
+    for body, body_rows in rows.items():
+        key = hashlib.sha256(json.dumps(site_request(body, -89, 0), sort_keys=True).encode()).hexdigest()[:20]
+        (tmp_path/f'test_site-{body}-{key}.json').write_text(json.dumps({
+            'result': header+'$$SOE\n'+body_rows+'$$EOE\nclockwise from north'}), encoding='utf-8')
+    gate, charts = directions_gate([site], system, times, tmp_path)
+    found = {name: float(re.search(rf'{name}: max ([0-9.eE+-]+) deg', gate.detail).group(1))
+             for name in ('az', 'el', 'sky', 'raw')}
+    assert found['raw'] > .02
+    assert found['sky'] <= .02 and found['el'] <= .02 and found['az'] <= .02
+    assert gate.passed is True and gate.measured <= .02 and gate.measured < found['raw']
+    assert {c.body for c in charts} == {'sun', 'earth'}
+
+
 def test_r5_smooth_tilted_terrain_converges(tmp_path):
     from truesouth.skyline import compute_skyline
     rr, cc = np.indices((151, 151))
@@ -215,9 +309,13 @@ def synthetic_tree(tmp_path, monkeypatch):
     system = {name: np.zeros(4) for name in ('subsolar_lat', 'subsolar_lon', 'subearth_lat', 'subearth_lon')}
     system.update(sun_dist_km=np.full(4, 150000000), earth_dist_km=np.full(4, 380000))
     write_system(root/'system.bin', system, 4)
-    prepared_geometry(prepared, 'LDEM_80S_80MPP_ADJ', np.zeros((151, 151)), (-89, 0), 80)
+    # A ridge a few pixels from the site, so the 1,440-bin and 2,880-bin skylines disagree.
+    terrain = np.zeros((151, 151), dtype=np.float32)
+    terrain[68:84, 80] = 4000
+    prepared_geometry(prepared, 'LDEM_80S_80MPP_ADJ', terrain, (-89, 0), 80)
     raster(raw/'AVGVISIB_85S_060M_201608.TIF', (-89, 0), 60, raw=25000)
     raster(raw/'AVGVISIB_85S_060M_201608_EARTH.TIF', (-89, 0), 60, raw=18750)
+    raster(raw/'LDSM_80S_80MPP_ADJ.TIF', (-89, 0), 80, raw=0, scale=1, offset=0, unit='degree')
     return root, raw
 
 
@@ -227,18 +325,33 @@ def test_validate_cli_writes_valid_atomic_repeatable_evidence(tmp_path, monkeypa
     content = (root/'validation.json').read_bytes()
     report = Validation.model_validate_json(content)
     comparisons = {(c.id, c.site_id): c for c in report.comparisons}
-    assert comparisons['R1', 'synthetic_ridge'].ours == .5
-    assert comparisons['R1', 'synthetic_ridge'].outside_mark
+    r1 = comparisons['R1', 'synthetic_ridge']
+    assert r1.ours == .5 and r1.outside_mark
+    assert '60 m pixel is 1.000' in r1.explanation and 'from 1.000 to 1.000' in r1.explanation
+    assert '18.6' in r1.explanation and '2 m' in r1.explanation and len(r1.explanation) <= 400
     assert comparisons['R2', 'synthetic_ridge'].ours == .75
-    assert not any(c.id in ('R3', 'R4', 'R6') for c in report.comparisons)
+    r3 = comparisons['R3', 'synthetic_ridge']
+    assert r3.explanation.endswith('.') and not r3.explanation.endswith('..')
+    from truesouth.skyline import compute_skyline
+    store = DemStore(tmp_path/'prepared'/'LDEM_80S_80MPP_ADJ.npy')
+    coarse = compute_skyline(store, -89, 0)
+    fine = compute_skyline(store, -89, 0, bins=2880, step_scale=.5)
+    direct = compare_convergence('synthetic_ridge', coarse.el_deg, fine.el_deg)
+    r5 = comparisons['R5', 'synthetic_ridge']
+    assert r5.ours > 0
+    assert r5.ours == pytest.approx(direct.ours)
+    assert compare_convergence('synthetic_ridge', coarse.el_deg, np.repeat(coarse.el_deg, 2)).ours == 0
+    assert not any(c.id in ('R4', 'R6') for c in report.comparisons)
     assert {g.id for g in report.gates} == {f'G{i}' for i in range(1, 12)}
-    assert all(not g.passed and g.samples == 0 and 'not measured' in g.detail.lower()
-               for g in report.gates if g.id in ('G1', 'G2', 'G10', 'G11'))
+    assert all(g.passed is False and g.measured == 0 and g.samples == 0 and 'not measured' in g.detail.lower()
+               for g in report.gates if g.id in ('G1', 'G2'))
+    assert all(g.passed is None and g.measured is None and g.samples == 0 and '.' in (g.detail or '')
+               for g in report.gates if g.id in ('G10', 'G11'))
     assert main(['validate', '--generated-utc', '2026-11-13T00:00:00Z']) == 0
     assert (root/'validation.json').read_bytes() == content
     text = capsys.readouterr().out
-    assert 'Not run' in text and 'R3 synthetic_ridge: reference file missing' in text
-    assert 'R4' in text and 'R6' in text and 'synthetic_ridge' in text
+    assert 'Not run' in text and 'R4' in text and 'R6' in text
+    assert 'synthetic_ridge' in text
     assert not list(root.glob('.validation.json*'))
     # A missing reference is omitted, never silently converted into a passing R1.
     (raw/'AVGVISIB_85S_060M_201608.TIF').unlink()
@@ -258,3 +371,21 @@ def test_failed_atomic_replace_preserves_previous_report(tmp_path, monkeypatch):
         write_validation(path, report)
     assert path.read_bytes() == b'previous'
     assert list(tmp_path.iterdir()) == [path]
+
+
+def test_failing_measured_gate_still_writes_the_report(tmp_path, monkeypatch):
+    from truesouth.commands import validate as command
+    from truesouth.validation import measured_gate
+    root, _raw = synthetic_tree(tmp_path, monkeypatch)
+    original = command.geometry_gates
+
+    def failing(directory):
+        gates = original(directory)
+        gates[0] = measured_gate('G3', gates[0].name, 1., .01, 'm', 4, 'Synthetic measured failure.')
+        return gates
+
+    monkeypatch.setattr(command, 'geometry_gates', failing)
+    assert main(['validate', '--generated-utc', '2026-11-13T00:00:00Z']) == 1
+    report = Validation.model_validate_json((root/'validation.json').read_bytes())
+    gate = next(g for g in report.gates if g.id == 'G3')
+    assert gate.passed is False and gate.measured == 1 and gate.samples == 4

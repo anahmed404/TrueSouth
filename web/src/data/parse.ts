@@ -270,11 +270,30 @@ export function parseMapsMeta(value: unknown): MapMeta {
   return record as unknown as MapMeta;
 }
 
+function isMeasuredGate(passed: unknown, measured: unknown): boolean {
+  return typeof passed === "boolean" && typeof measured === "number" && Number.isFinite(measured);
+}
+
 export function parseValidation(value: unknown): Validation {
-  const record = expectObject(value, "validation.json");
-  expectArray(record.gates, "validation.json gates");
-  expectArray(record.comparisons, "validation.json comparisons");
-  expectString(record.generated_utc, "validation.json", "generated_utc");
+  const fileName = "validation.json";
+  const record = expectObject(value, fileName);
+  const gates = expectArray(record.gates, `${fileName} gates`);
+  expectArray(record.comparisons, `${fileName} comparisons`);
+  expectString(record.generated_utc, fileName, "generated_utc");
+  gates.forEach((gate, index) => {
+    const item = expectObject(gate, `${fileName} gates[${index}]`);
+    const where = `gates[${index}]`;
+    const unmeasured = item.passed === null && item.measured === null;
+    if (!unmeasured && !isMeasuredGate(item.passed, item.measured)) {
+      throw new Error(`${fileName} ${where} passed and measured must be a result or both null`);
+    }
+    if (unmeasured) {
+      if (item.samples !== 0) {
+        throw new Error(`${fileName} ${where} was not measured here, so samples must be 0`);
+      }
+      expectString(item.detail, fileName, `${where} detail`);
+    }
+  });
   return record as unknown as Validation;
 }
 

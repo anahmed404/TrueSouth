@@ -5,7 +5,8 @@ import pytest
 from pydantic import ValidationError
 
 from truesouth.contracts import Comparison
-from truesouth.validation import compare_sunlight, compare_earth, compare_slope, compare_convergence
+from truesouth.validation import (compare_sunlight, compare_earth, compare_slope, compare_convergence,
+                                  illumination_explanation, slope_explanation, convergence_explanation)
 
 
 def test_r1_mean_disc_fraction_not_share_of_lit_hours():
@@ -57,6 +58,23 @@ def test_outside_comparison_without_explanation_is_rejected():
     for explanation in (None, '', '  '):
         with pytest.raises(ValidationError):
             Comparison.model_validate({**value, 'explanation': explanation})
+
+
+def test_outside_explanations_quote_the_measured_neighbourhood():
+    text = illumination_explanation(60, .36128, .544, .594, 120, .601, .601720921)
+    for phrase in ('0.361', '0.544', '0.594', '0.601', '0.602', '18.6', '2 m', 'six years', '80 m'):
+        assert phrase in text
+    assert len(text) <= 400
+    missing = illumination_explanation(120, .4, None, None, None, None, .2)
+    assert 'No neighbouring pixel' in missing and '120 m map' not in missing
+    slope = slope_explanation(11.2, 9.5, 12.1, 10.8)
+    assert '11.200' in slope and '9.500' in slope and '12.100' in slope and len(slope) <= 400
+    coarse = np.zeros(4)
+    fine = np.array([0, 9, .2, 9, .04, 9, .2, 9])
+    counted = convergence_explanation(coarse, fine, [.1, .4, .2, .1], [.1, 9, .5, 9, .2, 9, .3, 9])
+    assert counted.startswith('2 of 4 bins')
+    assert '0.20 degrees' in counted and '0.50 km' in counted and 'few map pixels' in counted
+    assert len(counted) <= 400
 
 
 @pytest.mark.parametrize('values', [[], [float('nan')], [1.1], [-.1]])

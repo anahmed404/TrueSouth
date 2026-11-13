@@ -274,7 +274,9 @@ Made by rendering the scene once, so it is a render of these files and not a new
 ### `validation.json` and `academy/worked_examples.json`
 
 Described in [`validation.md`](validation.md) and
-[`academy/lessons.md`](academy/lessons.md).
+[`academy/lessons.md`](academy/lessons.md). A gate leaves `passed` and `measured` null
+together when `validate` did not measure it. `samples` is then 0, and `detail` says
+where that gate is checked. G10 and G11 are written that way.
 
 ## API messages
 

@@ -13,12 +13,17 @@ from .contracts import Comparison, Gate
 
 ILLUMINATION_SOURCE = 'https://pgda.gsfc.nasa.gov/products/69'
 TERRAIN_SOURCE = 'https://pgda.gsfc.nasa.gov/products/90'
-METHOD_DIFFERENCES = (
-    'NASA uses an observer on the surface, 18.6 years and its own terrain grid; '
-    'ours uses an observer 2 m above ground, six years and the 80 m map '
-    '(240 m beyond its coverage). At sharp ridges, nearby pixels can have very '
-    'different skylines (decision 0012). These differences do not establish the '
-    'cause of this gap; it remains a reported discrepancy, without tuning.'
+ILLUMINATION_GAP = (
+    'NASA models an observer on the surface, 18.6 years and its own terrain grid; '
+    'ours uses an observer 2 m above the ground, six years and the 80 m map.'
+)
+SLOPE_GAP = (
+    'Different sampling and terrain resolution can change a slope; '
+    'this gap is published without adjustment.'
+)
+CONVERGENCE_GAP = (
+    'The difference comes from terrain within a few map pixels of the site, '
+    'where halving the ray step samples different points.'
 )
 
 
@@ -43,21 +48,20 @@ def compare_sunlight(site_id, sun_frac, reference):
     """R1: mean visible Sun disc, not the share of lit hours."""
     _fractions([reference])
     return _comparison('R1', site_id, np.mean(_fractions(sun_frac)), reference,
-                       'fraction', ILLUMINATION_SOURCE, .1, METHOD_DIFFERENCES)
+                       'fraction', ILLUMINATION_SOURCE, .1, ILLUMINATION_GAP)
 
 
 def compare_earth(site_id, earth_frac, reference):
     """R2: hours with any Earth visible, as NASA defines its map."""
     _fractions([reference])
     return _comparison('R2', site_id, np.mean(_fractions(earth_frac) > 0), reference,
-                       'fraction', ILLUMINATION_SOURCE, .1, METHOD_DIFFERENCES)
+                       'fraction', ILLUMINATION_SOURCE, .1, ILLUMINATION_GAP)
 
 
 def compare_slope(site_id, ours, reference, *, reference_detail):
     """R3: degrees from the polar-map method against NASA's slope pixel."""
     return _comparison('R3', site_id, ours, reference, 'deg', TERRAIN_SOURCE, 2.,
-                       reference_detail + ' Different sampling and terrain resolution can '
-                       'change a slope; this gap is published without adjustment.')
+                       reference_detail + ' ' + SLOPE_GAP)
 
 
 def compare_convergence(site_id, coarse, fine):
@@ -68,10 +72,7 @@ def compare_convergence(site_id, coarse, fine):
     if not np.isfinite(coarse).all() or not np.isfinite(fine).all():
         raise ValueError('skyline elevations must be finite')
     rms = float(np.sqrt(np.mean((coarse - fine[::2])**2)))
-    return _comparison('R5', site_id, rms, 0., 'deg', TERRAIN_SOURCE, .05,
-                       'Doubling the bins and halving the ray step changes which terrain '
-                       'sets a bin. The RMS at shared azimuths exceeds 0.05 degrees; '
-                       'the production skyline has not been tuned to reduce the gap.')
+    return _comparison('R5', site_id, rms, 0., 'deg', TERRAIN_SOURCE, .05, CONVERGENCE_GAP)
 
 
 def measured_gate(identifier, name, measured, limit, unit, samples, detail, *, passed=None):
@@ -82,10 +83,57 @@ def measured_gate(identifier, name, measured, limit, unit, samples, detail, *, p
 
 
 def unmeasured_gate(identifier, name, limit, unit, reason):
-    """The contract has no null measurement; never turn absence into a pass."""
+    """Inputs for a gate this command owns were missing. Absence is not a pass."""
     return measured_gate(identifier, name, 0., limit, unit, 0,
                          'Not measured: '+reason+'; measured=0 is a contract placeholder, not a result.',
                          passed=False)
+
+
+def gate_checked_elsewhere(identifier, name, limit, unit, where):
+    """This command does not measure the gate. Null is not a failure."""
+    return Gate(id=identifier, name=name, passed=None, measured=None, limit=limit, unit=unit,
+                samples=0, detail=where)
+
+
+def _span(low, high, places):
+    if low is None or high is None:
+        return 'No neighbouring pixel on that map has data.'
+    return f'Neighbouring pixels on that map run from {low:.{places}f} to {high:.{places}f}.'
+
+
+def illumination_explanation(pixel_m, nasa, neighbour_low, neighbour_high, other_pixel_m, other, ours):
+    """R1 or R2, outside its mark: this run's pixels, then what the two products do differently."""
+    text = f"NASA's {pixel_m:g} m pixel is {nasa:.3f}. {_span(neighbour_low, neighbour_high, 3)} "
+    if other is not None:
+        text += f"NASA's {other_pixel_m:g} m map is {other:.3f} at the same point. "
+    text += f'Ours is {ours:.3f}. {ILLUMINATION_GAP}'
+    return text
+
+
+def slope_explanation(nasa, neighbour_low, neighbour_high, ours):
+    """R3, outside its mark: the site pixel, the neighbouring range, and ours."""
+    text = (f"NASA's pixel is {nasa:.3f} degrees. {_span(neighbour_low, neighbour_high, 3)} "
+            f'Ours is {ours:.3f} degrees. {SLOPE_GAP}')
+    return text
+
+
+def convergence_explanation(coarse_el, fine_el, coarse_dist_km, fine_dist_km, mark=.05):
+    """R5, outside its mark: how many shared bins disagree, and how close those blockers are."""
+    coarse_el = np.asarray(coarse_el, dtype=float)
+    fine_el = np.asarray(fine_el, dtype=float)
+    diff = np.abs(coarse_el - fine_el[::2])
+    over = diff > mark
+    count = int(np.count_nonzero(over))
+    largest = float(np.max(diff))
+    distances = np.maximum(np.asarray(coarse_dist_km, dtype=float), np.asarray(fine_dist_km, dtype=float)[::2])
+    if count:
+        farthest = float(np.nanmax(distances[over]))
+        reach = f'The blockers for those bins are within {farthest:.2f} km. '
+    else:
+        reach = ''
+    text = (f'{count} of {coarse_el.size:,} bins differ by more than {mark:g} degrees, '
+            f'by at most {largest:.2f} degrees. {reach}{CONVERGENCE_GAP}')
+    return text
 
 
 def prepared_geometry(directory, name, data, site, pixel):
