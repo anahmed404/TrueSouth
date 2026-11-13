@@ -20,7 +20,7 @@ type ViewBarProps = {
 };
 
 /**
- * The view bar: the four camera views, a hairline, then the two floating windows with their
+ * The view bar: the five camera views, a hairline, then the floating window with its
  * window icon (docs/features/mission-control.md, "The view bar"). The selected camera view
  * has a Raised fill and a Moonlight underline; an open window's button is `aria-expanded`.
  */

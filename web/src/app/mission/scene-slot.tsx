@@ -1,9 +1,9 @@
-import { memo, useCallback, useEffect, useState, type ComponentType, type CSSProperties } from "react";
+import { memo, useCallback, useEffect, useState, type ComponentType, type CSSProperties, type ReactNode } from "react";
 import { Button } from "../../components/Button";
 import { Explain } from "../../components/Explain";
 import { formatUtc } from "../../components/format";
 import type { FreeSpace } from "./free-space";
-import { STILL_PICTURE_URL, type SceneProps, type SceneReport, type SceneStatus } from "../scene";
+import { STILL_PICTURE_URL, type SceneMode, type SceneProps, type SceneReport, type SceneStatus } from "../scene";
 import { sceneMode, showStill, stillLabel, stillNote } from "./scene-status";
 import { cameraView } from "./views";
 
@@ -15,6 +15,11 @@ type SceneSlotProps = Omit<SceneProps, "onStatus" | "ignoreSlow" | "mode"> & {
   Scene?: ComponentType<SceneProps>;
   /** Called after "Try 3D anyway", so the shell can announce it and place focus. */
   onTryAgain?: () => void;
+  /**
+   * Drawn over the scene, inside the slot, with how the scene draws: for example the Slip
+   * Planner's spots, which need to know when 3D is off and whether "Try 3D anyway" can help.
+   */
+  children?: (scene: { mode: SceneMode; canTryAgain: boolean; tryAgain: () => void }) => ReactNode;
 };
 
 /**
@@ -26,7 +31,7 @@ type SceneSlotProps = Omit<SceneProps, "onStatus" | "ignoreSlow" | "mode"> & {
  * picture over it with the note and "Try 3D anyway" (docs/features/system-view.md, "When 3D
  * does not run"). The rest of the interface does not depend on it.
  */
-export const SceneSlot = memo(function SceneSlot({ Scene = ScenePlaceholder, onTryAgain, ...props }: SceneSlotProps) {
+export const SceneSlot = memo(function SceneSlot({ Scene = ScenePlaceholder, onTryAgain, children, ...props }: SceneSlotProps) {
   const [status, setStatus] = useState<SceneStatus | null>(null);
   const [report, setReport] = useState<SceneReport | null>(null);
   const [ignoreSlow, setIgnoreSlow] = useState(false);
@@ -49,6 +54,7 @@ export const SceneSlot = memo(function SceneSlot({ Scene = ScenePlaceholder, onT
       {still ? (
         <StillPicture status={status ?? "slow"} view={props.view} freeSpace={props.freeSpace} onTryAnyway={tryAnyway} />
       ) : null}
+      {children?.({ mode, canTryAgain: status === "slow" && !ignoreSlow, tryAgain: tryAnyway })}
     </div>
   );
 });

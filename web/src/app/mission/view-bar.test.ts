@@ -11,7 +11,7 @@ import { ScenarioStoreProvider, useScenario } from "./scenario-context";
 import { ViewBar } from "./view-bar";
 import { useViewCommands, useViewState } from "./view-state";
 
-/** Counts the view bar's renders: it draws one window icon per window button, two per render. */
+/** Counts the view bar's renders: it draws one window icon per window button, one (Compare) per render. */
 const icons = vi.hoisted(() => ({ count: 0 }));
 vi.mock("lucide-react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("lucide-react")>();
@@ -24,7 +24,7 @@ vi.mock("lucide-react", async (importOriginal) => {
   };
 });
 
-const renders = () => icons.count / 2;
+const renders = () => icons.count;
 
 /** Just enough of a DOM for React to mount into, in Node. */
 class FakeNode {

@@ -2,7 +2,8 @@ import * as THREE from "three";
 import type { CameraViewId, FreeSpace } from "../../../app/scene";
 import { MOON_RADIUS_M } from "../../../lib/geo";
 import { easeInOutCubic, lerpPose, MIN_SPACE_ALTITUDE, viewOffset, type Pose, type SiteFrame } from "./camera";
-import { clamp, smooth } from "./vec";
+import { slipLightBlend, slipOrbit, slipZoom } from "./slip";
+import { clamp, smooth, type V3 } from "./vec";
 
 /** The rig turns about the Moon in any view but Local terrain and Lander's eye. */
 type Mode = CameraViewId;
@@ -83,6 +84,12 @@ export class Rig {
    * rest, between only during a flight to or from the Polar map.
    */
   draw = 0;
+  /**
+   * The Slip Planner (slip.ts): how much the Moon shows the fixed drawing light instead of
+   * the real Sun, 0 or 1 at rest; and the point its orbit turns about.
+   */
+  slip = 0;
+  slipCentre: { centre: V3; up0: V3 } | null = null;
   private tween: Tween | null = null;
   private offset: Offset | null = null;
   private offsetTween: { from: Offset; to: Offset; t0: number; ms: number } | null = null;
@@ -144,14 +151,18 @@ export class Rig {
     this.mode = view;
     const fromDraw = this.draw;
     const toDraw = view === "map" ? 1 : 0;
+    const fromSlip = this.slip;
+    const intoSlip = view === "slip";
     const onT = (t: number) => {
       this.draw = toDraw >= fromDraw ? fromDraw + (toDraw - fromDraw) * smooth(0.55, 1, t) : fromDraw * (1 - smooth(0, 0.45, t));
+      this.slip = slipLightBlend(fromSlip, intoSlip, t);
     };
     this.flyTo(
       to,
       ms,
       () => {
         this.draw = toDraw;
+        this.slip = intoSlip ? 1 : 0;
         onArrive?.(view);
       },
       onT,
@@ -252,6 +263,10 @@ export class Rig {
       c.lookAt(0, 0, 0);
       return;
     }
+    if (this.mode === "slip") {
+      this.slipMove((pos) => slipOrbit(pos, this.slipCentre!.centre, this.slipCentre!.up0, dx, dy));
+      return;
+    }
     // Only the two ground views turn about the site; any other view keeps the camera still.
     if (this.mode !== "terrain" && this.mode !== "panorama") return;
     const site = this.site;
@@ -304,6 +319,11 @@ export class Rig {
       c.position.setLength(1 + clamp(alt * factor, MIN_SPACE_ALTITUDE, maxAlt));
       return;
     }
+    if (this.mode === "slip") {
+      // Along the line to the sites' centre, keeping the camera's aim.
+      if (this.slipCentre) c.position.set(...slipZoom([c.position.x, c.position.y, c.position.z], this.slipCentre.centre, factor));
+      return;
+    }
     if (this.mode === "terrain" && this.site) {
       const ground = new THREE.Vector3(...this.site.ground);
       const rel = c.position.clone().sub(ground);
@@ -315,5 +335,16 @@ export class Rig {
       c.fov = clamp(c.fov * factor, 8, 75);
       c.updateProjectionMatrix();
     }
+  }
+
+  /** The Slip Planner's drag: about the sites' centre (slip.ts), looking at it. */
+  private slipMove(step: (pos: V3) => { pos: V3; up: V3 }): void {
+    const centre = this.slipCentre;
+    if (!centre) return;
+    const c = this.camera;
+    const next = step([c.position.x, c.position.y, c.position.z]);
+    c.position.set(...next.pos);
+    c.up.set(...next.up);
+    c.lookAt(...centre.centre);
   }
 }
