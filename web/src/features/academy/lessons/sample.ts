@@ -1,6 +1,7 @@
 import type { Scenario } from "../../../app/panel";
 import type { WorkedExamples } from "../placeholders";
 import type { Lesson, UnderTheHoodCard } from "../types";
+import { sampleProfile } from "./sample-profile";
 
 /**
  * Sample lesson for the step runner. A5 replaces it.
@@ -9,7 +10,7 @@ import type { Lesson, UnderTheHoodCard } from "../types";
 export const SAMPLE_LESSON_ID = "sample";
 
 const scenario: Scenario = {
-  profile: { id: "sample" },
+  profile: sampleProfile,
   siteIds: ["sample-site"],
   focusedSiteId: "sample-site",
   landingUtc: "2028-01-01T00:00:00Z",

@@ -1,3 +1,8 @@
+# Text files are checked out with LF on every machine. Tests compare generated files
+# (the contract schema, fixtures, catalog JSON) byte for byte, and a Windows checkout
+# with CRLF made those comparisons fail.
+* text=auto eol=lf
+
 # Derived data and fixtures are binary: never convert line endings in them.
 *.bin binary
 *.webp binary

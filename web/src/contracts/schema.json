@@ -1,0 +1,2550 @@
+{
+  "$defs": {
+    "ArtemisRegion": {
+      "additionalProperties": false,
+      "description": "Artemis candidate region.",
+      "properties": {
+        "lat_deg": {
+          "anyOf": [
+            {
+              "maximum": 90,
+              "minimum": -90,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Centre latitude in degrees, or null if unpublished.",
+          "title": "Lat Deg"
+        },
+        "lon_deg": {
+          "anyOf": [
+            {
+              "exclusiveMaximum": 360,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Centre east longitude in degrees, or null if unpublished.",
+          "title": "Lon Deg"
+        },
+        "name": {
+          "description": "Region name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "size_km": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Region size in kilometres, or null if unpublished.",
+          "title": "Size Km"
+        },
+        "source_url": {
+          "description": "Source URL.",
+          "title": "Source Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "lat_deg",
+        "lon_deg",
+        "size_km",
+        "source_url"
+      ],
+      "title": "ArtemisRegion",
+      "type": "object"
+    },
+    "ArtemisRegions": {
+      "description": "Array of Artemis regions.",
+      "items": {
+        "$ref": "#/$defs/ArtemisRegion"
+      },
+      "title": "ArtemisRegions",
+      "type": "array"
+    },
+    "Assumed": {
+      "additionalProperties": false,
+      "description": "A value chosen because no source is published.",
+      "properties": {
+        "kind": {
+          "const": "assumed",
+          "description": "Value is an assumption rather than a sourced claim.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "reason": {
+          "description": "Reason for the assumption.",
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "reason"
+      ],
+      "title": "Assumed",
+      "type": "object"
+    },
+    "BinaryLayouts": {
+      "additionalProperties": false,
+      "description": "Binary formats, with ordered arrays and orientation.",
+      "properties": {
+        "closeup": {
+          "$ref": "#/$defs/TerrainLayout",
+          "description": "Close-up mesh encoding."
+        },
+        "map_lookup": {
+          "$ref": "#/$defs/MapLookupLayout",
+          "description": "Map lookup encoding."
+        },
+        "series": {
+          "$ref": "#/$defs/SeriesLayout",
+          "description": "Per-site series encoding."
+        },
+        "skyline": {
+          "$ref": "#/$defs/SkylineLayout",
+          "description": "Skyline encoding."
+        },
+        "system": {
+          "$ref": "#/$defs/SystemLayout",
+          "description": "Global ephemeris encoding."
+        },
+        "terrain": {
+          "$ref": "#/$defs/TerrainLayout",
+          "description": "Terrain mesh encoding."
+        }
+      },
+      "title": "BinaryLayouts",
+      "type": "object"
+    },
+    "ColumnEarthAz": {
+      "additionalProperties": false,
+      "description": "Documented earth_az column.",
+      "properties": {
+        "name": {
+          "const": "earth_az",
+          "description": "Column name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "offset": {
+          "const": 180.0,
+          "description": "Decode as raw * scale + offset.",
+          "title": "Offset",
+          "type": "number"
+        },
+        "scale": {
+          "const": 0.01,
+          "description": "Decode as raw * scale + offset.",
+          "title": "Scale",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "scale",
+        "offset"
+      ],
+      "title": "ColumnEarthAz",
+      "type": "object"
+    },
+    "ColumnEarthClear": {
+      "additionalProperties": false,
+      "description": "Documented earth_clear column.",
+      "properties": {
+        "name": {
+          "const": "earth_clear",
+          "description": "Column name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "offset": {
+          "const": 0.0,
+          "description": "Decode as raw * scale + offset.",
+          "title": "Offset",
+          "type": "number"
+        },
+        "scale": {
+          "const": 0.01,
+          "description": "Decode as raw * scale + offset.",
+          "title": "Scale",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "scale",
+        "offset"
+      ],
+      "title": "ColumnEarthClear",
+      "type": "object"
+    },
+    "ColumnEarthEl": {
+      "additionalProperties": false,
+      "description": "Documented earth_el column.",
+      "properties": {
+        "name": {
+          "const": "earth_el",
+          "description": "Column name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "offset": {
+          "const": 0.0,
+          "description": "Decode as raw * scale + offset.",
+          "title": "Offset",
+          "type": "number"
+        },
+        "scale": {
+          "const": 0.01,
+          "description": "Decode as raw * scale + offset.",
+          "title": "Scale",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "scale",
+        "offset"
+      ],
+      "title": "ColumnEarthEl",
+      "type": "object"
+    },
+    "ColumnEarthFrac": {
+      "additionalProperties": false,
+      "description": "Documented earth_frac column.",
+      "properties": {
+        "name": {
+          "const": "earth_frac",
+          "description": "Column name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "offset": {
+          "const": 0.0,
+          "description": "Decode as raw * scale + offset.",
+          "title": "Offset",
+          "type": "number"
+        },
+        "scale": {
+          "const": 0.0001,
+          "description": "Decode as raw * scale + offset.",
+          "title": "Scale",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "scale",
+        "offset"
+      ],
+      "title": "ColumnEarthFrac",
+      "type": "object"
+    },
+    "ColumnSunAz": {
+      "additionalProperties": false,
+      "description": "Documented sun_az column.",
+      "properties": {
+        "name": {
+          "const": "sun_az",
+          "description": "Column name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "offset": {
+          "const": 180.0,
+          "description": "Decode as raw * scale + offset.",
+          "title": "Offset",
+          "type": "number"
+        },
+        "scale": {
+          "const": 0.01,
+          "description": "Decode as raw * scale + offset.",
+          "title": "Scale",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "scale",
+        "offset"
+      ],
+      "title": "ColumnSunAz",
+      "type": "object"
+    },
+    "ColumnSunClear": {
+      "additionalProperties": false,
+      "description": "Documented sun_clear column.",
+      "properties": {
+        "name": {
+          "const": "sun_clear",
+          "description": "Column name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "offset": {
+          "const": 0.0,
+          "description": "Decode as raw * scale + offset.",
+          "title": "Offset",
+          "type": "number"
+        },
+        "scale": {
+          "const": 0.01,
+          "description": "Decode as raw * scale + offset.",
+          "title": "Scale",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "scale",
+        "offset"
+      ],
+      "title": "ColumnSunClear",
+      "type": "object"
+    },
+    "ColumnSunEl": {
+      "additionalProperties": false,
+      "description": "Documented sun_el column.",
+      "properties": {
+        "name": {
+          "const": "sun_el",
+          "description": "Column name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "offset": {
+          "const": 0.0,
+          "description": "Decode as raw * scale + offset.",
+          "title": "Offset",
+          "type": "number"
+        },
+        "scale": {
+          "const": 0.01,
+          "description": "Decode as raw * scale + offset.",
+          "title": "Scale",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "scale",
+        "offset"
+      ],
+      "title": "ColumnSunEl",
+      "type": "object"
+    },
+    "ColumnSunFrac": {
+      "additionalProperties": false,
+      "description": "Documented sun_frac column.",
+      "properties": {
+        "name": {
+          "const": "sun_frac",
+          "description": "Column name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "offset": {
+          "const": 0.0,
+          "description": "Decode as raw * scale + offset.",
+          "title": "Offset",
+          "type": "number"
+        },
+        "scale": {
+          "const": 0.0001,
+          "description": "Decode as raw * scale + offset.",
+          "title": "Scale",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "scale",
+        "offset"
+      ],
+      "title": "ColumnSunFrac",
+      "type": "object"
+    },
+    "Comparison": {
+      "additionalProperties": false,
+      "description": "Reported validation comparison.",
+      "properties": {
+        "id": {
+          "description": "Comparison identifier.",
+          "title": "Id",
+          "type": "string"
+        },
+        "ours": {
+          "description": "Our measured value in unit.",
+          "title": "Ours",
+          "type": "number"
+        },
+        "reference": {
+          "description": "Reference value in unit.",
+          "title": "Reference",
+          "type": "number"
+        },
+        "reference_source": {
+          "description": "Reference source URL.",
+          "title": "Reference Source",
+          "type": "string"
+        },
+        "site_id": {
+          "description": "Site identifier.",
+          "pattern": "^(?:[a-z][a-z0-9]*(?:_[a-z0-9]+)*|c_-?\\d+\\.\\d{4}_\\d+\\.\\d{4})$",
+          "title": "Site Id",
+          "type": "string"
+        },
+        "unit": {
+          "description": "Unit of both values.",
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "site_id",
+        "ours",
+        "reference",
+        "unit",
+        "reference_source"
+      ],
+      "title": "Comparison",
+      "type": "object"
+    },
+    "CustomSiteQueued": {
+      "additionalProperties": false,
+      "description": "Custom site job submission response.",
+      "properties": {
+        "position_in_queue": {
+          "description": "Position in queue.",
+          "title": "Position In Queue",
+          "type": "integer"
+        },
+        "site_id": {
+          "description": "Custom id c_<lat>_<lon>, coordinates rounded to four decimal places.",
+          "pattern": "^(?:[a-z][a-z0-9]*(?:_[a-z0-9]+)*|c_-?\\d+\\.\\d{4}_\\d+\\.\\d{4})$",
+          "title": "Site Id",
+          "type": "string"
+        },
+        "status": {
+          "description": "Job status.",
+          "enum": [
+            "queued",
+            "running",
+            "ready",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "site_id",
+        "status",
+        "position_in_queue"
+      ],
+      "title": "CustomSiteQueued",
+      "type": "object"
+    },
+    "CustomSiteRequest": {
+      "additionalProperties": false,
+      "description": "Request to compute a custom site.",
+      "properties": {
+        "lat_deg": {
+          "description": "Latitude in degrees north.",
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Lat Deg",
+          "type": "number"
+        },
+        "lon_deg": {
+          "description": "East longitude in degrees.",
+          "exclusiveMaximum": 360,
+          "minimum": 0,
+          "title": "Lon Deg",
+          "type": "number"
+        },
+        "name": {
+          "description": "Custom site display name.",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "lat_deg",
+        "lon_deg",
+        "name"
+      ],
+      "title": "CustomSiteRequest",
+      "type": "object"
+    },
+    "CustomSiteStatus": {
+      "additionalProperties": false,
+      "description": "Custom site job status.",
+      "properties": {
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ErrorDetail"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Error code and message, or null."
+        },
+        "site": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Site"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Completed site, or null."
+        },
+        "site_id": {
+          "description": "Custom id c_<lat>_<lon>, with four decimal places.",
+          "pattern": "^(?:[a-z][a-z0-9]*(?:_[a-z0-9]+)*|c_-?\\d+\\.\\d{4}_\\d+\\.\\d{4})$",
+          "title": "Site Id",
+          "type": "string"
+        },
+        "status": {
+          "description": "Job status.",
+          "enum": [
+            "queued",
+            "running",
+            "ready",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "site_id",
+        "status",
+        "site",
+        "error"
+      ],
+      "title": "CustomSiteStatus",
+      "type": "object"
+    },
+    "ErrorDetail": {
+      "additionalProperties": false,
+      "description": "Structured API error.",
+      "properties": {
+        "code": {
+          "description": "Stable error code.",
+          "enum": [
+            "invalid_coordinates",
+            "date_outside_time_grid",
+            "rate_limited",
+            "queue_full",
+            "terrain_unavailable",
+            "not_found"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "description": "Plain-language error message.",
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "ErrorDetail",
+      "type": "object"
+    },
+    "ErrorResponse": {
+      "additionalProperties": false,
+      "description": "API error envelope.",
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/ErrorDetail",
+          "description": "Error code and message."
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "title": "ErrorResponse",
+      "type": "object"
+    },
+    "Feature": {
+      "additionalProperties": false,
+      "description": "IAU named feature for map labels.",
+      "properties": {
+        "diameter_km": {
+          "description": "Diameter in kilometres.",
+          "title": "Diameter Km",
+          "type": "number"
+        },
+        "iau_id": {
+          "description": "IAU gazetteer feature id.",
+          "title": "Iau Id",
+          "type": "integer"
+        },
+        "kind": {
+          "description": "Feature kind: crater or mountain.",
+          "enum": [
+            "crater",
+            "mountain"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "lat_deg": {
+          "description": "Latitude in degrees north.",
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Lat Deg",
+          "type": "number"
+        },
+        "lon_deg": {
+          "description": "East longitude in degrees.",
+          "exclusiveMaximum": 360,
+          "minimum": 0,
+          "title": "Lon Deg",
+          "type": "number"
+        },
+        "name": {
+          "description": "IAU feature name.",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "iau_id",
+        "lat_deg",
+        "lon_deg",
+        "diameter_km"
+      ],
+      "title": "Feature",
+      "type": "object"
+    },
+    "Features": {
+      "description": "Array of named features.",
+      "items": {
+        "$ref": "#/$defs/Feature"
+      },
+      "title": "Features",
+      "type": "array"
+    },
+    "Gate": {
+      "additionalProperties": false,
+      "description": "Validation hard gate result.",
+      "properties": {
+        "id": {
+          "description": "Gate identifier.",
+          "title": "Id",
+          "type": "string"
+        },
+        "limit": {
+          "description": "Passing limit in unit.",
+          "title": "Limit",
+          "type": "number"
+        },
+        "measured": {
+          "description": "Measured value in unit.",
+          "title": "Measured",
+          "type": "number"
+        },
+        "name": {
+          "description": "Gate name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "passed": {
+          "description": "Whether the gate passed.",
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "samples": {
+          "description": "Number of samples.",
+          "title": "Samples",
+          "type": "integer"
+        },
+        "unit": {
+          "description": "Unit of measured value and limit.",
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "passed",
+        "measured",
+        "limit",
+        "unit",
+        "samples"
+      ],
+      "title": "Gate",
+      "type": "object"
+    },
+    "Manifest": {
+      "additionalProperties": false,
+      "description": "Version and shared time grid for derived data.",
+      "properties": {
+        "generated_utc": {
+          "description": "Generation timestamp in UTC.",
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "Generated Utc",
+          "type": "string"
+        },
+        "moon_radius_m": {
+          "description": "Moon reference radius in metres.",
+          "title": "Moon Radius M",
+          "type": "number"
+        },
+        "observer_height_m": {
+          "description": "Observer height in metres.",
+          "title": "Observer Height M",
+          "type": "number"
+        },
+        "schema_version": {
+          "const": 1,
+          "description": "Contract version.",
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "skyline_bins": {
+          "description": "Number of skyline azimuth bins.",
+          "title": "Skyline Bins",
+          "type": "integer"
+        },
+        "time_grid": {
+          "$ref": "#/$defs/TimeGrid",
+          "description": "Shared UTC time grid."
+        }
+      },
+      "required": [
+        "schema_version",
+        "generated_utc",
+        "time_grid",
+        "observer_height_m",
+        "skyline_bins",
+        "moon_radius_m"
+      ],
+      "title": "Manifest",
+      "type": "object"
+    },
+    "MapLayer": {
+      "additionalProperties": false,
+      "description": "Map image and optional lookup grid.",
+      "properties": {
+        "files": {
+          "description": "Image file names.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Files",
+          "type": "array"
+        },
+        "lookup": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Lookup grid filename, or null.",
+          "title": "Lookup"
+        },
+        "lookup_size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Lookup grid pixels per side, or null.",
+          "title": "Lookup Size"
+        }
+      },
+      "required": [
+        "files"
+      ],
+      "title": "MapLayer",
+      "type": "object"
+    },
+    "MapLayers": {
+      "additionalProperties": false,
+      "description": "Named map layers.",
+      "properties": {
+        "earthvis": {
+          "$ref": "#/$defs/MapLayer",
+          "description": "earthvis map layer."
+        },
+        "hillshade": {
+          "$ref": "#/$defs/MapLayer",
+          "description": "hillshade map layer."
+        },
+        "sunlight": {
+          "$ref": "#/$defs/MapLayer",
+          "description": "sunlight map layer."
+        }
+      },
+      "required": [
+        "hillshade",
+        "sunlight",
+        "earthvis"
+      ],
+      "title": "MapLayers",
+      "type": "object"
+    },
+    "MapLookupLayout": {
+      "additionalProperties": false,
+      "description": "Uint8 map lookup grid with the same orientation as the images.",
+      "properties": {
+        "byte_order": {
+          "const": "little",
+          "default": "little",
+          "description": "Little-endian byte order.",
+          "title": "Byte Order",
+          "type": "string"
+        },
+        "column_order": {
+          "const": "left_to_right",
+          "default": "left_to_right",
+          "description": "Column 0 is left; +x is right.",
+          "title": "Column Order",
+          "type": "string"
+        },
+        "dtype": {
+          "const": "uint8",
+          "default": "uint8",
+          "description": "Unsigned 8-bit integers.",
+          "title": "Dtype",
+          "type": "string"
+        },
+        "missing": {
+          "const": 255,
+          "default": 255,
+          "description": "255 means no data.",
+          "title": "Missing",
+          "type": "integer"
+        },
+        "row_order": {
+          "const": "top_to_bottom",
+          "default": "top_to_bottom",
+          "description": "Row 0 is the top; +y is up.",
+          "title": "Row Order",
+          "type": "string"
+        },
+        "scale": {
+          "const": 0.00392156862745098,
+          "default": 0.00392156862745098,
+          "description": "Decode valid values as raw / 255.",
+          "title": "Scale",
+          "type": "number"
+        }
+      },
+      "title": "MapLookupLayout",
+      "type": "object"
+    },
+    "MapMeta": {
+      "additionalProperties": false,
+      "description": "South-polar map metadata.",
+      "properties": {
+        "half_width_m": {
+          "description": "Distance from centre to edge in metres.",
+          "title": "Half Width M",
+          "type": "number"
+        },
+        "layers": {
+          "$ref": "#/$defs/MapLayers",
+          "description": "Image and lookup layers."
+        },
+        "projection": {
+          "const": "south_polar_stereographic",
+          "description": "South polar stereographic projection.",
+          "title": "Projection",
+          "type": "string"
+        }
+      },
+      "required": [
+        "projection",
+        "half_width_m",
+        "layers"
+      ],
+      "title": "MapMeta",
+      "type": "object"
+    },
+    "MeshMeta": {
+      "additionalProperties": false,
+      "description": "Terrain mesh dimensions.",
+      "properties": {
+        "size": {
+          "description": "Vertices per side.",
+          "title": "Size",
+          "type": "integer"
+        },
+        "window_km": {
+          "description": "Window width in kilometres.",
+          "title": "Window Km",
+          "type": "number"
+        }
+      },
+      "required": [
+        "size",
+        "window_km"
+      ],
+      "title": "MeshMeta",
+      "type": "object"
+    },
+    "MissionProfile": {
+      "additionalProperties": false,
+      "description": "Mission limits, preferences and provenance.",
+      "properties": {
+        "antenna_mask_deg": {
+          "description": "Minimum Earth clearance in degrees.",
+          "title": "Antenna Mask Deg",
+          "type": "number"
+        },
+        "based_on": {
+          "description": "Mission on which the profile is based.",
+          "title": "Based On",
+          "type": "string"
+        },
+        "duration_days": {
+          "description": "Mission duration in days.",
+          "title": "Duration Days",
+          "type": "number"
+        },
+        "id": {
+          "description": "Stable preset id.",
+          "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "landing_sun_el_max_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional maximum landing Sun elevation in degrees.",
+          "title": "Landing Sun El Max Deg"
+        },
+        "landing_sun_el_min_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional minimum landing Sun elevation in degrees.",
+          "title": "Landing Sun El Min Deg"
+        },
+        "max_blackout_h": {
+          "description": "Maximum continuous blackout in hours.",
+          "title": "Max Blackout H",
+          "type": "number"
+        },
+        "max_dark_h": {
+          "description": "Maximum continuous darkness in hours.",
+          "title": "Max Dark H",
+          "type": "number"
+        },
+        "max_slope_deg": {
+          "description": "Maximum site slope in degrees.",
+          "title": "Max Slope Deg",
+          "type": "number"
+        },
+        "min_sun_fraction": {
+          "description": "Minimum visible Sun disc fraction, dimensionless.",
+          "title": "Min Sun Fraction",
+          "type": "number"
+        },
+        "name": {
+          "description": "Profile display name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "ops_sun_el_min_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional minimum operational Sun elevation in degrees.",
+          "title": "Ops Sun El Min Deg"
+        },
+        "provenance": {
+          "$ref": "#/$defs/ProfileProvenance",
+          "description": "Source or assumption for each profile value."
+        },
+        "relay_available": {
+          "description": "Whether a communications relay is available.",
+          "title": "Relay Available",
+          "type": "boolean"
+        },
+        "slope_ideal_deg": {
+          "description": "Ideal site slope in degrees.",
+          "title": "Slope Ideal Deg",
+          "type": "number"
+        },
+        "weights": {
+          "$ref": "#/$defs/Weights",
+          "description": "Relative scoring weights."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "based_on",
+        "duration_days",
+        "min_sun_fraction",
+        "ops_sun_el_min_deg",
+        "max_dark_h",
+        "relay_available",
+        "antenna_mask_deg",
+        "max_blackout_h",
+        "max_slope_deg",
+        "slope_ideal_deg",
+        "landing_sun_el_min_deg",
+        "landing_sun_el_max_deg",
+        "weights",
+        "provenance"
+      ],
+      "title": "MissionProfile",
+      "type": "object"
+    },
+    "ProfileProvenance": {
+      "additionalProperties": false,
+      "description": "Provenance for every mission profile value, including null values.",
+      "properties": {
+        "antenna_mask_deg": {
+          "description": "Source or assumption for antenna_mask_deg.",
+          "discriminator": {
+            "mapping": {
+              "assumed": "#/$defs/Assumed",
+              "sourced": "#/$defs/Sourced"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Sourced"
+            },
+            {
+              "$ref": "#/$defs/Assumed"
+            }
+          ],
+          "title": "Antenna Mask Deg"
+        },
+        "duration_days": {
+          "description": "Source or assumption for duration_days.",
+          "discriminator": {
+            "mapping": {
+              "assumed": "#/$defs/Assumed",
+              "sourced": "#/$defs/Sourced"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Sourced"
+            },
+            {
+              "$ref": "#/$defs/Assumed"
+            }
+          ],
+          "title": "Duration Days"
+        },
+        "landing_sun_el_max_deg": {
+          "description": "Source or assumption for landing_sun_el_max_deg.",
+          "discriminator": {
+            "mapping": {
+              "assumed": "#/$defs/Assumed",
+              "sourced": "#/$defs/Sourced"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Sourced"
+            },
+            {
+              "$ref": "#/$defs/Assumed"
+            }
+          ],
+          "title": "Landing Sun El Max Deg"
+        },
+        "landing_sun_el_min_deg": {
+          "description": "Source or assumption for landing_sun_el_min_deg.",
+          "discriminator": {
+            "mapping": {
+              "assumed": "#/$defs/Assumed",
+              "sourced": "#/$defs/Sourced"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Sourced"
+            },
+            {
+              "$ref": "#/$defs/Assumed"
+            }
+          ],
+          "title": "Landing Sun El Min Deg"
+        },
+        "max_blackout_h": {
+          "description": "Source or assumption for max_blackout_h.",
+          "discriminator": {
+            "mapping": {
+              "assumed": "#/$defs/Assumed",
+              "sourced": "#/$defs/Sourced"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Sourced"
+            },
+            {
+              "$ref": "#/$defs/Assumed"
+            }
+          ],
+          "title": "Max Blackout H"
+        },
+        "max_dark_h": {
+          "description": "Source or assumption for max_dark_h.",
+          "discriminator": {
+            "mapping": {
+              "assumed": "#/$defs/Assumed",
+              "sourced": "#/$defs/Sourced"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Sourced"
+            },
+            {
+              "$ref": "#/$defs/Assumed"
+            }
+          ],
+          "title": "Max Dark H"
+        },
+        "max_slope_deg": {
+          "description": "Source or assumption for max_slope_deg.",
+          "discriminator": {
+            "mapping": {
+              "assumed": "#/$defs/Assumed",
+              "sourced": "#/$defs/Sourced"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Sourced"
+            },
+            {
+              "$ref": "#/$defs/Assumed"
+            }
+          ],
+          "title": "Max Slope Deg"
+        },
+        "min_sun_fraction": {
+          "description": "Source or assumption for min_sun_fraction.",
+          "discriminator": {
+            "mapping": {
+              "assumed": "#/$defs/Assumed",
+              "sourced": "#/$defs/Sourced"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Sourced"
+            },
+            {
+              "$ref": "#/$defs/Assumed"
+            }
+          ],
+          "title": "Min Sun Fraction"
+        },
+        "ops_sun_el_min_deg": {
+          "description": "Source or assumption for ops_sun_el_min_deg.",
+          "discriminator": {
+            "mapping": {
+              "assumed": "#/$defs/Assumed",
+              "sourced": "#/$defs/Sourced"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Sourced"
+            },
+            {
+              "$ref": "#/$defs/Assumed"
+            }
+          ],
+          "title": "Ops Sun El Min Deg"
+        },
+        "relay_available": {
+          "description": "Source or assumption for relay_available.",
+          "discriminator": {
+            "mapping": {
+              "assumed": "#/$defs/Assumed",
+              "sourced": "#/$defs/Sourced"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Sourced"
+            },
+            {
+              "$ref": "#/$defs/Assumed"
+            }
+          ],
+          "title": "Relay Available"
+        },
+        "slope_ideal_deg": {
+          "description": "Source or assumption for slope_ideal_deg.",
+          "discriminator": {
+            "mapping": {
+              "assumed": "#/$defs/Assumed",
+              "sourced": "#/$defs/Sourced"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Sourced"
+            },
+            {
+              "$ref": "#/$defs/Assumed"
+            }
+          ],
+          "title": "Slope Ideal Deg"
+        },
+        "weights": {
+          "description": "Source or assumption for weights.",
+          "discriminator": {
+            "mapping": {
+              "assumed": "#/$defs/Assumed",
+              "sourced": "#/$defs/Sourced"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Sourced"
+            },
+            {
+              "$ref": "#/$defs/Assumed"
+            }
+          ],
+          "title": "Weights"
+        }
+      },
+      "required": [
+        "duration_days",
+        "min_sun_fraction",
+        "ops_sun_el_min_deg",
+        "max_dark_h",
+        "relay_available",
+        "antenna_mask_deg",
+        "max_blackout_h",
+        "max_slope_deg",
+        "slope_ideal_deg",
+        "landing_sun_el_min_deg",
+        "landing_sun_el_max_deg",
+        "weights"
+      ],
+      "title": "ProfileProvenance",
+      "type": "object"
+    },
+    "Profiles": {
+      "description": "Array of mission profiles.",
+      "items": {
+        "$ref": "#/$defs/MissionProfile"
+      },
+      "title": "Profiles",
+      "type": "array"
+    },
+    "SensitivityCentre": {
+      "additionalProperties": false,
+      "description": "Centre point results.",
+      "properties": {
+        "link_fraction": {
+          "description": "Share of hours with a link, dimensionless.",
+          "title": "Link Fraction",
+          "type": "number"
+        },
+        "sun_fraction_mean": {
+          "description": "Mean Sun disc fraction, dimensionless.",
+          "title": "Sun Fraction Mean",
+          "type": "number"
+        }
+      },
+      "required": [
+        "sun_fraction_mean",
+        "link_fraction"
+      ],
+      "title": "SensitivityCentre",
+      "type": "object"
+    },
+    "SensitivityRequest": {
+      "additionalProperties": false,
+      "description": "Request for a local sensitivity grid.",
+      "properties": {
+        "antenna_mask_deg": {
+          "description": "Antenna mask clearance in degrees.",
+          "title": "Antenna Mask Deg",
+          "type": "number"
+        },
+        "duration_days": {
+          "description": "Mission duration in days.",
+          "title": "Duration Days",
+          "type": "number"
+        },
+        "landing_utc": {
+          "description": "Landing time in UTC.",
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "Landing Utc",
+          "type": "string"
+        },
+        "lat_deg": {
+          "description": "Latitude in degrees north.",
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Lat Deg",
+          "type": "number"
+        },
+        "lon_deg": {
+          "description": "East longitude in degrees.",
+          "exclusiveMaximum": 360,
+          "minimum": 0,
+          "title": "Lon Deg",
+          "type": "number"
+        },
+        "min_sun_fraction": {
+          "description": "Minimum Sun fraction, dimensionless.",
+          "title": "Min Sun Fraction",
+          "type": "number"
+        }
+      },
+      "required": [
+        "lat_deg",
+        "lon_deg",
+        "landing_utc",
+        "duration_days",
+        "min_sun_fraction",
+        "antenna_mask_deg"
+      ],
+      "title": "SensitivityRequest",
+      "type": "object"
+    },
+    "SensitivityResponse": {
+      "additionalProperties": false,
+      "description": "Sensitivity grid, row-major with row 0 north.",
+      "properties": {
+        "centre_fast_method": {
+          "$ref": "#/$defs/SensitivityCentre",
+          "description": "Centre evaluated using fast skyline."
+        },
+        "centre_full_method": {
+          "$ref": "#/$defs/SensitivityCentre",
+          "description": "Centre evaluated using full skyline."
+        },
+        "link_fraction": {
+          "description": "Link fraction, row-major, row 0 north; size × size values.",
+          "items": {
+            "type": "number"
+          },
+          "title": "Link Fraction",
+          "type": "array"
+        },
+        "size": {
+          "description": "Grid width and height in points.",
+          "title": "Size",
+          "type": "integer"
+        },
+        "spacing_m": {
+          "description": "Grid spacing in metres.",
+          "title": "Spacing M",
+          "type": "number"
+        },
+        "sun_fraction_mean": {
+          "description": "Mean Sun fraction, row-major, row 0 north; size × size values.",
+          "items": {
+            "type": "number"
+          },
+          "title": "Sun Fraction Mean",
+          "type": "array"
+        }
+      },
+      "required": [
+        "size",
+        "spacing_m",
+        "sun_fraction_mean",
+        "link_fraction",
+        "centre_full_method",
+        "centre_fast_method"
+      ],
+      "title": "SensitivityResponse",
+      "type": "object"
+    },
+    "SeriesColumn": {
+      "additionalProperties": false,
+      "description": "One scaled Int16 series column.",
+      "properties": {
+        "name": {
+          "description": "Series column name.",
+          "enum": [
+            "sun_az",
+            "sun_el",
+            "sun_frac",
+            "sun_clear",
+            "earth_az",
+            "earth_el",
+            "earth_frac",
+            "earth_clear"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "offset": {
+          "description": "Decode as raw * scale + offset; angle units are degrees.",
+          "title": "Offset",
+          "type": "number"
+        },
+        "scale": {
+          "description": "Decode as raw * scale + offset; angle units are degrees.",
+          "title": "Scale",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "scale",
+        "offset"
+      ],
+      "title": "SeriesColumn",
+      "type": "object"
+    },
+    "SeriesLayout": {
+      "additionalProperties": false,
+      "description": "Series file: column-major Int16 arrays.",
+      "properties": {
+        "arrays": {
+          "description": "Column arrays in documented order; decode raw * scale + offset.",
+          "maxItems": 8,
+          "minItems": 8,
+          "prefixItems": [
+            {
+              "$ref": "#/$defs/ColumnSunAz"
+            },
+            {
+              "$ref": "#/$defs/ColumnSunEl"
+            },
+            {
+              "$ref": "#/$defs/ColumnSunFrac"
+            },
+            {
+              "$ref": "#/$defs/ColumnSunClear"
+            },
+            {
+              "$ref": "#/$defs/ColumnEarthAz"
+            },
+            {
+              "$ref": "#/$defs/ColumnEarthEl"
+            },
+            {
+              "$ref": "#/$defs/ColumnEarthFrac"
+            },
+            {
+              "$ref": "#/$defs/ColumnEarthClear"
+            }
+          ],
+          "title": "Arrays",
+          "type": "array"
+        },
+        "byte_order": {
+          "const": "little",
+          "default": "little",
+          "description": "Little-endian byte order.",
+          "title": "Byte Order",
+          "type": "string"
+        },
+        "dtype": {
+          "const": "int16",
+          "default": "int16",
+          "description": "Signed 16-bit integers.",
+          "title": "Dtype",
+          "type": "string"
+        }
+      },
+      "title": "SeriesLayout",
+      "type": "object"
+    },
+    "SeriesMeta": {
+      "additionalProperties": false,
+      "description": "Ordered series column encodings.",
+      "properties": {
+        "columns": {
+          "description": "Eight Int16 columns in documented order; value = raw * scale + offset.",
+          "maxItems": 8,
+          "minItems": 8,
+          "prefixItems": [
+            {
+              "$ref": "#/$defs/ColumnSunAz"
+            },
+            {
+              "$ref": "#/$defs/ColumnSunEl"
+            },
+            {
+              "$ref": "#/$defs/ColumnSunFrac"
+            },
+            {
+              "$ref": "#/$defs/ColumnSunClear"
+            },
+            {
+              "$ref": "#/$defs/ColumnEarthAz"
+            },
+            {
+              "$ref": "#/$defs/ColumnEarthEl"
+            },
+            {
+              "$ref": "#/$defs/ColumnEarthFrac"
+            },
+            {
+              "$ref": "#/$defs/ColumnEarthClear"
+            }
+          ],
+          "title": "Columns",
+          "type": "array"
+        }
+      },
+      "required": [
+        "columns"
+      ],
+      "title": "SeriesMeta",
+      "type": "object"
+    },
+    "Site": {
+      "additionalProperties": false,
+      "description": "Catalog or custom site.",
+      "properties": {
+        "description": {
+          "description": "Plain-language site description.",
+          "title": "Description",
+          "type": "string"
+        },
+        "elevation_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Ground elevation in metres above reference sphere, or null.",
+          "title": "Elevation M"
+        },
+        "group": {
+          "description": "Catalog group.",
+          "enum": [
+            "artemis",
+            "sunlit_peak",
+            "polar_lander",
+            "contrast"
+          ],
+          "title": "Group",
+          "type": "string"
+        },
+        "has_closeup": {
+          "description": "Whether a close-up DEM exists.",
+          "title": "Has Closeup",
+          "type": "boolean"
+        },
+        "id": {
+          "description": "Stable lowercase snake_case catalog id or custom c_<lat>_<lon> id with four decimal places.",
+          "pattern": "^(?:[a-z][a-z0-9]*(?:_[a-z0-9]+)*|c_-?\\d+\\.\\d{4}_\\d+\\.\\d{4})$",
+          "title": "Id",
+          "type": "string"
+        },
+        "lat_deg": {
+          "description": "Latitude in degrees north.",
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Lat Deg",
+          "type": "number"
+        },
+        "lon_deg": {
+          "description": "East longitude in degrees, from 0 inclusive to 360 exclusive.",
+          "exclusiveMaximum": 360,
+          "minimum": 0,
+          "title": "Lon Deg",
+          "type": "number"
+        },
+        "moontrek_url": {
+          "description": "NASA Moon Trek link.",
+          "title": "Moontrek Url",
+          "type": "string"
+        },
+        "name": {
+          "description": "Display name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Mission outcome, or null.",
+          "title": "Outcome"
+        },
+        "quickmap_url": {
+          "description": "NASA Quickmap link.",
+          "title": "Quickmap Url",
+          "type": "string"
+        },
+        "slope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slope"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Slope and measurement baseline, or null."
+        },
+        "source_url": {
+          "description": "Source of site coordinates.",
+          "title": "Source Url",
+          "type": "string"
+        },
+        "terrain_tier": {
+          "description": "Terrain tier.",
+          "enum": [
+            "core80",
+            "wide240",
+            "sphere"
+          ],
+          "title": "Terrain Tier",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "group",
+        "lat_deg",
+        "lon_deg",
+        "description",
+        "source_url",
+        "outcome",
+        "terrain_tier",
+        "has_closeup",
+        "elevation_m",
+        "slope",
+        "quickmap_url",
+        "moontrek_url"
+      ],
+      "title": "Site",
+      "type": "object"
+    },
+    "SiteMeta": {
+      "additionalProperties": false,
+      "description": "Per-site derived file metadata.",
+      "properties": {
+        "closeup": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MeshMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Close-up mesh metadata, null if closeup.bin is absent."
+        },
+        "earth_radius_deg": {
+          "description": "Average Earth angular radius in degrees.",
+          "title": "Earth Radius Deg",
+          "type": "number"
+        },
+        "series": {
+          "$ref": "#/$defs/SeriesMeta",
+          "description": "Column encodings for series.bin."
+        },
+        "site_id": {
+          "description": "Catalog id or c_<lat>_<lon> custom id.",
+          "pattern": "^(?:[a-z][a-z0-9]*(?:_[a-z0-9]+)*|c_-?\\d+\\.\\d{4}_\\d+\\.\\d{4})$",
+          "title": "Site Id",
+          "type": "string"
+        },
+        "skyline": {
+          "$ref": "#/$defs/SkylineMeta",
+          "description": "Skyline dimensions."
+        },
+        "sun_radius_deg": {
+          "description": "Average Sun angular radius in degrees.",
+          "title": "Sun Radius Deg",
+          "type": "number"
+        },
+        "terrain": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MeshMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Terrain mesh metadata, null if terrain.bin is absent."
+        }
+      },
+      "required": [
+        "site_id",
+        "series",
+        "sun_radius_deg",
+        "earth_radius_deg",
+        "skyline",
+        "terrain",
+        "closeup"
+      ],
+      "title": "SiteMeta",
+      "type": "object"
+    },
+    "Sites": {
+      "description": "Array of catalog sites.",
+      "items": {
+        "$ref": "#/$defs/Site"
+      },
+      "title": "Sites",
+      "type": "array"
+    },
+    "SkylineLayout": {
+      "additionalProperties": false,
+      "description": "Skyline file: five Float32 arrays.",
+      "properties": {
+        "arrays": {
+          "default": [
+            "el_deg",
+            "dist_km",
+            "lat_deg",
+            "lon_deg",
+            "height_m"
+          ],
+          "description": "Ordered skyline arrays: degrees, kilometres, degrees, degrees, metres.",
+          "maxItems": 5,
+          "minItems": 5,
+          "prefixItems": [
+            {
+              "const": "el_deg",
+              "type": "string"
+            },
+            {
+              "const": "dist_km",
+              "type": "string"
+            },
+            {
+              "const": "lat_deg",
+              "type": "string"
+            },
+            {
+              "const": "lon_deg",
+              "type": "string"
+            },
+            {
+              "const": "height_m",
+              "type": "string"
+            }
+          ],
+          "title": "Arrays",
+          "type": "array"
+        },
+        "byte_order": {
+          "const": "little",
+          "default": "little",
+          "description": "Little-endian byte order.",
+          "title": "Byte Order",
+          "type": "string"
+        },
+        "dtype": {
+          "const": "float32",
+          "default": "float32",
+          "description": "32-bit floating point.",
+          "title": "Dtype",
+          "type": "string"
+        }
+      },
+      "title": "SkylineLayout",
+      "type": "object"
+    },
+    "SkylineMeta": {
+      "additionalProperties": false,
+      "description": "Skyline metadata.",
+      "properties": {
+        "bins": {
+          "description": "Number of skyline bins.",
+          "title": "Bins",
+          "type": "integer"
+        },
+        "max_range_km": {
+          "description": "Maximum skyline distance in kilometres.",
+          "title": "Max Range Km",
+          "type": "number"
+        },
+        "missing_samples": {
+          "description": "Number of missing terrain samples.",
+          "title": "Missing Samples",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "bins",
+        "missing_samples",
+        "max_range_km"
+      ],
+      "title": "SkylineMeta",
+      "type": "object"
+    },
+    "Slope": {
+      "additionalProperties": false,
+      "description": "Site slope and measurement baseline.",
+      "properties": {
+        "baseline_m": {
+          "description": "Measurement baseline in metres.",
+          "title": "Baseline M",
+          "type": "number"
+        },
+        "deg": {
+          "description": "Slope in degrees.",
+          "title": "Deg",
+          "type": "number"
+        },
+        "source": {
+          "description": "Slope data source.",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "deg",
+        "baseline_m",
+        "source"
+      ],
+      "title": "Slope",
+      "type": "object"
+    },
+    "Sourced": {
+      "additionalProperties": false,
+      "description": "A value supported by a published source.",
+      "properties": {
+        "kind": {
+          "const": "sourced",
+          "description": "Value is taken from a published source.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "quote": {
+          "description": "Supporting quotation.",
+          "title": "Quote",
+          "type": "string"
+        },
+        "source_url": {
+          "description": "URL of published source.",
+          "title": "Source Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "source_url",
+        "quote"
+      ],
+      "title": "Sourced",
+      "type": "object"
+    },
+    "SystemLayout": {
+      "additionalProperties": false,
+      "description": "Global ephemeris file: six Float32 arrays.",
+      "properties": {
+        "arrays": {
+          "default": [
+            "subsolar_lat",
+            "subsolar_lon",
+            "subearth_lat",
+            "subearth_lon",
+            "earth_dist_km",
+            "sun_dist_km"
+          ],
+          "description": "Ordered sub-point latitudes and longitudes in degrees and distances in kilometres.",
+          "maxItems": 6,
+          "minItems": 6,
+          "prefixItems": [
+            {
+              "const": "subsolar_lat",
+              "type": "string"
+            },
+            {
+              "const": "subsolar_lon",
+              "type": "string"
+            },
+            {
+              "const": "subearth_lat",
+              "type": "string"
+            },
+            {
+              "const": "subearth_lon",
+              "type": "string"
+            },
+            {
+              "const": "earth_dist_km",
+              "type": "string"
+            },
+            {
+              "const": "sun_dist_km",
+              "type": "string"
+            }
+          ],
+          "title": "Arrays",
+          "type": "array"
+        },
+        "byte_order": {
+          "const": "little",
+          "default": "little",
+          "description": "Little-endian byte order.",
+          "title": "Byte Order",
+          "type": "string"
+        },
+        "dtype": {
+          "const": "float32",
+          "default": "float32",
+          "description": "32-bit floating point.",
+          "title": "Dtype",
+          "type": "string"
+        }
+      },
+      "title": "SystemLayout",
+      "type": "object"
+    },
+    "TerrainLayout": {
+      "additionalProperties": false,
+      "description": "Terrain or close-up file: four Float32 arrays.",
+      "properties": {
+        "arrays": {
+          "default": [
+            "east_km",
+            "north_km",
+            "up_km",
+            "slope_deg"
+          ],
+          "description": "Ordered position in kilometres and slope in degrees.",
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "const": "east_km",
+              "type": "string"
+            },
+            {
+              "const": "north_km",
+              "type": "string"
+            },
+            {
+              "const": "up_km",
+              "type": "string"
+            },
+            {
+              "const": "slope_deg",
+              "type": "string"
+            }
+          ],
+          "title": "Arrays",
+          "type": "array"
+        },
+        "byte_order": {
+          "const": "little",
+          "default": "little",
+          "description": "Little-endian byte order.",
+          "title": "Byte Order",
+          "type": "string"
+        },
+        "column_order": {
+          "const": "west_to_east",
+          "default": "west_to_east",
+          "description": "Column 0 is the western edge.",
+          "title": "Column Order",
+          "type": "string"
+        },
+        "dtype": {
+          "const": "float32",
+          "default": "float32",
+          "description": "32-bit floating point.",
+          "title": "Dtype",
+          "type": "string"
+        },
+        "row_order": {
+          "const": "north_to_south",
+          "default": "north_to_south",
+          "description": "Row 0 is the northern edge.",
+          "title": "Row Order",
+          "type": "string"
+        }
+      },
+      "title": "TerrainLayout",
+      "type": "object"
+    },
+    "TimeGrid": {
+      "additionalProperties": false,
+      "description": "UTC grid shared by all series.",
+      "properties": {
+        "count": {
+          "description": "Number of hourly samples.",
+          "title": "Count",
+          "type": "integer"
+        },
+        "start_utc": {
+          "description": "First time grid timestamp in UTC.",
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "Start Utc",
+          "type": "string"
+        },
+        "step_s": {
+          "description": "Time step in seconds.",
+          "title": "Step S",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start_utc",
+        "step_s",
+        "count"
+      ],
+      "title": "TimeGrid",
+      "type": "object"
+    },
+    "Validation": {
+      "additionalProperties": false,
+      "description": "Hard gates and reported comparisons.",
+      "properties": {
+        "comparisons": {
+          "description": "Reported comparisons.",
+          "items": {
+            "$ref": "#/$defs/Comparison"
+          },
+          "title": "Comparisons",
+          "type": "array"
+        },
+        "gates": {
+          "description": "Hard gate results.",
+          "items": {
+            "$ref": "#/$defs/Gate"
+          },
+          "title": "Gates",
+          "type": "array"
+        },
+        "generated_utc": {
+          "description": "Generation time in UTC.",
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "Generated Utc",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generated_utc",
+        "gates",
+        "comparisons"
+      ],
+      "title": "Validation",
+      "type": "object"
+    },
+    "Weights": {
+      "additionalProperties": false,
+      "description": "Non-negative relative scoring weights.",
+      "properties": {
+        "comms": {
+          "description": "Relative comms weight, dimensionless.",
+          "minimum": 0,
+          "title": "Comms",
+          "type": "number"
+        },
+        "power": {
+          "description": "Relative power weight, dimensionless.",
+          "minimum": 0,
+          "title": "Power",
+          "type": "number"
+        },
+        "slope": {
+          "description": "Relative slope weight, dimensionless.",
+          "minimum": 0,
+          "title": "Slope",
+          "type": "number"
+        }
+      },
+      "required": [
+        "slope",
+        "power",
+        "comms"
+      ],
+      "title": "Weights",
+      "type": "object"
+    },
+    "WorkedExamples": {
+      "additionalProperties": false,
+      "description": "Flat worked-example values keyed by full dotted lesson key; every key is required.",
+      "properties": {
+        "l1.example_subsolar_lat": {
+          "description": "l1.example_subsolar_lat: degrees.",
+          "title": "L1.Example Subsolar Lat",
+          "type": "number"
+        },
+        "l1.example_subsolar_lon": {
+          "description": "l1.example_subsolar_lon: degrees.",
+          "title": "L1.Example Subsolar Lon",
+          "type": "number"
+        },
+        "l1.example_sun_az": {
+          "description": "l1.example_sun_az: degrees.",
+          "title": "L1.Example Sun Az",
+          "type": "number"
+        },
+        "l1.example_sun_el": {
+          "description": "l1.example_sun_el: degrees.",
+          "title": "L1.Example Sun El",
+          "type": "number"
+        },
+        "l1.example_utc": {
+          "description": "l1.example_utc: UTC timestamp.",
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "L1.Example Utc",
+          "type": "string"
+        },
+        "l1.site_lat_deg": {
+          "description": "l1.site_lat_deg: degrees.",
+          "title": "L1.Site Lat Deg",
+          "type": "number"
+        },
+        "l1.sun_el_max_deg": {
+          "description": "l1.sun_el_max_deg: degrees.",
+          "title": "L1.Sun El Max Deg",
+          "type": "number"
+        },
+        "l1.sun_el_min_deg": {
+          "description": "l1.sun_el_min_deg: degrees.",
+          "title": "L1.Sun El Min Deg",
+          "type": "number"
+        },
+        "l2.example_utc": {
+          "description": "l2.example_utc: UTC timestamp.",
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "L2.Example Utc",
+          "type": "string"
+        },
+        "l2.ridge_dist_km": {
+          "description": "l2.ridge_dist_km: kilometres.",
+          "title": "L2.Ridge Dist Km",
+          "type": "number"
+        },
+        "l2.ridge_el_deg": {
+          "description": "l2.ridge_el_deg: degrees.",
+          "title": "L2.Ridge El Deg",
+          "type": "number"
+        },
+        "l2.ridge_feature": {
+          "description": "l2.ridge_feature: text.",
+          "title": "L2.Ridge Feature",
+          "type": "string"
+        },
+        "l2.ridge_rise_m": {
+          "description": "l2.ridge_rise_m: metres.",
+          "title": "L2.Ridge Rise M",
+          "type": "number"
+        },
+        "l2.sun_az_deg": {
+          "description": "l2.sun_az_deg: degrees.",
+          "title": "L2.Sun Az Deg",
+          "type": "number"
+        },
+        "l2.sun_el_deg": {
+          "description": "l2.sun_el_deg: degrees.",
+          "title": "L2.Sun El Deg",
+          "type": "number"
+        },
+        "l2.sun_frac": {
+          "description": "l2.sun_frac: dimensionless.",
+          "title": "L2.Sun Frac",
+          "type": "number"
+        },
+        "l3.drop_at_130km_m": {
+          "description": "l3.drop_at_130km_m: metres.",
+          "title": "L3.Drop At 130Km M",
+          "type": "number"
+        },
+        "l3.drop_at_20km_m": {
+          "description": "l3.drop_at_20km_m: metres.",
+          "title": "L3.Drop At 20Km M",
+          "type": "number"
+        },
+        "l3.drop_at_60km_m": {
+          "description": "l3.drop_at_60km_m: metres.",
+          "title": "L3.Drop At 60Km M",
+          "type": "number"
+        },
+        "l3.example_bin_az": {
+          "description": "l3.example_bin_az: degrees.",
+          "title": "L3.Example Bin Az",
+          "type": "number"
+        },
+        "l3.example_dist_km": {
+          "description": "l3.example_dist_km: kilometres.",
+          "title": "L3.Example Dist Km",
+          "type": "number"
+        },
+        "l3.example_el_flat_deg": {
+          "description": "l3.example_el_flat_deg: degrees.",
+          "title": "L3.Example El Flat Deg",
+          "type": "number"
+        },
+        "l3.example_el_true_deg": {
+          "description": "l3.example_el_true_deg: degrees.",
+          "title": "L3.Example El True Deg",
+          "type": "number"
+        },
+        "l3.example_height_m": {
+          "description": "l3.example_height_m: metres.",
+          "title": "L3.Example Height M",
+          "type": "number"
+        },
+        "l4.earth_el_max_deg": {
+          "description": "l4.earth_el_max_deg: degrees.",
+          "title": "L4.Earth El Max Deg",
+          "type": "number"
+        },
+        "l4.earth_el_min_deg": {
+          "description": "l4.earth_el_min_deg: degrees.",
+          "title": "L4.Earth El Min Deg",
+          "type": "number"
+        },
+        "l4.earth_up_pct": {
+          "description": "l4.earth_up_pct: percent.",
+          "title": "L4.Earth Up Pct",
+          "type": "number"
+        },
+        "l4.example_earth_az": {
+          "description": "l4.example_earth_az: degrees.",
+          "title": "L4.Example Earth Az",
+          "type": "number"
+        },
+        "l4.example_earth_clear": {
+          "description": "l4.example_earth_clear: degrees.",
+          "title": "L4.Example Earth Clear",
+          "type": "number"
+        },
+        "l4.example_earth_el": {
+          "description": "l4.example_earth_el: degrees.",
+          "title": "L4.Example Earth El",
+          "type": "number"
+        },
+        "l4.example_utc": {
+          "description": "l4.example_utc: UTC timestamp.",
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "L4.Example Utc",
+          "type": "string"
+        },
+        "l4.link_pct_mask0": {
+          "description": "l4.link_pct_mask0: percent.",
+          "title": "L4.Link Pct Mask0",
+          "type": "number"
+        },
+        "l4.link_pct_mask1": {
+          "description": "l4.link_pct_mask1: percent.",
+          "title": "L4.Link Pct Mask1",
+          "type": "number"
+        },
+        "l4.link_pct_mask5": {
+          "description": "l4.link_pct_mask5: percent.",
+          "title": "L4.Link Pct Mask5",
+          "type": "number"
+        },
+        "l5.example_site": {
+          "description": "l5.example_site: text.",
+          "title": "L5.Example Site",
+          "type": "string"
+        },
+        "l5.plane_a": {
+          "description": "l5.plane_a: dimensionless.",
+          "title": "L5.Plane A",
+          "type": "number"
+        },
+        "l5.plane_b": {
+          "description": "l5.plane_b: dimensionless.",
+          "title": "L5.Plane B",
+          "type": "number"
+        },
+        "l5.slope_100m_deg": {
+          "description": "l5.slope_100m_deg: degrees.",
+          "title": "L5.Slope 100M Deg",
+          "type": "number"
+        },
+        "l5.slope_10m_deg": {
+          "description": "l5.slope_10m_deg: degrees.",
+          "title": "L5.Slope 10M Deg",
+          "type": "number"
+        },
+        "l5.slope_160m_deg": {
+          "description": "l5.slope_160m_deg: degrees.",
+          "title": "L5.Slope 160M Deg",
+          "type": "number"
+        },
+        "l6.a_score": {
+          "description": "l6.a_score: dimensionless.",
+          "title": "L6.A Score",
+          "type": "number"
+        },
+        "l6.b_score": {
+          "description": "l6.b_score: dimensionless.",
+          "title": "L6.B Score",
+          "type": "number"
+        },
+        "l6.example_metrics.landing_lit": {
+          "description": "l6.example_metrics.landing_lit: boolean.",
+          "title": "L6.Example Metrics.Landing Lit",
+          "type": "boolean"
+        },
+        "l6.example_metrics.landing_sun_el_deg": {
+          "description": "l6.example_metrics.landing_sun_el_deg: degrees.",
+          "title": "L6.Example Metrics.Landing Sun El Deg",
+          "type": "number"
+        },
+        "l6.example_metrics.link_fraction": {
+          "description": "l6.example_metrics.link_fraction: dimensionless.",
+          "title": "L6.Example Metrics.Link Fraction",
+          "type": "number"
+        },
+        "l6.example_metrics.lit_fraction": {
+          "description": "l6.example_metrics.lit_fraction: dimensionless.",
+          "title": "L6.Example Metrics.Lit Fraction",
+          "type": "number"
+        },
+        "l6.example_metrics.longest_blackout_h": {
+          "description": "l6.example_metrics.longest_blackout_h: hours.",
+          "title": "L6.Example Metrics.Longest Blackout H",
+          "type": "number"
+        },
+        "l6.example_metrics.longest_dark_h": {
+          "description": "l6.example_metrics.longest_dark_h: hours.",
+          "title": "L6.Example Metrics.Longest Dark H",
+          "type": "number"
+        },
+        "l6.example_metrics.sun_fraction_mean": {
+          "description": "l6.example_metrics.sun_fraction_mean: dimensionless.",
+          "title": "L6.Example Metrics.Sun Fraction Mean",
+          "type": "number"
+        },
+        "l6.example_score": {
+          "description": "l6.example_score: dimensionless.",
+          "title": "L6.Example Score",
+          "type": "number"
+        },
+        "l6.example_utilities.comms": {
+          "description": "l6.example_utilities.comms: dimensionless.",
+          "title": "L6.Example Utilities.Comms",
+          "type": "number"
+        },
+        "l6.example_utilities.power": {
+          "description": "l6.example_utilities.power: dimensionless.",
+          "title": "L6.Example Utilities.Power",
+          "type": "number"
+        },
+        "l6.example_utilities.slope": {
+          "description": "l6.example_utilities.slope: dimensionless.",
+          "title": "L6.Example Utilities.Slope",
+          "type": "number"
+        },
+        "l6.site_a": {
+          "description": "l6.site_a: text.",
+          "title": "L6.Site A",
+          "type": "string"
+        },
+        "l6.site_b": {
+          "description": "l6.site_b: text.",
+          "title": "L6.Site B",
+          "type": "string"
+        },
+        "l7.alt_site": {
+          "description": "l7.alt_site: text.",
+          "title": "L7.Alt Site",
+          "type": "string"
+        },
+        "l7.go_date": {
+          "description": "l7.go_date: UTC timestamp.",
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "L7.Go Date",
+          "type": "string"
+        },
+        "l7.next_go_date": {
+          "description": "l7.next_go_date: UTC timestamp.",
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "L7.Next Go Date",
+          "type": "string"
+        },
+        "l7.slip_blackout_h": {
+          "description": "l7.slip_blackout_h: hours.",
+          "title": "L7.Slip Blackout H",
+          "type": "number"
+        },
+        "l7.slip_date": {
+          "description": "l7.slip_date: UTC timestamp.",
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "L7.Slip Date",
+          "type": "string"
+        },
+        "l7.slip_vetoes": {
+          "description": "l7.slip_vetoes: list of text identifiers.",
+          "items": {
+            "type": "string"
+          },
+          "title": "L7.Slip Vetoes",
+          "type": "array"
+        },
+        "l8.candidates": {
+          "description": "l8.candidates: list of text identifiers.",
+          "items": {
+            "type": "string"
+          },
+          "title": "L8.Candidates",
+          "type": "array"
+        },
+        "l8.region_overlap.overlaps": {
+          "description": "l8.region_overlap.overlaps: boolean.",
+          "title": "L8.Region Overlap.Overlaps",
+          "type": "boolean"
+        },
+        "l8.region_overlap.region_name": {
+          "description": "l8.region_overlap.region_name: text.",
+          "title": "L8.Region Overlap.Region Name",
+          "type": "string"
+        },
+        "l8.region_overlap.site_id": {
+          "description": "l8.region_overlap.site_id: text.",
+          "title": "L8.Region Overlap.Site Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "l1.sun_el_max_deg",
+        "l1.sun_el_min_deg",
+        "l1.site_lat_deg",
+        "l1.example_utc",
+        "l1.example_subsolar_lat",
+        "l1.example_subsolar_lon",
+        "l1.example_sun_az",
+        "l1.example_sun_el",
+        "l2.example_utc",
+        "l2.sun_el_deg",
+        "l2.sun_az_deg",
+        "l2.ridge_dist_km",
+        "l2.ridge_rise_m",
+        "l2.ridge_el_deg",
+        "l2.ridge_feature",
+        "l2.sun_frac",
+        "l3.drop_at_20km_m",
+        "l3.drop_at_60km_m",
+        "l3.drop_at_130km_m",
+        "l3.example_bin_az",
+        "l3.example_dist_km",
+        "l3.example_height_m",
+        "l3.example_el_flat_deg",
+        "l3.example_el_true_deg",
+        "l4.earth_el_max_deg",
+        "l4.earth_el_min_deg",
+        "l4.earth_up_pct",
+        "l4.link_pct_mask0",
+        "l4.link_pct_mask1",
+        "l4.link_pct_mask5",
+        "l4.example_utc",
+        "l4.example_earth_az",
+        "l4.example_earth_el",
+        "l4.example_earth_clear",
+        "l5.slope_10m_deg",
+        "l5.slope_100m_deg",
+        "l5.slope_160m_deg",
+        "l5.example_site",
+        "l5.plane_a",
+        "l5.plane_b",
+        "l6.site_a",
+        "l6.site_b",
+        "l6.a_score",
+        "l6.b_score",
+        "l6.example_metrics.sun_fraction_mean",
+        "l6.example_metrics.lit_fraction",
+        "l6.example_metrics.longest_dark_h",
+        "l6.example_metrics.link_fraction",
+        "l6.example_metrics.longest_blackout_h",
+        "l6.example_metrics.landing_sun_el_deg",
+        "l6.example_metrics.landing_lit",
+        "l6.example_utilities.slope",
+        "l6.example_utilities.power",
+        "l6.example_utilities.comms",
+        "l6.example_score",
+        "l7.go_date",
+        "l7.slip_date",
+        "l7.slip_vetoes",
+        "l7.slip_blackout_h",
+        "l7.next_go_date",
+        "l7.alt_site",
+        "l8.candidates",
+        "l8.region_overlap.site_id",
+        "l8.region_overlap.region_name",
+        "l8.region_overlap.overlaps"
+      ],
+      "title": "WorkedExamples",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TrueSouthContracts"
+}

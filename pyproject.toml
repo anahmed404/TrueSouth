@@ -1,0 +1,15 @@
+[project]
+name = "truesouth-workspace"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = ["truesouth", "truesouth-api"]
+
+[dependency-groups]
+dev = ["pytest"]
+
+[tool.uv.workspace]
+members = ["science", "api"]
+
+[tool.uv.sources]
+truesouth = { workspace = true }
+truesouth-api = { workspace = true }
