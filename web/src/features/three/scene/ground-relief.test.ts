@@ -54,7 +54,8 @@ describe("science.md §2.3 on a fragment's Moon-fixed position", () => {
   });
 
   it("stays precise in float32 next to the pole, where asin of a number near −1 would not", () => {
-    const m = moonFixed(-89.999, 10).map((v) => Math.fround(v)) as V3;
+    const [a, b, c] = moonFixed(-89.999, 10);
+    const m: V3 = [Math.fround(a), Math.fround(b), Math.fround(c)];
     const [x] = capMapXY(m);
     expect(x * MOON_RADIUS_M).toBeCloseTo(polarStereoForward(-89.999, 10).x_m, 0);
   });
