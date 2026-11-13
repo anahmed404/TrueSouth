@@ -107,7 +107,7 @@ each integration checkpoint.
   agent with the tests, typecheck and build, and by two read-throughs of every entry: once
   as a reader with no background, once against `docs/science.md`. A human has not read
   the text yet.
-- **State:** built, not verified
+- **State:** verified (the orchestrator, Claude Fable 5.2, ran the tests, typecheck and build and applied the review's corrections; Antigravity, gemini-4-hydrogen checked every entry against CONTEXT.md and docs/science.md and asked for seven wording fixes and five lesson-link fixes, all made)
 - **Changed:** `web/src/lib/explain.ts`, `web/src/lib/explain.test.ts`, this entry
 - **Notes:**
   - Every glossary term in CONTEXT.md (except the developer-only ones), every profile
