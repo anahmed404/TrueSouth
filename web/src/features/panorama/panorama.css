@@ -19,7 +19,7 @@
 .pano-panel {
   width: min(100%, 860px);
   margin-bottom: var(--float-gap);
-  padding: var(--s2) var(--s3) var(--s3);
+  padding: var(--s2) var(--s3);
 }
 
 /* ── Control row ─────────────────────────────────────────────────────────── */
@@ -495,20 +495,20 @@
   padding: 0 var(--s2);
 }
 
-/* Folded: only the row, about as tall as the "why" plate in the other views, and only as wide
-   as it needs, so the 3D horizon keeps nearly the whole free space. */
-.pano-panel[data-collapsed="true"] {
-  width: auto;
-  max-width: 100%;
-  padding: var(--s1);
-}
-
-.pano-panel[data-collapsed="true"] .why-line,
-.pano-panel[data-collapsed="true"] .why {
+/* The foot row is the same in both states, so the arrow does not move when the chart opens:
+   the panel keeps its width and its bottom padding, and the answer sits flat in the row (the
+   panel is its card). Folded, the row is all there is: about as tall as the "why" plate in
+   the other views, so the 3D horizon keeps nearly the whole free space. */
+.pano-foot .why-line,
+.pano-foot .why {
   border: 0;
   background: none;
 }
 
-.pano-panel[data-collapsed="true"] .why-ok {
+.pano-foot .why-line {
+  padding: 0 0 0 var(--s1);
+}
+
+.pano-foot .why-ok {
   padding: 0 var(--s2) 0 var(--s1);
 }
