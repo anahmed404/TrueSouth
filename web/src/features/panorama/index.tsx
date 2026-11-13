@@ -8,8 +8,8 @@
  * not compute where a body is or what the terrain hides (docs/decisions/0002).
  */
 
-import { Globe } from "lucide-react";
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ChevronDown, ChevronUp, Globe } from "lucide-react";
+import { useCallback, useId, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
 import type { PanelProps } from "../../app/panel";
 import { WhyDarkCard, WhyDarkLine } from "../../app/mission/timeline";
 import type { SkylineArrays } from "../../app/mission/timeline/why-dark";
@@ -32,6 +32,7 @@ import {
   type ElevationRange,
 } from "./geometry";
 import { answerSentence, bodyAt, bodySentence, type ChartSeries } from "./readings";
+import { loadChartOpen, saveChartOpen, sessionStore, toggleName } from "./fold";
 import "./panorama.css";
 
 export type LandersEyeProps = PanelProps & {
@@ -62,9 +63,20 @@ export default function LandersEye(props: LandersEyeProps) {
   return <SiteLandersEye key={siteId} siteId={siteId} {...props} />;
 }
 
-function Frame({ mode, label, children }: { mode: PanelProps["mode"]; label: string; children: ReactNode }) {
+function Frame({
+  mode,
+  label,
+  collapsed = false,
+  children,
+}: {
+  mode: PanelProps["mode"];
+  label: string;
+  /** Mission Control only: the chart is folded away, leaving the one-line row. */
+  collapsed?: boolean;
+  children: ReactNode;
+}) {
   return mode === "mission" ? (
-    <Panel as="section" className="pano pano-panel" data-mode={mode} aria-label={label}>
+    <Panel as="section" className="pano pano-panel" data-mode={mode} data-collapsed={collapsed} aria-label={label}>
       {children}
     </Panel>
   ) : (
@@ -74,12 +86,15 @@ function Frame({ mode, label, children }: { mode: PanelProps["mode"]; label: str
   );
 }
 
-/** The width of an element, followed as it changes. 720 until it is measured (and in tests). */
+/**
+ * The width of an element, followed as it changes. 720 until it is measured (and in tests).
+ * A callback ref, so it measures again whenever the element mounts: the chart mounts only
+ * when it is opened.
+ */
 function useWidth() {
-  const ref = useRef<HTMLDivElement>(null);
+  const [node, setNode] = useState<HTMLDivElement | null>(null);
   const [width, setWidth] = useState(720);
   useLayoutEffect(() => {
-    const node = ref.current;
     if (!node || typeof ResizeObserver === "undefined") return;
     setWidth(Math.round(node.clientWidth) || 720);
     const observer = new ResizeObserver((entries) => {
@@ -88,8 +103,29 @@ function useWidth() {
     });
     observer.observe(node);
     return () => observer.disconnect();
-  }, []);
-  return [ref, width] as const;
+  }, [node]);
+  return [setNode, width] as const;
+}
+
+/**
+ * The arrow that opens and closes the horizon chart in Mission Control. It sits at the start
+ * of the panel's foot row in both states, so it does not move under the pointer: closed, the
+ * row is all there is; open, the chart rises above the row.
+ */
+function ChartToggle({ open, controls, onToggle }: { open: boolean; controls: string; onToggle: () => void }) {
+  const Icon = open ? ChevronDown : ChevronUp;
+  return (
+    <Button
+      className="pano-toggle"
+      aria-expanded={open}
+      aria-controls={controls}
+      aria-label={toggleName(open)}
+      icon={<Icon size={16} strokeWidth={1.8} aria-hidden="true" />}
+      onClick={onToggle}
+    >
+      Horizon chart
+    </Button>
+  );
 }
 
 /** A legend line, drawn with the same classes (and so the same dashes) as the chart. */
@@ -118,6 +154,18 @@ function SiteLandersEye({ siteId, scenario, mode, marker, onMarkerChange, onShow
   const features = useFeatures();
   const [hostRef, width] = useWidth();
   const flags = useHourFlags(siteId, scenario.profile);
+  // In Mission Control the chart folds away so the 3D horizon has the room; closed by default,
+  // remembered for the session. In a lesson it is always open, with no toggle.
+  const collapsible = mode === "mission";
+  const [chartOpen, setChartOpen] = useState(() => loadChartOpen(sessionStore()));
+  const expanded = !collapsible || chartOpen;
+  const toggleChart = useCallback(() => {
+    setChartOpen((open) => {
+      saveChartOpen(sessionStore(), !open);
+      return !open;
+    });
+  }, []);
+  const bodyId = `pano-body-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
 
   const name = site.status === "ready" ? (site.data.site?.name ?? siteId) : siteId;
   const sphere = site.status === "ready" && isSphere(site.data.site);
@@ -250,111 +298,127 @@ function SiteLandersEye({ siteId, scenario, mode, marker, onMarkerChange, onShow
     { mode: "north", label: "North", disabled: false },
   ];
 
+  // The foot row's answer: the "why" line on a dark or blackout hour, the lit line otherwise,
+  // and while loading a plain line, so the row is never empty.
+  const why = loading ? (
+    <p className="pano-note pano-foot-note" role="status">
+      Loading the horizon…
+    </p>
+  ) : dark ? (
+    <WhyDarkLine scenario={scenario} mode={mode} />
+  ) : (
+    <WhyDarkCard scenario={scenario} mode={mode} />
+  );
+
   return (
-    <Frame mode={mode} label={label}>
-      <div className="pano-controls">
-        <div className="pano-centre" role="group" aria-label="Centre the view on">
-          <span className="pano-centre-label" aria-hidden="true">
-            Centre on
-          </span>
-          <span className="seg seg-quiet">
-            {centreOptions.map((option) => (
-              <button
-                key={option.mode}
-                type="button"
-                className="seg-option"
-                aria-pressed={centre.mode === option.mode}
-                disabled={loading || option.disabled}
-                onClick={() => {
-                  setCentre({ mode: option.mode, deg: option.mode === "sun" && sunNow ? sunNow.azDeg : 0 });
-                }}
-              >
-                {option.label}
-              </button>
-            ))}
-          </span>
-        </div>
-        <span className="pano-stretch">
-          {stretchWords(scales.stretch)}
-          {zoom ? (
-            <button type="button" className="pano-reset" aria-label="Reset the vertical stretch" onClick={onResetZoom}>
-              Reset
-            </button>
+    <Frame mode={mode} label={label} collapsed={!expanded}>
+      {expanded ? (
+        <div id={bodyId} className="pano-body" data-rise={collapsible}>
+          <div className="pano-controls">
+            <div className="pano-centre" role="group" aria-label="Centre the view on">
+              <span className="pano-centre-label" aria-hidden="true">
+                Centre on
+              </span>
+              <span className="seg seg-quiet">
+                {centreOptions.map((option) => (
+                  <button
+                    key={option.mode}
+                    type="button"
+                    className="seg-option"
+                    aria-pressed={centre.mode === option.mode}
+                    disabled={loading || option.disabled}
+                    onClick={() => {
+                      setCentre({ mode: option.mode, deg: option.mode === "sun" && sunNow ? sunNow.azDeg : 0 });
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </span>
+            </div>
+            <span className="pano-stretch">
+              {stretchWords(scales.stretch)}
+              {zoom ? (
+                <button type="button" className="pano-reset" aria-label="Reset the vertical stretch" onClick={onResetZoom}>
+                  Reset
+                </button>
+              ) : null}
+            </span>
+          </div>
+
+          <div ref={hostRef} className="pano-host">
+            <HorizonChart
+              scales={scales}
+              skyline={loading ? null : sky}
+              series={loading ? null : data}
+              window={window}
+              hour={loading ? null : hour}
+              landingHour={landingHour}
+              radii={radii}
+              maskDeg={scenario.profile.relay_available ? null : scenario.profile.antenna_mask_deg}
+              features={features.status === "ready" ? features.data : NO_FEATURES}
+              marker={shownMarker}
+              onMark={onMark}
+              onCentreChange={onCentreChange}
+              onZoom={onZoom}
+              onResetZoom={onResetZoom}
+              utcOfHour={utcOfHour}
+              showLabels={showLabels}
+              label={`Horizon chart for ${name}. ${answer}${ringWords ? ` A dashed ring marks ${ringWords}, too small to see at this stretch.` : ""}`}
+            />
+            {loading ? (
+              <p className="pano-loading" role="status">
+                Loading the horizon…
+              </p>
+            ) : null}
+          </div>
+
+          {!loading && !showLabels ? (
+            <p className="pano-answer" aria-hidden="true">
+              {sunNow ? <span className="pano-answer-sun">{bodySentence(sunNow)}</span> : null}
+              {earthNow ? <span className="pano-answer-earth">{bodySentence(earthNow)}</span> : null}
+            </p>
           ) : null}
-        </span>
-      </div>
 
-      <div ref={hostRef} className="pano-host">
-        <HorizonChart
-          scales={scales}
-          skyline={loading ? null : sky}
-          series={loading ? null : data}
-          window={window}
-          hour={loading ? null : hour}
-          landingHour={landingHour}
-          radii={radii}
-          maskDeg={scenario.profile.relay_available ? null : scenario.profile.antenna_mask_deg}
-          features={features.status === "ready" ? features.data : NO_FEATURES}
-          marker={shownMarker}
-          onMark={onMark}
-          onCentreChange={onCentreChange}
-          onZoom={onZoom}
-          onResetZoom={onResetZoom}
-          utcOfHour={utcOfHour}
-          showLabels={showLabels}
-          label={`Horizon chart for ${name}. ${answer}${ringWords ? ` A dashed ring marks ${ringWords}, too small to see at this stretch.` : ""}`}
-        />
-        {loading ? (
-          <p className="pano-loading" role="status">
-            Loading the horizon…
+          {sphere ? <p className="pano-note">Terrain not modelled. Showing a smooth Moon.</p> : null}
+
+          {/* The legend's lines are drawn with the chart's own strokes, so each reads by its dash
+              pattern as well as its colour: dots for the Sun, solid for Earth, long dashes for the
+              antenna mask. */}
+          <p className="pano-legend">
+            <span>
+              <Swatch className="pano-track pano-track-sun" dot />
+              Sun's path, one dot a day
+            </span>
+            <span>
+              <Swatch className="pano-track pano-track-earth" />
+              Earth's path
+            </span>
+            {scenario.profile.relay_available ? null : (
+              <span>
+                <Swatch className="pano-mask" />
+                Antenna mask above the skyline
+              </span>
+            )}
+            <span>A disc's faded part is below the skyline</span>
+            {ringWords ? (
+              <span>
+                <svg className="pano-sw-svg" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+                  <circle cx="7" cy="7" r="5.5" className={`pano-locator pano-locator-${ringed[0]?.body ?? "sun"}`} />
+                </svg>
+                A dashed ring marks {ringWords}, too small to see here
+              </span>
+            ) : null}
           </p>
-        ) : null}
-      </div>
 
-      {!loading && !showLabels ? (
-        <p className="pano-answer" aria-hidden="true">
-          {sunNow ? <span className="pano-answer-sun">{bodySentence(sunNow)}</span> : null}
-          {earthNow ? <span className="pano-answer-earth">{bodySentence(earthNow)}</span> : null}
-        </p>
+        </div>
       ) : null}
 
-      {sphere ? <p className="pano-note">Terrain not modelled. Showing a smooth Moon.</p> : null}
-
-      {/* The legend's lines are drawn with the chart's own strokes, so each reads by its dash
-          pattern as well as its colour: dots for the Sun, solid for Earth, long dashes for the
-          antenna mask. */}
-      <p className="pano-legend">
-        <span>
-          <Swatch className="pano-track pano-track-sun" dot />
-          Sun's path, one dot a day
-        </span>
-        <span>
-          <Swatch className="pano-track pano-track-earth" />
-          Earth's path
-        </span>
-        {scenario.profile.relay_available ? null : (
-          <span>
-            <Swatch className="pano-mask" />
-            Antenna mask above the skyline
-          </span>
-        )}
-        <span>A disc's faded part is below the skyline</span>
-        {ringWords ? (
-          <span>
-            <svg className="pano-sw-svg" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-              <circle cx="7" cy="7" r="5.5" className={`pano-locator pano-locator-${ringed[0]?.body ?? "sun"}`} />
-            </svg>
-            A dashed ring marks {ringWords}, too small to see here
-          </span>
-        ) : null}
-      </p>
-
       {mode === "mission" ? (
-        dark ? (
-          <WhyDarkLine scenario={scenario} mode={mode} />
-        ) : (
-          <WhyDarkCard scenario={scenario} mode={mode} />
-        )
+        <div className="pano-foot">
+          <ChartToggle open={expanded} controls={bodyId} onToggle={toggleChart} />
+          <div className="pano-foot-why">{why}</div>
+        </div>
       ) : null}
     </Frame>
   );

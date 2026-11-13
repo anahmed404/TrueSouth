@@ -234,9 +234,11 @@ function MissionShell() {
     if (onPhone && sitesOpen && railNode) covers.push(rectOf(railNode));
     if (onPhone && focusOpen && focusNode) covers.push(rectOf(focusNode));
     const belowTops = [rectOf(timeline).y];
-    // In Lander's eye the horizon chart's panel ends the free space above it.
-    const chart = footRef.current?.querySelector(".pano-panel");
-    if (chart) belowTops.push(rectOf(chart).y);
+    // In Lander's eye the horizon chart's panel ends the free space above it, open or folded.
+    // The foot stack is measured, not the panel: the panel rises as the chart opens, while the
+    // stack is already where the panel ends up, so the camera reframes once, with no jump.
+    const foot = footRef.current;
+    if (foot?.querySelector(".pano-panel")) belowTops.push(rectOf(foot).y);
     if (onPhone && !focusOpen && focusNode) belowTops.push(rectOf(focusNode).y);
     return {
       viewport: { width: window.innerWidth, height: window.innerHeight },
