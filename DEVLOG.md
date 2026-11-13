@@ -488,6 +488,43 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-13 · MC shell feedback · No view sentence; the landing date joins the timeline; "Next GO"
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (a rearrangement
+  of the approved C2 shell, no redesign) — removed the view's sentence plate (its text now in
+  an "About" button inside the current tab and in the tab's accessible description), wrote
+  `LandingDateControl` and moved the landing date from the app bar to the head of the
+  bottom strip, wrote `nextGoDay` and the "Next GO" button with its states, Undo and polite
+  status line, updated the specs and DESIGN.md, and wrote 34 vitest tests (fixture tests of
+  `nextGoDay`, the button's states, the control's reads and writes, and a render-count test
+  that a scrub does not re-render the control, on a small fake DOM) — checked by the agent
+  with typecheck, the vitest suite, the build, `uv run pytest`, impeccable's detector (no
+  findings), and by eye on the real data at 1440 × 900, 1024 × 768 and 390 × 844 in the four
+  camera views and with Compare open, folded, by keyboard and in an accessibility snapshot;
+  a human has not reviewed it yet
+- **State:** built, not verified (1,725 web tests, 322 Python tests, typecheck and build pass
+  on the merge with main; the team lead has not judged the layout)
+- **Changed:** `web/src/app/mission/` (new `landing-date-control.tsx`, `next-go-button.tsx`,
+  `landing-control.ts`, `fake-dom.ts` and their tests; `view-bar.tsx`, `top-bar.tsx`,
+  `free-space.ts`, `timeline/timeline.tsx`, `timeline/axis.ts`, `timeline/timeline.css`),
+  `web/src/app/mission-screen.tsx` (three small lines), `web/src/app/shell.css`,
+  `web/src/lib/scoring/next-go.ts` (new), `docs/features/` (mission-control, site-detail,
+  local-terrain, polar-map, panorama, slip-planner), `DESIGN.md`,
+  `docs/design/c2/built-shell-feedback-*.png`
+- **Notes:**
+  - The free space now starts 8 px under the view bar: at 1440 × 900 it is 59 px taller,
+    and the camera's centre rises by half that.
+  - Changing the landing date keeps the current time's offset from the landing, clamped to
+    the timeline (window ± 3 days), as `moveLandingKeepingOffset` did before; each change
+    pushes one history entry, so Back undoes it.
+  - "Next GO" searches from the day after the landing date's day, over the sweep's 00:00 UTC
+    landings, and lands at 00:00 UTC. With Chandrayaan-3 and Malapert Massif from 2029-01-10
+    it says "No GO date before 2032".
+  - The Slip Planner can mount `LandingDateControl` in its panel's header as it is; it
+    reads and writes only the scenario store.
+  - Not done: a draggable start of the window on the timeline (the timeline's range follows
+    the landing, so a handle would drag its own axis), and a "Previous GO" twin.
+
 #### 2026-11-13 · MC6 · Lander's eye: the horizon chart
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (building the
