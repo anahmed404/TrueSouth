@@ -1,5 +1,5 @@
 import { answerText, PANEL_STEP_KINDS, type RunnerState } from "./runner";
-import type { LunaMood, Step, Submission } from "./types";
+import type { LunaMood, PanelPreview, Step, Submission } from "./types";
 
 /**
  * What the lesson screen shows for a step, derived from the step and the runner. Pure, so
@@ -100,11 +100,12 @@ export function canCheck(step: Step, runner: RunnerState, draft: Draft): boolean
 export type PrimaryAction =
   | { kind: "check"; label: "Check" | "Show me"; enabled: boolean }
   | { kind: "continue"; label: "Continue" | "Finish the lesson" }
-  | { kind: "skip"; label: "Skip this step" };
+  /** A panel step shown in its "not ready" form: Continue moves on, for no XP. */
+  | { kind: "skip"; label: "Continue" };
 
 export function primaryAction(step: Step, runner: RunnerState, draft: Draft, isLastStep: boolean): PrimaryAction {
   if (isAnswered(runner)) return { kind: "continue", label: isLastStep ? "Finish the lesson" : "Continue" };
-  if (PANEL_STEP_KINDS.includes(step.kind)) return { kind: "skip", label: "Skip this step" };
+  if (PANEL_STEP_KINDS.includes(step.kind)) return { kind: "skip", label: "Continue" };
   return {
     kind: "check",
     label: step.kind === "predict" ? "Show me" : "Check",
@@ -130,6 +131,11 @@ export type ConversationEntry =
   | { who: "luna"; mood: LunaMood; text: string; old: boolean; key: string }
   | { who: "me"; text: string; miss: boolean; key: string };
 
+/** A number with its unit: "20 km", but "6.5°" and "11%", which sit on the number. */
+export function withUnit(value: number, unit: string): string {
+  return unit === "°" || unit === "%" ? `${value}${unit}` : `${value} ${unit}`;
+}
+
 /** How the learner's reply reads in the conversation. Text may hold placeholders. */
 export function replyText(step: Step, submission: Submission): string {
   switch (submission.kind) {
@@ -144,7 +150,7 @@ export function replyText(step: Step, submission: Submission): string {
     case "tune-slider":
       if (step.kind !== "tune-slider") return "";
       if (submission.variant === "date") return submission.utc;
-      return step.slider.kind === "number" ? `${submission.value} ${step.slider.unit}` : String(submission.value);
+      return step.slider.kind === "number" ? withUnit(submission.value, step.slider.unit) : String(submission.value);
     case "drag-body":
       return String(submission.value);
     case "drop-pin":
@@ -161,8 +167,11 @@ export function replyText(step: Step, submission: Submission): string {
  * miss and her explanation at the end. Every Luna line but the newest is "old".
  */
 export function conversationFor(step: Step, runner: RunnerState): ConversationEntry[] {
+  const preview = panelPreview(step);
   const entries: ConversationEntry[] = [
-    { who: "luna", mood: step.luna.mood, text: step.luna.says, old: false, key: `${step.id}-ask` },
+    preview
+      ? { who: "luna", mood: "happy", text: preview.says, old: false, key: `${step.id}-preview` }
+      : { who: "luna", mood: step.luna.mood, text: step.luna.says, old: false, key: `${step.id}-ask` },
   ];
   const answer = correctIndex(step);
   runner.attempts.forEach((attempt, index) => {
@@ -202,6 +211,15 @@ export function conversationFor(step: Step, runner: RunnerState): ConversationEn
   return entries.map((entry, index) =>
     entry.who === "luna" && index !== lastLuna ? { ...entry, old: true } : entry,
   );
+}
+
+/**
+ * The "not ready" form of a panel step (see `PanelPreview`), or null for any other step.
+ * A panel step with no preview of its own falls back to its question and explanation.
+ */
+export function panelPreview(step: Step): PanelPreview | null {
+  if (step.kind !== "drag-body" && step.kind !== "draw-skyline" && step.kind !== "drop-pin") return null;
+  return step.preview ?? { says: step.luna.says, reveal: step.explain };
 }
 
 function lunaOnCorrect(step: Step, runner: RunnerState): string {

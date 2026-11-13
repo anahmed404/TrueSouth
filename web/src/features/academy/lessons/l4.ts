@@ -1,19 +1,17 @@
 import type { Lesson } from "../types";
-import { oneMonth, storyScene, todo } from "./story";
+import { oneMonth, storyScene } from "./story";
 
 /**
- * Lesson 4, "Phone home". Typed skeleton. Not in the catalog yet.
- * Quoted lines are copied from docs/academy/lessons.md. `TODO(words):` marks a description.
+ * Lesson 4, "Phone home". Every line is copied from docs/academy/lessons.md, section 4 and
+ * its "Words" list; change the words there first. The 5° and 15% are the doc's own rules,
+ * not worked-example values.
  */
 const month = storyScene("smooth", oneMonth("{{example.l4.example_utc}}"));
 
-const bob = "It is always overhead / It never appears / **It bobs up and down at the horizon**";
-const readouts = "Readouts: highest {{example.l4.earth_el_max_deg}}°, lowest {{example.l4.earth_el_min_deg}}°.";
-const share = "Always / Almost never / **About {{example.l4.earth_up_pct}}%**. Reveal: the timeline's Earth band.";
-const margin = "Goal: {{example.l4.mask_for_15pct_deg}}° or more. Readout: link time. Pip's link meter follows.";
 const rulesLuna =
-  "A 5° margin held for half of every month can never be met: with a 5° margin Pip can talk only {{example.l4.link_pct_mask5}}% of the time. Judge the mission's own days, not the whole month. Lesson 7.";
-const rules = `Lines: (1) Earth must clear the skyline; (2) by at least 5°; **(3) for at least half of every month**; (4) or the site is NO-GO. Luna: "${rulesLuna}"`;
+  "In this month a 5° margin gives Pip a link only {{example.l4.link_pct_mask5}}% of the time, far short of half, so line 3 calls the site NO-GO. Judge the mission's own days, not the whole month. Lesson 7.";
+const range =
+  "This month Earth climbs to {{example.l4.earth_el_max_deg}}° at its highest and sinks to {{example.l4.earth_el_min_deg}}° at its lowest.";
 
 export const lesson4 = {
   id: "l4_link",
@@ -30,8 +28,8 @@ export const lesson4 = {
         mood: "thinking",
         says: "From Apollo 11's site, Earth hangs high in the sky all the time. From my south pole?",
       },
-      hint: todo(bob),
-      explain: todo(bob),
+      hint: "Earth hangs over the middle of my near side. My south pole is at the very edge of that face.",
+      explain: "Seen from my pole, Earth sits on the edge of the sky. My slow wobble lifts it up and lowers it again.",
       kind: "choice",
       options: ["It is always overhead", "It never appears", "It bobs up and down at the horizon"],
       answer: 2,
@@ -39,27 +37,32 @@ export const lesson4 = {
     {
       id: "l4-highest",
       luna: { mood: "thinking", says: "Drag Earth through a month. Find its highest moment." },
-      hint: todo(readouts),
-      explain: todo(readouts),
+      hint: "Earth rises and sinks slowly over the month. Drag back and forth near the top.",
+      explain: `${range} Below 0° it is below level; whether Pip still sees it depends on the ground in that direction.`,
       kind: "drag-body",
       body: "earth",
       panel: "LandersEye",
       scene: month,
       readout: ["highest {{example.l4.earth_el_max_deg}}°", "lowest {{example.l4.earth_el_min_deg}}°"],
       goal: { metric: "earth_el_deg", op: "==", value: "{{example.l4.earth_el_max_deg}}" },
+      answerLabel: "{{example.l4.earth_el_max_deg}}°",
+      preview: {
+        says: "Soon you'll drag Earth through a month here, to find its highest moment. For now, here's what you would find.",
+        reveal: range,
+      },
     },
     {
       id: "l4-up",
-      luna: { mood: "thinking", says: "Over a month, how much of the time is Earth above Pip's horizon?" },
-      hint: todo(share),
-      explain: todo(share),
+      luna: { mood: "thinking", says: "Over this month, how much of the time is Earth above Pip's horizon?" },
+      hint: "This month Earth spends part of the time above the horizon and part below it.",
+      explain: "About {{example.l4.earth_up_pct}}% of this month. The rest of the time Earth is hidden behind Pip's horizon, and Pip cannot call home.",
       kind: "predict",
       options: ["Always", "Almost never", "About {{example.l4.earth_up_pct}}%"],
       answer: 2,
       reveal: {
         kind: "panel",
         panel: "Timeline",
-        caption: todo("the timeline's Earth band."),
+        caption: "The timeline's Earth band for the month: Earth is above Pip's horizon about {{example.l4.earth_up_pct}}% of the time.",
         scene: null,
         when: { kind: "band", band: "earth" },
       },
@@ -68,10 +71,11 @@ export const lesson4 = {
       id: "l4-margin",
       luna: {
         mood: "thinking",
-        says: "Pip's antenna needs Earth to clear the ground by some margin. Raise the margin until Pip can talk less than 15% of the time.",
+        says: "Pip's antenna needs Earth to clear the ground by some margin. Raise the margin until Pip can talk less than 15% of this month.",
       },
-      hint: todo(margin),
-      explain: todo(margin),
+      hint: "The higher the margin, the less often Earth clears it. Keep raising it and watch the link time.",
+      explain:
+        "From {{example.l4.mask_for_15pct_deg}}° up, Pip can talk less than 15% of this month. A bigger margin is kinder to the radio, but it costs link time.",
       kind: "tune-slider",
       slider: {
         kind: "number",
@@ -79,7 +83,7 @@ export const lesson4 = {
         max: 10,
         step: 0.5,
         unit: "°",
-        label: "margin",
+        label: "Margin",
         readout: {
           kind: "example-list",
           label: "link time",
@@ -91,17 +95,18 @@ export const lesson4 = {
       },
       // Any margin at or above the first one under 15% answers the question as asked.
       goal: { metric: "antenna_mask_deg", op: ">=", value: "{{example.l4.mask_for_15pct_deg}}" },
-      answerLabel: "{{example.l4.mask_for_15pct_deg}}°",
+      answerLabel: "{{example.l4.mask_for_15pct_deg}}° or more",
     },
     {
       id: "l4-bug",
       luna: {
         mood: "thinking",
-        says: "An early TrueSouth used these rules and called every polar site NO-GO. Which rule can never be met here?",
+        says: "An early TrueSouth used these rules and called every polar site NO-GO. Which rule made them all fail?",
       },
-      hint: todo(rules),
+      hint: "Which rule asks for more than Earth gave this month? Think about how long Earth stays high.",
       explain: rulesLuna,
       kind: "spot-bug",
+      title: "The early link rules",
       lines: [
         "Earth must clear the skyline",
         "by at least 5°",

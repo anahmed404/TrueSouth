@@ -157,7 +157,8 @@ Depth comes from tonal steps between grey surfaces, not from shadow, glass or gl
 
 Mission Control is dense and calm. Behind everything is the scene: a 3D photograph of the
 Sun, Earth and Moon. The panels float above it, each only as tall as its content, so the
-scene gets the room. Each view states in one sentence what the user is looking at. Detail
+scene gets the room. Each view says in one sentence what the user is looking at, behind
+the small info button on its tab, so the sentence never takes room from the scene. Detail
 waits behind a disclosure until it is asked for.
 
 The Academy uses the same tokens with more air: larger type, rounder cards and bigger
@@ -178,7 +179,7 @@ catalogue, never a decorative starfield behind the interface's data.
 - Floating panels, 16 px from the window edge and from each other, 14 px corners, sized to
   their content.
 - A scene behind the interface, treated as a photograph of space. The interface stays flat.
-- Every view opens with one plain sentence.
+- Every view has one plain sentence, one tap away on its tab.
 
 ## Colors
 
@@ -256,8 +257,7 @@ round, so it reads technical in Mission Control and friendly in the Academy.
 - **Status** (600, 24px, 1): the status word, the broken rule's value, countdowns in the
   shell, and door titles.
 - **Title** (600, 18px, 1.2): site names and section titles.
-- **Lead** (400, 15px, 1.5): each view's one-sentence description, panel titles and
-  Academy body. Maximum 72ch.
+- **Lead** (400, 15px, 1.5): panel titles and Academy body. Maximum 72ch.
 - **Body** (400, 13px, 1.4): Mission Control text.
 - **Label** (400, 12px): captions, tags, legends and tab lines. This is the HTML floor.
   SVG axis ticks may use 11px.
@@ -282,11 +282,11 @@ view and fills the whole window. Every panel floats above it:
 | Element | Size |
 | :--- | :--- |
 | Scene | the whole window |
-| App bar: four floating blocks, 12px from the top | 44px tall |
-| View bar, under the app bar, with the view's sentence under it | 44px tall |
+| App bar: three floating blocks (brand and mode, profile, share), 12px from the top | 44px tall |
+| View bar, under the app bar (nothing is drawn under it but a notice about the link) | 44px tall |
 | Sites rail | 256px open, 48px collapsed |
 | Focused-site panel | 328px open, 48px collapsed |
-| Timeline strip, along the bottom | 196px open, 52px folded |
+| Timeline strip, along the bottom, its header starting with the landing date | 196px open, 52px folded |
 | Footer line | 20px |
 | Floating window (Compare) | at most 1120px wide, between the view bar and the timeline |
 | Landing-date panel (Slip Planner), in the timeline's slot | as tall as its content |
@@ -302,20 +302,19 @@ lamps. The sites rail keeps one lamp per site, each still focusing its site; the
 focused-site panel keeps the focused site's lamp, with its name and verdict written down the
 rail (as in the prototype). The timeline folds to one row. The scene
 takes all the freed room: its centre slides to the new free space, and with everything
-folded the home camera moves in so the Moon fills the window. The view's sentence stays
-capped at 72ch. The change animates in 200ms with an ease-out and does not animate under
+folded the home camera moves in so the Moon fills the window. The change animates in 200ms with an ease-out and does not animate under
 reduced motion. The collapsed state is view state, kept in local storage, not in the
 scenario or the URL.
 
 **The view stacks, top to bottom, over the scene:**
 
-1. the view bar (five scene views, a divider, one window button);
-2. the one-sentence description, on a plate;
-3. the scene, with its labels and pins on plates;
-4. one control row, floating at the foot of the free space;
-5. one legend line;
-6. any explanation card;
-7. the timeline strip.
+1. the view bar (five scene views, the current one with its info button, a divider, one
+   window button);
+2. the scene, with its labels and pins on plates;
+3. one control row, floating at the foot of the free space;
+4. one legend line;
+5. any explanation card;
+6. the timeline strip.
 
 **The focused-site panel stacks:**
 
@@ -454,8 +453,9 @@ exception is the 2px red outline of a broken-rule stretch. No coloured side bord
 - **View bar:** a floating panel holding the five scene views as tabs (a Raised fill and a
   2px Moonlight underline on the selected one), a hairline divider, then the window button,
   Compare, with a small window icon and `aria-expanded`. The Slip Planner is the third tab,
-  between the Polar map and Local terrain. The tabs have a name only; the old "what it is for" lines are gone, and the view's sentence
-  under the bar does that job. On a phone the bar scrolls sideways and every tab is at
+  between the Polar map and Local terrain. The tabs have a name only; the old "what it is for" lines are gone. The current tab
+  shares its Raised fill with a small info button (28px, 44px on a phone) whose tip holds the
+  view's text, and the view's first sentence is the tab's accessible description. On a phone the bar scrolls sideways and every tab is at
   least 44px tall.
 - **Panel toggle:** a 28px borderless icon button (panel-close or panel-open icon) in Ink 3.
 
@@ -471,7 +471,6 @@ exception is the 2px red outline of a broken-rule stretch. No coloured side bord
 
 ### Floating panel, plate and scene parts
 - **Floating panel:** a `--surface` fill, a 1px Control Edge border and 14px corners.
-- **View sentence plate:** 15px Ink on `--plate`, at most 72ch, centred under the view bar.
 - **Scene label:** a plate with one 13px line and an optional 12px Ink 2 line, kept inside
   the free space and moved to avoid other labels.
 - **Pin:** a status lamp with a 2px Night ring. The focused pin adds a Moonlight ring and a
@@ -523,11 +522,18 @@ or glow.
   solid 2px NO-GO Red, labelled with a NO-GO lamp, when it breaks one.
 - **Scrubber:** a Moonlight line and knob, with a pill showing the mission day and UTC
   time.
+- **Landing date:** the first thing in the strip's header, where the mission window
+  begins: a "Landing date" label, the date in a Raised box between two day buttons, the
+  window's end and length in Ink 2 with the duration's provenance tag ("→ 11 Mar · 10 d
+  [sourced]"), and "Next GO" (a secondary button). The slip buttons are in the date's
+  picker. After "Next GO" a tip-style bubble (Raised,
+  Control Edge, the popover shadow) says where the landing moved, with "Undo".
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** open every view with one plain sentence saying what the user is looking at.
+- **Do** give every view one plain sentence saying what the user is looking at, behind the
+  info button on its tab.
 - **Do** lead the focused-site panel with the status and the rule that is broken, and put
   the remaining metrics behind a disclosure.
 - **Do** tag every mission-profile value as sourced or assumed, quietly.

@@ -157,4 +157,61 @@ export function PipScene({ caption, celebrate }: { caption: string; celebrate: n
   );
 }
 
+/** Height of the ground on the drawing's circle at x: a sphere seen side-on, much exaggerated. */
+function groundY(x: number): number {
+  const cx = 170;
+  const cy = 1900;
+  const r = 1500;
+  return cy - Math.sqrt(r * r - (x - cx) * (x - cx));
+}
+
+function arcPath(from: number, to: number): string {
+  let d = "";
+  for (let x = from; x <= to; x += 10) d += `${x === from ? "M" : "L"}${x},${groundY(x).toFixed(1)}`;
+  return d;
+}
+
+/**
+ * Lesson 3's reveal: the round Moon side-on, with a level line from Pip and a far
+ * mountain whose base has dropped below it, so only its tip shows. A schematic drawing,
+ * not to scale; the real drop is in the caption, from the worked examples.
+ */
+export function CurvedMoonSide({ label }: { label: string }) {
+  const tipX = 700;
+  const ground = arcPath(-200, 1020);
+  const mountain = `M630,${groundY(630).toFixed(1)} L${tipX},382 L770,${groundY(770).toFixed(1)}Z`;
+  const dropX = 600;
+  return (
+    <svg className="ac-scene" viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} preserveAspectRatio="xMidYMax meet" role="img" aria-label={label}>
+      <defs>
+        <clipPath id="ac-above-level">
+          <rect x="0" y="0" width={VIEW_W} height="400" />
+        </clipPath>
+      </defs>
+      <path d={`${ground} L1020,520 L-200,520Z`} fill="var(--terrain)" />
+      <path d={ground} fill="none" stroke="var(--terrain-rim)" strokeWidth="1.3" />
+      <path d={mountain} fill="var(--terrain)" stroke="var(--terrain-rim)" strokeWidth="1.3" />
+      <path d={mountain} fill="var(--ink-2)" clipPath="url(#ac-above-level)" />
+      <line x1="170" y1="400" x2="800" y2="400" stroke="var(--accent)" strokeWidth="2" strokeDasharray="8 7" />
+      <text x="300" y="388" fontSize="21" fill="var(--ink-2)">
+        level line from Pip
+      </text>
+      <line x1={dropX} y1="404" x2={dropX} y2={groundY(dropX) - 4} stroke="var(--ink-3)" strokeWidth="1.5" />
+      <text x={dropX - 10} y="440" textAnchor="end" fontSize="21" fill="var(--ink-2)">
+        the ground drops
+      </text>
+      <text x={tipX} y="364" textAnchor="middle" fontSize="21" fill="var(--ink)">
+        only the tip shows
+      </text>
+      <PipGlyph x={170} y={388} scale={1.3} />
+      <text x="170" y="482" textAnchor="middle" fontSize="21" fill="var(--ink-2)">
+        Pip
+      </text>
+      <text x="800" y="490" textAnchor="end" fontSize="18" fill="var(--ink-3)">
+        not to scale
+      </text>
+    </svg>
+  );
+}
+
 export type { Mark as RulerMark };

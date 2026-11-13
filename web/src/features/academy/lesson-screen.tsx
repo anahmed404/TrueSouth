@@ -5,7 +5,7 @@ import { createValueEvaluator, type GoalEvaluator } from "./evaluator";
 import { Conversation, type TalkTab } from "./lesson/conversation";
 import { Stage } from "./lesson/stage";
 import { LessonTopBar } from "./lesson/top-bar";
-import { sampleCard } from "./lessons/sample";
+import { CARDS } from "./cards";
 import type { WorkedExamples } from "./placeholders";
 import {
   commitLessonProgress,
@@ -27,12 +27,8 @@ import {
   type Draft,
 } from "./step-view";
 import { useAcademyStore } from "./store";
-import type { Lesson, Submission, UnderTheHoodCard } from "./types";
+import type { Lesson, Submission } from "./types";
 import { ConfirmDialog } from "./ui/dialog";
-
-const cards: Record<string, UnderTheHoodCard> = {
-  [sampleCard.id]: sampleCard,
-};
 
 function submissionFrom(draft: Draft): Submission | null {
   if (!draft) return null;
@@ -208,7 +204,7 @@ export function LessonScreen({
           views={views}
           examples={examples}
           examplesPending={examplesPending}
-          card={cards[lesson.card]}
+          card={CARDS[lesson.card]}
           lessonTitle={lesson.title}
           tab={tab}
           onTab={setTab}
