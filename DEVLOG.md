@@ -49,6 +49,35 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-13 · S4 · Global ephemeris: G1 passes; G2 measured on the full grid
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — wrote `horizons.py`, `ephemeris.py`, the `fetch-ephemeris`
+  step and their tests, and ran the comparison with JPL Horizons — the orchestrator (Claude
+  Fable 5.2) reran the full comparison offline from the saved responses and checked the
+  result against known facts; Cursor, grok-4.7 recomputed it with its own vector code and
+  checked the conventions against the Horizons headers and manual
+- **State:** built; gate G1 verified; gate G2 awaiting the team lead's decision on its wording
+- **Changed:** `science/src/truesouth/horizons.py`, `ephemeris.py`,
+  `commands/fetch_ephemeris.py`, `science/tests/`, `data/derived/system.bin`,
+  `docs/science.md` section 3
+- **Notes:**
+  - 20 catalog sites × 2 bodies × 52,584 hours = 2,103,360 comparisons, with no correction
+    or fitted offset. Largest direction difference on the sky: 0.0060° (Earth at
+    Apollo 11, 2027-01-07T22:00Z). Sun: at most 0.0002°. Limit: 0.02°.
+  - Raw compass azimuth is above 0.02° at 28 hours, all the Sun at Apollo 11 within 0.52°
+    of straight overhead or underfoot; the largest is 0.082° at elevation −89.88°
+    (2031-10-14T01:00Z), where the direction on the sky differs by 0.00017°. Everywhere
+    else raw azimuth differs by at most 0.0093°. So G2 is met as a direction on the sky
+    and not met, at those 28 hours, as raw compass azimuth. docs/science.md section 3.3
+    states both.
+  - Horizons headers: longitudes east-positive; `MOON_ME` for the global table and
+    `MEAN_ME (high precision)` at the sites, the DE421 mean-Earth frame. No sign change or
+    frame rotation was needed.
+  - Both sides use ground height 0 plus the 2 m observer. A 5 km height error moves Earth's
+    direction by at most 0.0008° and the Sun's by 0.000002°.
+  - `system.bin` is 1,262,016 bytes and rebuilds byte for byte from the saved response.
+    The full comparison takes 27 s offline; 306 s with 38 fresh requests.
+
 #### 2026-11-13 · S5 · Prepared terrain maps and downloads
 - **Who:** Codex agent, for the orchestrator
 - **AI use:** Codex, gpt-6.1-terra — wrote terrain preparation, sampling, downloads and synthetic tests — agent ran pytest; orchestrator review pending
