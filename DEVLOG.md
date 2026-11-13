@@ -219,7 +219,7 @@ each integration checkpoint.
   checked by the agent with typecheck, 1,277 vitest tests and the build, impeccable's
   detector (no findings), and by eye in a browser on the fixtures and the real Connecting
   Ridge data at 1440 × 900, 1024 × 768 and 390 × 844; a human has not reviewed it yet
-- **State:** built, not verified
+- **State:** verified (orchestrator ran typecheck, 1,449 tests and build on the merge with main and looked at the screens on real sites; Antigravity, gemini-4-hydrogen checked every drawn value against the raw files, used it in a browser at three sizes and ran eight mutations; its six must-fix findings were fixed)
 - **Changed:** `web/src/app/mission/timeline/` (new), `web/src/app/mission/throttled-history.ts`,
   `web/src/app/mission/shell-layout.ts`, `web/src/app/mission/scenario-context.tsx`,
   `web/src/app/mission-screen.tsx`, `web/src/app/shell.css`, `web/src/components/BodyIcon.tsx`,
