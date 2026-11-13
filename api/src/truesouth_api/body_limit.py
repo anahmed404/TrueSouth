@@ -10,7 +10,7 @@ class CustomBodyLimit:
         if scope['type'] != 'http' or scope.get('method') != 'POST' or scope.get('path') != '/api/sites/custom':
             return await self.app(scope, receive, send)
         async def refuse():
-            await JSONResponse({'message': f'Custom-site requests must be at most {self.limit} bytes.'},
+            await JSONResponse({'code': 'too_large', 'message': f'Custom-site requests must be at most {self.limit} bytes.'},
                                status_code=413)(scope, receive, send)
         for key, value in scope.get('headers', []):
             if key.lower() == b'content-length':

@@ -49,6 +49,12 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-14 ? S10c ? Custom-site status and errors
+- **Who:** Codex implementation agent
+- **AI use:** Codex implemented queue positions, error codes, contracts, documentation and regression tests; human review pending.
+- **State:** built, not verified (full checks pending).
+- **Changed:** Status returns the current FIFO position; custom-site errors include stable codes while retaining their messages.
+
 #### 2026-11-14 · S10b integration · Merge main's placement builder
 - **Who:** Codex implementation agent
 - **AI use:** Codex resolved build-sites and DEVLOG conflicts, preserved main's placement flow, adapted the custom-site wrapper to main's helpers, and added integration tests; human and orchestrator review pending.

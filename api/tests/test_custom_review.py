@@ -34,7 +34,7 @@ def test_invalid_bodies_are_plain_422(empty_tree, body):
         response = client.post('/api/sites/custom', content=body, headers={'Content-Type':'application/json'})
         assert response.status_code == 422
         data = response.json()
-        assert set(data) == {'message', 'fields'}
+        assert set(data) == {'code', 'message', 'fields'}
         assert data['fields']
         assert all(set(field) == {'field', 'message'} for field in data['fields'])
         assert 'SECRET' not in response.text
@@ -130,7 +130,7 @@ def test_large_body_is_413(empty_tree, field, streamed):
         response = client.post('/api/sites/custom', content=iter([body[:2000], body[2000:]]) if streamed else body,
                                headers={'Content-Type':'application/json'})
         assert response.status_code == 413
-        assert response.json() == {'message':'Custom-site requests must be at most 4096 bytes.'}
+        assert response.json() == {'code':'too_large', 'message':'Custom-site requests must be at most 4096 bytes.'}
         assert 'SECRET' not in response.text
 
 
@@ -188,7 +188,7 @@ def test_storage_full_rejected_without_job_or_slot(empty_tree):
     with TestClient(create_app(derived=derived, prepared=prepared, cache=cache, jobs=jobs)) as client:
         response = client.post('/api/sites/custom', json=dict(lat_deg=0, lon_deg=0))
         assert response.status_code == 507
-        assert response.json() == {'message':"This server's storage for custom sites is full."}
+        assert response.json() == {'code':'storage_full', 'message':"This server's storage for custom sites is full."}
         assert jobs.states == {} and jobs.starts == {}
         health = client.get('/api/health').json()
         assert health['custom_cache'] == {'size_bytes':0, 'limit_bytes':1}
@@ -292,7 +292,7 @@ def test_health_requires_ephemeris_and_post_explains_absence(empty_tree):
         assert 'ephemeris' in health['message']
         response = client.post('/api/sites/custom', json=dict(lat_deg=0, lon_deg=0))
         assert response.status_code == 503
-        assert response.json() == {'message':'Custom sites need the global ephemeris, which is not installed on this server.'}
+        assert response.json() == {'code':'ephemeris_missing', 'message':'Custom sites need the global ephemeris, which is not installed on this server.'}
         assert jobs.starts == {}
 
 

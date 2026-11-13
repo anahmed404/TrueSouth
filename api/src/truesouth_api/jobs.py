@@ -54,7 +54,7 @@ class Computer:
     def tier(self, request):
         from truesouth.dem import DemStore, site_tier
         if not (self.derived / 'system.bin').is_file():
-            raise Rejected(503, 'Custom sites need the global ephemeris, which is not installed on this server.')
+            raise Rejected(503, 'Custom sites need the global ephemeris, which is not installed on this server.', code='ephemeris_missing')
         tier = site_tier(request.lat_deg).item()
         if tier == 'sphere':
             return tier
@@ -62,7 +62,7 @@ class Computer:
             with self.lock:
                 if self.store is None:
                     if not all((self.prepared / n).is_file() and (self.prepared / n).with_suffix('.json').is_file() for n in MAPS):
-                        raise Rejected(503, NEED_MAPS)
+                        raise Rejected(503, NEED_MAPS, code='maps_missing')
                     self.store = DemStore(*(self.prepared / n for n in MAPS))
         return tier
 
@@ -152,8 +152,12 @@ class Jobs:
             self._reconcile_worker()
             site = self.cached(identity)
             if site is not None:
-                return dict(site_id=identity, status='ready', site=site, error=None)
-            return self.states.get(identity)
+                return dict(site_id=identity, status='ready', site=site, error=None, position_in_queue=None)
+            state = self.states.get(identity)
+            if state is None:
+                return None
+            position = next ( (i + 1 for i, job in enumerate(self.waiting) if job[0] == identity), None) if state['status'] == 'queued' else None
+            return {**state, 'position_in_queue': position}
 
     def submit(self, request: CustomSiteRequest, address):
         identity = site_id(request)
@@ -162,7 +166,7 @@ class Jobs:
         request = request.model_copy(update=dict(lat_deg=float(lat), lon_deg=float(lon)))
         with self.condition:
             if self.closed:
-                raise Rejected(503, 'This server is shutting down. Please try again later.')
+                raise Rejected(503, 'This server is shutting down. Please try again later.', code='shutting_down')
             self._reconcile_worker()
             state = self.status(identity)
             if state and state['status'] != 'failed':
@@ -176,12 +180,12 @@ class Jobs:
                     del self.starts[client]
             history = self.starts.get(address, deque())
             if len(history) >= 6:
-                raise Rejected(429, 'You may start 6 custom sites per hour. Please try again later.', max(1, int(3600 - (now-history[0]) + .999)))
+                raise Rejected(429, 'You may start 6 custom sites per hour. Please try again later.', max(1, int(3600 - (now-history[0]) + .999)), code='rate_limited')
             tier = self.computer.tier(request)
             if tier != 'sphere' and len(self.waiting) >= 20:
-                raise Rejected(429, 'The custom-site queue is full. Please try again later.', 1)
+                raise Rejected(429, 'The custom-site queue is full. Please try again later.', 1, code='queue_full')
             if address not in self.starts and len(self.starts) >= self.max_addresses:
-                raise Rejected(503, 'This server is handling too many client addresses. Please try again later.', 3600)
+                raise Rejected(503, 'This server is handling too many client addresses. Please try again later.', 3600, code='address_limit')
             self.budget.reserve(identity, tier)
             history.append(now)
             self.starts[address] = history

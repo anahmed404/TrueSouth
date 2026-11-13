@@ -47,6 +47,10 @@ export interface TrueSouthContracts {
  */
 export interface APIValidationError {
   /**
+   * Stable error code.
+   */
+  code: "invalid_request";
+  /**
    * Safe field identifiers and validation advice.
    */
   fields: ValidationField[];
@@ -644,6 +648,10 @@ export interface CustomSiteStatus {
    */
   error: ErrorDetail | null;
   /**
+   * Queue position, or null when not queued.
+   */
+  position_in_queue?: number | null;
+  /**
    * Completed site, or null.
    */
   site: Site | null;
@@ -855,24 +863,21 @@ export interface DifferenceOverTime {
  * via the `definition` "ErrorResponse".
  */
 export interface ErrorResponse {
-  error: ErrorDetail1;
-}
-/**
- * Structured API error.
- */
-export interface ErrorDetail1 {
   /**
    * Stable error code.
    */
   code:
-    | "invalid_coordinates"
-    | "date_outside_time_grid"
+    | "too_large"
+    | "invalid_request"
     | "rate_limited"
     | "queue_full"
-    | "terrain_unavailable"
-    | "not_found"
-    | "computation_failed"
-    | "storage_full";
+    | "maps_missing"
+    | "ephemeris_missing"
+    | "address_limit"
+    | "shutting_down"
+    | "storage_full"
+    | "not_ready"
+    | "not_found";
   /**
    * Plain-language error message.
    */

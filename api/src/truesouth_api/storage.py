@@ -43,7 +43,7 @@ class CacheBudget:
         if tier != 'sphere': required += TERRAIN_SIZE**2*4*4
         with self.lock:
             if self.size() + sum(self.reservations.values()) + required > self.limit_bytes:
-                raise Rejected(507, FULL)
+                raise Rejected(507, FULL, code='storage_full')
             self.reservations[identity] = required
 
     def release(self, identity):
@@ -58,5 +58,5 @@ class CacheBudget:
             if not staging.is_relative_to(self.root):
                 total += sum(p.stat().st_size for p in staging.rglob('*') if p.is_file())
             if total > self.limit_bytes:
-                raise Rejected(507, FULL)
+                raise Rejected(507, FULL, code='storage_full')
             _publish_site(staging, target)

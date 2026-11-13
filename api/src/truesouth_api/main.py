@@ -28,7 +28,7 @@ def _plain_missing() -> PlainTextResponse:
 
 
 def _json_missing() -> JSONResponse:
-    return JSONResponse({"message": NOT_FOUND}, status_code=404)
+    return JSONResponse({"code": "not_found", "message": NOT_FOUND}, status_code=404)
 
 
 def _serve_data(root: Path, relative: str, headers: Headers) -> Response:
@@ -81,7 +81,7 @@ def create_app(
     @app.exception_handler(StarletteHTTPException)
     async def parsing_error(request: Request, error: StarletteHTTPException):
         if request.url.path == '/api/sites/custom' and error.status_code == 400:
-            return JSONResponse({'message': 'Please check the request fields.', 'fields': [{
+            return JSONResponse({'code': 'invalid_request', 'message': 'Please check the request fields.', 'fields': [{
                 'field': 'body',
                 'message': 'Send a JSON object with latitude, longitude and an optional name. Only these fields are allowed.',
             }]}, status_code=422)
@@ -103,7 +103,7 @@ def create_app(
             detail = {'field': field, 'message': message}
             if detail not in fields:
                 fields.append(detail)
-        return JSONResponse({'message': 'Please check the request fields.', 'fields': fields}, status_code=422)
+        return JSONResponse({'code': 'invalid_request', 'message': 'Please check the request fields.', 'fields': fields}, status_code=422)
 
     @app.middleware("http")
     async def refuse_traversal(request: Request, call_next):  # type: ignore[no-untyped-def]
@@ -129,17 +129,17 @@ def create_app(
             return service.submit(body, request.client.host if request.client else 'unknown')
         except Rejected as error:
             headers = {'Retry-After': str(error.retry)} if error.retry else {}
-            return JSONResponse({'message': error.message}, status_code=error.status, headers=headers)
+            return JSONResponse({'code': error.code, 'message': error.message}, status_code=error.status, headers=headers)
 
     @app.get('/api/sites/custom/{identity}', response_model=CustomSiteStatus)
     def custom_status(identity: str):
         state = service.status(identity)
-        return state if state else JSONResponse({'message': START}, status_code=404)
+        return state if state else JSONResponse({'code': 'not_ready', 'message': START}, status_code=404)
 
     @app.api_route('/api/custom/{identity}/{rest:path}', methods=['GET', 'HEAD'])
     def custom_files(request: Request, identity: str, rest: str):
         if service.cached(identity) is None:
-            return JSONResponse({'message': START}, status_code=404)
+            return JSONResponse({'code': 'not_ready', 'message': START}, status_code=404)
         if rest not in ('meta.json', 'series.bin', 'skyline.bin', 'terrain.bin'):
             return _json_missing()
         found = safe_file(cache_root, identity + '/' + rest)

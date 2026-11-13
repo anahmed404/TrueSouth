@@ -600,6 +600,7 @@ class ValidationField(Contract):
 
 class APIValidationError(Contract):
     """HTTP 422 body, without client values or internal validator details."""
+    code: Literal['invalid_request'] = Field(description='Stable error code.')
     message: str = Field(description='Plain request validation summary.')
     fields: list[ValidationField] = Field(description='Safe field identifiers and validation advice.')
 
@@ -622,7 +623,8 @@ class ErrorDetail(Contract):
 class ErrorResponse(Contract):
     """API error envelope."""
 
-    error: ErrorDetail = Field(description='Error code and message.')
+    code: Literal['too_large', 'invalid_request', 'rate_limited', 'queue_full', 'maps_missing', 'ephemeris_missing', 'address_limit', 'shutting_down', 'storage_full', 'not_ready', 'not_found'] = Field(description='Stable error code.')
+    message: str = Field(description='Plain-language error message.')
 
 
 class CustomSiteStatus(Contract):
@@ -630,6 +632,7 @@ class CustomSiteStatus(Contract):
 
     site_id: SiteId = Field(description='Custom id c_<lat>_<lon>, with four decimal places.')
     status: Literal['queued', 'running', 'ready', 'failed'] = Field(description='Job status.')
+    position_in_queue: int | None = Field(default=None, ge=1, description='Queue position, or null when not queued.')
     site: Site | None = Field(description='Completed site, or null.')
     error: ErrorDetail | None = Field(description='Error code and message, or null.')
 

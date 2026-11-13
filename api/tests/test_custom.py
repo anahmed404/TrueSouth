@@ -148,7 +148,7 @@ def test_no_maps_sphere_and_validation(synthetic):
     with TestClient(create_app(derived=derived, prepared=missing, cache=cache)) as client:
         polar = client.post('/api/sites/custom', json=dict(lat_deg=-89, lon_deg=0))
         assert polar.status_code == 503
-        assert polar.json() == {'message': 'Custom sites need the terrain maps, which are not installed on this server.'}
+        assert polar.json() == {'code': 'maps_missing', 'message': 'Custom sites need the terrain maps, which are not installed on this server.'}
         assert client.get('/api/health').json()['custom_sites'] == 'not_available'
         sphere = client.post('/api/sites/custom', json=dict(lat_deg=0, lon_deg=-360))
         assert sphere.json()['status'] == 'ready'
@@ -191,6 +191,7 @@ def test_http_rate_limit_retry_after(synthetic):
         response = client.post('/api/sites/custom', json=dict(lat_deg=0, lon_deg=6))
         assert response.status_code == 429
         assert response.headers['retry-after'] == '3600'
+        assert response.json()['code'] == 'rate_limited'
         assert isinstance(response.json()['message'], str)
 
 
@@ -246,3 +247,40 @@ def test_running_calculation_does_not_block_terrain_admission(synthetic):
     thread.join()
     assert admitted
     assert result == ['core80']
+
+
+def test_status_queue_positions_advance(tmp_path):
+    class Controlled(Fake):
+        def __init__(self):
+            self.entered = [Event() for _ in range(4)]
+            self.release = [Event() for _ in range(4)]
+        def __call__(self, body, tier):
+            i = int(body.lon_deg)
+            self.entered[i].set()
+            assert self.release[i].wait(10)
+            if i == 2:
+                raise ValueError('failed')
+            return entry(body)
+    fake = Controlled()
+    jobs = Jobs(tmp_path, fake)
+    try:
+        ids = [jobs.submit(request(lon=0), '0')['site_id']]
+        assert fake.entered[0].wait(5)
+        ids.extend(jobs.submit(request(lon=i), str(i))['site_id'] for i in range(1, 4))
+        assert jobs.status(ids[0])['position_in_queue'] is None
+        assert [jobs.status(i)['position_in_queue'] for i in ids[1:]] == [1, 2, 3]
+        fake.release[0].set()
+        assert fake.entered[1].wait(5)
+        assert jobs.status(ids[0])['position_in_queue'] is None
+        assert jobs.status(ids[1])['position_in_queue'] is None
+        assert [jobs.status(i)['position_in_queue'] for i in ids[2:]] == [1, 2]
+        fake.release[1].set()
+        assert fake.entered[2].wait(5)
+        fake.release[2].set()
+        assert fake.entered[3].wait(5)
+        assert jobs.status(ids[2])['status'] == 'failed'
+        assert jobs.status(ids[2])['position_in_queue'] is None
+        assert jobs.status('unknown') is None
+    finally:
+        for event in fake.release: event.set()
+        jobs.close()
