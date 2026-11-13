@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timeline and countdowns · Direction C</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sky-950:#03040b; --sky-900:#070920; --sky-800:#0d1034; --sky-700:#171c4d;
+  --glass-edge:rgba(172,180,255,.16); --well:rgba(4,5,18,.55); --well-edge:rgba(172,180,255,.10);
+  --ink:#f2f3ff; --ink-dim:#b0b5de; --ink-faint:#757dad; --ink-ghost:#4a5180;
+  --accent:#a99cff; --accent-ink:#0b0c24;
+  --sun:#ffe2a0; --sun-core:#fff8e4; --earth:#6cc4ff;
+  --status-go:#3be3a0; --status-caution:#ff9f2e; --status-nogo:#ff5c72;
+  --font:"Jost","Futura","Century Gothic","Avenir Next","Trebuchet MS",system-ui,sans-serif;
+  --r-panel:24px; --r-card:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--sky-950);color:var(--ink);font-family:var(--font);font-size:13px;line-height:1.35;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.page{width:1440px;margin:0 auto;padding:28px 32px 48px;position:relative;
+  background:radial-gradient(90% 600px at 50% 0%,var(--sky-800) 0%,var(--sky-900) 50%,transparent 100%)}
+#stars{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.hdr{position:relative;display:flex;align-items:flex-end;gap:16px;margin-bottom:22px}
+.hdr h1{font-size:30px;font-weight:600;letter-spacing:-.005em;line-height:1}
+.hdr p{color:var(--ink-dim);font-size:14px}
+.proto{margin-left:auto;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-ghost);border:1px solid var(--ink-ghost);border-radius:999px;padding:2px 9px}
+.state{position:relative;margin-bottom:26px}
+.cap{display:flex;align-items:center;gap:10px;margin:0 0 10px 4px}
+.cap .n{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--accent);color:var(--accent);display:grid;place-items:center;font-weight:600;font-size:12.5px}
+.cap b{font-size:15px;font-weight:600}
+.cap span{color:var(--ink-dim);font-size:13px}
+.panel{position:relative;background:linear-gradient(180deg,rgba(24,28,74,.82),rgba(12,14,42,.9));border:1px solid var(--glass-edge);border-radius:var(--r-panel);
+  box-shadow:0 18px 50px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.06);padding:16px 24px 20px}
+.ph{display:flex;align-items:center;gap:14px;height:30px}
+.ph h3{font-size:16px;font-weight:600}
+.ph .win{font-size:12.5px;color:var(--ink-dim)}
+.ctl{display:flex;align-items:center;gap:8px;margin-left:auto}
+.play{width:30px;height:30px;border-radius:50%;background:var(--accent);display:grid;place-items:center;border:0}
+.play svg{width:10px;height:10px;fill:var(--accent-ink)}
+.pill{height:28px;padding:0 11px;border-radius:999px;border:1px solid var(--glass-edge);font-size:12px;color:var(--ink-dim);display:inline-flex;align-items:center;gap:7px;background:none;font-family:inherit}
+.pill.on{color:var(--ink);border-color:rgba(169,156,255,.6);background:rgba(169,156,255,.14)}
+.toggle{width:24px;height:14px;border-radius:999px;background:var(--well);border:1px solid var(--glass-edge);position:relative}
+.toggle::after{content:"";position:absolute;left:2px;top:1.5px;width:9px;height:9px;border-radius:50%;background:var(--ink-faint)}
+.pill.on .toggle{background:var(--accent);border-color:var(--accent)} .pill.on .toggle::after{left:12px;background:var(--accent-ink)}
+.keys{font-size:11px;color:var(--ink-faint)}
+.keys kbd{font-family:inherit;font-size:10.5px;border:1px solid var(--ink-ghost);border-radius:5px;padding:0 4px;color:var(--ink-dim)}
+.tag{display:inline-flex;align-items:center;gap:3px;height:16px;padding:0 6px;border-radius:999px;font-size:9.5px;letter-spacing:.04em;font-weight:500;color:var(--ink-dim);white-space:nowrap;vertical-align:middle}
+.tag.src{border:1px solid rgba(176,181,222,.55)} .tag.src::after{content:"↗";font-size:9px}
+.tag.asm{border:1px dashed rgba(176,181,222,.55);color:var(--ink-faint)}
+svg.tl{display:block;width:1326px;margin-top:6px}
+.row{display:flex;gap:12px;margin-top:12px;align-items:stretch}
+.cd{width:300px;border-radius:var(--r-card);padding:13px 16px 12px;background:var(--well);border:1px solid var(--well-edge);display:flex;flex-direction:column}
+.cd.warn{border-color:rgba(255,159,46,.75);background:linear-gradient(180deg,rgba(255,159,46,.17),rgba(255,159,46,.04))}
+.cd .hd{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:500}
+.cd .hd svg{width:18px;height:18px}
+.stt{margin-left:auto;font-size:10px;letter-spacing:.1em;font-weight:600;padding:2px 8px;border-radius:999px;display:inline-flex;gap:5px;align-items:center}
+.stt.lit{background:rgba(255,226,160,.16);color:var(--sun)} .stt.dark{background:rgba(4,5,18,.8);color:var(--ink-dim);border:1px solid var(--ink-ghost)}
+.stt.link{background:rgba(108,196,255,.16);color:var(--earth)}
+.cd .main{display:flex;align-items:flex-end;justify-content:space-between;margin-top:8px}
+.cd .ev{font-size:12px;color:var(--ink-dim)}
+.cd .cnt{font-size:36px;font-weight:500;line-height:1;letter-spacing:-.01em}
+.cd .cnt small{font-size:18px;color:var(--ink-dim);font-weight:400;margin:0 4px 0 1px}
+.cd.warn .cnt{color:var(--status-caution)}
+.flag{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;letter-spacing:.06em;color:var(--status-caution);border:1px solid rgba(255,159,46,.6);border-radius:999px;padding:1px 8px 1px 5px}
+.flag i{width:13px;height:13px;border-radius:50%;background:var(--status-caution);color:#1a0d00;font-style:normal;font-size:10px;display:grid;place-items:center;font-weight:700}
+.meterbox{margin-top:12px}
+.meterbox .lbl{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-faint);margin-bottom:4px}
+.vals{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;font-size:11px;color:var(--ink-faint)}
+.vals b{display:block;font-size:16px;color:var(--ink);font-weight:500}
+.then{font-size:11.5px;color:var(--ink-faint);margin-top:9px;border-top:1px solid var(--well-edge);padding-top:7px}
+.why{flex:1;border-radius:var(--r-card);padding:14px 18px;background:rgba(255,226,160,.06);border:1px solid rgba(255,226,160,.4);display:flex;gap:16px}
+.why h4{font-size:14px;font-weight:600;color:var(--sun);display:flex;align-items:center;gap:8px}
+.why p{font-size:16px;line-height:1.45;margin-top:6px;max-width:560px}
+.why a{display:inline-flex;margin-top:10px;font-size:12.5px;color:var(--accent);text-decoration:none;border:1px solid rgba(169,156,255,.5);border-radius:999px;padding:4px 12px}
+.why .facts{margin-left:auto;display:grid;grid-template-columns:auto auto;gap:4px 14px;font-size:11.5px;color:var(--ink-faint);align-content:start;padding-top:2px}
+.why .facts b{color:var(--ink);font-weight:500;font-size:13px;text-align:right}
+.legend{flex:1;border-radius:var(--r-card);padding:14px 18px;background:var(--well);border:1px solid var(--well-edge);display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;align-content:start;font-size:12px;color:var(--ink-dim)}
+.legend .t{grid-column:1/-1;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)}
+.legend div{display:flex;gap:10px;align-items:center}
+.sw{width:30px;height:14px;border-radius:4px;flex:none}
+.note{font-size:12px;color:var(--ink-faint);margin:2px 4px 0}
+.footer{text-align:center;font-size:11.5px;color:var(--ink-faint);margin-top:8px}
+text{font-family:var(--font)}
+.halo{paint-order:stroke;stroke:#080a24;stroke-width:4px;stroke-linejoin:round}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5" fill="#ffe2a0"/><g stroke="#ffe2a0" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></g></symbol>
+  <symbol id="i-earth" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="#6cc4ff"/><path d="M7 9c2 0 2.5 1.5 4 1.5S13 9 14.5 9.5 16 12 18 12M8 15.5c1.5-.5 3 .5 4.5 0" stroke="#0b2a4a" stroke-width="1.6" fill="none" stroke-linecap="round"/></symbol>
+</svg>
+<div class="page">
+  <svg id="stars"></svg>
+  <div class="hdr">
+    <div>
+      <p style="margin-bottom:6px">Direction C · Night-sky instrument · close study</p>
+      <h1>Timeline and countdowns</h1>
+    </div>
+    <p style="margin-left:18px;padding-bottom:2px">Connecting Ridge · IM-2 Athena <span class="tag src">sourced</span> · landing 2028-03-01 00:00 UTC</p>
+    <span class="proto">prototype · mock data</span>
+  </div>
+
+  <!-- STATE 1 -->
+  <section class="state">
+    <div class="cap"><span class="n">1</span><b>Lit and linked.</b><span>Scrubber on day 5, 14:00 UTC. Both countdowns are far off, so both cards stay calm.</span></div>
+    <div class="panel">
+      <div class="ph">
+        <h3>Timeline</h3>
+        <span class="win">Mission window 2028-03-01 00:00 → 2028-03-11 00:00 UTC · 10 d <span class="tag src">sourced</span> · faint bands show 3 days either side</span>
+        <div class="ctl">
+          <span class="keys"><kbd>←</kbd> <kbd>→</kbd> 1 h · <kbd>Shift</kbd> 1 d</span>
+          <button class="play" aria-label="Play"><svg viewBox="0 0 10 10"><path d="M2 1l7 4-7 4z"/></svg></button>
+          <button class="pill">1 h per second ▾</button>
+          <button class="pill"><span class="toggle"></span>Clearance chart</button>
+        </div>
+      </div>
+      <svg class="tl" id="tl1"></svg>
+      <div class="row">
+        <div class="cd">
+          <div class="hd"><svg><use href="#i-sun"/></svg>Sun<span class="stt lit">● LIT</span></div>
+          <div class="main"><div><div class="ev">Sunset in</div><div class="cnt">20<small>h</small>13<small>m</small></div></div></div>
+          <div class="vals"><span>Elevation<b>1.28°</b></span><span>Disc fraction<b>1.00</b></span><span>Clearance<b>0.59°</b></span></div>
+          <div class="then">Then sunrise in 23 h 23 m · lit means disc fraction ≥ 0.5 <span class="tag asm">assumed</span></div>
+        </div>
+        <div class="cd">
+          <div class="hd"><svg><use href="#i-earth"/></svg>Earth<span class="stt link">● LINK</span></div>
+          <div class="main"><div><div class="ev">Earthset in</div><div class="cnt">4<small>d</small>2<small>h</small></div></div></div>
+          <div class="vals"><span>Elevation<b>2.65°</b></span><span>Clearance<b>2.09°</b></span><span>Antenna mask<b>1.00°</b></span></div>
+          <div class="then">Then Earthrise in 12 d 4 h · link means clearance ≥ mask <span class="tag asm">assumed</span></div>
+        </div>
+        <div class="legend">
+          <span class="t">Reading the bands</span>
+          <div><span class="sw" style="background:linear-gradient(0deg,#ffe2a0 0 70%,transparent 70%);border:1px solid rgba(172,180,255,.15)"></span>Sun band: height follows disc fraction. Empty is dark.</div>
+          <div><span class="sw" style="background:#6cc4ff"></span>Earth band: solid is link. Empty is blackout.</div>
+          <div><span class="sw" style="border:1.5px dashed #f2f3ff"></span>Longest stretch that passes its limit</div>
+          <div><span class="sw" style="border:2px solid #ff5c72"></span>Longest stretch that breaks a veto (also marked ✕)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATE 2 -->
+  <section class="state">
+    <div class="cap"><span class="n">2</span><b>Dark hour.</b><span>Scrubber on day 3, 15:00 UTC. The card explains the darkness, and the Sun card turns amber because sunrise is under 6 hours away.</span></div>
+    <div class="panel">
+      <div class="ph">
+        <h3>Timeline</h3>
+        <span class="win">Mission window 2028-03-01 00:00 → 2028-03-11 00:00 UTC · 10 d <span class="tag src">sourced</span></span>
+        <div class="ctl">
+          <span class="keys"><kbd>←</kbd> <kbd>→</kbd> 1 h · <kbd>Shift</kbd> 1 d</span>
+          <button class="play" aria-label="Play"><svg viewBox="0 0 10 10"><path d="M2 1l7 4-7 4z"/></svg></button>
+          <button class="pill">1 h per second ▾</button>
+          <button class="pill"><span class="toggle"></span>Clearance chart</button>
+        </div>
+      </div>
+      <svg class="tl" id="tl2"></svg>
+      <div class="row">
+        <div class="cd warn">
+          <div class="hd"><svg><use href="#i-sun"/></svg>Sun<span class="stt dark">○ DARK</span></div>
+          <div class="main"><div><div class="ev">Sunrise in</div><div class="cnt">2<small>h</small>58<small>m</small></div></div><span class="flag"><i>!</i>UNDER 6 H</span></div>
+          <div class="vals"><span>Elevation<b>1.08°</b></span><span>Disc fraction<b>0.01</b></span><span>Clearance<b style="color:var(--status-caution)">−0.25°</b></span></div>
+          <div class="then">Then sunset in 2 d 19 h</div>
+        </div>
+        <div class="cd">
+          <div class="hd"><svg><use href="#i-earth"/></svg>Earth<span class="stt link">● LINK</span></div>
+          <div class="main"><div><div class="ev">Earthset in</div><div class="cnt">6<small>d</small>1<small>h</small></div></div></div>
+          <div class="vals"><span>Elevation<b>2.97°</b></span><span>Clearance<b>2.46°</b></span><span>Antenna mask<b>1.00°</b></span></div>
+          <div class="then">Then Earthrise in 12 d 4 h</div>
+        </div>
+        <div class="why" role="note">
+          <div>
+            <h4><svg width="16" height="16"><use href="#i-sun"/></svg>Why is it dark?</h4>
+            <p>Sun is 1.08° up. The ridge in that direction rises to 1.33°, 12.4 km away, near de Gerlache. Blocked by terrain.</p>
+            <a href="../../landers-eye/c/index.html">Open Lander's eye at azimuth 265.98° →</a>
+          </div>
+          <div class="facts">
+            <span>Sun azimuth</span><b>265.98°</b>
+            <span>Skyline there</span><b>1.33°</b>
+            <span>Blocker distance</span><b>12.4 km</b>
+            <span>Blocker height</span><b>2,081 m</b>
+            <span>Nearest named feature</span><b>de Gerlache</b>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATE 3 -->
+  <section class="state">
+    <div class="cap"><span class="n">3</span><b>Clearance chart open.</b><span>Same hour as state 1. The chart shows why the bands look the way they do; the 31 h blackout breaks the 12 h veto.</span></div>
+    <div class="panel">
+      <div class="ph">
+        <h3>Timeline</h3>
+        <span class="win">Mission window 2028-03-01 00:00 → 2028-03-11 00:00 UTC · 10 d <span class="tag src">sourced</span></span>
+        <div class="ctl">
+          <span class="keys"><kbd>←</kbd> <kbd>→</kbd> 1 h · <kbd>Shift</kbd> 1 d</span>
+          <button class="play" aria-label="Play"><svg viewBox="0 0 10 10"><path d="M2 1l7 4-7 4z"/></svg></button>
+          <button class="pill">1 h per second ▾</button>
+          <button class="pill on"><span class="toggle"></span>Clearance chart</button>
+        </div>
+      </div>
+      <svg class="tl" id="tl3"></svg>
+      <div class="row">
+        <div class="cd">
+          <div class="hd"><svg><use href="#i-sun"/></svg>Sun<span class="stt lit">● LIT</span></div>
+          <div class="main"><div><div class="ev">Sunset in</div><div class="cnt">20<small>h</small>13<small>m</small></div></div></div>
+          <div class="vals"><span>Elevation<b>1.28°</b></span><span>Disc fraction<b>1.00</b></span><span>Clearance<b>0.59°</b></span></div>
+        </div>
+        <div class="cd">
+          <div class="hd"><svg><use href="#i-earth"/></svg>Earth<span class="stt link">● LINK</span></div>
+          <div class="main"><div><div class="ev">Earthset in</div><div class="cnt">4<small>d</small>2<small>h</small></div></div></div>
+          <div class="vals"><span>Elevation<b>2.65°</b></span><span>Clearance<b>2.09°</b></span><span>Antenna mask<b>1.00°</b></span></div>
+        </div>
+        <div class="legend" style="grid-template-columns:1fr">
+          <span class="t">Stretches in this window</span>
+          <div><span class="sw" style="border:1.5px dashed #f2f3ff"></span><span><b style="color:var(--ink);font-weight:500">Longest dark stretch 4 h</b>, limit 6 h <span class="tag asm">assumed</span> · passes</span></div>
+          <div><span class="sw" style="border:2px solid #ff5c72"></span><span><b style="color:var(--status-nogo);font-weight:600">✕ Longest blackout 31 h</b>, limit 12 h <span class="tag asm">assumed</span> · veto, site is NO-GO</span></div>
+          <div class="note" style="margin:0">Sunset and Earthset are the moments the profile's rules stop counting the hour as lit or linked, not the geometric horizon.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer">Planning aid, not flight certification. Limits marked assumed are our estimates.</div>
+</div>
+
+<script>
+const M=(()=>{
+const P=[[0,-0.40],[12,-0.12],[25,0.35],[34,0.12],[48,0.62],[58,0.92],[66,0.50],[80,-0.25],[95,-0.95],[108,-1.25],[120,-0.62],[128,0.18],[133,0.38],[137,0.55],[140,0.95],[142.5,1.32],[146,1.02],[152,0.48],[165,0.06],[180,-0.32],[195,0.18],[210,0.62],[222,0.92],[228,1.18],[231.2,1.47],[234,1.08],[240,0.70],[248,0.62],[256,0.86],[263.6,0.90],[265.9,1.30],[267.2,0.92],[274,0.70],[282,0.25],[292,-0.50],[305,-1.05],[318,-0.70],[332,-0.18],[345,0.10],[360,-0.40]];
+function base(a){a=((a%360)+360)%360;for(let i=0;i<P.length-1;i++){const[a0,e0]=P[i],[a1,e1]=P[i+1];if(a>=a0&&a<=a1){const t=(a-a0)/(a1-a0);return e0+(e1-e0)*(1-Math.cos(Math.PI*t))/2;}}return P[0][1];}
+const sky=a=>{const r=a*Math.PI/180;return base(a)+0.045*Math.sin(r*37)+0.03*Math.sin(r*91+1.3)+0.02*Math.sin(r*173+.4);};
+const SUN_R=0.2665,EARTH_R=0.95;
+const sunAz=h=>(((298-0.5083*h)%360)+360)%360, sunEl=h=>0.80+0.0046*h-0.0000025*h*h;
+const earthAz=h=>133+8*h/240+0.6*Math.sin(2*Math.PI*h/327), earthEl=h=>3.399-0.0068*h;
+function frac(az,el,rho){let n=0,d=0;for(let i=0;i<33;i++){const x=-rho+(i+0.5)*2*rho/33,c=Math.sqrt(rho*rho-x*x),A=az+x/Math.cos(el*Math.PI/180);n+=Math.min(Math.max(el+c-sky(A),0),2*c);d+=2*c;}return n/d;}
+const series=h=>{const sa=sunAz(h),se=sunEl(h),ea=earthAz(h),ee=earthEl(h);return{h,sa,se,sf:frac(sa,se,SUN_R),sc:se-sky(sa),ea,ee,ec:ee-sky(ea),link:ee-sky(ea)>=1};};
+return{sky,series};})();
+const NS='http://www.w3.org/2000/svg';
+function E(tag,a,p){const e=document.createElementNS(NS,tag);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+const S=[];for(let h=-72;h<312;h++)S.push(M.series(h));
+
+function timeline(svg,{hour,chart,label}){
+  const W=1326,H0=-72,H1=312,x0=86,w=W-x0-4,k=w/(H1-H0),X=h=>x0+(h-H0)*k;
+  // rows: scrubber time (14) · stretch labels · [clearance chart] · day axis · Sun band · Earth band · dates
+  const by=16, py=44, cy0=chart?60:0, ax=chart?232:64, sy=ax+14, bh=40, ey=sy+bh+12, dy=ey+bh+34;
+  const Ht=dy+10;svg.setAttribute('viewBox',`0 0 ${W} ${Ht}`);svg.setAttribute('height',Ht);
+  const g=E('g',{},svg);
+  // window highlight
+  E('rect',{x:X(0),y:ax-16,width:X(240)-X(0),height:dy-ax+6,rx:10,fill:'rgba(169,156,255,.045)'},g);
+  if(chart){
+    const ch=150,lo=-0.8,hi=3.6,Y=v=>cy0+ch-(v-lo)/(hi-lo)*ch;
+    E('rect',{x:x0,y:cy0,width:w,height:ch,rx:10,fill:'rgba(4,5,18,.55)',stroke:'rgba(172,180,255,.10)'},g);
+    for(let v=-0.5;v<=3.5;v+=0.5){E('line',{x1:x0,x2:x0+w,y1:Y(v),y2:Y(v),stroke:'rgba(172,180,255,.07)'},g);
+      if(Number.isInteger(v))E('text',{x:x0-10,y:Y(v)+4,'text-anchor':'end','font-size':11,fill:'#757dad'},g).textContent=(v>0?'+':v<0?'−':'')+Math.abs(v)+'°';}
+    E('text',{x:10,y:cy0+12,'font-size':11,fill:'#b0b5de'},g).textContent='Clearance';
+    E('text',{x:10,y:cy0+26,'font-size':10,fill:'#757dad'},g).textContent='degrees';
+    // red shade where Earth is below the mask inside the window
+    E('rect',{x:X(209),y:Y(1),width:X(240)-X(209),height:Y(lo)-Y(1),fill:'rgba(255,92,114,.10)'},g);
+    E('line',{x1:x0,x2:x0+w,y1:Y(0),y2:Y(0),stroke:'#f2f3ff','stroke-opacity':.55},g);
+    E('text',{x:x0+8,y:Y(0)+14,'font-size':10.5,fill:'#b0b5de',class:'halo'},g).textContent='0° · body centre on the skyline';
+    E('line',{x1:x0,x2:x0+w,y1:Y(1),y2:Y(1),stroke:'#6cc4ff','stroke-dasharray':'6 4','stroke-opacity':.85},g);
+    E('text',{x:x0+8,y:Y(1)-6,'font-size':10.5,fill:'#6cc4ff',class:'halo'},g).textContent='antenna mask 1.00° (assumed)';
+    const line=(key,col,wd)=>{let d='';S.forEach((s,i)=>{d+=(i?'L':'M')+X(s.h+.5).toFixed(1)+','+Y(s[key]).toFixed(1);});E('path',{d,fill:'none',stroke:col,'stroke-width':wd,'stroke-linejoin':'round'},g);};
+    line('sc','#ffe2a0',1.8);line('ec','#6cc4ff',2);
+    E('text',{x:X(20),y:Y(S[92].sc)-8,'font-size':11.5,fill:'#ffe2a0','font-weight':500,class:'halo'},g).textContent='Sun clearance';
+    E('text',{x:X(20),y:Y(S[92].ec)-8,'font-size':11.5,fill:'#6cc4ff','font-weight':500,class:'halo'},g).textContent='Earth clearance';
+  }
+  // band labels
+  E('text',{x:0,y:sy+17,'font-size':13,fill:'#f2f3ff','font-weight':500},g).textContent='Sun';
+  E('text',{x:0,y:sy+32,'font-size':10.5,fill:'#757dad'},g).textContent='lit · dark';
+  E('text',{x:0,y:ey+17,'font-size':13,fill:'#f2f3ff','font-weight':500},g).textContent='Earth';
+  E('text',{x:0,y:ey+32,'font-size':10.5,fill:'#757dad'},g).textContent='link · blackout';
+  [sy,ey].forEach(y=>E('rect',{x:x0,y,width:w,height:bh,rx:10,fill:'rgba(4,5,18,.65)',stroke:'rgba(172,180,255,.10)'},g));
+  const id=svg.id;
+  [['s',sy],['e',ey]].forEach(([n,y])=>{const c=E('clipPath',{id:id+n},svg);E('rect',{x:x0,y,width:w,height:bh,rx:10},c);});
+  let sd='',sc='',ed='',ec='';
+  S.forEach(s=>{const x=X(s.h),ww=k+.2,inW=s.h>=0&&s.h<240;
+    if(s.sf>=.5){const hh=bh*s.sf,r=`M${x.toFixed(2)},${(sy+bh-hh).toFixed(2)}h${ww.toFixed(2)}v${hh.toFixed(2)}h${-ww.toFixed(2)}Z`;inW?sd+=r:sc+=r;}
+    if(s.link){const r=`M${x.toFixed(2)},${ey}h${ww.toFixed(2)}v${bh}h${-ww.toFixed(2)}Z`;inW?ed+=r:ec+=r;}});
+  E('path',{d:sc,fill:'#ffe2a0','fill-opacity':.2,'clip-path':`url(#${id}s)`},g);
+  E('path',{d:sd,fill:'#ffe2a0','clip-path':`url(#${id}s)`},g);
+  E('path',{d:ec,fill:'#6cc4ff','fill-opacity':.2,'clip-path':`url(#${id}e)`},g);
+  E('path',{d:ed,fill:'#6cc4ff','clip-path':`url(#${id}e)`},g);
+  // day grid + axis
+  for(let d=-3;d<=13;d++){const x=X(d*24),inW=d>=0&&d<10;
+    if(d>-3&&d<13){E('line',{x1:x,x2:x,y1:sy,y2:ey+bh,stroke:'#03040b','stroke-opacity':.6,'stroke-width':1.2},g);
+      E('line',{x1:x,x2:x,y1:ey+bh+4,y2:ey+bh+12,stroke:'#757dad'},g);}
+    if(d<13){const t=E('text',{x:X(d*24+12),y:ax,'text-anchor':'middle','font-size':inW?12:10.5,fill:inW?'#f2f3ff':'#4a5180','font-weight':inW?500:400},g);
+      t.textContent=inW?(d===0?'Day 1':'Day '+(d+1)):(d<0?d+' d':'+'+(d-9)+' d');
+      const dt=new Date(Date.UTC(2028,2,1)+d*864e5);
+      const tt=E('text',{x:x+4,y:ey+bh+22,'font-size':10.5,fill:inW?'#b0b5de':'#4a5180'},g);tt.textContent=String(dt.getUTCDate()).padStart(2,'0')+' Mar';}}
+  E('text',{x:0,y:ey+bh+22,'font-size':10.5,fill:'#757dad'},g).textContent='UTC dates';
+  // landing + end markers
+  [[0,'Landing 01 Mar 00:00 UTC','start'],[240,'Window ends 11 Mar 00:00 UTC','end']].forEach(([h,t,a])=>{
+    E('line',{x1:X(h),x2:X(h),y1:ax+6,y2:ey+bh+12,stroke:'#f2f3ff','stroke-opacity':.6},g);
+    E('text',{x:X(h)+(a==='start'?5:-5),y:dy,'text-anchor':a,'font-size':10.5,fill:'#b0b5de'},g).textContent=t;});
+  // longest stretches: outline through chart (if open) and band
+  const yTopS=chart?cy0-4:sy-4, yTopE=chart?cy0-4:ey-4;
+  E('rect',{x:X(62)-3,y:yTopS,width:X(66)-X(62)+6,height:sy+bh+4-yTopS,rx:8,fill:'none',stroke:'#f2f3ff','stroke-width':1.5,'stroke-dasharray':'4 3'},g);
+  E('rect',{x:X(209)-3,y:yTopE,width:X(240)-X(209)+6,height:ey+bh+4-yTopE,rx:9,fill:'none',stroke:'#ff5c72','stroke-width':2.2},g);
+  // labels for stretches
+  const pill=(cx,y,txt,col,bg)=>{const t=E('text',{x:cx,y:y+4,'text-anchor':'middle','font-size':11,'font-weight':600,fill:col},g);t.textContent=txt;const b=t.getBBox();
+    const r=E('rect',{x:b.x-8,y:b.y-3,width:b.width+16,height:b.height+6,rx:(b.height+6)/2,fill:bg,stroke:col,'stroke-opacity':.6},g);g.insertBefore(r,t);};
+  pill(X(64),py,'Longest dark 4 h · limit 6 h ✓','#f2f3ff','#0d1034');
+  pill(X(224.5),py,'✕ Longest blackout 31 h · limit 12 h · veto','#ff5c72','#1a0c22');
+  // scrubber
+  const x=X(hour+.5);
+  E('line',{x1:x,x2:x,y1:by+8,y2:ey+bh+8,stroke:'#a99cff','stroke-width':2.2},g);
+  E('circle',{cx:x,cy:ey+bh+10,r:7,fill:'#a99cff',stroke:'#0b0c24','stroke-width':2.5},g);
+  const t=E('text',{x,y:by+4,'text-anchor':'middle','font-size':11.5,'font-weight':600,fill:'#0b0c24'},g);t.textContent=label;
+  const b=t.getBBox();const r=E('rect',{x:b.x-10,y:b.y-3,width:b.width+20,height:b.height+6,rx:(b.height+6)/2,fill:'#a99cff'},g);g.insertBefore(r,t);
+}
+timeline(document.getElementById('tl1'),{hour:110,chart:false,label:'Day 5 · 05 Mar 14:00 UTC'});
+timeline(document.getElementById('tl2'),{hour:63,chart:false,label:'Day 3 · 03 Mar 15:00 UTC'});
+timeline(document.getElementById('tl3'),{hour:110,chart:true,label:'Day 5 · 05 Mar 14:00 UTC'});
+// stars
+(function(){const s=document.getElementById('stars'),r=(()=>{let v=11;return()=>{v=(v*16807)%2147483647;return v/2147483647;};})();
+  const h=document.querySelector('.page').offsetHeight;s.setAttribute('viewBox',`0 0 1440 ${h}`);
+  for(let i=0;i<220;i++)E('circle',{cx:r()*1440,cy:r()*h,r:(r()*r()*1.2+.25).toFixed(2),fill:'#dfe2ff','fill-opacity':(.1+r()*.4).toFixed(2)},s);})();
+</script>
+</body>
+</html>

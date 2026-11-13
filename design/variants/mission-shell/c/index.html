@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mission Control · Direction C</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Direction C · Night-sky instrument · tokens (see design/variants/direction-c.md) ── */
+:root{
+  --sky-950:#03040b; --sky-900:#070920; --sky-800:#0d1034; --sky-700:#171c4d;
+  --glass:rgba(16,19,52,.76); --glass-strong:rgba(12,14,40,.90); --glass-edge:rgba(172,180,255,.16);
+  --well:rgba(4,5,18,.55); --well-edge:rgba(172,180,255,.10);
+  --ink:#f2f3ff; --ink-dim:#b0b5de; --ink-faint:#757dad; --ink-ghost:#4a5180;
+  --accent:#a99cff; --accent-ink:#0b0c24;
+  --sun:#ffe2a0; --sun-core:#fff8e4; --earth:#6cc4ff; --earth-core:#d6f0ff;
+  --status-go:#3be3a0; --status-caution:#ff9f2e; --status-nogo:#ff5c72;
+  --terrain-top:#191c44; --terrain-bottom:#06071a; --terrain-rim:#d9dbff;
+  --font:"Jost","Futura","Century Gothic","Avenir Next","Trebuchet MS",system-ui,sans-serif;
+  --r-panel:24px; --r-card:16px; --r-chip:999px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px; --s8:32px;
+  --t-micro:10.5px; --t-label:11.5px; --t-body:13px; --t-lead:15px; --t-title:20px; --t-num:26px; --t-hero:34px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--sky-950);color:var(--ink);font-family:var(--font);font-size:var(--t-body);line-height:1.35;
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.frame{position:relative;width:1440px;height:900px;margin:0 auto;overflow:hidden;
+  background:radial-gradient(120% 80% at 50% 0%,var(--sky-800) 0%,var(--sky-900) 45%,var(--sky-950) 100%)}
+#view{position:absolute;inset:0;width:1440px;height:900px}
+
+/* glass panels */
+.panel{position:absolute;background:linear-gradient(180deg,rgba(24,28,74,.80),rgba(12,14,42,.86));
+  border:1px solid var(--glass-edge);border-radius:var(--r-panel);
+  backdrop-filter:blur(18px) saturate(1.15);-webkit-backdrop-filter:blur(18px) saturate(1.15);
+  box-shadow:0 18px 50px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.06)}
+.eyebrow{font-size:var(--t-micro);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:500}
+.muted{color:var(--ink-dim)} .faint{color:var(--ink-faint)}
+.unit{font-size:.62em;color:var(--ink-dim);font-weight:400;margin-left:1px}
+
+/* provenance tags: solid = sourced, dashed = assumed */
+.tag{display:inline-flex;align-items:center;gap:3px;height:16px;padding:0 6px;border-radius:var(--r-chip);
+  font-size:9.5px;letter-spacing:.04em;font-weight:500;color:var(--ink-dim);white-space:nowrap;vertical-align:middle}
+.tag.src{border:1px solid rgba(176,181,222,.55)}
+.tag.src::after{content:"↗";font-size:9px}
+.tag.asm{border:1px dashed rgba(176,181,222,.55);color:var(--ink-faint)}
+
+/* status lamps: a real light, so it may glow. Glyph keeps it readable without colour */
+.lamp{--c:var(--status-go);--s:26px;width:var(--s);height:var(--s);flex:none;border-radius:50%;display:grid;place-items:center;
+  background:radial-gradient(circle at 36% 30%,color-mix(in oklab,var(--c),white 60%) 0 10%,var(--c) 46%,color-mix(in oklab,var(--c),black 42%) 100%);
+  box-shadow:0 0 0 3px rgba(6,7,22,.92),0 0 0 4px rgba(255,255,255,.13),0 0 18px 1px color-mix(in oklab,var(--c),transparent 50%)}
+.lamp svg{width:58%;height:58%;stroke:#090a1f;stroke-width:3.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.lamp.go{--c:var(--status-go)} .lamp.caution{--c:var(--status-caution)} .lamp.nogo{--c:var(--status-nogo)}
+.st-go{color:var(--status-go)} .st-caution{color:var(--status-caution)} .st-nogo{color:var(--status-nogo)}
+.word{font-weight:600;letter-spacing:.06em}
+
+/* top bar */
+.top{left:16px;top:16px;width:1408px;height:54px;border-radius:999px;display:flex;align-items:center;padding:0 10px 0 18px;gap:14px}
+.brand{display:flex;align-items:center;gap:9px;font-size:19px;font-weight:600;letter-spacing:.01em;margin-right:6px}
+.brand svg{width:26px;height:26px}
+.seg{display:flex;padding:3px;border-radius:999px;background:var(--well);border:1px solid var(--well-edge)}
+.seg button{height:32px;padding:0 16px;border-radius:999px;font-size:13.5px;font-weight:500;color:var(--ink-dim)}
+.seg button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.spacer{flex:1}
+.picker{display:flex;align-items:center;gap:10px;height:40px;padding:0 14px;border-radius:999px;background:var(--well);border:1px solid var(--well-edge)}
+.picker .k{font-size:var(--t-micro);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
+.picker .v{font-size:14.5px;font-weight:500}
+.picker .caret{width:10px;height:10px;stroke:var(--ink-dim);fill:none;stroke-width:2}
+.iconbtn{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--well-edge);background:rgba(255,255,255,.03)}
+.iconbtn svg{width:12px;height:12px;stroke:var(--ink);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.slip{height:30px;padding:0 10px;border-radius:999px;border:1px solid var(--well-edge);font-size:12px;color:var(--ink-dim);background:rgba(255,255,255,.03)}
+.share{height:40px;padding:0 18px;border-radius:999px;border:1px solid rgba(169,156,255,.55);color:var(--ink);font-weight:500;display:flex;align-items:center;gap:8px}
+.share svg{width:15px;height:15px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* view tabs */
+.tabs{left:50%;transform:translateX(-50%);margin-left:-44px;top:84px;height:44px;border-radius:999px;display:flex;align-items:center;padding:4px;gap:2px}
+.tabs button{height:34px;padding:0 15px;border-radius:999px;font-size:13.5px;color:var(--ink-dim);font-weight:500}
+.tabs button.on{background:rgba(169,156,255,.18);color:var(--ink);box-shadow:inset 0 0 0 1px rgba(169,156,255,.6)}
+.tabs .sep{width:1px;height:22px;background:var(--glass-edge);margin:0 6px}
+.tabs .split{display:flex;align-items:center;gap:7px}
+.toggle{width:28px;height:16px;border-radius:999px;background:var(--well);border:1px solid var(--glass-edge);position:relative}
+.toggle::after{content:"";position:absolute;left:2px;top:2px;width:10px;height:10px;border-radius:50%;background:var(--ink-faint)}
+
+/* view controls */
+.vctl{left:272px;width:808px;top:138px;display:flex;justify-content:center;gap:10px;position:absolute}
+.chipbar{display:flex;align-items:center;gap:10px;height:32px;padding:0 12px;border-radius:999px;font-size:12px;color:var(--ink-dim);
+  background:rgba(10,12,36,.72);border:1px solid var(--glass-edge);backdrop-filter:blur(10px)}
+.chipbar b{color:var(--ink);font-weight:500}
+.mini-seg{display:flex;gap:2px;padding:2px;border-radius:999px;background:var(--well)}
+.mini-seg span{padding:3px 9px;border-radius:999px}
+.mini-seg span.on{background:rgba(108,196,255,.2);color:var(--ink);box-shadow:inset 0 0 0 1px rgba(108,196,255,.55)}
+.key{display:inline-flex;align-items:center;gap:6px}
+.sw{width:18px;height:0;border-top:2px dashed var(--sun)}
+.sw.earth{border-top:2px solid var(--earth)} .sw.mask{border-top:1.5px dashed var(--earth);opacity:.8}
+
+/* sites rail */
+.rail{left:16px;top:84px;width:256px;padding:16px 12px 12px}
+.rail-h{display:flex;justify-content:space-between;align-items:baseline;padding:0 6px 4px}
+.rail-h h2{font-size:15px;font-weight:600}
+.rail-sub{padding:0 6px 10px;font-size:11.5px;color:var(--ink-faint)}
+.site{display:flex;gap:12px;align-items:center;padding:10px 10px;border-radius:16px;margin-bottom:4px;border:1px solid transparent}
+.site:hover{background:rgba(255,255,255,.03)}
+.site.focus{background:rgba(169,156,255,.10);border-color:rgba(169,156,255,.55)}
+.site .nm{font-size:14px;font-weight:500;line-height:1.2}
+.site .ln{font-size:11.5px;color:var(--ink-dim);margin-top:2px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tier{font-size:9.5px;letter-spacing:.06em;color:var(--ink-faint);border:1px solid var(--well-edge);border-radius:6px;padding:0 4px;line-height:14px}
+.add{margin-top:6px;width:100%;height:40px;border-radius:14px;border:1px dashed rgba(172,180,255,.28);color:var(--ink-dim);font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px}
+.add b{font-size:17px;font-weight:400;color:var(--accent)}
+
+/* focused-site panel */
+.focus-p{left:1080px;top:84px;width:344px;height:590px;padding:14px 16px 12px;display:flex;flex-direction:column;gap:10px}
+.fp-head{display:flex;justify-content:space-between;align-items:flex-start}
+.fp-head h2{font-size:21px;font-weight:600;line-height:1.1;margin-top:3px}
+.fp-head .co{font-size:11.5px;color:var(--ink-dim);margin-top:4px}
+.fp-status{display:flex;align-items:center;gap:14px;padding:9px 14px;border-radius:var(--r-card);
+  background:linear-gradient(90deg,rgba(255,92,114,.14),rgba(255,92,114,.03));border:1px solid rgba(255,92,114,.35)}
+.fp-status .lamp{--s:40px}
+.fp-status .big{font-size:26px;font-weight:600;letter-spacing:.05em;line-height:1}
+.fp-status .sub{font-size:11.5px;color:var(--ink-dim);margin-top:3px}
+.fp-status .score{margin-left:auto;text-align:right;color:var(--ink-ghost)}
+.fp-status .score b{font-size:24px;font-weight:500;display:block;line-height:1;text-decoration:line-through;text-decoration-thickness:1px}
+.fp-status .score span{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase}
+.sec-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.veto{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:4px 10px;padding:7px 12px 9px;border-radius:14px;background:rgba(255,92,114,.08);border:1px solid rgba(255,92,114,.28)}
+.veto .lamp{--s:20px}
+.veto .t{font-size:13.5px;font-weight:500}
+.veto .m{font-size:20px;font-weight:500;color:var(--status-nogo)}
+.veto .l{font-size:11.5px;color:var(--ink-dim)}
+.meter{grid-column:1/-1;height:6px;border-radius:999px;background:var(--well);position:relative;margin-top:2px}
+.meter i{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:var(--status-nogo)}
+.meter u{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);border-radius:2px}
+.checks{margin-top:3px;display:flex;flex-direction:column;gap:1px}
+.chk{display:grid;grid-template-columns:16px 1fr auto;gap:8px;align-items:center;padding:2px 4px;font-size:12px;color:var(--ink-dim)}
+.chk svg{width:14px;height:14px;stroke:var(--status-go);fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.chk b{color:var(--ink);font-weight:500}
+.metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.mt{padding:6px 9px 5px;border-radius:12px;background:var(--well);border:1px solid var(--well-edge)}
+.mt .k{font-size:10.5px;color:var(--ink-faint);display:flex;justify-content:space-between;gap:4px;line-height:1.15;min-height:23px}
+.mt .k i{font-style:normal;width:12px;height:12px;border-radius:50%;border:1px solid var(--ink-ghost);font-size:8.5px;display:grid;place-items:center;color:var(--ink-faint);flex:none}
+.mt .v{font-size:19px;font-weight:500;line-height:1.1;margin-top:1px}
+.mt.bad{border-color:rgba(255,92,114,.35)} .mt.bad .v{color:var(--status-nogo)}
+.util{display:flex;gap:8px}
+.ring{flex:1;display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:12px;background:var(--well);border:1px solid var(--well-edge)}
+.ring svg{width:22px;height:22px;flex:none}
+.ring .k{font-size:10.5px;color:var(--ink-faint);line-height:1.1}
+.ring .v{font-size:14px;font-weight:500}
+.slope{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;align-items:center;padding:7px 12px;border-radius:14px;background:var(--well);border:1px solid var(--well-edge)}
+.slope .v{font-size:22px;font-weight:500;line-height:1}
+.slope .bar{height:6px;border-radius:999px;position:relative;background:linear-gradient(90deg,rgba(59,227,160,.5) 0 33.3%,rgba(255,159,46,.35) 33.3% 66.6%,rgba(255,92,114,.3) 66.6%)}
+.slope .bar u{position:absolute;top:-4px;width:3px;height:14px;background:var(--ink);border-radius:2px}
+.slope .scale{grid-column:2;display:flex;justify-content:space-between;font-size:10px;color:var(--ink-faint)}
+.links{display:flex;flex-direction:column;gap:5px;margin-top:2px}
+.links a{white-space:nowrap;padding:0 10px;height:24px;font-size:11.5px !important;border-radius:999px;border:1px solid var(--glass-edge);display:flex;align-items:center;justify-content:center;gap:6px;color:var(--ink);text-decoration:none;font-size:12.5px;font-weight:500}
+.links a::after{content:"↗";color:var(--accent)}
+
+/* timeline strip */
+.strip{left:16px;top:684px;width:1408px;height:184px;padding:12px 20px 10px}
+.strip-h{display:flex;align-items:center;gap:14px;height:24px;white-space:nowrap}
+.strip-h h3{font-size:14px;font-weight:600}
+.strip-h .win{font-size:12px;color:var(--ink-dim)}
+.ctl{display:flex;align-items:center;gap:8px;margin-left:auto;margin-right:410px}
+.lg{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-dim)} .lg.nogo{color:var(--status-nogo);font-weight:600}
+.lg i{width:18px;height:11px;border-radius:3px;border:1.3px dashed var(--ink)} .lg i.o-bad{border:2px solid var(--status-nogo)}
+.play{width:28px;height:28px;border-radius:50%;background:var(--accent);display:grid;place-items:center}
+.play svg{width:10px;height:10px;fill:var(--accent-ink)}
+.pill{height:26px;padding:0 10px;border-radius:999px;border:1px solid var(--glass-edge);font-size:11.5px;color:var(--ink-dim);display:inline-flex;align-items:center;gap:6px}
+#tl{position:absolute;left:0;top:0;width:1408px;height:184px;pointer-events:none}
+.cards{position:absolute;right:16px;top:12px;display:flex;gap:10px}
+.cd{width:190px;height:160px;border-radius:18px;padding:11px 13px;background:var(--well);border:1px solid var(--well-edge);display:flex;flex-direction:column}
+.cd.warn{border-color:rgba(255,159,46,.7);background:linear-gradient(180deg,rgba(255,159,46,.16),rgba(255,159,46,.04))}
+.cd .hd{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:500}
+.cd .hd svg{width:16px;height:16px}
+.cd .stt{margin-left:auto;font-size:9.5px;letter-spacing:.1em;font-weight:600;padding:1px 7px;border-radius:999px}
+.cd .ev{font-size:11.5px;color:var(--ink-dim);margin-top:8px}
+.cd .cnt{font-size:27px;font-weight:500;line-height:1.05;letter-spacing:-.01em}
+.cd .cnt small{font-size:15px;color:var(--ink-dim);font-weight:400;margin:0 3px 0 1px}
+.cd.warn .cnt{color:var(--status-caution)}
+.cd .flag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--status-caution);margin-top:2px}
+.cd .vals{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10.5px;color:var(--ink-faint)}
+.cd .vals b{display:block;font-size:13.5px;color:var(--ink);font-weight:500}
+.cd .then{font-size:10.5px;color:var(--ink-faint);margin-top:5px;border-top:1px solid var(--well-edge);padding-top:4px}
+
+/* why-is-it-dark callout */
+.why{position:absolute;left:286px;top:572px;width:400px;padding:11px 14px 11px 14px;border-radius:18px;
+  background:rgba(10,12,36,.9);border:1px solid rgba(255,226,160,.38);backdrop-filter:blur(12px);box-shadow:0 12px 30px rgba(0,0,0,.5)}
+.why::after{content:"";position:absolute;left:141px;bottom:-7px;width:12px;height:12px;background:rgba(10,12,36,.95);border-right:1px solid rgba(255,226,160,.38);border-bottom:1px solid rgba(255,226,160,.38);transform:rotate(45deg)}
+.why h4{font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:7px;color:var(--sun)}
+.why p{font-size:13px;margin-top:4px;line-height:1.4}
+.why a{font-size:11.5px;color:var(--accent);text-decoration:none;display:inline-block;margin-top:4px}
+
+.footer{position:absolute;left:0;right:0;top:874px;text-align:center;font-size:11.5px;color:var(--ink-faint)}
+.proto{position:absolute;left:20px;top:875px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-ghost);border:1px solid var(--ink-ghost);border-radius:999px;padding:1px 8px}
+
+/* svg classes */
+.grid{stroke:rgba(172,180,255,.08);stroke-width:1}
+.glabel{fill:var(--ink-faint);font-size:11px;font-family:var(--font)}
+.zero{stroke:rgba(242,243,255,.42);stroke-width:1}
+.rim{fill:none;stroke:var(--terrain-rim);stroke-width:1.3;stroke-opacity:.85;stroke-linejoin:round}
+.sunpath{fill:none;stroke:var(--sun);stroke-width:1.5;stroke-dasharray:2 4;stroke-linecap:round;opacity:.85}
+.earthpath{fill:none;stroke:var(--earth);stroke-width:1.5;opacity:.9}
+.tick-s{fill:var(--sun)} .tick-e{fill:var(--earth)}
+.ticklabel{font-size:10px;font-family:var(--font);fill:var(--ink-dim)}
+.mask{fill:none;stroke:var(--earth);stroke-width:1.3;stroke-dasharray:5 4;opacity:.75}
+.compass{font-family:var(--font);font-size:11px;fill:var(--ink-dim)}
+.compass.big{font-size:13px;font-weight:600;fill:var(--ink)}
+.callout{font-family:var(--font);font-size:12px;fill:var(--ink)}
+.callout.dim{fill:var(--ink-dim);font-size:11px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="g-go" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="g-caution" viewBox="0 0 24 24"><path d="M12 5v9"/><path d="M12 19v.2"/></symbol>
+  <symbol id="g-nogo" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5" fill="#ffe2a0"/><g stroke="#ffe2a0" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></g></symbol>
+  <symbol id="i-earth" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="#6cc4ff"/><path d="M7 9c2 0 2.5 1.5 4 1.5S13 9 14.5 9.5 16 12 18 12M8 15.5c1.5-.5 3 .5 4.5 0" stroke="#0b2a4a" stroke-width="1.6" fill="none" stroke-linecap="round"/></symbol>
+</svg>
+
+<div class="frame">
+  <svg id="view" viewBox="0 0 1440 900" aria-label="Lander's eye panorama, Connecting Ridge"></svg>
+
+  <!-- top bar -->
+  <header class="panel top">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="#a99cff" stroke-width="1.6"/><path d="M16 4 L19 16 L16 28 L13 16Z" fill="#f2f3ff"/><path d="M16 16 L19 16 L16 28Z" fill="#a99cff"/><circle cx="16" cy="16" r="1.6" fill="#03040b"/></svg>
+      TrueSouth
+    </div>
+    <nav class="seg" aria-label="Mode"><button class="on">Mission Control</button><button>Academy</button></nav>
+    <div class="spacer"></div>
+    <div class="picker">
+      <span class="k">Mission profile</span>
+      <span class="v">IM-2 Athena</span>
+      <span class="faint" style="font-size:12px">10 d</span><span class="tag src">sourced</span>
+      <svg class="caret" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg>
+    </div>
+    <div class="picker" style="padding-right:6px">
+      <span class="k">Landing date</span>
+      <button class="iconbtn" aria-label="One day earlier"><svg viewBox="0 0 12 12"><path d="M7.5 2.5L4 6l3.5 3.5"/></svg></button>
+      <span class="v">2028-03-01 00:00 <span class="faint" style="font-size:12px">UTC</span></span>
+      <button class="iconbtn" aria-label="One day later"><svg viewBox="0 0 12 12"><path d="M4.5 2.5L8 6l-3.5 3.5"/></svg></button>
+      <button class="slip">Slip +7 d</button><button class="slip">+14 d</button>
+    </div>
+    <button class="share"><svg viewBox="0 0 20 20"><circle cx="5" cy="10" r="2.2"/><circle cx="15" cy="4.5" r="2.2"/><circle cx="15" cy="15.5" r="2.2"/><path d="M7 9l6-3.4M7 11l6 3.4"/></svg>Share</button>
+  </header>
+
+  <!-- view tabs -->
+  <nav class="panel tabs" aria-label="Views">
+    <button>Slip</button><button>Map</button><button>System</button><button>Terrain</button><button class="on">Lander's eye</button><button>Compare</button>
+    <span class="sep"></span>
+    <button class="split"><span class="toggle"></span>Split</button>
+  </nav>
+
+  <!-- view controls -->
+  <div class="vctl">
+    <div class="chipbar">Centre on <span class="mini-seg"><span class="on">Earth</span><span>Sun</span><span>North</span></span></div>
+    <div class="chipbar"><b>vertical ×12</b></div>
+    <div class="chipbar"><span class="key"><i class="sw"></i>Sun's path</span><span class="key"><i class="sw earth"></i>Earth's path</span><span class="key"><i class="sw mask"></i>antenna mask 1.00° <span class="tag asm">assumed</span></span></div>
+  </div>
+
+  <!-- sites rail -->
+  <aside class="panel rail" aria-label="Selected sites">
+    <div class="rail-h"><h2>Selected sites</h2><span class="faint" style="font-size:12px">5 of 8</span></div>
+    <div class="rail-sub">For landing 2028-03-01 00:00 UTC</div>
+
+    <div class="site focus">
+      <span class="lamp nogo"><svg><use href="#g-nogo"/></svg></span>
+      <div><div class="nm">Connecting Ridge</div>
+        <div class="ln"><span class="word st-nogo">NO-GO</span>Blackout 31 h</div>
+        <div class="ln"><span class="tier">core80</span><span class="tier">close-up DEM</span></div></div>
+    </div>
+    <div class="site">
+      <span class="lamp go"><svg><use href="#g-go"/></svg></span>
+      <div><div class="nm">Malapert Massif</div>
+        <div class="ln"><span class="word st-go">GO</span>Score 81</div>
+        <div class="ln"><span class="tier">core80</span><span class="tier">close-up DEM</span></div></div>
+    </div>
+    <div class="site">
+      <span class="lamp caution"><svg><use href="#g-caution"/></svg></span>
+      <div><div class="nm">Mons Mouton</div>
+        <div class="ln"><span class="word st-caution">CAUTION</span>Score 63</div>
+        <div class="ln"><span class="tier">core80</span><span class="tier">close-up DEM</span></div></div>
+    </div>
+    <div class="site">
+      <span class="lamp caution"><svg><use href="#g-caution"/></svg></span>
+      <div><div class="nm">de Gerlache Rim 2</div>
+        <div class="ln"><span class="word st-caution">CAUTION</span>Score 58</div>
+        <div class="ln"><span class="tier">core80</span><span class="tier">close-up DEM</span></div></div>
+    </div>
+    <div class="site">
+      <span class="lamp go"><svg><use href="#g-go"/></svg></span>
+      <div><div class="nm">Apollo 11</div>
+        <div class="ln"><span class="word st-go">GO</span>Score 100</div>
+        <div class="ln"><span class="tier">sphere</span>Terrain not modelled</div></div>
+    </div>
+    <button class="add"><b>+</b> Add site</button>
+  </aside>
+
+  <!-- focused-site panel -->
+  <aside class="panel focus-p" aria-label="Focused site">
+    <div class="fp-head">
+      <div>
+        <div class="eyebrow">Focused site</div>
+        <h2>Connecting Ridge</h2>
+        <div class="co">−89.4555°, 222.6192° E</div><div class="co" style="margin-top:3px"><span class="tier">core80</span> <span class="tier">close-up DEM</span></div>
+      </div>
+      <div class="links"><a href="https://quickmap.lroc.asu.edu/">Quickmap</a><a href="https://trek.nasa.gov/moon/">Moon Trek</a></div>
+    </div>
+
+    <div class="fp-status" role="status">
+      <span class="lamp nogo"><svg><use href="#g-nogo"/></svg></span>
+      <div><div class="big st-nogo">NO-GO</div><div class="sub">1 veto breaks the window</div><div class="sub faint" style="font-size:10.5px">Slope 1.00 · Power 0.32 · Comms 0.00</div></div>
+      <div class="score"><b>51</b><span>score · not used</span></div>
+    </div>
+
+    <section>
+      <div class="sec-h"><span class="eyebrow">Vetoes</span><span class="faint" style="font-size:11px">1 broken · 3 passed</span></div>
+      <div class="veto">
+        <span class="lamp nogo"><svg><use href="#g-nogo"/></svg></span>
+        <div><div class="t">Blackout</div><div class="l">limit 12 h <span class="tag asm">assumed</span></div></div>
+        <div class="m">31 h</div>
+        <div class="meter"><i style="width:100%"></i><u style="left:38.7%"></u></div>
+      </div>
+      <div class="checks">
+        <div class="chk"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Darkness <b>4 h</b> · limit 6 h</span><span class="tag asm">assumed</span></div>
+        <div class="chk"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Slope <b>3.1°</b> · limit 10°</span><span class="tag asm">assumed</span></div>
+        <div class="chk"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Landing lit · Sun <b>0.80°</b>, disc <b>1.00</b></span><span class="tag asm">min 0.5</span></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-h"><span class="eyebrow">Metrics · mission window</span><span class="faint" style="font-size:11px">240 h</span></div>
+      <div class="metrics">
+        <div class="mt"><div class="k">Lit<i>i</i></div><div class="v">97.1<span class="unit">%</span></div></div>
+        <div class="mt"><div class="k">Sun disc mean<i>i</i></div><div class="v">0.96</div></div>
+        <div class="mt"><div class="k">Longest dark stretch<i>i</i></div><div class="v">4<span class="unit">h</span></div></div>
+        <div class="mt"><div class="k">Link<i>i</i></div><div class="v">87.1<span class="unit">%</span></div></div>
+        <div class="mt bad"><div class="k">Longest blackout<i>i</i></div><div class="v">31<span class="unit">h</span></div></div>
+        <div class="mt"><div class="k">Landing Sun elevation<i>i</i></div><div class="v">0.80<span class="unit">°</span></div></div>
+      </div>
+    </section>
+
+
+    <div class="slope">
+      <div><div class="eyebrow" style="margin-bottom:2px">Slope</div><div class="v">3.1<span class="unit">°</span></div><div class="faint" style="font-size:10px;margin-top:2px">100 m baseline</div></div>
+      <div>
+        <div class="bar"><u style="left:20.7%"></u></div>
+        <div class="scale" style="margin-top:5px"><span>0°</span><span>ideal 5° <span class="tag asm">assumed</span></span><span>limit 10°</span><span>15°</span></div>
+        
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- why is it dark -->
+  <div class="why" role="note">
+    <h4><svg width="14" height="14"><use href="#i-sun"/></svg>Why is it dark?</h4>
+    <p>Sun is 1.08° up. The ridge in that direction rises to 1.33°, 12.4 km away, near de Gerlache. Blocked by terrain.</p>
+    <a href="#">Centre Lander's eye on azimuth 265.98° →</a>
+  </div>
+
+  <!-- timeline + countdowns -->
+  <section class="panel strip" aria-label="Timeline">
+    <svg id="tl" viewBox="0 0 1408 184"></svg>
+    <div class="strip-h" style="position:relative">
+      <h3>Timeline</h3>
+      <span class="win">01 Mar 00:00 → 11 Mar 00:00 UTC · 10 d <span class="tag src">sourced</span></span>
+      <span class="lg"><i class="o-ok"></i>Longest dark 4 h ✓</span><span class="lg nogo"><i class="o-bad"></i>✕ Longest blackout 31 h · veto</span>
+      <div class="ctl">
+        <button class="play" aria-label="Play"><svg viewBox="0 0 10 10"><path d="M2 1l7 4-7 4z"/></svg></button>
+        <span class="pill">1 h/s ▾</span>
+        <span class="pill"><span class="toggle" style="width:22px;height:13px"></span>Clearance chart</span>
+      </div>
+    </div>
+    <div class="cards">
+      <div class="cd warn">
+        <div class="hd"><svg><use href="#i-sun"/></svg>Sun<span class="stt" style="background:rgba(4,5,18,.7);color:var(--ink-dim)">DARK</span></div>
+        <div class="ev">Sunrise in</div>
+        <div class="cnt">2<small>h</small>58<small>m</small></div>
+        <div class="flag">! UNDER 6 H</div>
+        <div class="vals"><span>Elevation<b>1.08°</b></span><span>Disc fraction<b>0.01</b></span></div>
+      </div>
+      <div class="cd">
+        <div class="hd"><svg><use href="#i-earth"/></svg>Earth<span class="stt" style="background:rgba(108,196,255,.18);color:var(--earth)">LINK</span></div>
+        <div class="ev">Earthset in</div>
+        <div class="cnt">6<small>d</small>1<small>h</small></div>
+        <div class="flag" style="visibility:hidden">.</div>
+        <div class="vals"><span>Elevation<b>2.97°</b></span><span>Clearance<b>2.46°</b></span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer">Planning aid, not flight certification. Limits marked assumed are our estimates.</div>
+  <div class="proto">prototype · mock data</div>
+</div>
+
+<script>
+/* ── Mock model: one invented series for Connecting Ridge under im2_athena. Same numbers on every Direction C page. ── */
+const M=(()=>{
+const P=[[0,-0.40],[12,-0.12],[25,0.35],[34,0.12],[48,0.62],[58,0.92],[66,0.50],[80,-0.25],[95,-0.95],[108,-1.25],[120,-0.62],[128,0.18],[133,0.38],[137,0.55],[140,0.95],[142.5,1.32],[146,1.02],[152,0.48],[165,0.06],[180,-0.32],[195,0.18],[210,0.62],[222,0.92],[228,1.18],[231.2,1.47],[234,1.08],[240,0.70],[248,0.62],[256,0.86],[263.6,0.90],[265.9,1.30],[267.2,0.92],[274,0.70],[282,0.25],[292,-0.50],[305,-1.05],[318,-0.70],[332,-0.18],[345,0.10],[360,-0.40]];
+function base(a){a=((a%360)+360)%360;for(let i=0;i<P.length-1;i++){const[a0,e0]=P[i],[a1,e1]=P[i+1];if(a>=a0&&a<=a1){const t=(a-a0)/(a1-a0);return e0+(e1-e0)*(1-Math.cos(Math.PI*t))/2;}}return P[0][1];}
+const sky=a=>{const r=a*Math.PI/180;return base(a)+0.045*Math.sin(r*37)+0.03*Math.sin(r*91+1.3)+0.02*Math.sin(r*173+.4);};
+const SUN_R=0.2665,EARTH_R=0.95;
+const sunAz=h=>(((298-0.5083*h)%360)+360)%360, sunEl=h=>0.80+0.0046*h-0.0000025*h*h;
+const earthAz=h=>133+8*h/240+0.6*Math.sin(2*Math.PI*h/327), earthEl=h=>3.399-0.0068*h;
+function frac(az,el,rho){let n=0,d=0;for(let i=0;i<33;i++){const x=-rho+(i+0.5)*2*rho/33,c=Math.sqrt(rho*rho-x*x),A=az+x/Math.cos(el*Math.PI/180);n+=Math.min(Math.max(el+c-sky(A),0),2*c);d+=2*c;}return n/d;}
+const series=h=>{const sa=sunAz(h),se=sunEl(h),ea=earthAz(h),ee=earthEl(h);return{h,sa,se,sf:frac(sa,se,SUN_R),sc:se-sky(sa),ea,ee,ec:ee-sky(ea),link:ee-sky(ea)>=1};};
+return{sky,series,SUN_R,EARTH_R};})();
+const NS='http://www.w3.org/2000/svg';
+function E(tag,a,p){const e=document.createElementNS(NS,tag);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+const wrap=d=>((d+180)%360+360)%360-180;
+function rng(s){return()=>{s=(s*16807)%2147483647;return s/2147483647;};}
+
+/* ── panorama ── */
+const HOUR=63;               // scrubber: 2028-03-03 15:00 UTC, mission day 3
+const view=document.getElementById('view');
+(function(){
+  const o={cx:676,az0:137,px:2.8,y0:466,py:33.6,top:0,bottom:900};
+  const X=a=>o.cx+wrap(a-o.az0)*o.px, Y=e=>o.y0-e*o.py;
+  const xl=o.cx-180*o.px, xr=o.cx+180*o.px;
+  const defs=E('defs',{},view);
+  defs.innerHTML=`
+   <linearGradient id="terr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1f4c"/><stop offset=".35" stop-color="#0d0f2c"/><stop offset="1" stop-color="#05061a"/></linearGradient>
+   <radialGradient id="sunglow"><stop offset="0" stop-color="#fff8e4" stop-opacity=".95"/><stop offset=".25" stop-color="#ffe2a0" stop-opacity=".45"/><stop offset="1" stop-color="#ffe2a0" stop-opacity="0"/></radialGradient>
+   <radialGradient id="earthglow"><stop offset="0" stop-color="#d6f0ff" stop-opacity=".55"/><stop offset=".35" stop-color="#6cc4ff" stop-opacity=".22"/><stop offset="1" stop-color="#6cc4ff" stop-opacity="0"/></radialGradient>
+   <linearGradient id="edgefade" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#03040b"/><stop offset="1" stop-color="#03040b" stop-opacity="0"/></linearGradient>`;
+  // stars
+  const r=rng(7),sg=E('g',{},view);
+  for(let i=0;i<260;i++){const x=r()*1440,y=r()*430;E('circle',{cx:x.toFixed(1),cy:y.toFixed(1),r:(r()*r()*1.3+.25).toFixed(2),fill:'#dfe2ff','fill-opacity':(.15+r()*.55).toFixed(2)},sg);}
+  // grid
+  const gg=E('g',{},view);
+  for(let e=-2;e<=7;e++){if(e===0)continue;E('line',{x1:xl,x2:xr,y1:Y(e),y2:Y(e),class:'grid'},gg);
+    if(e%2===0)E('text',{x:290,y:Y(e)+4,class:'glabel'},gg).textContent=(e>0?'+':'−')+Math.abs(e)+'°';}
+  // skyline
+  let d='';for(let i=0;i<=1440;i++){const a=o.az0-180+i*.25;d+=(i?'L':'M')+(o.cx+(a-o.az0)*o.px).toFixed(1)+','+Y(M.sky(a)).toFixed(1);}
+  E('clipPath',{id:'skyclip'},defs).appendChild(E('path',{d:d+`L${xr},0L${xl},0Z`}));
+  // antenna mask (drawn before terrain so it reads as "above the skyline")
+  let md='';for(let a=124;a<=152;a+=.25)md+=(a===124?'M':'L')+X(a).toFixed(1)+','+Y(M.sky(a)+1).toFixed(1);
+  E('path',{d:md,class:'mask'},view);
+  E('text',{x:X(124)-6,y:Y(M.sky(124)+1)+4,'text-anchor':'end',class:'callout dim'},view).textContent='antenna mask +1.00°';
+  // paths
+  const sp=[],ep=[];for(let h=0;h<=240;h++){const s=M.series(h);sp.push([X(s.sa),Y(s.se)]);ep.push([X(s.ea),Y(s.ee)]);}
+  const poly=pts=>pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join('');
+  E('path',{d:poly(sp),class:'sunpath'},view);
+  E('path',{d:poly(ep),class:'earthpath'},view);
+  for(let k=0;k<=10;k++){const h=k*24,s=sp[h],e=ep[h];
+    E('circle',{cx:s[0],cy:s[1],r:2.4,class:'tick-s'},view);
+    if(k<10&&Math.abs(s[0]-X(M.series(HOUR).sa))>14)E('text',{x:s[0],y:s[1]-8,'text-anchor':'middle',class:'ticklabel'},view).textContent='D'+(k+1);
+    E('line',{x1:e[0]-4,x2:e[0]+4,y1:e[1],y2:e[1],stroke:'#6cc4ff','stroke-width':1.4},view);}
+  E('text',{x:ep[0][0]-10,y:ep[0][1]-2,'text-anchor':'end',class:'ticklabel'},view).textContent='D1';
+  // terrain
+  E('path',{d:d+`L${xr},900L${xl},900Z`,fill:'url(#terr)'},view);
+  E('path',{d,class:'rim'},view);
+  // 0° line on top
+  E('line',{x1:xl,x2:xr,y1:Y(0),y2:Y(0),class:'zero'},view);
+  E('text',{x:290,y:Y(0)-6,class:'glabel',fill:'#f2f3ff'},view).textContent='0° local horizontal';
+  // compass strip
+  const cy=548;
+  for(let a=0;a<360;a+=10){const x=X(a);const big=a%90===0,mid=a%30===0;
+    E('line',{x1:x,x2:x,y1:cy-(big?9:mid?6:3),y2:cy,stroke:'#b0b5de','stroke-opacity':big?.8:.35},view);
+    const names={0:'N',90:'E',180:'S',270:'W',45:'NE',135:'SE',225:'SW',315:'NW'};
+    if(big)E('text',{x,y:cy+16,'text-anchor':'middle',class:'compass big'},view).textContent=names[a];
+    else if(mid)E('text',{x,y:cy+15,'text-anchor':'middle',class:'compass'},view).textContent=a+'°';}
+  E('line',{x1:xl,x2:xr,y1:cy,y2:cy,stroke:'#b0b5de','stroke-opacity':.25},view);
+  // discs at the scrubber hour
+  const s=M.series(HOUR);
+  function disc(a,e,R,fill,core,glow){const x=X(a),y=Y(e),rx=R*o.px,ry=R*o.py;
+    E('circle',{cx:x,cy:y,r:glow,fill:`url(#${fill}glow)`,'clip-path':'url(#skyclip)'},view);
+    E('ellipse',{cx:x,cy:y,rx,ry,fill:core,'fill-opacity':.28},view);           // part below skyline, dimmed
+    E('ellipse',{cx:x,cy:y,rx,ry,fill:core,'clip-path':'url(#skyclip)'},view);}  // part above, full
+  disc(s.sa,s.se,M.SUN_R,'sun','#fff8e4',30);
+  disc(s.ea,s.ee,M.EARTH_R,'earth','#8fd3ff',46);
+  // labels
+  const sx=X(s.sa),sy=Y(s.se),ex=X(s.ea),ey=Y(s.ee);
+  const lab=(x,y,t1,t2,anchor)=>{E('text',{x,y,'text-anchor':anchor,class:'callout'},view).textContent=t1;E('text',{x,y:y+14,'text-anchor':anchor,class:'callout dim'},view).textContent=t2;};
+  lab(sx-18,sy-78,'Sun · behind the ridge','1.08° up · disc fraction 0.01','end');
+  E('line',{x1:sx-14,y1:sy-62,x2:sx-1,y2:sy-14,stroke:'#ffe2a0','stroke-opacity':.6},view);
+  lab(ex+14,ey-14,'Earth','2.97° up · clearance 2.46°','start');
+  // edge fades under panels so the 360° ends never read as content
+  E('rect',{x:xl-2,y:0,width:60,height:900,fill:'url(#edgefade)'},view);
+  E('rect',{x:xr-58,y:0,width:60,height:900,fill:'url(#edgefade)',transform:`rotate(180 ${xr-28} 450)`},view);
+  E('rect',{x:0,y:0,width:xl,height:900,fill:'#03040b'},view);E('rect',{x:xr,y:0,width:1440-xr,height:900,fill:'#03040b'},view);
+})();
+
+/* ── timeline ── */
+(function(){
+  const svg=document.getElementById('tl');
+  const H0=-72,H1=312,x0=104,w=888,k=w/(H1-H0),X=h=>x0+(h-H0)*k;
+  const ax=50,sy=74,bh=28,ey=110,dy=160;
+  const S=[];for(let h=H0;h<H1;h++)S.push(M.series(h));
+  const g=E('g',{},svg);
+  // band labels
+  E('text',{x:20,y:sy+18,class:'callout'},g).textContent='Sun';
+  E('text',{x:20,y:ey+18,class:'callout'},g).textContent='Earth';
+  // tracks
+  E('rect',{x:x0,y:sy,width:w,height:bh,rx:7,fill:'rgba(4,5,18,.6)',stroke:'rgba(172,180,255,.10)'},g);
+  E('rect',{x:x0,y:ey,width:w,height:bh,rx:7,fill:'rgba(4,5,18,.6)',stroke:'rgba(172,180,255,.10)'},g);
+  // bands
+  let sd='',sc='',ed='',ec='';
+  S.forEach(s=>{const x=X(s.h),ww=k+.15,inW=s.h>=0&&s.h<240;
+    if(s.sf>=.5){const hh=bh*s.sf,r=`M${x.toFixed(2)},${(sy+bh-hh).toFixed(2)}h${ww.toFixed(2)}v${hh.toFixed(2)}h${-ww.toFixed(2)}Z`;inW?sd+=r:sc+=r;}
+    if(s.link){const r=`M${x.toFixed(2)},${ey}h${ww.toFixed(2)}v${bh}h${-ww.toFixed(2)}Z`;inW?ed+=r:ec+=r;}});
+  const clipS=E('clipPath',{id:'cs'},svg);E('rect',{x:x0,y:sy,width:w,height:bh,rx:7},clipS);
+  const clipE=E('clipPath',{id:'ce'},svg);E('rect',{x:x0,y:ey,width:w,height:bh,rx:7},clipE);
+  E('path',{d:sc,fill:'#ffe2a0','fill-opacity':.22,'clip-path':'url(#cs)'},g);
+  E('path',{d:sd,fill:'#ffe2a0','clip-path':'url(#cs)'},g);
+  E('path',{d:ec,fill:'#6cc4ff','fill-opacity':.22,'clip-path':'url(#ce)'},g);
+  E('path',{d:ed,fill:'#6cc4ff','clip-path':'url(#ce)'},g);
+  // day lines + labels
+  for(let d=-3;d<=13;d++){const x=X(d*24);
+    if(d>-3&&d<13)E('line',{x1:x,x2:x,y1:sy,y2:ey+bh,stroke:'#03040b','stroke-opacity':.55},g);
+    const inW=d>=0&&d<10;
+    if(d<13){const t=E('text',{x:X(d*24+12),y:ax+12,'text-anchor':'middle',class:'callout'+(inW?'':' dim'),'font-size':inW?11:10},g);t.textContent=inW?(d===0?'Day 1':String(d+1)):(d<0?d+' d':'+'+(d-9)+' d');if(!inW)t.setAttribute('fill-opacity',.6);}
+    const date=new Date(Date.UTC(2028,2,1)+d*864e5);
+    if(d<13&&d%1===0){const tt=E('text',{x:x+3,y:dy,class:'callout dim','font-size':10},g);tt.textContent=String(date.getUTCDate()).padStart(2,'0')+' Mar';if(!inW)tt.setAttribute('fill-opacity',.55);}}
+  E('text',{x:20,y:dy,class:'callout dim','font-size':10},g).textContent='UTC';
+  // window edges
+  [0,240].forEach(h=>E('line',{x1:X(h),x2:X(h),y1:ax-2,y2:ey+bh+6,stroke:'#f2f3ff','stroke-opacity':.5,'stroke-width':1},g));
+  // longest stretches
+  E('rect',{x:X(62)-2,y:sy-3,width:(X(66)-X(62))+4,height:bh+6,rx:6,fill:'none',stroke:'#f2f3ff','stroke-width':1.3,'stroke-dasharray':'3 2'},g);
+  E('rect',{x:X(209)-2,y:ey-3,width:(X(240)-X(209))+4,height:bh+6,rx:7,fill:'none',stroke:'#ff5c72','stroke-width':2},g);
+  // scrubber
+  const x=X(HOUR+.5);
+  E('line',{x1:x,x2:x,y1:ax+18,y2:ey+bh+4,stroke:'#a99cff','stroke-width':2},g);
+  E('circle',{cx:x,cy:ey+bh+8,r:5,fill:'#a99cff',stroke:'#0b0c24','stroke-width':2},g);
+  const bx=E('g',{},g);E('rect',{x:x-78,y:ax-2,width:156,height:20,rx:10,fill:'#a99cff'},bx);
+  E('text',{x,y:ax+12,'text-anchor':'middle','font-size':11,'font-weight':600,fill:'#0b0c24','font-family':'Jost,Futura,sans-serif'},bx).textContent='Day 3 · 03 Mar 15:00 UTC';
+})();
+</script>
+</body>
+</html>

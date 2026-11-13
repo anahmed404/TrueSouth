@@ -142,12 +142,13 @@ An array of mission profiles. Fields and presets are in
 
 ### `features.json`
 
-Named features for labels: `{ name, kind, lat_deg, lon_deg, diameter_km }`.
+Named features for labels: `{ name, kind, iau_id, lat_deg, lon_deg, diameter_km }`.
+`kind` is `crater` or `mountain`; `iau_id` is the IAU gazetteer id.
 
 ### `artemis_regions.json`
 
 `{ name, lat_deg, lon_deg, size_km, source_url }` per region. `lat_deg` and `lon_deg` are
-`null` where no centre is published.
+`null` where no centre is published; `size_km` is `null` when no size is published.
 
 ### `maps/meta.json`
 
@@ -164,7 +165,7 @@ Named features for labels: `{ name, kind, lat_deg, lon_deg, diameter_km }`.
 ```
 
 Every image is a square centred on the pole, covering `half_width_m` in each direction,
-with +x right and +y up. A pixel converts to latitude and longitude with the inverse
+with +x right, +y up, and row 0 at the top. Lookup grids use the same orientation. A pixel converts to latitude and longitude with the inverse
 projection in [`science.md`](science.md) §2.3. Lookup grids are `Uint8`, where a value $v$
 means $v/255$, and 255 marks "no data".
 
@@ -200,6 +201,8 @@ id can ask for the site again.
 { "site_id": "c_-89.2000_130.5000", "status": "ready", "site": { "…one sites.json entry…" }, "error": null }
 ```
 
+`error` is either null or an error detail `{ code, message }`.
+
 When ready, the site's files are at `/api/custom/{id}/meta.json`, `series.bin`,
 `skyline.bin` and, with terrain, `terrain.bin`.
 
@@ -226,6 +229,8 @@ Response:
   "centre_fast_method": { "sun_fraction_mean": 0.81, "link_fraction": 0.44 }
 }
 ```
+
+Sensitivity arrays are row-major, row 0 is north, and each contains `size * size` values.
 
 ### Errors
 
@@ -262,7 +267,9 @@ Mission Control mirrors its scenario into the URL:
 Profile `provenance` maps each profile value field (including optional null values and
 `weights`) to either `{ "kind": "sourced", "source_url": "...", "quote": "..." }`
 or `{ "kind": "assumed", "reason": "..." }`. Identity fields are not mission values.
-Worked examples are an object keyed by lesson (`l1` through `l8`), with each lesson's
-keys as described in `academy/lessons.md`; nested example objects remain nested.
+Worked examples are a flat object keyed by full dotted lesson keys as described in
+`academy/lessons.md`; every contract key is required. Wildcard examples are expanded
+into individual dotted keys. Candidates and vetoes are arrays of identifiers; overlap
+uses `site_id`, `region_name` and `overlaps`.
 The JSON Schema includes `BinaryLayouts`, describing the binary files' array order,
 data types and series scaling for decoders.

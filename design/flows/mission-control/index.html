@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrueSouth · Mission Control UX flow</title>
+<style>
+/* Neutral style on purpose: this diagram is shared by directions A, B and C. */
+:root { --bg: #121417; --box: #1a1d21; --box-2: #20242a; --line: #8a919b; --line-2: #5d646e; --ink: #eceff2; --ink-2: #a3aab3; --ink-3: #6f7680; --step: #c9ced4; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--ink); overflow: hidden; }
+body { font: 400 12px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+svg { display: block; }
+.ttl { font-size: 17px; font-weight: 600; fill: var(--ink); }
+.sub { font-size: 12px; fill: var(--ink-2); }
+.bt { font-size: 12.5px; font-weight: 600; fill: var(--ink); }
+.bb { font-size: 11px; fill: var(--ink-2); }
+.al { font-size: 10.5px; fill: var(--ink); }
+.al.auto { fill: var(--ink-2); font-style: italic; }
+.sh { font-size: 12px; font-weight: 600; fill: var(--step); letter-spacing: .02em; }
+.sn { font-size: 11px; fill: var(--ink-3); }
+.lg { font-size: 11px; fill: var(--ink-2); }
+.tag { font-size: 10px; fill: var(--ink-3); }
+</style>
+</head>
+<body>
+<svg id="flow" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-label="Mission Control UX flow, from the start screen to share and export"></svg>
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('flow');
+const S = (t, a, p = svg, txt) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; p.appendChild(e); return e; };
+const defs = S('defs', {});
+for (const [id, col] of [['ar', '#8a919b'], ['ar2', '#5d646e']]) {
+  const m = S('marker', { id, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, defs);
+  S('path', { d: 'M0,1 L9,5 L0,9 z', fill: col }, m);
+}
+const layerLines = S('g', {}), layerBoxes = S('g', {}), layerLabels = S('g', {});
+
+// ---------- header ----------
+S('text', { x: 28, y: 36, class: 'ttl' }, svg, 'Mission Control · UX flow');
+S('text', { x: 28, y: 56, class: 'sub' }, svg, 'Screens and views are boxes; user actions are labelled arrows. The five steps follow docs/features/mission-control.md. Shared by design directions A, B and C.');
+// legend
+const lg = S('g', { transform: 'translate(1010,22)' });
+const legend = [['screen', 'Screen'], ['view', 'View or panel'], ['overlay', 'Card, menu or tooltip'], ['outside', 'Outside Mission Control']];
+legend.forEach(([k, l], i) => { const x = (i % 2) * 210, y = Math.floor(i / 2) * 20; box({ x, y, w: 22, h: 12, kind: k }, lg, true); S('text', { x: x + 30, y: y + 10, class: 'lg' }, lg, l); });
+S('line', { x1: 0, x2: 22, y1: 47, y2: 47, stroke: '#8a919b', 'stroke-width': 1.4, 'marker-end': 'url(#ar)' }, lg); S('text', { x: 30, y: 51, class: 'lg' }, lg, 'User action');
+S('line', { x1: 210, x2: 232, y1: 47, y2: 47, stroke: '#5d646e', 'stroke-width': 1.2, 'stroke-dasharray': '4 3', 'marker-end': 'url(#ar2)' }, lg); S('text', { x: 240, y: 51, class: 'lg' }, lg, 'Automatic update');
+
+// ---------- boxes ----------
+function box(b, parent = layerBoxes, mini = false) {
+  const st = { screen: { fill: '#23272d', stroke: '#c9ced4', w: 1.6, dash: '' }, view: { fill: '#1b1e22', stroke: '#8a919b', w: 1.1, dash: '' }, overlay: { fill: '#16181b', stroke: '#8a919b', w: 1, dash: '4 3' }, outside: { fill: 'transparent', stroke: '#6f7680', w: 1, dash: '1.5 3' } }[b.kind];
+  S('rect', { x: b.x, y: b.y, width: b.w, height: b.h, fill: st.fill, stroke: st.stroke, 'stroke-width': st.w, 'stroke-dasharray': st.dash, rx: 2 }, parent);
+  if (mini) return;
+  S('text', { x: b.x + 10, y: b.y + 18, class: 'bt' }, parent, b.t);
+  (b.b || []).forEach((line, i) => S('text', { x: b.x + 10, y: b.y + 34 + i * 14, class: 'bb' }, parent, line));
+}
+const C = [300, 528, 756, 984, 1212], CW = 204; // five step columns
+const B = {
+  start: { x: 28, y: 92, w: 200, h: 76, kind: 'screen', t: 'Start screen', b: ['Two equal doors:', 'Mission Control, Academy'] },
+  academy: { x: 28, y: 232, w: 200, h: 50, kind: 'outside', t: 'Academy', b: ['Its own flow (lessons)'] },
+  link: { x: 28, y: 352, w: 200, h: 64, kind: 'outside', t: 'A shared link is opened', b: ['URL holds profile, sites, date,', 'time and view'] },
+  notice: { x: 28, y: 470, w: 200, h: 64, kind: 'overlay', t: 'Notice', b: ['Bad site id, date or field is', 'ignored; the rest loads'] },
+  shell: { x: 300, y: 92, w: 1116, h: 52, kind: 'screen', t: 'Mission Control shell', b: ['Opens on step 3 with a working default: im2_athena · 4 polar sites · landing date 2028-03-01 00:00 UTC · Slip tab. Nothing is empty on first load.'] },
+  // 1 profile
+  picker: { x: C[0], y: 214, w: CW, h: 64, kind: 'view', t: 'Profile picker', b: ['Top bar · presets with the', 'real mission and one line'] },
+  editor: { x: C[0], y: 336, w: CW, h: 78, kind: 'overlay', t: 'Profile editor', b: ['Every field with its tag:', 'sourced (link, quote) or', 'assumed (reason)'] },
+  custom: { x: C[0], y: 472, w: CW, h: 64, kind: 'view', t: 'Profile is Custom', b: ['Edited fields say "changed', 'by you"; weights normalised'] },
+  // 2 sites
+  rail: { x: C[1], y: 214, w: CW, h: 64, kind: 'view', t: 'Sites rail', b: ['Up to 8 sites, a status', 'chip each · click to focus'] },
+  cat: { x: C[1], y: 336, w: CW, h: 36, kind: 'overlay', t: 'Catalog list', b: [] },
+  map: { x: C[1], y: 384, w: CW, h: 36, kind: 'view', t: 'Polar map (Map tab)', b: [] },
+  coords: { x: C[1], y: 432, w: CW, h: 36, kind: 'overlay', t: 'Type coordinates', b: [] },
+  computing: { x: C[1], y: 520, w: CW, h: 64, kind: 'overlay', t: 'Custom site computing', b: ['"Computing terrain for your', 'site…" with queue position'] },
+  // 3 dates
+  slip: { x: C[2], y: 214, w: CW, h: 78, kind: 'view', t: 'Slip Planner (Slip tab)', b: ['Sites × landing dates;', 'GO, CAUTION, NO-GO', '(hatched) per day'] },
+  tip: { x: C[2], y: 350, w: CW, h: 50, kind: 'overlay', t: 'Cell tooltip', b: ['Status, score, each veto'] },
+  slipcard: { x: C[2], y: 458, w: CW, h: 64, kind: 'overlay', t: 'Slip card', b: ['Before and after for the', 'focused site'] },
+  // 4 inspect
+  panel: { x: C[3], y: 214, w: CW, h: 78, kind: 'view', t: 'Focused-site panel', b: ['Status, vetoes (value and', 'limit), metrics, slope,', 'links out'] },
+  views: { x: C[3], y: 336, w: CW, h: 80, kind: 'view', t: 'Detail views', b: ['Map · System · Terrain ·', "Lander's eye · or Split.", 'Click a blocker: marked in all'] },
+  strip: { x: C[3], y: 456, w: CW, h: 64, kind: 'view', t: 'Bottom strip', b: ['Timeline bands, scrubber,', 'countdown cards'] },
+  why: { x: C[3], y: 574, w: CW, h: 64, kind: 'overlay', t: '"Why is it dark?" card', b: ['Names the blocker: angle,', 'distance, nearest feature'] },
+  nasa: { x: C[3], y: 690, w: CW, h: 50, kind: 'outside', t: 'Quickmap · Moon Trek', b: ['Opens in a new tab'] },
+  // 5 compare and share
+  compare: { x: C[4], y: 214, w: CW, h: 78, kind: 'view', t: 'Compare (Compare tab)', b: ['Up to 4 sites side by side,', 'best value marked, one', 'summary sentence'] },
+  share: { x: C[4], y: 350, w: CW, h: 50, kind: 'overlay', t: 'Share menu', b: ['Top bar'] },
+  copy: { x: C[4], y: 446, w: CW, h: 50, kind: 'overlay', t: 'Link copied', b: ['Short confirmation'] },
+  export: { x: C[4], y: 540, w: CW, h: 78, kind: 'overlay', t: 'Export', b: ['CSV: comparison, timeline,', 'Slip Planner · PNG: view', 'Made in the browser'] },
+  files: { x: C[4], y: 690, w: CW, h: 50, kind: 'outside', t: 'Files for a report', b: ['Header: "Planning aid…"'] },
+};
+// step headers
+const STEPS = ['Choose a mission profile', 'Choose sites', 'Find dates', 'Inspect one site and date', 'Compare and share'];
+STEPS.forEach((s, i) => { S('text', { x: C[i], y: 186, class: 'sh' }, svg, `${i + 1}  ${s}`); S('line', { x1: C[i], x2: C[i] + CW, y1: 194, y2: 194, stroke: '#3a3f46' }, svg); });
+for (const k in B) box(B[k]);
+
+// ---------- arrows ----------
+function anchor(id, side, f = 0.5) { const b = B[id]; return { r: [b.x + b.w, b.y + b.h * f], l: [b.x, b.y + b.h * f], t: [b.x + b.w * f, b.y], b: [b.x + b.w * f, b.y + b.h] }[side]; }
+function arrow(a) {
+  const p0 = anchor(...a.from), p1 = anchor(...a.to);
+  let pts = [p0, ...(a.via || []), p1];
+  if (!a.via) {
+    const hz = s => s === 'r' || s === 'l';
+    if (hz(a.from[1]) && hz(a.to[1])) { const mx = a.mx ?? (p0[0] + p1[0]) / 2; pts = [p0, [mx, p0[1]], [mx, p1[1]], p1]; }
+    else if (!hz(a.from[1]) && !hz(a.to[1])) { const my = a.my ?? (p0[1] + p1[1]) / 2; pts = [p0, [p0[0], my], [p1[0], my], p1]; }
+    else if (hz(a.from[1])) pts = [p0, [p1[0], p0[1]], p1];
+    else pts = [p0, [p0[0], p1[1]], p1];
+  }
+  const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ',' + p[1]).join('');
+  S('path', { d, fill: 'none', stroke: a.auto ? '#5d646e' : '#8a919b', 'stroke-width': a.auto ? 1.2 : 1.4, 'stroke-dasharray': a.auto ? '4 3' : '', 'marker-end': `url(#${a.auto ? 'ar2' : 'ar'})` }, layerLines);
+  if (!a.label) return;
+  let best = 0, bi = 0; for (let i = 0; i < pts.length - 1; i++) { const L = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]); if (L > best) { best = L; bi = i; } }
+  const seg = a.seg ?? bi, q = a.at ?? 0.5;
+  let lx = pts[seg][0] + (pts[seg + 1][0] - pts[seg][0]) * q + (a.dx || 0), ly = pts[seg][1] + (pts[seg + 1][1] - pts[seg][1]) * q + (a.dy || 0);
+  if (a.lx != null) { lx = a.lx; ly = a.ly; }
+  const lines = a.label.split('\n');
+  const g = S('g', {}, layerLabels);
+  const ts = lines.map((l, i) => S('text', { x: lx, y: ly + 4 + (i - (lines.length - 1) / 2) * 13, class: 'al' + (a.auto ? ' auto' : ''), 'text-anchor': a.anchor || 'middle' }, g, l));
+  const bb = g.getBBox();
+  const r = document.createElementNS(NS, 'rect');
+  for (const [k, v] of Object.entries({ x: bb.x - 4, y: bb.y - 2, width: bb.width + 8, height: bb.height + 4, fill: '#121417', rx: 2 })) r.setAttribute(k, v);
+  g.insertBefore(r, g.firstChild);
+}
+const A = [
+  { from: ['start', 'r', 0.34], to: ['shell', 'l', 0.5], label: 'Open Mission\nControl', lx: 264, ly: 140 },
+  { from: ['start', 'b'], to: ['academy', 't'], label: 'Start the Academy' },
+  { from: ['link', 'r', 0.3], to: ['shell', 'l', 0.8], via: [[248, 371], [248, 134]], label: 'Scenario\nrestored', lx: 252, ly: 318, anchor: 'start' },
+  { from: ['link', 'b'], to: ['notice', 't'], label: 'If a part is bad' },
+  // shell to steps
+  ...[0, 1, 2, 3, 4].map(i => ({ from: ['shell', 'b', (C[i] + CW - 14 - 300) / 1116], to: [['picker', 'rail', 'slip', 'panel', 'compare'][i], 't', (CW - 14) / CW], auto: true })),
+  // step 1
+  { from: ['picker', 'b'], to: ['editor', 't'], label: 'Customise' },
+  { from: ['editor', 'b'], to: ['custom', 't'], label: 'Edit any field' },
+  // step 2
+  { from: ['rail', 'l', 0.8], to: ['cat', 'l'], via: [[516, 265], [516, 354]], label: '+ Add site', lx: 510, ly: 312, anchor: 'end' },
+  { from: ['cat', 'r'], to: ['rail', 'r', 0.75], via: [[746, 354], [746, 262]], label: 'Pick', lx: 750, ly: 312, anchor: 'start' },
+  { from: ['map', 'b', 0.85], to: ['computing', 't', 0.85], via: [[701, 420], [701, 520]], label: 'Click the map', lx: 695, ly: 496, anchor: 'end' },
+  { from: ['coords', 'b', 0.3], to: ['computing', 't', 0.3], label: 'Enter lat, lon', lx: 584, ly: 496, anchor: 'end' },
+  { from: ['computing', 'l'], to: ['rail', 'l', 0.4], via: [[520, 552], [520, 240]], auto: true, label: 'Site appears\nin the rail', lx: 512, ly: 446, anchor: 'end' },
+  // step 3
+  { from: ['slip', 'b', 0.3], to: ['tip', 't', 0.3], label: 'Hover a cell' },
+  { from: ['slip', 'b', 0.8], to: ['slipcard', 't', 0.8], label: 'Slip ±1, 7, 14 d\nor drag the marker', lx: 920, ly: 428 },
+  { from: ['slip', 'r', 0.12], to: ['panel', 'l', 0.12], label: 'Click a cell: sets the landing date and focuses the site', lx: 872, ly: 205 },
+  // step 4
+  { from: ['panel', 'b'], to: ['views', 't'], label: 'Pick a view tab' },
+  { from: ['strip', 't'], to: ['views', 'b'], auto: true, label: 'scrubber moves every open view' },
+  { from: ['strip', 'b', 0.25], to: ['why', 't', 0.25], label: 'Scrub to a dark or blackout hour', lx: 1040, ly: 545, anchor: 'start' },
+  { from: ['why', 'r'], to: ['views', 'r', 0.75], via: [[1200, 606], [1200, 396]], label: "Click the card: Lander's eye at that azimuth", lx: 1206, ly: 520, anchor: 'start' },
+  { from: ['panel', 'l', 0.85], to: ['nasa', 'l'], via: [[972, 280], [972, 715]], label: 'Open in Quickmap\nor Moon Trek', lx: 966, ly: 680, anchor: 'end' },
+  // step 5
+  { from: ['compare', 'l', 0.12], to: ['panel', 'r', 0.12], label: 'Click a column header: focus', lx: 1300, ly: 205 },
+  { from: ['compare', 'b', 0.2], to: ['share', 't', 0.2], label: 'Share' },
+  { from: ['share', 'b', 0.3], to: ['copy', 't', 0.3], label: 'Copy link' },
+  { from: ['share', 'r', 0.5], to: ['export', 'r', 0.3], via: [[1430, 375], [1430, 563]], label: 'Export', lx: 1426, ly: 470, anchor: 'end' },
+  { from: ['export', 'b'], to: ['files', 't'], label: 'Download' },
+  { from: ['copy', 'l', 0.5], to: ['link', 'r', 0.85], via: [[1196, 471], [1196, 660], [262, 660], [262, 406]], auto: true, label: 'A colleague opens the copied link: the same scenario loads', lx: 700, ly: 660 },
+];
+A.forEach(arrow);
+
+// ---------- bottom notes ----------
+const nY = 778;
+S('line', { x1: 28, x2: 1412, y1: nY, y2: nY, stroke: '#2c3036' });
+const notes = [
+  ['Everywhere', ['One clock: focusing a site, changing the date or dragging the', 'scrubber updates every open view together.', 'Every profile change recomputes in the browser, no network.']],
+  ['Always visible', ['Status as colour plus word: GO, CAUTION, NO-GO.', 'Footer: "Planning aid, not flight certification.', 'Limits marked assumed are our estimates."']],
+  ['Other states', ['Loading a site: skeleton rows; other sites stay usable.', 'API offline: custom sites and sensitivity disabled, with', 'a reason. No sites selected: prompt, polar map open.']],
+  ['URL', ['The scenario is mirrored into the URL as you work,', 'so reload and Back restore it. A custom profile travels', 'as the fields that differ from its preset.']],
+];
+notes.forEach(([h, ls], i) => { const x = 28 + i * 352; S('text', { x, y: nY + 22, class: 'sh' }, svg, h); ls.forEach((l, j) => S('text', { x, y: nY + 40 + j * 15, class: 'bb' }, svg, l)); });
+svg.appendChild(layerLines); svg.appendChild(layerBoxes); svg.appendChild(layerLabels);
+</script>
+</body>
+</html>

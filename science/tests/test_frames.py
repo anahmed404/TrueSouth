@@ -118,3 +118,28 @@ def test_array_inputs_match_scalar_inputs():
     directions = unit_vector(lat, lon)
     az, el = az_el(lat, lon, directions)
     for i in range(2): np.testing.assert_allclose([az[i], el[i]], az_el(lat[i], lon[i], directions[i]), atol=1e-12)
+
+
+def test_local_basis_known_vectors():
+    # At latitude 0, longitude 0 the site is on the +x axis: east is +y and north is +z.
+    # Written out here, not derived from local_basis, so flipping both signs would fail.
+    e, n, up = local_basis(0, 0)
+    np.testing.assert_allclose(e, [0, 1, 0], atol=1e-15)
+    np.testing.assert_allclose(n, [0, 0, 1], atol=1e-15)
+    np.testing.assert_allclose(up, [1, 0, 0], atol=1e-15)
+    # One degree from the south pole on longitude 0: up is almost -z, and north, which
+    # points away from the south pole along the meridian, is almost +x.
+    e, n, up = local_basis(-89, 0)
+    np.testing.assert_allclose(e, [0, 1, 0], atol=1e-15)
+    assert n[0] > 0.99 and n[2] > 0 and up[2] < -0.99
+
+
+def test_straight_up_has_azimuth_zero():
+    for lat, lon in [(-89.5, 222.6), (-85, 20), (0, 0)]:
+        _, _, up = local_basis(lat, lon)
+        az, el = az_el(lat, lon, up)
+        assert az == 0
+        np.testing.assert_allclose(el, 90, atol=1e-6)
+        az, el = az_el(lat, lon, -up)
+        assert az == 0
+        np.testing.assert_allclose(el, -90, atol=1e-6)

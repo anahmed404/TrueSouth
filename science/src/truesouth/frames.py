@@ -42,6 +42,9 @@ def az_el(latitude, longitude, direction):
     north_component = np.sum(direction * north, axis=-1)
     up_component = np.sum(direction * up, axis=-1)
     azimuth = _wrap_degrees(np.rad2deg(np.arctan2(east_component, north_component)))
+    # Straight up or down has no azimuth. Report 0 rather than the angle of float noise,
+    # as web/src/lib/geo/frames.ts does.
+    azimuth = np.where(np.hypot(east_component, north_component) <= 1e-12, 0.0, azimuth)
     elevation = np.rad2deg(np.arcsin(np.clip(up_component, -1.0, 1.0)))
     return azimuth, elevation
 

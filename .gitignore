@@ -28,3 +28,6 @@ web/dist/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Browser-tool logs written while taking screenshots
+.playwright-mcp/

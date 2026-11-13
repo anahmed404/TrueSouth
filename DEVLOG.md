@@ -52,29 +52,85 @@ each integration checkpoint.
 #### 2026-11-13 · S3 · Site-centred frames and polar projection
 - **Who:** Codex agent, for the orchestrator
 - **AI use:** Codex, gpt-6.1-terra — wrote geometry tests and `frames.py` — agent ran pytest; the orchestrator has not checked it yet
-- **State:** built, not verified
+- **State:** verified (the orchestrator, Claude Fable 5.2, compared each function with docs/science.md section 2 and ran the tests; Cursor, grok-4.7 reviewed the math with hand cases near the south pole, checked the pyproj setup, compared results with web/src/lib/geo, and approved; gate G3 measured 3.1e-9 m against a 0.01 m limit)
 - **Changed:** `science/src/truesouth/frames.py`, `science/tests/test_frames.py`, this entry
 - **Notes:** G3 largest error: 3.0886440072208643e-9 m (inverse); forward: 1.1524528889697587e-9 m.
 
 #### 2026-11-13 · S0 · Python workspace and contracts
-- **Who:** Science track
+- **Who:** Codex agent, for the orchestrator
 - **AI use:** Codex, gpt-6.1-terra — implemented workspace, contracts and CLI — automated checks run; human review pending
-- **State:** built, not verified
+- **State:** verified (the orchestrator, Claude Fable 5.2, ran uv sync, the tests, the CLI and the schema export, and confirmed by running the models that each of the review's five must-fix gaps is closed; Cursor, grok-4.7 reviewed the pull request field by field against the docs; 30 tests, 49 models)
 - **Changed:** Python workspace, science, api, schema and data contract documentation
-- **Notes:** Provenance serialization and worked-example nesting are specified in data-contracts.md.
+- **Notes:** Review fixes: closed provenance and layouts, flat worked examples, validations, descriptions, feature IDs, documentation and expanded tests.
 
 
 ## Mission Control
 
-_No entries yet._
+#### 2026-11-13 · MC0 · Web scaffold with panel placeholders
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote the Vite app, router, theme tokens, data middleware,
+  panel placeholders and tests — the orchestrator (Claude Fable 5.2) read the diff, ran the
+  tests, typecheck and build, and probed every route and the `/data` middleware on a
+  running dev server; Antigravity, gemini-3.8-flash reviewed the pull request
+- **State:** verified
+- **Changed:** `web/`, this entry
+- **Notes:**
+  - Every screen is a plain placeholder until the design choice at checkpoint C1.
+  - S0 had not merged, so `panel.ts` has a temporary `MissionProfile` and `generated.ts`
+    does not exist yet. Both are replaced when S0 lands.
+  - The sample scenario on `/mission` is hard-coded: profile `{ id: "im2_athena" }`,
+    landing date and current time `2028-03-01T00:00:00Z`, no sites. MC3 replaces it.
+  - Review fixes: the pnpm release-age exception for `motion` 14.13.0 was removed and the
+    lockfile resolves 14.12.0; `/data` responses send a content type; the dev-server path
+    helper moved from `web/src/app/` to `web/dev/`.
+  - Measured: 4 vitest tests pass; production bundle 259 kB (82 kB gzipped).
 
 ## 3D and Map
 
-_No entries yet._
+#### 2026-11-13 · T0 · Coordinate helpers and a shared Canvas mount
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote `web/src/lib/geo/` (tests first), the `SceneCanvas` wrapper and this entry — not checked by a human; the orchestrator marks this verified after `pnpm --dir web test`, typecheck and build
+- **State:** verified (the orchestrator, Claude Fable 5.2, compared every helper with docs/science.md and ran the tests, typecheck and build; Antigravity, gemini-4-hydrogen reviewed the math and found an angle-wrap bug, a hard-coded bin count and three test blind spots, all fixed by the orchestrator; 64 tests pass)
+- **Changed:** `web/src/lib/geo/`, `web/src/features/three/scene-canvas.tsx`, this entry
+- **Notes:**
+  - The two view placeholders are unchanged. `SceneCanvas` is not mounted yet, so the production bundle stays 259 kB.
+  - Angles in and out of the helpers are degrees. Local terrain is kilometres in the scene; the System view uses Moon radius 1.
+  - A map pixel is the centre of that pixel. The south pole is the centre pixel of an odd-sized image. The 7,600 px map is even, so the pole sits on the shared corner of the four central pixels.
+  - `|latitude| > 89.999°` throws for the local frame and for walking. The sphere point and the Sun-elevation formula still accept the poles.
 
 ## Academy
 
-_No entries yet._
+#### 2026-11-13 · A0 · Lesson types, step runner, feedback flow, academy store, path map
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote the lesson types, pure step runner, placeholder
+  substitution, `academy` store, sample lesson and plain placeholder screens — the agent
+  ran `pnpm --dir web test`, `typecheck` and `build`; the orchestrator has not verified
+  this yet
+- **State:** verified (the orchestrator, Claude Fable 5.2, read the runner against the spec's game rules and ran the tests, typecheck and build; Antigravity, gemini-3.8-flash reviewed the pull request and approved)
+- **Changed:** `web/src/features/academy/`, this entry
+- **Notes:**
+  - Screens are plain placeholders until the design choice. The sample lesson id is
+    `sample`, at `/academy/sample`. A5 replaces it. It is not one of the eight lessons.
+  - Goal checks go through an injected evaluator. `stub-evaluator.ts` returns a fixed
+    boolean until MC2. The sample passes every goal.
+  - Progress is stored at `truesouth.academy.v1`. The store takes a storage object, so
+    the tests do not need a DOM. Best stars and best XP are kept. The ninth mission
+    patch is `all-eight`, after the eight catalog lessons.
+  - Spec questions are in the pull request.
+
+#### 2026-11-13 · A1 · Luna and LunaSays with placeholder art in eight moods; celebrations
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote `Luna`, `LunaSays`, `LunaCelebration`,
+  `LunaGallery`, the motion logic and its vitest tests — checked by the agent with the
+  tests, typecheck and build, and by eye in a browser at 160 px, 48 px, 390 px wide and
+  with reduced motion. **AI-generated images:** the eight placeholder Luna mood drawings
+  (inline SVG in `web/src/components/luna/art/`), made by Claude Code, claude-opus-5-5.
+- **State:** verified (the orchestrator, Claude Fable 5.2, read the diff, ran the tests, typecheck and build, and looked at all eight moods at 160 px and 48 px on a running page; Cursor, grok-4.6 reviewed the pull request and approved)
+- **Changed:** `web/src/components/luna/`
+- **Notes:** Luna's look lives only in `art/`; the seam is documented at the top of
+  `art/index.ts`. To look at it, mount `LunaGallery` (exported from
+  `components/luna`) on a temporary route. Reduced motion follows the system setting
+  live, or a `reduceMotion` prop.
 
 ## Planning
 
