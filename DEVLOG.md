@@ -180,6 +180,38 @@ each integration checkpoint.
 
 ## Mission Control
 
+#### 2026-11-13 · MC4b · Mission Control panels on the scenario store and real data
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill — wrote the
+  scenario provider and URL binding for the screen, the top bar (profile picker, profile
+  editor, landing-date picker, slip, share), the sites rail on real evaluations (add,
+  remove, reorder by keyboard and pointer), the focused-site panel, the notice strip, a
+  shared `Popover` component, and vitest tests for the new display logic — checked by the
+  agent with typecheck, 1,116 vitest tests and the build, impeccable's detector (no
+  findings), and by eye in a browser on the fixtures at 1440 × 900, 1024 × 768 and
+  390 × 844; a human has not reviewed it yet
+- **State:** verified (orchestrator ran typecheck, 1,206 tests and build on the merge with main and opened the screen on the real Connecting Ridge data (no errors; a slip changes the link and the status); Codex, gpt-6.1-terra reviewed the logic and ran six mutations; its four must-fix findings were fixed)
+- **Changed:** `web/src/app/mission-screen.tsx`, `web/src/app/mission/`, `web/src/app/shell.css`,
+  `web/src/components/Popover.tsx`, `web/src/components/components.css`,
+  `docs/design/c2/built-mission-*.png`, this entry
+- **Notes:**
+  - `sample.ts` and the TEMP placeholder profile are deleted. The timeline placeholder did
+    not need sample values, so there is no `timeline-placeholder.ts`.
+  - The store clamps every landing date so the mission window fits the grid, so the "no
+    result: the mission window runs past 2031" state can only come from a custom site or a
+    shorter series; it is drawn but cannot be reached through the date picker on fixtures.
+  - The store refuses invalid profile edits silently, except "power and comms both zero",
+    which adds a notice. The editor detects a refusal and says what range is accepted.
+  - The shell now stacks on a phone (under 760 px) instead of scrolling sideways.
+  - Review fixes were made: each weight is a number from 0 to 1,000 (store, link reader,
+    editor, `docs/mission-profiles.md`); a value and its limit never round to the same
+    text when a rule compares them strictly, and the score is rounded down; the mission
+    duration carries its tag; a row fed by several profile settings is sourced only if
+    every one is; units and labels of every row are pinned by a test; the worst broken
+    rule uses the true share of a limit above 0; `ground_height` added to `explain.ts`;
+    the stale chip lines removed from `DESIGN.md`. On the real data, Connecting Ridge
+    loads with no errors: NO-GO for IM-2 Athena landing 2028-03-01 00:00 UTC, score 0.
+
 #### 2026-11-13 · MC3 · Scenario store, shareable link and evaluation hooks
 - **Who:** Cursor agent, for the orchestrator
 - **AI use:** Cursor, grok-4.7 — wrote the scenario store, the share-link reader and writer, the scoring cache and the evaluation hooks, with vitest tests — agent ran `pnpm --dir web typecheck`, `pnpm --dir web test` and `pnpm --dir web build`; a human has not reviewed it yet

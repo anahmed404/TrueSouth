@@ -22,6 +22,9 @@ export const MAX_SITES = 8;
 /** Faint bands in the timeline: 3 days either side of the mission window. */
 export const TIMELINE_CONTEXT_HOURS = 72;
 export const CHANGED_BY_YOU = "Changed by you.";
+/** Each score weight is a number from 0 to this (docs/mission-profiles.md). */
+export const MAX_WEIGHT = 1000;
+export const WEIGHT_RANGE_NOTICE = "A weight must be a number from 0 to 1,000.";
 
 /**
  * The four polar sites in the Mission Control shell sample. Apollo 11 is
@@ -181,6 +184,10 @@ export function createScenarioStore(catalog: ScenarioCatalog, search = ""): Scen
       const base = findPreset(state.catalog, state.basePresetId);
       if (!base || !isProfileField(field)) return;
       if (fieldEqual(field, state.profile[field], value)) return;
+      if (field === "weights" && !weightsInRange(value)) {
+        set({ notices: [...state.notices, WEIGHT_RANGE_NOTICE] });
+        return;
+      }
       if (field === "weights" && powerAndCommsBothZero(value)) {
         set({
           notices: [...state.notices, "A profile's power and comms weights must not both be zero."],
@@ -531,7 +538,11 @@ function readCustomProfile(
     }
     const value = parseFieldValue(pair.field, decoded);
     if (value === undefined || !isFieldInRange(pair.field, value, catalog.grid)) {
-      notices.push(`Ignored ${pair.field} because ${quote(decoded)} is out of range.`);
+      notices.push(
+        pair.field === "weights"
+          ? `Ignored weights because ${quote(decoded)} is out of range. ${WEIGHT_RANGE_NOTICE}`
+          : `Ignored ${pair.field} because ${quote(decoded)} is out of range.`,
+      );
       continue;
     }
     accepted.push({ field: pair.field, value });
@@ -771,7 +782,7 @@ function isFieldInRange(field: ProfileField, value: unknown, grid: TimeGrid): bo
     case "relay_available":
       return typeof value === "boolean";
     case "weights":
-      return isWeights(value) && value.slope >= 0 && value.power >= 0 && value.comms >= 0;
+      return weightsInRange(value);
     default:
       return false;
   }
@@ -811,6 +822,12 @@ function wholeProfileRule(profile: MissionProfile): string | null {
     return "weights must sum to more than zero";
   }
   return null;
+}
+
+/** Each weight is a finite number from 0 to `MAX_WEIGHT`. */
+function weightsInRange(value: unknown): value is Weights {
+  if (!isWeights(value)) return false;
+  return [value.slope, value.power, value.comms].every((w) => w >= 0 && w <= MAX_WEIGHT);
 }
 
 function powerAndCommsBothZero(value: unknown): boolean {
@@ -882,14 +899,7 @@ function isValidValue(field: ProfileField, value: unknown, profile: MissionProfi
     case "relay_available":
       return typeof value === "boolean";
     case "weights":
-      return (
-        isWeights(value) &&
-        value.slope >= 0 &&
-        value.power >= 0 &&
-        value.comms >= 0 &&
-        value.slope + value.power + value.comms > 0 &&
-        !powerAndCommsBothZero(value)
-      );
+      return weightsInRange(value) && value.slope + value.power + value.comms > 0 && !powerAndCommsBothZero(value);
     default:
       return false;
   }
