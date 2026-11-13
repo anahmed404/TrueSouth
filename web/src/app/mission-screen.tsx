@@ -226,7 +226,8 @@ function MissionShell() {
     if (!top || !timeline) return null;
     const focusNode = regions.focusPanel.current;
     const railNode = regions.sitesRail.current;
-    const plate = footRef.current?.querySelector(".why-line");
+    // The foot stack's own plate, not the one inside Lander's eye's panel.
+    const plate = footRef.current?.querySelector(":scope > .why-line");
     const covers: Rect[] = [];
     if (open && windowRef.current) covers.push(rectOf(windowRef.current));
     if (plate) covers.push(rectOf(plate));
@@ -254,6 +255,7 @@ function MissionShell() {
     layout.sitesRail.collapsed,
     layout.focusPanel.collapsed,
     layout.timeline.collapsed,
+    state.camera,
     state.window ?? "",
     sitesSheet,
     focusSheet,

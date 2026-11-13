@@ -10,7 +10,9 @@ import { fileURLToPath } from "node:url";
 import { act, createElement } from "react";
 import type { Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Manifest, SiteMeta } from "../../contracts/generated";
+import type { Features, Manifest, MissionProfile, SiteMeta, Sites } from "../../contracts/generated";
+import { hourIndexToUtc } from "../../lib/time";
+import { dataStore, metaKey, seriesKey, skylineKey } from "../../state/data";
 import { SERIES_COLUMNS, decodeSeries, decodeSkyline } from "../../data/decode/index";
 
 /** Counts the layer's work: building the skyline's vertices, and the static layer's renders. */
@@ -36,6 +38,7 @@ vi.mock("./geometry", async (importOriginal) => {
 });
 
 const { HorizonChart } = await import("./chart");
+const { default: LandersEye } = await import("./index");
 const { autoRange, chartFrame, chartScales } = await import("./geometry");
 
 /** Just enough of a DOM for React to mount into, in Node (as in app/mission/view-bar.test.ts). */
@@ -214,5 +217,56 @@ describe("the horizon chart while the scrubber plays", () => {
     await act(async () => root?.render(props(window.from + 24, chartScales(frame, 90, range))));
     expect(calls.vertices).toBe(mounted.vertices + 1);
     expect(calls.staticRenders).toBe(mounted.staticRenders + 1);
+  });
+
+  it("the whole view, data hooks and all, does not rebuild the skyline while the hour changes", async () => {
+    // Seed the shared data store with the fixture, as the loaders would.
+    const dir = path.join(repoRoot, "data", "fixtures");
+    const json = <T,>(file: string) => JSON.parse(readFileSync(path.join(dir, file), "utf8")) as T;
+    const manifest = json<Manifest>("manifest.json");
+    const { series, skyline, meta } = loadFixture("fixture_ridge");
+    const ready = (data: unknown) => ({ status: "ready" as const, data, error: null });
+    dataStore.setState({
+      entries: {
+        manifest: ready(manifest),
+        sites: ready(json<Sites>("sites.json")),
+        features: ready(json<Features>("features.json")),
+        [metaKey("fixture_ridge")]: ready(meta),
+        [seriesKey("fixture_ridge")]: ready(series),
+        [skylineKey("fixture_ridge")]: ready(skyline),
+      },
+    });
+    const profile = json<MissionProfile[]>("profiles.json").find((p) => p.id === "im2_athena")!;
+    const grid = manifest.time_grid;
+    const landing = 4700;
+    const view = (hour: number) =>
+      createElement(LandersEye, {
+        mode: "lesson",
+        scenario: {
+          profile,
+          siteIds: ["fixture_ridge"],
+          focusedSiteId: "fixture_ridge",
+          landingUtc: hourIndexToUtc(grid, landing),
+          currentUtc: hourIndexToUtc(grid, hour),
+        },
+      });
+
+    const document = installDocument();
+    const { createRoot } = await import("react-dom/client");
+    root = createRoot(document.createElement("div") as unknown as Element);
+    const start = { ...calls };
+    await act(async () => root?.render(view(landing)));
+    const mounted = { ...calls };
+    // Mounted with its data: the skyline was built once, and the discs were drawn.
+    expect(mounted.vertices - start.vertices).toBe(1);
+    expect(mounted.staticRenders - start.staticRenders).toBe(1);
+    expect(mounted.discs).toBeGreaterThan(start.discs);
+
+    for (let step = 1; step <= 24; step += 1) {
+      await act(async () => root?.render(view(landing + step)));
+    }
+    expect(calls.vertices).toBe(mounted.vertices);
+    expect(calls.staticRenders).toBe(mounted.staticRenders);
+    expect(calls.discs).toBeGreaterThan(mounted.discs + 24);
   });
 });

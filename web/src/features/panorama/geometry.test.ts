@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import type { Feature, Manifest, MissionProfile, SiteMeta } from "../../contracts/generated";
 import { SERIES_COLUMNS, decodeSeries, decodeSkyline, type DecodedSeries, type DecodedSkyline } from "../../data/decode/index";
 import { windowLength } from "../../lib/scoring";
-import { buildDrawing } from "./chart";
+import { buildDrawing, placeLabels } from "./chart";
 import {
   autoRange,
   azimuthAtX,
@@ -31,7 +31,7 @@ import {
   type SkylineVertex,
 } from "./geometry";
 import { signedAzimuthDifference } from "../../lib/geo";
-import { answerSentence, bodyAt, labelTitle, skylineReading, visibility, VISIBILITY_WORDS } from "./readings";
+import { answerSentence, bodyAt, labelDetail, labelTitle, skylineReading, visibility, VISIBILITY_WORDS } from "./readings";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 
@@ -441,6 +441,41 @@ describe("a disc is drawn at its true size, so the picture agrees with the serie
         const disc = discShape(scales, now.azDeg, now.elDeg, ridge.meta.sun_radius_deg);
         expect(disc.rx / scales.pxPerDeg).toBeCloseTo(ridge.meta.sun_radius_deg / Math.cos((now.elDeg * Math.PI) / 180), 9);
         expect(Math.abs(drawnFractionAbove(scales, vertices, now.azDeg, now.elDeg, ridge.meta.sun_radius_deg) - now.frac)).toBeLessThan(TOLERANCE);
+      }
+    }
+  });
+});
+
+describe("the disc labels keep off the paths, the mask and each other", () => {
+  // Connecting Ridge, landing 2028-03-01 00:00 UTC, the chart as wide as at 1440 × 900.
+  const from = 19704;
+  const to = from + WINDOW;
+  const radii = { sun: ridge.meta.sun_radius_deg, earth: ridge.meta.earth_radius_deg };
+  const scales = scalesFor(ridge, meanAzimuth(ridge.series.earth_az, from, to)!, from, 766);
+  const drawing = buildDrawing(scales, ridge.skyline, ridge.series, { from, to }, 1);
+  const widthOf = (now: NonNullable<ReturnType<typeof bodyAt>>) => Math.max(labelTitle(now).length, labelDetail(now).length) * 6.6 + 16;
+  const covered = (box: { left: number; top: number }, width: number) =>
+    drawing.obstacles.filter((p) => p.x >= box.left && p.x <= box.left + width && p.y >= box.top && p.y <= box.top + 40).length;
+
+  it("at the landing hour (the review's case) neither label covers a path or mask point", () => {
+    const bodies = [bodyAt(ridge.series, "sun", from)!, bodyAt(ridge.series, "earth", from)!];
+    for (const box of placeLabels(scales, bodies, radii, drawing.obstacles)) expect(covered(box, widthOf(box.now))).toBe(0);
+    // Before: placed above the disc toward the middle, the Sun's label covered 79 points.
+    const naive = placeLabels(scales, bodies, radii, []);
+    expect(covered(naive[0]!, widthOf(naive[0]!.now))).toBeGreaterThan(0);
+  });
+
+  it("through the window, the labels never overlap each other and stay in the plot", () => {
+    for (let hour = from; hour < to; hour += 3) {
+      const bodies = [bodyAt(ridge.series, "sun", hour)!, bodyAt(ridge.series, "earth", hour)!];
+      const [a, b] = placeLabels(scales, bodies, radii, drawing.obstacles);
+      const [wa, wb] = [widthOf(a!.now), widthOf(b!.now)];
+      const apart = a!.left + wa <= b!.left || b!.left + wb <= a!.left || a!.top + 40 <= b!.top || b!.top + 40 <= a!.top;
+      expect(apart).toBe(true);
+      for (const [box, w] of [[a!, wa], [b!, wb]] as const) {
+        expect(box.left).toBeGreaterThanOrEqual(scales.frame.left);
+        expect(box.left + w).toBeLessThanOrEqual(scales.frame.right);
+        expect(box.top).toBeGreaterThanOrEqual(scales.frame.top);
       }
     }
   });

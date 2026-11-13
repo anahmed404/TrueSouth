@@ -429,6 +429,7 @@
 @media (pointer: coarse), (max-width: 760px) {
   .pano .seg-option,
   .pano-reset {
+    min-width: 44px;
     min-height: 44px;
   }
 

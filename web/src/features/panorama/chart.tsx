@@ -86,6 +86,8 @@ export type Drawing = {
   ticks: Tick[];
   maskD: string | null;
   compass: CompassTick[];
+  /** The path, day-dot and antenna-mask points, in pixels, that a label should not cover. */
+  obstacles: Point[];
 };
 
 /** Everything the static layer draws. Pure; it reads the stored arrays and places them. */
@@ -116,6 +118,7 @@ export function buildDrawing(
   const tracks: Drawing["tracks"] = [];
   const ticks: Tick[] = [];
   const earthAz: number[] = [];
+  const obstacles: Point[] = [];
   if (series && window) {
     const path = line<TrackPoint>()
       .x((p) => x(p.offset))
@@ -126,6 +129,7 @@ export function buildDrawing(
       const el = body === "sun" ? series.sun_el : series.earth_el;
       const segments = trackSegments(az, el, window.from, window.to, scales.centreDeg);
       const d = segments.map((segment) => path(segment) ?? "").join("");
+      for (const segment of segments) for (const p of segment) obstacles.push({ x: x(p.offset), y: y(p.el) });
       if (d) tracks.push({ body, d });
       if (body === "earth") {
         for (let hour = window.from; hour < Math.min(window.to, az.length); hour++) earthAz.push(az[hour] ?? Number.NaN);
@@ -146,6 +150,7 @@ export function buildDrawing(
     tracks,
     ticks,
     maskD: runs.length ? runs.map((run) => edge(run) ?? "").join("") : null,
+    obstacles: [...obstacles, ...runs.flat().map((v) => ({ x: x(v.offset), y: y(v.el) }))],
     compass: compassTicks(scales),
   };
 }
@@ -343,28 +348,55 @@ function LocatorLayer({ scales, bodies, radii }: { scales: ChartScales; bodies: 
 // ── Labels and the readout (HTML over the SVG) ───────────────────────────────
 
 type LabelBox = { now: BodyNow; left: number; top: number; alignRight: boolean };
+type Point = { x: number; y: number };
 
 const LABEL_CHAR_PX = 6.6;
 
-/** Where the two disc labels go: above each disc, toward the chart's middle, kept inside the plot and apart. */
-function placeLabels(scales: ChartScales, bodies: BodyNow[], radii: { sun: number; earth: number }): LabelBox[] {
+/** A disc label's height: a 13 px line and a 12 px line on a plate. */
+const LABEL_H = 40;
+
+/**
+ * Where the two disc labels go. Each tries four places beside its disc (above or below it,
+ * toward or away from the chart's middle), kept inside the plot, and takes the one that
+ * covers the fewest path, dot and antenna-mask points, never the other label or its own
+ * disc if it can help it. Ties go to the first: above, toward the middle.
+ */
+export function placeLabels(
+  scales: ChartScales,
+  bodies: BodyNow[],
+  radii: { sun: number; earth: number },
+  obstacles: readonly Point[] = [],
+): LabelBox[] {
   const { frame } = scales;
   const mid = (frame.left + frame.right) / 2;
-  const boxes: (LabelBox & { width: number })[] = [];
+  const placed: { left: number; top: number; width: number }[] = [];
+  const boxes: LabelBox[] = [];
+  const overlaps = (a: { left: number; top: number; width: number }, b: { left: number; top: number; width: number; height?: number }) =>
+    a.left < b.left + b.width && b.left < a.left + a.width && a.top < b.top + (b.height ?? LABEL_H) && b.top < a.top + LABEL_H;
   for (const now of bodies) {
     const disc = discShape(scales, now.azDeg, now.elDeg, radii[now.body]);
     const width = Math.max(labelTitle(now).length, labelDetail(now).length) * LABEL_CHAR_PX + 16;
-    const alignRight = disc.cx > mid;
-    const anchor = alignRight ? disc.cx - 10 : disc.cx + 10;
-    let left = alignRight ? anchor - width : anchor;
-    left = Math.min(Math.max(left, frame.left + 4), frame.right - width - 4);
-    let top = Math.min(Math.max(disc.cy - disc.ry - 42, frame.top + 4), frame.bottom - 42);
-    for (const other of boxes) {
-      const overlapX = left < other.left + other.width && other.left < left + width;
-      const overlapY = top < other.top + 40 && other.top < top + 40;
-      if (overlapX && overlapY) top = other.top + 40 > frame.bottom - 42 ? other.top - 42 : other.top + 44;
+    const toward = disc.cx > mid ? "end" : "start";
+    const discBox = { left: disc.cx - disc.rx - 2, top: disc.cy - disc.ry - 2, width: 2 * disc.rx + 4, height: 2 * disc.ry + 4 };
+    let best: { left: number; top: number; alignRight: boolean; score: number } | null = null;
+    for (const vertical of ["above", "below"] as const) {
+      for (const side of [toward, toward === "end" ? "start" : "end"] as const) {
+        const alignRight = side === "end";
+        const anchor = alignRight ? disc.cx - 10 : disc.cx + 10;
+        const left = Math.min(Math.max(alignRight ? anchor - width : anchor, frame.left + 4), frame.right - width - 4);
+        const wanted = vertical === "above" ? disc.cy - disc.ry - LABEL_H - 6 : disc.cy + disc.ry + 6;
+        const top = Math.min(Math.max(wanted, frame.top + 4), frame.bottom - LABEL_H - 2);
+        const box = { left, top, width };
+        let score = 0;
+        for (const p of obstacles) if (p.x >= left && p.x <= left + width && p.y >= top && p.y <= top + LABEL_H) score += 1;
+        for (const other of placed) if (overlaps(box, other)) score += 1000;
+        if (overlaps(box, discBox)) score += 500;
+        if (!best || score < best.score) best = { left, top, alignRight, score };
+      }
     }
-    boxes.push({ now, left, top, alignRight, width });
+    if (!best) continue;
+    placed.push({ left: best.left, top: best.top, width });
+    boxes.push({ now, left: best.left, top: best.top, alignRight: best.alignRight });
   }
   return boxes;
 }
@@ -643,7 +675,7 @@ export function HorizonChart(props: ChartProps) {
   };
 
   const cursorX = cursor ? (cursor.kind === "tick" ? cursor.tick.x : xOfAzimuth(scales, cursor.azDeg)) : null;
-  const labels = props.showLabels && radii ? placeLabels(scales, bodies, radii) : [];
+  const labels = props.showLabels && radii ? placeLabels(scales, bodies, radii, drawing.obstacles) : [];
   const marked =
     cursor?.kind === "sky" && marker && skyline
       ? skylineReading(skyline, cursor.azDeg, []).azDeg === wrapAzimuth(marker.azDeg)
