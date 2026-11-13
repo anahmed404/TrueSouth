@@ -8,6 +8,13 @@
  */
 export type ArtemisRegions = ArtemisRegion[];
 /**
+ * Array of hand-entered catalog sites.
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "CatalogSites".
+ */
+export type CatalogSites = CatalogSite[];
+/**
  * Array of named features.
  *
  * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
@@ -234,6 +241,46 @@ export interface TerrainLayout1 {
    * Row 0 is the northern edge.
    */
   row_order?: "north_to_south";
+}
+/**
+ * Hand-entered site information, before pipeline processing.
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "CatalogSite".
+ */
+export interface CatalogSite {
+  /**
+   * Plain-language site description.
+   */
+  description: string;
+  /**
+   * Catalog group.
+   */
+  group: "artemis" | "sunlit_peak" | "polar_lander" | "contrast";
+  /**
+   * Stable site identifier.
+   */
+  id: string;
+  /**
+   * Latitude in degrees north.
+   */
+  lat_deg: number;
+  /**
+   * East longitude in degrees.
+   */
+  lon_deg: number;
+  /**
+   * Display name.
+   */
+  name: string;
+  /**
+   * Mission outcome, or null.
+   */
+  outcome: string | null;
+  /**
+   * Source of site coordinates.
+   */
+  source_url: string;
 }
 /**
  * Documented earth_az column.
