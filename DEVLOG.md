@@ -654,6 +654,15 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     computing state after a profile change was read from the page (the progress bar,
     "computing…", "Still computing 4 of 4 sites.", spots equal to the rail), not
     photographed: a slowed browser could not take the picture in time.
+  - After #88: the Slip Planner is an entry of the rig's per-view table
+    (`ORBIT_STYLE.slip = "centre"`): orbit about the sites' centre 28° to 88° up; zoom along
+    the line to that centre, 60 to 2,600 km, keeping the aim (not toward the pointer); no
+    pan, so the sites never leave the view; a double-click frames them again; its About text
+    has its own controls hint. Checked with hardware WebGL (ANGLE, RTX 2060): the flight in
+    lands on the fixed light, drag and zoom work, and leaving to each of the four other
+    views brings back the real Sun (uSun equals the Sun's direction) and coming back the
+    fixed light; the System view still turns freely over the pole; stars stay above the
+    limb, dimmed, never over the ground.
 
 #### 2026-11-14 · MC shell feedback · No view sentence; the landing date joins the timeline; "Next GO"
 - **Who:** Claude Code agent, for the orchestrator
