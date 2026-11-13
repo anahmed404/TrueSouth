@@ -961,7 +961,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   the docs; captured the before and after screenshots and the frame-time measurements in a
   headless Chrome with hardware WebGL (RTX 2060, ANGLE D3D11) and with SwiftShader; no
   AI-generated imagery; a human has not reviewed it yet
-- **State:** built, not verified (2,068 web tests, 425 Python tests (1 skipped), typecheck and build pass on the merge with main after the review fixes; checked by eye on hardware WebGL; a weak laptop
+- **State:** verified (2,142 web tests, 425 Python tests, typecheck and build pass on the merge with main; reviewed by Codex (every shader result ends in pixels, with no path to a label or a decision; the fragment-to-map projection matched at three points; two mutations caught); findings fixed: the decoration plate can no longer vanish while the drawing stays (the ground falls back to plain when the plate cannot fit), the plate's link to the series is tested, the near-ground craters follow a realistic size mix, the ground follows the scene's quality stages; seen by the builder on hardware WebGL; not yet seen by the team lead)
   is not measured, and orbiting by hand was not possible in the headless browser: the views
   were checked at the camera's arrival poses and while stepping the timeline hour by hour)
 - **Changed:** `web/src/features/three/scene/ground-material.ts`, `ground-relief.ts`,
