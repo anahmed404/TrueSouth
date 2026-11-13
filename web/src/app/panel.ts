@@ -1,5 +1,4 @@
-// TEMP: replace with the generated type when S0 lands
-type MissionProfile = Record<string, unknown>;
+import type { MissionProfile } from "../contracts/generated";
 
 export type { MissionProfile };
 

@@ -1,5 +1,5 @@
 import { useState, type ComponentType } from "react";
-import type { PanelProps, Scenario } from "./panel";
+import type { MissionProfile, PanelProps, Scenario } from "./panel";
 import SlipPlanner from "../features/mission-control/slip-planner";
 import Compare from "../features/mission-control/compare";
 import { Countdowns, Timeline } from "../features/mission-control/site-detail";
@@ -8,8 +8,12 @@ import PolarMap from "../features/polar-map";
 import LocalTerrain from "../features/three/local-terrain";
 import SystemView from "../features/three/system-view";
 
+// TEMP: this placeholder names a preset without its values. MC1 loads profiles.json and MC3
+// builds the real scenario from it; until then no panel may read a profile value from here.
+const placeholderProfile = { id: "im2_athena" } as unknown as MissionProfile;
+
 const sampleScenario: Scenario = {
-  profile: { id: "im2_athena" },
+  profile: placeholderProfile,
   siteIds: [],
   focusedSiteId: null,
   landingUtc: "2028-03-01T00:00:00Z",
