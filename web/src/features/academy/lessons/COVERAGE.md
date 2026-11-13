@@ -14,7 +14,7 @@ Placeholders in the doc are written `{{l1.sun_el_max_deg}}`. In lesson text they
 
 | Lesson | Step | Kind | What it shows | What the learner does | What counts as right | Reveal | Worked-example keys | Panel | Expressible |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 Where's the Sun? | 1 | choice | Three heights | Picks one | Index 2, "Under 2°" | none | none | none | Yes. `options`, `answer` |
+| 1 Where's the Sun? | 1 | choice | Three heights | Picks one | Index 2, "Under 3°" | none | none | none | Yes. `options`, `answer` |
 | 1 | 2 | drag-body | Lander's eye, flat skyline, one month | Drags the Sun to its highest moment | `sun_el_deg == {{example.l1.sun_el_max_deg}}` | none | `l1.sun_el_max_deg`, `l1.example_utc` (the month's anchor) | LandersEye | Yes. `panel`, `scene.skyline: "flat"`, `scene.timeRange` span `one-month`, `goal` |
 | 1 | 3 | predict | Three direction phrases | One guess | Index 1, "All the way round" | System view plays one month | `l1.example_utc` | SystemView | Yes. `reveal.kind: "panel"`, `when` span `one-month`, `scene` |
 | 1 | 4 | fill-formula | `90° − latitude + ( ? )` | Picks the missing piece | Index 0, "1.54°, my tilt" | none | none in the step (see Questions) | none | Yes. `tex`, `options`, `answer` |
@@ -28,11 +28,11 @@ Placeholders in the doc are written `{{l1.sun_el_max_deg}}`. In lesson text they
 | 3 | 2 | fill-formula | `distance² ÷ ( ? )` | Picks the denominator | Index 1, "2R" | none | none | none | Yes. `tex`, `options`, `answer` |
 | 3 | 3 | tune-slider | Distance, live drop | Slides to the drop of 115 m | `distance_km == 20`, within ±1 km | none | none (the drop is s²/2R, not a looked-up key) | none | Yes. `slider` 0 to 60 km, step 1, `goal.tolerance: 1`, `readout.kind: "curvature-drop"` |
 | 3 | 4 | spot-bug | Four calculation lines | Picks the wrong line | `buggyLine` 2, the flat `atan` line | none | none (1,036 m is written out; `l3.drop_at_60km_m` exists) | none | Yes. `lines`, `buggyLine` |
-| 3 | 5 | choice | Why a third of a degree matters | Picks one | Index 0, "Because the Sun is only 1–2° up" | none | none | none | Yes. `options`, `answer` |
+| 3 | 5 | choice | Why a third of a degree matters | Picks one | Index 0, "Because the Sun never gets above {{l1.sun_el_max_deg}}° this month" | none | none | none | Yes. `options`, `answer` |
 | 4 Phone home | 1 | choice | Three pictures of Earth from the pole | Picks one | Index 2, "It bobs up and down at the horizon" | none | none | none | Yes. `options`, `answer` |
 | 4 | 2 | drag-body | Earth for a month, highest and lowest readouts | Drags to the highest moment | `earth_el_deg == {{example.l4.earth_el_max_deg}}` | none | `l4.earth_el_max_deg`, `l4.earth_el_min_deg`, `l4.example_utc` | LandersEye | Yes. `readout`, `scene.skyline: "smooth"`, `timeRange` span `one-month`. See Questions |
 | 4 | 3 | predict | Three shares of the month | One guess | Index 2, "About {{example.l4.earth_up_pct}}%" | The timeline's Earth band | `l4.earth_up_pct` | Timeline | Yes. `reveal.when` kind `band`, `band: "earth"` |
-| 4 | 4 | tune-slider | Antenna margin, link-time readout | Raises the margin | `antenna_mask_deg == 5`, within ±1° | none | `l4.link_pct_mask0`, `l4.link_pct_mask1`, `l4.link_pct_mask5`, `l4.earth_el_max_deg` | none | Yes. Slider 0° to 8°, step 0.5°, `goal.tolerance: 1`, `readout.kind: "piecewise-linear"`, `follow.source: "readout"`. Unlocks Timeline and Countdowns |
+| 4 | 4 | tune-slider | Antenna margin, link-time readout | Raises the margin | `antenna_mask_deg >= {{example.l4.mask_for_15pct_deg}}` | none | `l4.link_pct_by_mask`, `l4.mask_for_15pct_deg` | none | Yes. Slider 0° to 10°, step 0.5°, `readout.kind: "example-list"`, `follow.source: "readout"`. Unlocks Timeline and Countdowns |
 | 4 | 5 | spot-bug | Four link rules | Picks the rule that cannot be met | `buggyLine` 2, "for at least half of every month" | none | none (38% is written out; `l4.earth_up_pct` exists) | none | Yes. `lines`, `buggyLine` |
 | 5 Don't tip over | 1 | predict | What happened to Athena | One guess | Index 1, "It ended on its side in a small crater" | The real site on the map, with the source | none | PolarMap | Yes. `reveal.kind: "panel"`, `caption` for the source |
 | 5 | 2 | fill-formula | `slope = atan( rise ÷ ? )` | Picks the missing piece | Index 0, "run" | none | none | none | Yes. `tex`, `options`, `answer` |

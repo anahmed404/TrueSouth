@@ -62,7 +62,7 @@ outside `web/src/components/luna/art/`.
 
 Examples:
 
-> "At my equator the Sun climbs right overhead. At my south pole it never gets above 2°.
+> "At my equator the Sun climbs right overhead. At my south pole it barely gets above 2°, even in the best season.
 > Let's see why."
 
 > "Not quite. Think about how far away that ridge is. Want to try again?"
