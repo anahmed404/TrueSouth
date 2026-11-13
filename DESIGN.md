@@ -25,41 +25,52 @@ colors:
   terrain: "#1d1d20"
   terrain-rim: "#a8a8af"
   shadow: "rgba(0,0,0,0.45)"
+  luna-body: "#d8d5ce"
+  luna-crater: "#b2afa8"
+  luna-feature: "#18181a"
+  luna-sparkle: "#fffaf0"
+  luna-tear: "#a6d2ef"
+  speech-bg: "#1f1f22"
+  celebrate-1: "#f3efe6"
+  celebrate-2: "#ffd36b"
+  celebrate-3: "#8fd6ff"
+  celebrate-4: "#ff9ec4"
+  celebrate-5: "#c9c9cf"
 typography:
   display:
-    fontFamily: "Jost, Futura, Century Gothic, Avenir Next, Trebuchet MS, system-ui, sans-serif"
+    fontFamily: "Jost Variable, Jost, Futura, Century Gothic, Avenir Next, Trebuchet MS, system-ui, sans-serif"
     fontSize: "44px"
     fontWeight: 500
     lineHeight: 1.1
     letterSpacing: "-0.01em"
   headline:
-    fontFamily: "Jost, Futura, Century Gothic, Avenir Next, Trebuchet MS, system-ui, sans-serif"
+    fontFamily: "Jost Variable, Jost, Futura, Century Gothic, Avenir Next, Trebuchet MS, system-ui, sans-serif"
     fontSize: "32px"
     fontWeight: 600
     lineHeight: 1.1
   title:
-    fontFamily: "Jost, Futura, Century Gothic, Avenir Next, Trebuchet MS, system-ui, sans-serif"
+    fontFamily: "Jost Variable, Jost, Futura, Century Gothic, Avenir Next, Trebuchet MS, system-ui, sans-serif"
     fontSize: "18px"
     fontWeight: 600
     lineHeight: 1.2
   status:
-    fontFamily: "Jost, Futura, Century Gothic, Avenir Next, Trebuchet MS, system-ui, sans-serif"
+    fontFamily: "Jost Variable, Jost, Futura, Century Gothic, Avenir Next, Trebuchet MS, system-ui, sans-serif"
     fontSize: "24px"
     fontWeight: 600
     lineHeight: 1
   lead:
-    fontFamily: "Jost, Futura, Century Gothic, Avenir Next, Trebuchet MS, system-ui, sans-serif"
+    fontFamily: "Jost Variable, Jost, Futura, Century Gothic, Avenir Next, Trebuchet MS, system-ui, sans-serif"
     fontSize: "15px"
     fontWeight: 400
     lineHeight: 1.5
   body:
-    fontFamily: "Jost, Futura, Century Gothic, Avenir Next, Trebuchet MS, system-ui, sans-serif"
+    fontFamily: "Jost Variable, Jost, Futura, Century Gothic, Avenir Next, Trebuchet MS, system-ui, sans-serif"
     fontSize: "13px"
     fontWeight: 400
     lineHeight: 1.4
     fontFeature: "tnum"
   label:
-    fontFamily: "Jost, Futura, Century Gothic, Avenir Next, Trebuchet MS, system-ui, sans-serif"
+    fontFamily: "Jost Variable, Jost, Futura, Century Gothic, Avenir Next, Trebuchet MS, system-ui, sans-serif"
     fontSize: "12px"
     fontWeight: 400
     lineHeight: 1.4
@@ -118,9 +129,10 @@ components:
     rounded: "{rounded.pill}"
 ---
 
-<!-- Recorded from the direction C2 prototypes in design/variants/*/c2/ (November 2026).
-Direction C2 is a proposal: the team lead compares it with direction C before any final UI
-is built. If the lead picks something else, refresh this file. -->
+<!-- Recorded from the direction C2 prototypes in design/variants/*/c2/ (November 2026), and
+updated from the first build of C2 in web/ (work package MC4a). The team lead picked C2
+and asked for collapsible side panels. Tokens live in web/src/app/theme.css; shared
+components in web/src/components/. -->
 
 # Design System: TrueSouth
 
@@ -198,6 +210,16 @@ A grey instrument whose only hues are data.
   panorama backgrounds, the skyline silhouette, and its edge.
 - **Shadow** (`shadow`): only in the popover shadow (see Elevation).
 
+### Luna and the Academy
+Luna's art and celebrations are the one place where hue is decoration, and only inside
+the Academy:
+- **Luna** (`luna-body`, `luna-crater`, `luna-feature`, `luna-sparkle`, `luna-tear`): a warm
+  regolith grey face, darker craters, near-black features, a warm white sparkle and a pale
+  tear that is lighter than Earth's blue.
+- **Speech bubble** (`speech-bg`, with the Control Edge border and Ink text).
+- **Celebration** (`celebrate-1` to `celebrate-5`): moonlight, gold, light sky, rose and
+  silver. None of them is a status colour, so confetti is never read as GO or NO-GO.
+
 ### Named Rules
 **The Only Hues Are Data Rule.** Any colour with a hue must be the Sun, Earth or a status.
 Interface chrome is grey, and the accent is white.
@@ -210,6 +232,10 @@ border, focus ring, chart line or illustration detail.
 **Display Font:** Jost (with Futura, Century Gothic, Avenir Next, Trebuchet MS, system-ui)
 **Body Font:** Jost
 **Label/Mono Font:** none. Numbers use tabular figures in Jost.
+
+Jost is self-hosted from the `@fontsource-variable/jost` package (one variable file per
+script, weights 400–600 used), so the app works offline and in the production container.
+The CSS family name is "Jost Variable".
 
 **Character:** a Futura revival, the face on the Apollo 11 plaque. It is geometric and
 round, so it reads technical in Mission Control and friendly in the Academy.
@@ -226,6 +252,11 @@ round, so it reads technical in Mission Control and friendly in the Academy.
 - **Label** (400, 12px): captions, tags, legends and tab lines. This is the HTML floor.
   SVG axis ticks may use 11px.
 
+**Numbers and units.** A unit follows its number after a narrow no-break space, at the
+same size, as in "31 h". Only a display number (the broken rule's value, a countdown) sets
+its unit at 0.7em in Ink 2. Degrees attach with no space: "3.1°". Negative numbers use a
+true minus sign.
+
 ### Named Rules
 **The Sentence Case Rule.** No `text-transform: uppercase` and no letter-spacing on labels.
 Capitals are kept for GO, CAUTION, NO-GO and real acronyms (UTC, DEM, NASA).
@@ -235,18 +266,27 @@ weight.
 
 ## Layout
 
-The Mission Control shell at 1440 × 900 is docked:
+The Mission Control shell fills the window (at least 1024 × 640) and is docked:
 
 | Element | Size |
 | :--- | :--- |
-| Top bar on the page background | 52px |
-| Sites rail | 256px |
-| Main view | 824px |
-| Focused-site panel | 328px |
+| Top bar on the page background | 44px, then the 8px gutter |
+| Sites rail | 256px open, 48px collapsed |
+| Main view | everything left over (824px at 1440 wide with both panels open) |
+| Focused-site panel | 328px open, 48px collapsed |
 | Full-width timeline strip | 196px |
-| Footer line | 24px |
+| Footer line | 20px |
 
 Panels sit 8px apart, and nothing floats over the main view.
+
+**Collapsing the side panels.** Each side panel has a toggle at its top (also the keys
+`[` and `]`). Collapsed, it keeps a 48px slim rail: the toggle on top, then the status
+lamps. The sites rail keeps one lamp per site, each still focusing its site; the
+focused-site panel keeps the focused site's lamp. The main view takes all the freed width:
+its tabs spread out and its plot fills the column, while the view's sentence stays capped
+at 72ch. The change animates the grid columns in 200ms with an ease-out and does not
+animate under reduced motion. The collapsed state is view state, kept in local storage,
+not in the scenario or the URL.
 
 **The main view stacks:**
 
@@ -308,11 +348,15 @@ exception is the 2px red outline of a broken-rule stretch. No coloured side bord
 
 ### Chips
 - **Provenance tag:** 12px Ink 3 text in a pill.
-  - **Sourced:** a solid outline and "↗".
+  - **Sourced:** a solid outline and a small up-right arrow icon; it links to the source.
   - **Assumed:** a dashed outline.
   - Quiet on purpose, and never coloured.
 - **3D badge:** a small Hover chip with a cube icon and "3D", inside the System view and
   Local terrain tabs.
+- **Placeholder slot:** a top-bar control not built yet. Final size, a dashed Control Edge
+  border, its label and value, and the word "placeholder" after a hairline.
+- **Sample mark:** a dashed pill, "Sample sites, not computed", at the foot of a panel
+  that shows sample data.
 
 ### Cards / Containers
 - **Corner Style:** 14px for panels, 10px for cards inside them.
@@ -326,7 +370,20 @@ exception is the 2px red outline of a broken-rule stretch. No coloured side bord
 - **Mode switch:** a pill segmented control. The selected mode is filled Moonlight with
   dark text.
 - **View tabs:** two lines (name at 13px/500, purpose at 12px in Ink 3). The selected tab
-  has a Raised fill and a 2px Moonlight underline.
+  has a Raised fill and a 2px Moonlight underline. A tab never shrinks below its name; on
+  a narrow main view its purpose line wraps to two lines instead of being cut. Tabs are
+  at most 232px wide, so on a wide screen they stay together.
+- **Panel toggle:** a 28px borderless icon button (panel-close or panel-open icon) in Ink 3.
+
+### Tips
+- **Bubble:** Raised fill, a 1px Control Edge border, 10px corners, 13px Ink text, at most
+  300px wide, with the popover shadow. It sits above its trigger, or below when there is no
+  room, and never clips inside a panel.
+- **Explain:** a 14px info icon in Ink 3 after a label (24px target). It opens the term's
+  text from `explain.ts` and, when there is one, a "Learn it in Academy lesson N" link.
+  It opens on hover or keyboard focus, pins on click, and closes on Escape.
+- **Provenance tag tips:** sourced shows the quote and the source's host; assumed shows
+  the reason.
 
 ### Status lamp
 A flat circle in the status colour with a dark cut glyph: ✓, ! or ✕. It is 16px in lists

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Academy UX flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Direction C2 tokens (see design/variants/direction-c2.md) */
+:root{color-scheme:dark;--bg:#0b0b0c;--surface:#141415;--raised:#1b1b1d;--hover:#232326;--line:#262629;--line-strong:#37373b;
+  --ink:#ececee;--ink-2:#b3b3b8;--ink-3:#8c8c93;--ink-4:#5c5c63;--accent:#f3efe6;--accent-ink:#141414;--sun:#ffe2a0;--earth:#6cc4ff;
+  --font:"Jost","Futura","Century Gothic","Avenir Next","Trebuchet MS",system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:var(--font)}
+::selection{background:var(--accent);color:var(--accent-ink)}
+svg{display:block;margin:0 auto}
+text{font-family:var(--font)}
+.ttl{font-size:24px;font-weight:600;fill:var(--ink)}
+.sub{font-size:15px;fill:var(--ink-2)}
+.bt{font-size:18px;font-weight:600;fill:var(--ink)}
+.bb{font-size:13px;fill:var(--ink-2)}
+.al{font-size:13px;fill:var(--ink)}
+.al.auto{fill:var(--ink-2)}
+.grp{font-size:15px;font-weight:600;fill:var(--ink-2)}
+.lg{font-size:13px;fill:var(--ink-2)}
+.proto{font-size:12px;fill:var(--ink-3)}
+.note{font-size:15px;fill:var(--ink-2)}
+.note b{font-weight:600}
+</style>
+</head>
+<body>
+<svg id="flow" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-label="Academy UX flow: from the start screen to the lesson path, through a lesson's steps with the miss and reveal loop and the Under the hood card, to lesson complete, Mission Control and the finale."></svg>
+<script>
+const NS='http://www.w3.org/2000/svg',svg=document.getElementById('flow');
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C={ink:css('--ink'),ink2:css('--ink-2'),ink3:css('--ink-3'),line:css('--line'),lineS:css('--line-strong'),surface:css('--surface'),raised:css('--raised'),hover:css('--hover'),accent:css('--accent'),bg:css('--bg')};
+const S=(t,a,p=svg,txt)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;p.appendChild(e);return e;};
+const defs=S('defs',{});
+[['ar',C.ink2],['ac',C.accent]].forEach(([id,c])=>{const m=S('marker',{id,viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:7,markerHeight:7,orient:'auto-start-reverse'},defs);S('path',{d:'M0,1 L9,5 L0,9 z',fill:c},m);});
+const Lg=S('g',{}),Bx=S('g',{}),Lb=S('g',{});
+
+/* boxes: screen (Panel), state inside a lesson (Raised), outside the Academy (dashed) */
+function box(x,y,w,h,title,sub,kind='screen',p=Bx){
+  const fill=kind==='state'?C.raised:kind==='outside'?C.bg:C.surface;
+  S('rect',{x,y,width:w,height:h,rx:kind==='state'?10:14,fill,stroke:kind==='key'?C.accent:C.lineS,'stroke-width':kind==='key'?2:1.2,...(kind==='outside'?{'stroke-dasharray':'6 4'}:{})},p);
+  if(title)S('text',{x:x+16,y:y+(sub?27:h/2+6),class:'bt'},p,title);
+  if(sub)[].concat(sub).forEach((s,i)=>S('text',{x:x+16,y:y+48+i*18,class:'bb'},p,s));
+  return {x,y,w,h,cx:x+w/2,cy:y+h/2,r:x+w,b:y+h};
+}
+/* arrows: a polyline with rounded corners and a label plate */
+function arrow(pts,label,lp,opt={}){
+  let d='';pts.forEach(([x,y],i)=>{if(!i){d=`M${x},${y}`;return;}
+    if(i<pts.length-1){const [px,py]=pts[i-1],[nx,ny]=pts[i+1],r=10;
+      const dx1=Math.sign(x-px),dy1=Math.sign(y-py),dx2=Math.sign(nx-x),dy2=Math.sign(ny-y);
+      d+=` L${x-dx1*r},${y-dy1*r} Q${x},${y} ${x+dx2*r},${y+dy2*r}`;}else d+=` L${x},${y}`;});
+  S('path',{d,fill:'none',stroke:opt.key?C.accent:C.ink2,'stroke-width':opt.key?1.8:1.4,'marker-end':`url(#${opt.key?'ac':'ar'})`,...(opt.both?{'marker-start':`url(#${opt.key?'ac':'ar'})`}:{}),...(opt.auto?{'stroke-dasharray':'4 4'}:{})},Lg);
+  if(label){const [lx,ly]=lp,lines=[].concat(label),w=Math.max(...lines.map(l=>l.length))*6.6+14,h=lines.length*16+6;
+    S('rect',{x:lx-w/2,y:ly-h/2,width:w,height:h,rx:6,fill:C.bg},Lb);
+    lines.forEach((l,i)=>S('text',{x:lx,y:ly-h/2+16+i*16,'text-anchor':'middle',class:'al'+(opt.auto?' auto':'')},Lb,l));}
+}
+
+/* header and legend */
+S('text',{x:40,y:46,class:'ttl'},svg,'Academy · UX flow');
+S('text',{x:40,y:70,class:'sub'},svg,'Screens are boxes, actions are labelled arrows. Variants a and b share this flow; they differ only in how each screen is laid out.');
+const lg=S('g',{transform:'translate(1046,26)'});
+S('rect',{x:0,y:0,width:24,height:16,rx:4,fill:C.surface,stroke:C.lineS},lg);S('text',{x:32,y:12,class:'lg'},lg,'Screen');
+S('rect',{x:96,y:0,width:24,height:16,rx:4,fill:C.raised,stroke:C.lineS},lg);S('text',{x:128,y:12,class:'lg'},lg,'State within a lesson');
+S('rect',{x:0,y:24,width:24,height:16,rx:4,fill:'none',stroke:C.lineS,'stroke-dasharray':'4 3'},lg);S('text',{x:32,y:36,class:'lg'},lg,'Outside the Academy');
+S('line',{x1:180,x2:206,y1:31,y2:31,stroke:C.ink2,'stroke-width':1.4,'marker-end':'url(#ar)'},lg);S('text',{x:214,y:36,class:'lg'},lg,'Action');
+S('line',{x1:262,x2:288,y1:31,y2:31,stroke:C.ink2,'stroke-width':1.4,'stroke-dasharray':'4 4','marker-end':'url(#ar)'},lg);S('text',{x:296,y:36,class:'lg'},lg,'Automatic');
+S('rect',{x:1290,y:840,width:118,height:20,rx:10,fill:'none',stroke:C.lineS},svg);S('text',{x:1349,y:854,'text-anchor':'middle',class:'proto'},svg,'prototype · mock data');
+
+/* the lesson group */
+S('rect',{x:300,y:112,width:760,height:600,rx:18,fill:'none',stroke:C.line,'stroke-width':1.2},Bx);
+S('text',{x:1040,y:702,class:'grp','text-anchor':'end'},Bx,'One lesson, /academy/:lessonId · about 5 steps, no lives, no timer');
+
+const start=box(40,120,220,64,'Start screen','Academy door');
+const path=box(40,320,220,96,'Lesson path','8 lessons, all unlocked','screen');S('text',{x:56,y:404,class:'bb'},Bx,'XP, stars, patches, Luna');
+const reset=box(40,540,220,64,'Start over?','asks before clearing','state');
+const step=box(330,170,230,84,'Step: Luna asks',['one of 8 kinds;','Pip\'s meters react'],'key');
+const check=box(330,350,230,56,'Check (or "Show me")',null,'state');
+const right=box(640,170,210,72,'Right first time','+10 XP, moondust','state');
+const hint=box(640,330,210,72,'First miss: a hint','try again; right = +5 XP','state');
+const shown=box(640,470,210,72,'Second miss','answer shown, +2 XP','state');
+const cont=box(900,330,130,56,'Continue',null,'state');
+const card=box(330,500,180,84,'Under the hood','formula, worked example,','state');S('text',{x:346,y:566,class:'bb'},Bx,'code; never costs XP');
+const leave=box(640,620,210,64,'Leave the lesson?','this lesson restarts','state');
+const done=box(1110,170,290,96,'Lesson complete',['stars, XP, mission patch,','the panel you built']);
+const mc=box(1110,420,290,84,'Mission Control',['the lesson\'s panel, its','scenario loaded'],'outside');
+const fin=box(1110,620,290,96,'Finale',['your site against NASA\'s','regions, said plainly'],'key');
+
+/* actions */
+arrow([[start.cx,start.b],[start.cx,path.y]],'Start the Academy',[start.cx,252],{key:1});
+arrow([[path.r,path.y+26],[300,path.y+26],[300,step.cy],[step.x,step.cy]],['Pick any lesson'],[300,288],{key:1});
+arrow([[path.cx-40,path.b],[path.cx-40,reset.y]],'Reset progress',[path.cx-40,478]);
+arrow([[path.cx+40,reset.y],[path.cx+40,path.b]],'Keep or reset',[path.cx+40,508]);
+arrow([[step.cx,step.b],[step.cx,check.y]],'Answer',[step.cx,302],{key:1});
+arrow([[check.r,check.y+14],[600,check.y+14],[600,right.cy],[right.x,right.cy]],'right',[600,262],{key:1});
+arrow([[check.r,check.cy+4],[hint.x,check.cy+4]],'miss',[600,check.cy+4]);
+arrow([[hint.cx-50,hint.b],[hint.cx-50,hint.b+24],[check.cx+60,hint.b+24],[check.cx+60,check.b]],'try again',[hint.cx-130,hint.b+24]);
+arrow([[hint.cx+40,hint.b],[hint.cx+40,shown.y]],'miss again',[hint.cx+40,450]);
+arrow([[right.r,right.cy],[cont.cx,right.cy],[cont.cx,cont.y]],null,null,{key:1});
+arrow([[hint.r,hint.cy],[cont.x,hint.cy+0]],'right',[875,hint.cy]);
+arrow([[shown.r,shown.cy],[cont.cx,shown.cy],[cont.cx,cont.b]],null,null);
+arrow([[cont.cx+30,cont.y],[cont.cx+30,150],[step.cx+50,150],[step.cx+50,step.y]],'next step',[760,150],{auto:1});
+arrow([[step.x+40,step.b],[step.x+40,280],[310,280],[310,card.cy-8],[card.x,card.cy-8]],null,null,{both:1});
+S('text',{x:316,y:card.y-18,class:'al','text-anchor':'start'},Lb,'open / close');
+arrow([[cont.r,cont.cy],[1080,cont.cy],[1080,done.cy],[done.x,done.cy]],['after the','last step'],[1080,302],{key:1,auto:1});
+arrow([[done.x+40,done.y],[done.x+40,96],[step.cx-40,96],[step.cx-40,step.y]],'Next lesson',[820,96],{key:1});
+arrow([[done.cx,done.b],[done.cx,mc.y]],'Open in Mission Control',[done.cx,342]);
+arrow([[done.r-30,done.b],[done.r-30,fin.y]],['after lesson 8:','Continue'],[done.r-30,560],{auto:1});
+arrow([[fin.cx,fin.y],[fin.cx,mc.b]],['Open Mission Control','with Pip\'s mission'],[fin.cx-56,560],{key:1});
+/* back routes, kept low and quiet */
+arrow([[leave.x,leave.b-14],[280,leave.b-14],[280,path.cy+18],[path.r,path.cy+18]],'Leave',[280,640]);
+arrow([[fin.x,fin.b-16],[1080,fin.b-16],[1080,750],[110,750],[110,path.b]],'Back to the path (from lesson complete and the finale too)',[600,750]);
+arrow([[path.x+20,path.y],[path.x+20,start.b]],'Back',[path.x+20,268]);
+/* ✕ and Esc from any step */
+arrow([[540,check.b],[540,leave.cy],[leave.x,leave.cy]],['Close or Esc,','from any step'],[540,606]);
+/* skip to Mission Control */
+
+/* footnotes */
+const notes=[
+ ['Skip to Mission Control','is on every Academy screen and opens Mission Control with the default scenario (arrows not drawn).'],
+ ['Predict steps','take one guess, then "Show me" plays the reveal: right = 10 XP, otherwise 2.'],
+ ['Saved in this browser','XP, stars and patches persist; an unfinished lesson does not.']];
+notes.forEach(([b,t],i)=>{const tx=S('text',{x:40,y:800+i*24,class:'note'},svg);S('tspan',{'font-weight':600,fill:C.ink},tx,b+' ');S('tspan',{},tx,t);});
+</script>
+</body>
+</html>
