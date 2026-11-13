@@ -31,7 +31,8 @@ import {
   type SkylineVertex,
 } from "./geometry";
 import { signedAzimuthDifference } from "../../lib/geo";
-import { answerSentence, bodyAt, labelDetail, labelTitle, skylineReading, visibility, VISIBILITY_WORDS } from "./readings";
+import { bodyLabel } from "../three/scene/sight";
+import { answerSentence, bodyAt, hidden, labelDetail, labelTitle, skylineReading, visibility, VISIBILITY_WORDS } from "./readings";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 
@@ -249,7 +250,7 @@ describe("hover values are the stored skyline arrays", () => {
   });
 });
 
-describe('"in view" and "behind the skyline" are the series\' answer', () => {
+describe("the state words are the series' answer, and the 3D scene's", () => {
   for (const id of ["fixture_ridge", "fixture_crater", "fixture_edge"] as const) {
     it(`${id}: every hour of a mission window`, () => {
       const { series } = sites[id];
@@ -259,12 +260,16 @@ describe('"in view" and "behind the skyline" are the series\' answer', () => {
             const frac = (body === "sun" ? series.sun_frac : series.earth_frac)[hour]!;
             const clear = (body === "sun" ? series.sun_clear : series.earth_clear)[hour]!;
             const now = bodyAt(series, body, hour)!;
-            const expected = frac >= 1 ? "in_view" : frac <= 0 ? "blocked" : "partly";
-            expect(visibility(now.frac)).toBe(expected);
+            const el = (body === "sun" ? series.sun_el : series.earth_el)[hour]!;
+            const expected =
+              frac >= 0.999 ? "in_view" : frac > 0 ? "partly" : el > 0 && clear < 0 ? "behind_ridge" : "below_horizon";
+            expect(visibility(now)).toBe(expected);
             expect(labelTitle(now)).toContain(VISIBILITY_WORDS[expected]);
+            // The scene's label behind the panel says the same state.
+            expect(bodyLabel(body, el, frac, clear).endsWith(`· ${VISIBILITY_WORDS[expected]}`)).toBe(true);
             // A disc wholly clear has its centre above the skyline; one wholly hidden, below.
             if (expected === "in_view") expect(clear).toBeGreaterThan(0);
-            if (expected === "blocked") expect(clear).toBeLessThan(0);
+            if (hidden(expected)) expect(clear).toBeLessThan(0);
           }
           const sentence = answerSentence(bodyAt(series, "sun", hour), bodyAt(series, "earth", hour));
           expect(sentence).toContain(`Sun `);
@@ -420,9 +425,9 @@ describe("a disc is drawn at its true size, so the picture agrees with the serie
             worst = Math.max(worst, Math.abs(drawn - now.frac));
             expect(Math.abs(drawn - now.frac)).toBeLessThan(tolerance);
             // The words never say "in view" over a mostly hidden drawing, or the reverse.
-            const state = visibility(now.frac);
+            const state = visibility(now);
             if (state === "in_view") expect(drawn).toBeGreaterThan(0.5);
-            if (state === "blocked") expect(drawn).toBeLessThan(0.5);
+            if (hidden(state)) expect(drawn).toBeLessThan(0.5);
             checked++;
           }
         }

@@ -40,20 +40,33 @@ export function bodyAt(series: ChartSeries, body: BodyId, hour: number): BodyNow
   return { body, hour, azDeg, elDeg, frac, clearDeg };
 }
 
-/** How much of the disc shows, from the series' disc fraction. */
-export type Visibility = "in_view" | "partly" | "blocked";
+/**
+ * Whether a body shows, from the series: its disc fraction, with its clearance to tell terrain
+ * in the way from a body that is simply down. The same rule, and the same words, as the 3D
+ * scene's labels in this view (`bodyLabel` in features/three/scene/sight.ts), so the chart
+ * and the scene behind it never disagree (docs/features/panorama.md).
+ */
+export type Visibility = "in_view" | "partly" | "behind_ridge" | "below_horizon";
 
-/** All of the disc clear is "in view"; none of it is "blocked"; anything between is "partly". */
-export function visibility(frac: number): Visibility {
-  if (frac >= 1) return "in_view";
-  if (frac <= 0) return "blocked";
-  return "partly";
+/** A disc fraction this close to 1 counts as the whole disc in view. */
+export const IN_VIEW_FRACTION = 0.999;
+
+export function visibility(now: { frac: number; elDeg: number; clearDeg: number }): Visibility {
+  if (now.frac >= IN_VIEW_FRACTION) return "in_view";
+  if (now.frac > 0) return "partly";
+  return now.elDeg > 0 && now.clearDeg < 0 ? "behind_ridge" : "below_horizon";
+}
+
+/** Whether a state is hidden: no part of the disc shows. */
+export function hidden(state: Visibility): boolean {
+  return state === "behind_ridge" || state === "below_horizon";
 }
 
 export const VISIBILITY_WORDS: Record<Visibility, string> = {
   in_view: "in view",
-  partly: "partly behind the skyline",
-  blocked: "behind the skyline",
+  partly: "partly in view",
+  behind_ridge: "behind the ridge",
+  below_horizon: "below the horizon",
 };
 
 export const BODY_NAME: Record<BodyId, string> = { sun: "Sun", earth: "Earth" };
@@ -69,7 +82,7 @@ export function heightWords(elDeg: number): string {
 
 /** The label's first line: "Sun, behind the skyline". */
 export function labelTitle(now: BodyNow): string {
-  return `${BODY_NAME[now.body]}, ${VISIBILITY_WORDS[visibility(now.frac)]}`;
+  return `${BODY_NAME[now.body]}, ${VISIBILITY_WORDS[visibility(now)]}`;
 }
 
 /** The label's second line: "0.80° up · disc fraction 0.01", "2.97° up · clearance 2.46°". */
@@ -81,7 +94,7 @@ export function labelDetail(now: BodyNow): string {
 
 /** "Sun 0.80° up, behind the skyline". */
 export function bodySentence(now: BodyNow): string {
-  return `${BODY_NAME[now.body]} ${heightWords(now.elDeg)}, ${VISIBILITY_WORDS[visibility(now.frac)]}`;
+  return `${BODY_NAME[now.body]} ${heightWords(now.elDeg)}, ${VISIBILITY_WORDS[visibility(now)]}`;
 }
 
 /** The chart's answer in words: "Sun 0.80° up, behind the skyline; Earth 0.90° up, in view." */
