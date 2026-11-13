@@ -3,7 +3,7 @@ import { Button } from "../../components/Button";
 import { Explain } from "../../components/Explain";
 import { formatUtc } from "../../components/format";
 import type { FreeSpace } from "./free-space";
-import type { SceneProps, SceneReport, SceneStatus } from "../scene";
+import { STILL_PICTURE_URL, type SceneProps, type SceneReport, type SceneStatus } from "../scene";
 import { sceneMode, showStill, stillLabel, stillNote } from "./scene-status";
 import { cameraView } from "./views";
 
@@ -70,14 +70,19 @@ function tooSmall(space: FreeSpace): boolean {
 type StillProps = { status: SceneStatus; view: SceneProps["view"]; freeSpace: FreeSpace; onTryAnyway: () => void };
 
 /**
- * The still picture over the scene, with its note. The picture itself is a plain placeholder
- * until the scene's image files exist (work package S16). "Try 3D anyway" is offered only
+ * The still picture over the scene, with its note: a render of the System view
+ * (STILL_PICTURE_URL in ../scene.ts). "Try 3D anyway" is offered only
  * when 3D is slow: without WebGL, trying again cannot help.
  */
 function StillPicture({ status, view, freeSpace, onTryAnyway }: StillProps) {
   return (
     <>
-      <div className="scene-still" role="img" aria-label={stillLabel(view)} />
+      <img
+        className="scene-still"
+        src={STILL_PICTURE_URL}
+        alt={stillLabel(view)}
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      />
       {tooSmall(freeSpace) ? null : (
         <div className="plate scene-plate scene-note" style={plateStyle(freeSpace, 12)}>
           <p>
