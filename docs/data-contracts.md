@@ -176,6 +176,21 @@ with +x right, +y up, and row 0 at the top. Lookup grids use the same orientatio
 projection in [`science.md`](science.md) §2.3. Lookup grids are `Uint8`, where a value $v$
 means $v/255$, and 255 marks "no data".
 
+- **Writing a lookup value.** A fraction $f$ between 0 and 1 is stored as
+  $\min(\operatorname{round}(255 f),\ 254)$. The byte 255 is never a value, so a fraction
+  of exactly 1 is stored as 254 and reads back as 0.996. The largest error is 0.002 below
+  that cap and 0.004 at it.
+- **A lookup cell's value** is the mean of the source map's valid pixels whose centres
+  fall inside the cell. A cell with no valid source pixel is "no data", never 0.
+- **Sources.** The hillshade comes from the 80 m terrain map by
+  [`science.md`](science.md) §2.4. The sunlight and Earth-visibility layers come from
+  NASA's 60 m average maps where they have data (to about 85°S) and from the 120 m maps
+  beyond that, out to the image edge at 80°S. Each file's own scale, offset and no-data
+  value are read from the file.
+- **Overlay images** map a fraction of 0 to black and 1 to white in one channel, with
+  "no data" fully transparent. The web app tints them.
+- **Image sizes.** A `_4k` image is 4,096 pixels on a side and an `_8k` image 8,192.
+
 ### `validation.json` and `academy/worked_examples.json`
 
 Described in [`validation.md`](validation.md) and
@@ -260,6 +275,35 @@ Mission Control mirrors its scenario into the URL:
 | `land` | Landing date |
 | `t` | Current time, in hours after the landing date |
 | `view` | `slip`, `system`, `map`, `terrain`, `panorama` or `compare` |
+| `focus` | Optional site id. Written only when that site is not the first in `sites`. If it is absent, or names a site that is not selected, the first selected site is focused |
+
+A preset is written as its id, for example `im2_athena`. A custom profile is the
+base preset plus only the fields that differ from it:
+
+```text
+custom:<preset>;<field>=<value>;<field>=<value>
+```
+
+```text
+custom:im2_athena;duration_days=12;max_dark_h=8;weights=0.5:0.3:0.2
+```
+
+- Field names are the value fields in [`mission-profiles.md`](mission-profiles.md):
+  `duration_days`, `min_sun_fraction`, `ops_sun_el_min_deg`, `max_dark_h`,
+  `relay_available`, `antenna_mask_deg`, `max_blackout_h`, `max_slope_deg`,
+  `slope_ideal_deg`, `landing_sun_el_min_deg`, `landing_sun_el_max_deg`, `weights`.
+- A number is a plain decimal. Booleans are `true` or `false`. An optional
+  elevation with no limit is `null`.
+- `weights` is `slope:power:comms`, three numbers, for example `0.4:0.35:0.25`.
+- An unknown field is skipped. A value that cannot be read, or that is out of
+  range, is skipped. The rest of the profile is kept.
+- The whole `profile` parameter is ignored when the base preset is unknown or a
+  piece is not `field=value`. That is a malformed custom profile.
+
+`t` is a whole number of hours after `land`, and may be negative when the
+scrubber sits in the three days before landing. `focus` names the focused site
+when it is not the first in `sites`. Opening a link with no `focus`, or a
+`focus` that is not one of the selected sites, focuses the first site in `sites`.
 
 ## Changing a contract
 

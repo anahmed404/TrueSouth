@@ -24,3 +24,14 @@ export type {
   VetoId,
   Vetoes,
 } from "./scoring";
+
+export {
+  cachedCountdowns,
+  cachedEvaluation,
+  cachedHourFlags,
+  cachedSlipSweep,
+  clearScoringCache,
+  siteSlopeDeg,
+} from "./cache";
+
+export { useCountdowns, useEvaluation, useHourFlags, useSweep } from "./hooks";

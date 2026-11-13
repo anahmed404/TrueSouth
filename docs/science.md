@@ -85,6 +85,28 @@ latitude is not −90°, the pipeline stops with an error.
 
 `frames.py::polar_stereo_forward`, `polar_stereo_inverse`, `dem.py`
 
+### 2.4 Shaded relief for the polar map
+
+The polar map's base image is the terrain shaded as if lit from one fixed direction. It
+is a drawing, never a result: at the pole the real Sun circles the horizon, so no single
+real Sun position would show the whole region.
+
+With heights $z(x, y)$ on the map grid of section 2.3, the surface normal and the fixed
+direction to the light, in map axes ($x$ right, $y$ up, third axis out of the ground), are
+
+$$\hat n = \frac{(-\partial z/\partial x,\ -\partial z/\partial y,\ 1)}{\sqrt{(\partial z/\partial x)^2 + (\partial z/\partial y)^2 + 1}} \qquad \hat l = \left(-\tfrac{1}{2},\ \tfrac{1}{2},\ \tfrac{1}{\sqrt 2}\right)$$
+
+$$\text{shade} = \operatorname{clamp}(\hat n \cdot \hat l,\ 0,\ 1)$$
+
+So the light comes from the top-left of the image, 45° above the ground. A slope facing
+up and to the left is brighter than flat ground, which has shade $1/\sqrt 2 = 0.707$.
+
+Slopes are central differences in map metres at the image's own pixel size, with heights
+not exaggerated. The map's scale factor $k$ is ignored: it is at most 1.008 inside 80°S,
+which changes no pixel's shade visibly.
+
+`maps.py`
+
 ## 3. Where the Sun and Earth are
 
 ### 3.1 One pull for the whole Moon
@@ -400,6 +422,7 @@ $$U_{comms} = \begin{cases} 1 & \text{with a relay} \\ \text{link\_fraction} \ti
 $$\text{score} = 100 \times \frac{\sum_i w_i U_i}{\sum_i w_i}$$
 
 A site with no slope leaves slope out of both sums and is flagged "slope not assessed".
+So that a score always exists, a profile's power and comms weights must not both be zero.
 
 **Status.**
 
