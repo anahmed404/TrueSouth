@@ -65,11 +65,11 @@ formula), so the card names the tilt in words and quotes no number for it.
 
 | # | Kind | Luna asks | Answer and what happens |
 | :--- | :--- | :--- | :--- |
-| 1 | `predict` | "From {{l2.site_name}}, the Sun is {{l2.sun_el_deg}}° up. A ridge {{l2.ridge_dist_km}} km away stands {{l2.ridge_rise_m}} m above Pip. Sunlight or shadow?" | Sunlight / **Shadow**. Luna: "I moved us to {{l2.site_name}}. From a high ridge like Connecting Ridge, distant ground lies below Pip, so a Sun above the flat horizon is hidden only by ground close by." Reveal: the Lander's eye view at that hour. The ridge looks {{l2.ridge_el_deg}}° tall. |
+| 1 | `predict` | "From {{l2.site_name}}, the Sun is {{l2.sun_el_deg}}° up. In the Sun's direction, a ridge {{l2.ridge_dist_km}} km away stands {{l2.ridge_rise_m}} m above Pip. Sunlight or shadow?" | Sunlight / **Shadow**. Luna: "I moved us to {{l2.site_name}}, where a ridge in the Sun's direction stands above Pip. From a high ridge like Connecting Ridge, distant ground mostly lies below Pip's eyes." Reveal: the Lander's eye view at that hour. The ridge looks {{l2.ridge_el_deg}}° tall. |
 | 2 | `fill-formula` | "How tall a ridge looks: angle = atan( ? ÷ distance )" | **its height above you** / its height above sea level / its width |
-| 3 | `draw-skyline` | "Sketch the skyline you think Pip sees from {{l2.site_name}}, in this direction." | The real skyline is laid over the sketch. Closer sketches earn more XP; every sketch passes. |
+| 3 | `draw-skyline` | "Sketch the skyline you think Pip sees from {{l2.site_name}}, towards the Sun." | The real skyline is laid over the sketch. Closer sketches earn more XP; every sketch passes. |
 | 4 | `drag-body` (Sun) | "The Sun is a disc, not a dot. Find a moment when more than half of it is hidden." | Goal: `sun_frac < 0.5`. Pip's power meter follows the visible share. |
-| 5 | `choice` | "Which blocks more sky: a 300 m ridge 12 km away, or a 3,000 m mountain 150 km away?" | **The near ridge** / The far mountain. Luna: "Surprised? The next lesson explains why." |
+| 5 | `choice` | "Looking the same way, which blocks more sky: a 300 m ridge 12 km away, or a 3,000 m mountain 150 km away?" | **The near ridge** / The far mountain. Luna: "Surprised? The next lesson explains why." |
 
 **Words.** The lines the table does not quote, as the app shows them. A hint follows a
 first miss (a predict step has one guess, so its hint is not shown). An explanation

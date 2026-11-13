@@ -22,7 +22,7 @@ const terrain = lesson2Scene("terrain", null);
 const sunDrag = lesson2Scene("terrain", hoursAround("{{example.l2.example_utc}}", 24));
 
 const moved =
-  "I moved us to {{example.l2.site_name}}. From a high ridge like Connecting Ridge, distant ground lies below Pip, so a Sun above the flat horizon is hidden only by ground close by.";
+  "I moved us to {{example.l2.site_name}}, where a ridge in the Sun's direction stands above Pip. From a high ridge like Connecting Ridge, distant ground mostly lies below Pip's eyes.";
 
 export const lesson2 = {
   id: "l2_skyline",
@@ -37,7 +37,7 @@ export const lesson2 = {
       id: "l2-shadow",
       luna: {
         mood: "thinking",
-        says: "From {{example.l2.site_name}}, the Sun is {{example.l2.sun_el_deg}}° up. A ridge {{example.l2.ridge_dist_km}} km away stands {{example.l2.ridge_rise_m}} m above Pip. Sunlight or shadow?",
+        says: "From {{example.l2.site_name}}, the Sun is {{example.l2.sun_el_deg}}° up. In the Sun's direction, a ridge {{example.l2.ridge_dist_km}} km away stands {{example.l2.ridge_rise_m}} m above Pip. Sunlight or shadow?",
       },
       hint: "Compare two angles: how high the Sun is, and how tall the ridge looks from Pip.",
       explain: moved,
@@ -65,7 +65,7 @@ export const lesson2 = {
     },
     {
       id: "l2-sketch",
-      luna: { mood: "thinking", says: "Sketch the skyline you think Pip sees from {{example.l2.site_name}}, in this direction." },
+      luna: { mood: "thinking", says: "Sketch the skyline you think Pip sees from {{example.l2.site_name}}, towards the Sun." },
       hint: "Start with the ridge from the first step, then guess where the ground falls away on each side.",
       explain: "Every sketch counts. The closer yours is to the real skyline, the more XP it earns.",
       kind: "draw-skyline",
@@ -99,7 +99,7 @@ export const lesson2 = {
       id: "l2-near",
       luna: {
         mood: "thinking",
-        says: "Which blocks more sky: a 300 m ridge 12 km away, or a 3,000 m mountain 150 km away?",
+        says: "Looking the same way, which blocks more sky: a 300 m ridge 12 km away, or a 3,000 m mountain 150 km away?",
       },
       hint: "Height matters, but so does distance. Think about how tall each one looks from Pip.",
       explain: "Surprised? The next lesson explains why.",
