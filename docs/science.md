@@ -438,6 +438,26 @@ Over the window:
 | `landing_sun_el_deg` | `sun_el` at $i_0$ |
 | `landing_lit` | lit at $i_0$ |
 
+**Numerical evaluation.** Scoring reads the decoded Int16 series. For the mean
+Sun fraction, recover each stored count as $\lfloor 10{,}000f + 0.5\rfloor$,
+sum those integers, then divide once by $10{,}000N$. This recovers the stored
+counts despite binary decoding residue. Synthetic inputs to scoring use the
+same fraction step when forming this mean. Lit and link counts, longest runs,
+window lengths and hour indices are exact integers. Their fractions are an
+integer count divided once by $N$. Other divisions and utilities use binary64.
+The same hourly values therefore give bit-identical metrics at every landing
+index: no fractional running sum is subtracted from another.
+
+For comparisons against a limit, use
+$q(x)=\lfloor 10^{12}x+0.5\rfloor/10^{12}$ on both values. This rounds to
+12 decimal places, with an exact half-way tie toward positive infinity.
+Use this rule for lit and link conditions, vetoes, utility breakpoints and
+the GO threshold in section 10. It is far finer than storage or display
+precision and removes arithmetic residue at a boundary. It is not a physical
+tolerance. Integer counts remain integers. A zero weight is still exactly zero.
+For countdown interpolation, use these same rounded condition values and
+thresholds, so the crossing and the hourly flags describe the same boundary.
+
 **Countdowns** are measured from the scrubber's current time to the next change of the
 same lit or link flag drawn on the timeline. Sunset is when the site stops being lit;
 sunrise is when it becomes lit. Earthset is when the link ends; Earthrise is when it
@@ -479,12 +499,23 @@ $$U_{power} = \text{sun\_fraction\_mean} \times g(\text{longest\_dark\_h},\ \tex
 
 $$U_{comms} = \begin{cases} 1 & \text{with a relay} \\ \text{link\_fraction} \times g(\text{longest\_blackout\_h},\ \text{max\_blackout\_h}) & \text{otherwise} \end{cases}$$
 
+Apply section 9's comparison rule at each utility breakpoint. At or below the
+ideal slope the slope utility is exactly 1; at or above the maximum it is
+exactly 0. For $g$, a limit equal to zero gives exactly 1; with a positive
+limit, a run at or above it gives exactly 0 and a zero run gives exactly 1.
+Between breakpoints use the formulas above without intermediate rounding.
+
 **Score.** With weights $w$ from the profile, over the criteria that could be assessed:
 
 $$\text{score} = 100 \times \frac{\sum_i w_i U_i}{\sum_i w_i}$$
 
 A site with no slope leaves slope out of both sums and is flagged "slope not assessed".
 So that a score always exists, a profile's power and comms weights must not both be zero.
+
+Evaluate the weighted numerator in this order: power, comms, then slope if it
+is assessed. Evaluate the denominator in the same order. Return $q$ of the
+score above, and compare that score with 70 using section 9's rule. This fixes
+arithmetic residue without making the status depend on displayed rounding.
 
 **Status.**
 
@@ -500,7 +531,11 @@ Vetoes decide whether a mission can work. The score ranks the ones that can. The
 ## 11. The slip sweep
 
 The Slip Planner evaluates section 10 for a landing at 00:00 UTC on every day of the time
-grid, for every selected site. Means use prefix sums. Longest runs are scanned directly.
+grid, for every selected site. Means use prefix sums of the exact integer
+counts in section 9. Across the 52,584-hour grid the largest Sun-fraction sum
+is 525,840,000 counts, well within binary64's exact integer range. Subtract
+integer prefix sums before the single division. A single-window evaluation
+uses the same count and division rules. Longest runs are scanned directly.
 It runs in a Web Worker. The reference in `scoring.py` evaluates every landing hour; the
 Slip Planner reads the 00:00 UTC rows.
 
