@@ -3,9 +3,10 @@
  * row, the same states. The server names the site; only then does its id join the scenario.
  */
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
+import { useStore } from "zustand";
 import { MAX_SITES, type ScenarioStore } from "../../state/scenario";
-import { customSitesStore, isLocalKey, type CustomSitesStore } from "../../state/custom-sites";
+import { customSitesStore, isLocalKey, type AvailabilityState, type CustomSitesStore } from "../../state/custom-sites";
 import { checkLatitude, checkLongitude, checkName, toEastLongitude } from "./custom-site-form";
 import { useScenarioStore } from "./scenario-context";
 
@@ -68,17 +69,39 @@ export function removeCustomSite(scenario: ScenarioStore, key: string, custom: C
 }
 
 /**
- * For the Polar map's "Compute this site": `onRequestSite={useRequestCustomSite()}`.
- * It starts the same flow as the form. A point that cannot be asked for shows as a failed
- * row with the reason, so a click is never silent.
+ * The Polar map's "Compute this site" or "Compute this point": a button press, so one POST.
+ * A point the form would refuse shows as a failed row with the reason, so a press is never
+ * silent.
  */
-export function useRequestCustomSite(): (latDeg: number, lonDeg: number) => void {
+export function requestFromMap(scenario: ScenarioStore, latDeg: number, lonDeg: number, custom: CustomSitesStore = customSitesStore): void {
+  const result = startCustomSite(scenario, latDeg, lonDeg, null, custom);
+  if (!result.ok) {
+    const lon = Number.isFinite(lonDeg) ? toEastLongitude(lonDeg) : lonDeg;
+    custom.getState().refuse(latDeg, lon, null, result.message);
+  }
+}
+
+/**
+ * For the Polar map: `polarMapLayer({ onRequestSite: useRequestCustomSite() })`.
+ *
+ * - Returns undefined, so the map shows no button, until `/api/health` says this server
+ *   computes custom sites, and whenever it says it does not or does not answer.
+ * - The health check runs once when the Polar map view first opens (or when the picker
+ *   opens, whichever is first): opening the map is something the user does.
+ * - The function it returns keeps its identity across renders.
+ */
+export function useRequestCustomSite(): ((latDeg: number, lonDeg: number) => void) | undefined {
   const scenario = useScenarioStore();
-  return useCallback(
-    (latDeg: number, lonDeg: number) => {
-      const result = startCustomSite(scenario, latDeg, lonDeg);
-      if (!result.ok) customSitesStore.getState().refuse(latDeg, toEastLongitude(lonDeg), null, result.message);
-    },
-    [scenario],
-  );
+  const view = useStore(scenario, (s) => s.view);
+  const availability = useStore(customSitesStore, (s) => s.availability.state);
+  useEffect(() => {
+    if (view === "map") customSitesStore.getState().checkAvailability();
+  }, [view]);
+  const request = useCallback((latDeg: number, lonDeg: number) => requestFromMap(scenario, latDeg, lonDeg), [scenario]);
+  return mapRequest(availability, request);
+}
+
+/** The map gets the callback only while the server says it computes custom sites. */
+export function mapRequest<T>(availability: AvailabilityState["state"], request: T): T | undefined {
+  return availability === "available" ? request : undefined;
 }
