@@ -121,16 +121,17 @@ export function skylineVertices(elDeg: ArrayLike<number>, centreDeg: number): Sk
 
 /** The skyline's elevation under an offset on the chart, as the drawn line has it. */
 export function skylineElAtOffset(vertices: readonly SkylineVertex[], offset: number): number {
-  for (let i = 1; i < vertices.length; i++) {
-    const a = vertices[i - 1];
-    const b = vertices[i];
-    if (!a || !b) continue;
-    if (offset >= a.offset && offset <= b.offset) {
-      const t = b.offset === a.offset ? 0 : (offset - a.offset) / (b.offset - a.offset);
-      return a.el + t * (b.el - a.el);
-    }
-  }
-  return Number.NaN;
+  const first = vertices[0];
+  const second = vertices[1];
+  if (!first || !second) return Number.NaN;
+  // The vertices are evenly spaced, one skyline bin apart.
+  const step = second.offset - first.offset;
+  const i = Math.floor((offset - first.offset) / step);
+  const a = vertices[i];
+  const b = vertices[i + 1];
+  if (!a || !b) return Number.NaN;
+  const t = (offset - a.offset) / step;
+  return a.el + t * (b.el - a.el);
 }
 
 // ── The Sun's and Earth's paths over the mission window ──────────────────────
