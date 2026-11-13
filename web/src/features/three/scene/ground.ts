@@ -95,8 +95,8 @@ export function patchGeometry(terrain: DecodedTerrain, size: number, windowKm: n
 }
 
 /**
- * The apron, with a hole where the patch is. Cells that overlap the patch's edge sit 30 m
- * lower so the patch covers them, and the outer edge eases down to the reference sphere,
+ * The apron, with a hole where the patch is. Apron vertices under the patch sit 30 m lower so
+ * the patch covers the cells across its edge, and the outer edge eases down to the reference sphere,
  * where the globe takes over. Both changes are drawing only.
  */
 export function apronGeometry(apron: DecodedApron, grid: ApronGrid, patchHalfKm: number, site: GroundSite): THREE.BufferGeometry {
@@ -113,7 +113,8 @@ export function apronGeometry(apron: DecodedApron, grid: ApronGrid, patchHalfKm:
       const edge = Math.max(Math.abs(east), Math.abs(north)) / halfKm;
       let height = finite(apron.heights[row * grid.columns + column], site.groundHeightM);
       height *= 1 - smooth(0.8, 0.98, edge);
-      if (Math.max(Math.abs(east), Math.abs(north)) < patchHalfKm * 1.15) height -= 30;
+      // Only vertices strictly under the patch: the patch hides them, and nothing outside it moves.
+      if (Math.max(Math.abs(east), Math.abs(north)) < patchHalfKm) height -= 30;
       return apronCellLocalKm(row, column, height, site.groundHeightM, grid);
     },
     (row, column) => {
