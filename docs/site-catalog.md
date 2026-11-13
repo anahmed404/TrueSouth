@@ -84,6 +84,20 @@ Notes:
 - The published sunlight figures are comparison targets for
   [`validation.md`](validation.md), alongside NASA's maps.
 
+## Generated best-lit variants
+
+Not catalog input. `build-sites` writes one extra site for every `core80` site in the group
+`sunlit_peak`, using the rule in [`science.md`](science.md) §7.1. TrueSouth chooses the
+best-lit 80 m map pixel within 160 m of the listed point. The variant is not a published site.
+
+| Id | Listed site | Lat | East lon | Offset from the listed point |
+| :--- | :--- | :--- | :--- | :--- |
+| `connecting_ridge_best_lit` | `connecting_ridge` | −89.45116 | 222.85728 | 149 m |
+| `shackleton_rim_best_lit` | `shackleton_rim` | −89.77725 | 203.37680 | 94 m |
+| `de_gerlache_rim_best_lit` | `de_gerlache_rim` | −88.69910 | 291.59644 | 144 m |
+| `peak_near_shackleton_best_lit` | `peak_near_shackleton` | −88.73810 | 124.43758 | 71 m |
+| `malapert_peak_best_lit` | `malapert_peak` | −85.97437 | 357.91641 | 72 m |
+
 ## Group C: Recent landers in the south polar region
 
 All published.
