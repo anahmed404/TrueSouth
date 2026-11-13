@@ -49,6 +49,36 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-13 · S8 part 2 · Catalog slopes and terrain meshes
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-terra — wrote tests first, implemented build-sites wiring, and ran real-data builds and checks — human and orchestrator review pending
+- **State:** built, not verified
+- **Changed:** science/src/truesouth/commands/build_sites.py, science/tests/test_build_sites_s7.py, data/derived/ sites and catalog, this entry.
+- **Notes:** All 20 sites built in 593.193 s; per-site build times appear below. Derived tree: 50,785,780 bytes. Mean sun_frac and hourly shares use the decoded series; missing mesh vertices count nonfinite up coordinates. A dash means unavailable. All 15 terrain-site slopes match direct polar_slope results exactly. Connecting Ridge series and skyline match main byte-for-byte and its slope is 4.052094 degrees over 160 m. Chandrayaan-3 is wide240, 0.860984 degrees over 480 m; IM-2 is core80. All five sphere sites have null slope and terrain, and no terrain.bin. Mesh centres have relative up within 4.657e-10 m of zero (roundoff), so match the site's ground height. Forced repeats of Connecting Ridge and Chandrayaan-3 reproduced all eight site files byte-for-byte. Close-up data remains unavailable. No spec questions. uv run pytest: 212 passed in 47.36 s, exit 0.
+
+| Site | Tier | Ground m | Slope deg / baseline m | Mean sun_frac | Any Sun % | Earth clearance >= 1 deg % | Missing skyline samples | Missing mesh vertices | Folder bytes | Time s |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| apollo11 | sphere | - | - | 0.502535 | 50.396 | 100.000 | 0 | - | 871152 | 0.073 |
+| apollo17 | sphere | - | - | 0.502515 | 50.396 | 100.000 | 0 | - | 871153 | 0.061 |
+| artemis_de_gerlache_rim_2 | core80 | -88.834 | 10.824033 / 160 | 0.363025 | 37.477 | 45.501 | 0 | 0 | 1927994 | 41.529 |
+| artemis_haworth | core80 | 1628.032 | 3.860687 / 160 | 0.123245 | 15.377 | 34.322 | 0 | 0 | 1927983 | 40.972 |
+| artemis_malapert | core80 | 4784.771 | 3.276887 / 160 | 0.297244 | 34.826 | 44.422 | 0 | 0 | 1927985 | 44.179 |
+| artemis_mouton | core80 | 6398.160 | 7.482868 / 160 | 0.216295 | 25.538 | 31.707 | 0 | 0 | 1927983 | 37.497 |
+| artemis_nobile_rim_1 | core80 | 5945.618 | 15.734713 / 160 | 0.307241 | 31.557 | 24.977 | 0 | 0 | 1927989 | 42.814 |
+| artemis_nobile_rim_2 | core80 | 1009.324 | 4.349377 / 160 | 0.411448 | 41.853 | 58.611 | 0 | 0 | 1927989 | 42.160 |
+| blue_ghost1 | sphere | - | - | 0.501886 | 50.323 | 100.000 | 0 | - | 871155 | 0.072 |
+| chandrayaan3 | wide240 | 529.723 | 0.860984 / 480 | 0.480968 | 48.513 | 100.000 | 0 | 0 | 1927981 | 26.799 |
+| change4 | sphere | - | - | 0.498581 | 50.065 | 0.000 | 0 | - | 871151 | 0.071 |
+| change6 | sphere | - | - | 0.498633 | 50.051 | 0.000 | 0 | - | 871152 | 0.070 |
+| connecting_ridge | core80 | 1950.256 | 4.052094 / 160 | 0.598582 | 65.746 | 45.607 | 0 | 0 | 1927984 | 47.317 |
+| de_gerlache_rim | core80 | 1779.196 | 2.154988 / 160 | 0.607358 | 66.853 | 48.827 | 0 | 0 | 1927984 | 39.583 |
+| im1_odysseus | core80 | 2591.948 | 11.510854 / 160 | 0.393991 | 40.048 | 100.000 | 0 | 0 | 1927981 | 32.729 |
+| im2_athena | core80 | 5321.502 | 2.684767 / 160 | 0.453740 | 47.077 | 73.787 | 0 | 0 | 1927980 | 36.984 |
+| luna25_target | wide240 | 309.643 | 2.627285 / 480 | 0.455682 | 45.984 | 100.000 | 0 | 0 | 1927980 | 28.900 |
+| malapert_peak | core80 | 4969.078 | 4.070659 / 160 | 0.727994 | 78.457 | 52.923 | 0 | 0 | 1927982 | 42.998 |
+| peak_near_shackleton | core80 | 1454.988 | 1.839560 / 160 | 0.601721 | 62.093 | 30.701 | 0 | 0 | 1927988 | 39.479 |
+| shackleton_rim | core80 | 1732.866 | 1.151164 / 160 | 0.746862 | 79.847 | 42.511 | 0 | 0 | 1927983 | 45.826 |
+
 #### 2026-11-13 · S8 part 1 · Slope (gate G8) and the terrain mesh
 - **Who:** Cursor agent, for the orchestrator
 - **AI use:** Cursor, grok-4.7 — wrote `slope.py`, `terrain_mesh.py` and their synthetic tests, and ran pytest and the real-map measurements — a human has not reviewed it yet
