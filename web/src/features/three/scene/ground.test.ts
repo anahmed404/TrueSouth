@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { apronCellLocalKm, localKmToSceneOffset, MOON_RADIUS_M } from "../../../lib/geo";
-import { apronGeometry, apronUpGrid, patchUpGrid } from "./ground";
+import { apronGeometry, apronUpGrid, gridIndex, patchUpGrid, type GroundLod } from "./ground";
 
 const site = { latDeg: -89.4555, lonDeg: 222.6192, groundHeightM: 1_000 };
 const grid = { rows: 161, columns: 161, windowM: 300_000 };
@@ -68,5 +68,37 @@ describe("what the shadow march and the near-ground texture read", () => {
     const up = Float32Array.from([0.1, Number.NaN, 0.3, 0.4, 0, 0.6, 0.7, 0.8, 0.9]);
     const terrain = { east_km: new Float32Array(9), north_km: new Float32Array(9), up_km: up, slope_deg: new Float32Array(9) };
     expect(Array.from(patchUpGrid(terrain, size))).toEqual(Array.from(up, (v) => (Number.isNaN(v) ? 0 : Math.fround(v))));
+  });
+});
+
+describe("the ground's coarser mesh levels, for a moving camera", () => {
+  it("share one index buffer with the full mesh, which is drawn by default", () => {
+    const geometry = apronGeometry(apron, grid, 10, site);
+    const lod = geometry.userData.lod as GroundLod;
+    expect(lod[1]).toEqual({ start: 0, count: geometry.drawRange.count });
+    expect(lod[2]!.start).toBe(lod[1]!.count);
+    expect(lod[4]!.start).toBe(lod[2]!.start + lod[2]!.count);
+    expect(geometry.index!.count).toBe(lod[4]!.start + lod[4]!.count);
+    // Each step halves the grid: about a quarter of the triangles.
+    expect(lod[2]!.count / lod[1]!.count).toBeCloseTo(0.25, 1);
+    geometry.dispose();
+  });
+
+  it("use only the grid's own points, every 2nd or 4th, and keep the hole under the patch", () => {
+    const index = gridIndex(5, 5, 2, () => true);
+    expect(index).toEqual([0, 10, 2, 2, 10, 12, 2, 12, 4, 4, 12, 14, 10, 20, 12, 12, 20, 22, 12, 22, 14, 14, 22, 24]);
+    const geometry = apronGeometry(apron, grid, 10, site);
+    const lod = geometry.userData.lod as GroundLod;
+    const position = geometry.getAttribute("aL");
+    const all = geometry.index!.array;
+    // Like the full mesh, no coarse triangle lies wholly inside the patch: the patch draws there.
+    for (let t = lod[4]!.start; t < lod[4]!.start + lod[4]!.count; t += 3) {
+      const inside = [0, 1, 2].every((i) => {
+        const k = all[t + i]!;
+        return Math.max(Math.abs(position.getX(k)), Math.abs(position.getY(k))) < 10 - 1e-6;
+      });
+      expect(inside).toBe(false);
+    }
+    geometry.dispose();
   });
 });

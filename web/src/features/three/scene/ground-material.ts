@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { MOON_RADIUS_M } from "../../../lib/geo";
 import type { SiteFrame } from "./camera";
-import { GROUND_QUALITY, SHADOW_STEPS, groundDefines, groundQualityFromQuery, sameQuality, type GroundQuality } from "./ground-quality";
+import type { GroundLod, GroundLodStep } from "./ground";
+import { GROUND_QUALITY, SHADOW_STEPS, groundDefines, groundQualityFromQuery, sameQuality, type GroundLevel, type GroundQuality } from "./ground-quality";
 import {
   CAP_HALF_WIDTH,
   CORE_HALF_WIDTH,
@@ -53,6 +54,9 @@ void main() {
 const fragmentShader = `${LOGDEPTH_F}
 uniform sampler2D uMap, uCapN, uCoreN, uHPatch, uHApron;
 uniform float uLoaded, uCapLoaded, uFade, uNoLight, uGain, uEarthLight, uBounce;
+// 0 turns the near-ground texture off without recompiling: while the camera moves on a weak
+// GPU, and whenever the plate that discloses it cannot be shown.
+uniform float uGrainOn;
 uniform vec3 uLight, uEarth, uUp, uEast, uNorth, uCamL;
 // Height grids: (half-width km, points a side, km a point, 1 when loaded).
 uniform vec4 uPatch, uApron;
@@ -297,19 +301,21 @@ void main() {
   vec3 sL = vec3(dot(uLight, E), dot(uLight, N), dot(uLight, U));
   float shadow = 1.;
   #if GROUND_GRAIN > 0
-  vec2 pm = vL.xy * 1000.;
-  float foot = max(length(dFdx(pm)), length(dFdy(pm)));
-  float mu0 = dot(n, uLight);
-  vec2 sd = length(sL.xy) > 1e-5 ? normalize(sL.xy) : vec2(0., 1.);
-  vec4 gr = grain(pm, foot, sd, mu0 / sqrt(max(1. - mu0 * mu0, 1e-6)));
-  n = normalize(n - gr.x * E - gr.y * N);
-  alb *= 1. + gr.z;
-  shadow = mix(1., gr.w, 1. - uNoLight);
+  if (uGrainOn > .5) {
+    vec2 pm = vL.xy * 1000.;
+    float foot = max(length(dFdx(pm)), length(dFdy(pm)));
+    float mu0 = dot(n, uLight);
+    vec2 sd = length(sL.xy) > 1e-5 ? normalize(sL.xy) : vec2(0., 1.);
+    vec4 gr = grain(pm, foot, sd, mu0 / sqrt(max(1. - mu0 * mu0, 1e-6)));
+    n = normalize(n - gr.x * E - gr.y * N);
+    alb *= 1. + gr.z;
+    shadow = mix(1., gr.w, 1. - uNoLight);
+  }
   #endif
 
   // 2. The light, and the drawn shadow.
   #if GROUND_SHADOW_STEPS > 0
-  if (uNoLight < .5 && shadow > 0. && dot(n, uLight) > 0. && (uPatch.w > .5 || uApron.w > .5)) shadow *= drawnShadow(vL, sL);
+  if (uSteps > 0 && uNoLight < .5 && shadow > 0. && dot(n, uLight) > 0. && (uPatch.w > .5 || uApron.w > .5)) shadow *= drawnShadow(vL, sL);
   #endif
   vec3 cv = uCamL - vL;
   vec3 v = normalize(cv.x * E + cv.y * N + cv.z * U);
@@ -395,6 +401,33 @@ function heightTexture(grid: HeightGrid, floatLinear: boolean): THREE.DataTextur
   return texture;
 }
 
+/** How long the camera must be still before the ground goes back to full detail. */
+const SETTLE_MS = 150;
+
+export type MotionDetail = { meshStep: GroundLodStep; shadows: GroundLevel; grain: GroundLevel };
+
+const LEVEL_RANK: Record<GroundLevel, number> = { off: 0, reduced: 1, full: 2 };
+const lower = (a: GroundLevel, b: GroundLevel): GroundLevel => (LEVEL_RANK[a] <= LEVEL_RANK[b] ? a : b);
+
+/**
+ * What the ground draws now: the quality's levels, lowered to `whileMoving` while the camera
+ * moves, and with no drawn shadows and no texture while the disclosure cannot be shown.
+ */
+export function groundRuntime(
+  quality: GroundQuality,
+  moving: boolean,
+  disclosed: boolean,
+  whileMoving: MotionDetail,
+): { steps: number; grain: boolean; meshStep: GroundLodStep } {
+  const shadows = moving ? lower(quality.shadows, whileMoving.shadows) : quality.shadows;
+  const grain = moving ? lower(quality.grain, whileMoving.grain) : quality.grain;
+  return {
+    steps: disclosed ? SHADOW_STEPS[shadows] : 0,
+    grain: disclosed && grain !== "off",
+    meshStep: moving ? whileMoving.meshStep : 1,
+  };
+}
+
 /** How strong earthshine is drawn at full Earth, against the Sun's 1. Far above the real ratio, so night stays faintly readable. */
 const EARTHSHINE = 0.12;
 
@@ -433,6 +466,7 @@ export class GroundLook {
       uEarth: { value: new THREE.Vector3(0, 1, 0) },
       uFade: { value: 1 },
       uSteps: { value: SHADOW_STEPS[this.quality.shadows] },
+      uGrainOn: { value: 1 },
       uNine: { value: 9 },
       uUp: { value: new THREE.Vector3(0, -1, 0) },
       uEast: { value: new THREE.Vector3(1, 0, 0) },
@@ -447,14 +481,91 @@ export class GroundLook {
     });
   }
 
-  /** Sets each effect's level. Changing a level recompiles the shader once. */
+  /**
+   * Sets each effect's level. Changing a level recompiles the shader once. This is the call for
+   * the scene's quality stages; motion and disclosure are applied on top of it.
+   */
   setQuality(quality: GroundQuality): void {
     if (sameQuality(quality, this.quality)) return;
     this.quality = quality;
     this.material.defines = groundDefines(quality);
-    this.uniforms.uSteps.value = SHADOW_STEPS[quality.shadows];
     this.material.needsUpdate = true;
+    this.applyRuntime();
     this.invalidate();
+  }
+
+  /**
+   * What the ground draws while the camera moves: a coarser mesh and lighter effects, back to
+   * the quality's own at rest. The scene's quality stages may change it, for example
+   * `{ meshStep: 4, shadows: "off", grain: "off" }` on their lowest stage.
+   */
+  whileMoving: MotionDetail = { meshStep: 2, shadows: "reduced", grain: "full" };
+
+  /** Sets `whileMoving` and applies it at once. */
+  setWhileMoving(detail: MotionDetail): void {
+    this.whileMoving = detail;
+    this.applyRuntime();
+    this.invalidate();
+  }
+
+  /**
+   * False while the plate that discloses the drawing cannot be shown (plates.ts,
+   * `decorationDisclosure`): the ground then has no drawn shadows and no texture.
+   */
+  setDisclosed(shown: boolean): void {
+    if (shown === this.disclosed) return;
+    this.disclosed = shown;
+    this.applyRuntime();
+    this.invalidate();
+  }
+
+  get isMoving(): boolean {
+    return this.moving;
+  }
+
+  private moving = false;
+  private disclosed = true;
+  private settleTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastFrame = -1;
+  private readonly lastCamera = new Float64Array(16).fill(Number.NaN);
+  private readonly meshes = new Set<THREE.Mesh>();
+
+  /** Uniforms and draw ranges from the quality, the motion and the disclosure; no recompiling. */
+  private applyRuntime(): void {
+    const r = groundRuntime(this.quality, this.moving, this.disclosed, this.whileMoving);
+    this.uniforms.uSteps.value = r.steps;
+    this.uniforms.uGrainOn.value = r.grain ? 1 : 0;
+    for (const mesh of this.meshes) {
+      const lod = mesh.geometry.userData.lod as GroundLod | undefined;
+      const range = lod?.[r.meshStep] ?? lod?.[1];
+      if (range) mesh.geometry.setDrawRange(range.start, range.count);
+    }
+  }
+
+  /** Once a frame: is the camera where it was last frame? If not, draw lighter until it settles. */
+  private watchCamera(renderer: THREE.WebGLRenderer, camera: THREE.Camera): void {
+    const frame = renderer.info.render.frame;
+    if (frame === this.lastFrame) return;
+    this.lastFrame = frame;
+    const m = camera.matrixWorld.elements;
+    let moved = false;
+    for (let i = 0; i < 16; i += 1) {
+      if (m[i] !== this.lastCamera[i]) moved = true;
+      this.lastCamera[i] = m[i]!;
+    }
+    if (!moved) return;
+    if (!this.moving) {
+      this.moving = true;
+      this.applyRuntime();
+    }
+    if (this.settleTimer !== null) clearTimeout(this.settleTimer);
+    // At rest, one more frame at full quality: render on demand draws nothing more after it.
+    this.settleTimer = setTimeout(() => {
+      this.settleTimer = null;
+      this.moving = false;
+      this.applyRuntime();
+      this.invalidate();
+    }, SETTLE_MS);
   }
 
   /** The focused site's local frame, for the march, the texture and the camera's position. */
@@ -472,6 +583,7 @@ export class GroundLook {
   }
 
   clearHeights(): void {
+    this.meshes.clear();
     for (const texture of this.textures) texture.dispose();
     this.textures = [];
     this.grids = { patch: null, apron: null };
@@ -495,11 +607,16 @@ export class GroundLook {
   /** Called by each ground mesh before it draws: the camera in the site's frame, and the height textures on first use. */
   attach(mesh: THREE.Object3D): void {
     mesh.onBeforeRender = this.beforeRender;
+    if (mesh instanceof THREE.Mesh) {
+      this.meshes.add(mesh);
+      this.applyRuntime();
+    }
   }
 
   /** One handler for every ground mesh, made once: nothing is allocated per draw. */
   private readonly beforeRender = (renderer: THREE.WebGLRenderer, _scene: THREE.Scene, camera: THREE.Camera): void => {
     if (!this.built) this.build(renderer);
+    this.watchCamera(renderer, camera);
     const frame = this.frame;
     if (!frame) return;
     const km = MOON_RADIUS_M / 1_000;
@@ -535,6 +652,8 @@ export class GroundLook {
   }
 
   dispose(): void {
+    if (this.settleTimer !== null) clearTimeout(this.settleTimer);
+    this.settleTimer = null;
     this.clearHeights();
     this.blankHeight.dispose();
     this.material.dispose();

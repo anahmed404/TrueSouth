@@ -9,7 +9,7 @@ import type { MissionProfile, Site } from "../../../contracts/generated";
 import { surfacePointScene } from "../../../lib/geo";
 import { useEvaluation } from "../../../lib/scoring";
 import { groupPins, moreSitesLine, type ScreenPin } from "./pins";
-import type { Plate } from "./plates";
+import { visiblePlates, type Plate } from "./plates";
 import { bodyLabel, sightGood, sightLabel, type SightState } from "./sight";
 import type { Anchors, WorldSite } from "./world";
 
@@ -298,8 +298,12 @@ export function Overlay(props: OverlayProps) {
         ))}
       </div>
     ) : null;
-  const topPlates = plateStack(props.plates.filter((plate) => plate.place !== "foot"));
-  const footPlates = plateStack(props.plates.filter((plate) => plate.place === "foot"));
+  // The decoration plate is never hidden with the rest (plates.ts, visiblePlates): in a tight
+  // space or beside an open window it shortens to one line, and where not even that fits, the
+  // scene draws the ground without shadows or texture instead (scene-root.tsx, setDisclosed).
+  const shown = visiblePlates(props.plates, freeSpace, small);
+  const topPlates = plateStack(shown.top);
+  const footPlates = plateStack(shown.foot);
 
   const state = sight?.state ?? null;
   const focusedName = props.sites.find((s) => s.id === focusedId)?.name ?? focusedId ?? "";
@@ -365,6 +369,11 @@ export function Overlay(props: OverlayProps) {
         <span className="scene-label-main">Lander not to scale</span>
       </div>
 
+      {small && footPlates ? (
+        <div ref={footRef} className="scene-anchor scene-anchor-foot" style={fsStyleFoot}>
+          {footPlates}
+        </div>
+      ) : null}
       {small ? null : (
         <>
           {topPlates ? (

@@ -146,3 +146,51 @@ export function seriesSunAnswer(
   if (!state) return null;
   return { lit: state.sun === "lit", discFraction: series.sun_frac[hourIndex] ?? Number.NaN };
 }
+
+/** The decoration plate's one line for a tight space or beside an open window. */
+export const DECORATION_SHORT = "Shadows and ground texture are illustrative.";
+
+/** The smallest free space for each form of the decoration plate, in CSS pixels. */
+export const DISCLOSURE_ROOM = { full: { width: 360, height: 140 }, short: { width: 200, height: 56 } } as const;
+
+/**
+ * How the decoration plate is shown in a free space. The rule: wherever drawn shadows or the
+ * made-up ground texture are on screen, the plate saying so is on screen too.
+ *
+ * - "full": the plate as `decorationPlate` gives it.
+ * - "short": one line, `DECORATION_SHORT`, when the space is tight or a floating window is
+ *   open (the free space is then what is still visible beside the window). Other plates and
+ *   the scene's labels are hidden there; this one is not.
+ * - "none": not even one line fits. The ground then drops its shadows and texture
+ *   (`GroundLook.setDisclosed(false)`) for as long as this lasts, so nothing undisclosed is drawn.
+ */
+export function decorationDisclosure(space: { width: number; height: number; windowOpen: boolean }): "full" | "short" | "none" {
+  const { full, short } = DISCLOSURE_ROOM;
+  if (!space.windowOpen && space.width >= full.width && space.height >= full.height) return "full";
+  if (space.width >= short.width && space.height >= short.height) return "short";
+  return "none";
+}
+
+/**
+ * Which plates the overlay shows at the top and at the foot of the free space. `hidden` is
+ * the overlay's own rule for a tight space or an open window, which hides every other plate;
+ * the decoration plate follows `decorationDisclosure` instead.
+ */
+export function visiblePlates(
+  plates: readonly Plate[],
+  space: { width: number; height: number; windowOpen: boolean },
+  hidden: boolean,
+): { top: Plate[]; foot: Plate[] } {
+  const disclosure = decorationDisclosure(space);
+  const foot: Plate[] = [];
+  const top: Plate[] = [];
+  for (const plate of plates) {
+    if (plate.id === "decoration") {
+      if (disclosure === "full" && !hidden) foot.push(plate);
+      else if (disclosure !== "none") foot.push({ id: "decoration", text: DECORATION_SHORT, place: "foot" });
+    } else if (!hidden) {
+      (plate.place === "foot" ? foot : top).push(plate);
+    }
+  }
+  return { top, foot };
+}

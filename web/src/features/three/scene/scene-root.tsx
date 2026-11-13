@@ -36,7 +36,7 @@ import {
   type SiteFrame,
 } from "./camera";
 import { Overlay, type OverlayBus, type Preset, type LookToward } from "./overlay";
-import { sceneContent, seriesSunAnswer, type LoadState } from "./plates";
+import { decorationDisclosure, sceneContent, seriesSunAnswer, type LoadState } from "./plates";
 import { Rig } from "./rig";
 import { sightState, type SightState } from "./sight";
 import { mul, type V3 } from "./vec";
@@ -561,6 +561,8 @@ function Director(props: DirectorProps) {
   const { gl, camera, scene, invalidate } = useThree();
   const perspective = camera as THREE.PerspectiveCamera;
   const world = useMemo(() => new World(invalidate, gl.capabilities.getMaxAnisotropy()), [invalidate, gl]);
+  // Where the plate that discloses the drawn shadows and texture cannot be shown, neither are they (plates.ts).
+  useEffect(() => world.groundLook.setDisclosed(decorationDisclosure(props.freeSpace) !== "none"), [world, props.freeSpace]);
   const rig = useMemo(() => new Rig(perspective), [perspective]);
   const latest = useRef(props);
   latest.current = props;

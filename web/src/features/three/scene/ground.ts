@@ -33,7 +33,7 @@ function gridGeometry(
   size: { rows: number; columns: number },
   site: GroundSite,
   localKm: (row: number, column: number) => { eastKm: number; northKm: number; upKm: number },
-  keepQuad: (row: number, column: number) => boolean,
+  keepQuad: (row: number, column: number, step: number) => boolean,
 ): THREE.BufferGeometry {
   const { rows, columns } = size;
   const count = rows * columns;
@@ -58,25 +58,58 @@ function gridGeometry(
       moonFixed[k * 3 + 2] = m[2];
     }
   }
-  const index: number[] = [];
-  for (let row = 0; row < rows - 1; row += 1) {
-    for (let column = 0; column < columns - 1; column += 1) {
-      if (!keepQuad(row, column)) continue;
-      const a = row * columns + column;
-      const b = a + 1;
-      const c = a + columns;
-      const d = c + 1;
-      index.push(a, c, b, b, c, d);
-    }
-  }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.BufferAttribute(position, 3));
   geometry.setAttribute("aM", new THREE.BufferAttribute(moonFixed, 3));
   geometry.setAttribute("aL", new THREE.BufferAttribute(local, 3));
-  geometry.setIndex(index);
+  // Normals from the full mesh only, before the coarser levels join the index.
+  const full = gridIndex(rows, columns, 1, keepQuad);
+  geometry.setIndex(full);
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
+  // Coarser levels of the same grid, every 2nd and every 4th point, for drawing while the
+  // camera moves on a weak GPU. They share one index buffer with the full mesh and are picked
+  // with the draw range, so nothing more is uploaded or has to be released.
+  const levels: GroundLod = { 1: { start: 0, count: full.length } };
+  let all = full;
+  for (const step of GROUND_LOD_STEPS) {
+    if (step === 1 || (rows - 1) % step !== 0 || (columns - 1) % step !== 0) continue;
+    const coarse = gridIndex(rows, columns, step, keepQuad);
+    levels[step] = { start: all.length, count: coarse.length };
+    // concat, not push(...): a spread of 100,000 arguments can overflow the stack.
+    all = all.concat(coarse);
+  }
+  geometry.setIndex(all);
+  geometry.setDrawRange(0, full.length);
+  geometry.userData.lod = levels;
   return geometry;
+}
+
+/** The ground's mesh levels: 1 is every grid point, 2 every second, 4 every fourth. */
+export const GROUND_LOD_STEPS = [1, 2, 4] as const;
+export type GroundLodStep = (typeof GROUND_LOD_STEPS)[number];
+/** Where each level's triangles are in the geometry's one index buffer. */
+export type GroundLod = Partial<Record<GroundLodStep, { start: number; count: number }>>;
+
+/** Two triangles for each kept quad of a grid, on every `step`-th row and column. */
+export function gridIndex(
+  rows: number,
+  columns: number,
+  step: number,
+  keepQuad: (row: number, column: number, step: number) => boolean,
+): number[] {
+  const index: number[] = [];
+  for (let row = 0; row + step <= rows - 1; row += step) {
+    for (let column = 0; column + step <= columns - 1; column += step) {
+      if (!keepQuad(row, column, step)) continue;
+      const a = row * columns + column;
+      const b = a + step;
+      const c = a + step * columns;
+      const d = c + step;
+      index.push(a, c, b, b, c, d);
+    }
+  }
+  return index;
 }
 
 /**
@@ -158,9 +191,9 @@ export function apronGeometry(apron: DecodedApron, grid: ApronGrid, patchHalfKm:
       if (Math.max(Math.abs(east), Math.abs(north)) < patchHalfKm) height -= 30;
       return apronCellLocalKm(row, column, height, site.groundHeightM, grid);
     },
-    (row, column) => {
+    (row, column, step) => {
       const a = offsetKm(row, column);
-      const b = offsetKm(row + 1, column + 1);
+      const b = offsetKm(row + step, column + step);
       const inside =
         Math.max(Math.abs(a.east), Math.abs(b.east)) < patchHalfKm - 1e-6 &&
         Math.max(Math.abs(a.north), Math.abs(b.north)) < patchHalfKm - 1e-6;

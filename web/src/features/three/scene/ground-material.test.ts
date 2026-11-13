@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { GroundLook, heightMips } from "./ground-material";
+import { GroundLook, groundRuntime, heightMips } from "./ground-material";
 import { GROUND_QUALITY, groundDefines, groundQualityFromQuery, SHADOW_STEPS } from "./ground-quality";
 import { CAP_HALF_WIDTH, CORE_HALF_WIDTH } from "./ground-relief";
 
@@ -109,5 +109,41 @@ describe("the height grids' mip levels", () => {
     for (const level of flat) for (const v of level.data) expect(v).toBeCloseTo(1.25, 6);
     // A ramp from 0 to 4 averages to its middle at the coarsest level.
     expect(levels[2]!.data[0]).toBeCloseTo(2, 6);
+  });
+});
+
+describe("what the ground draws at run time (no recompiling)", () => {
+  const still = { meshStep: 2, shadows: "reduced", grain: "full" } as const;
+
+  it("at rest: the quality's own levels, full mesh", () => {
+    expect(groundRuntime(GROUND_QUALITY.full, false, true, still)).toEqual({ steps: 64, grain: true, meshStep: 1 });
+  });
+
+  it("while the camera moves: the coarser mesh and the lower of the two levels", () => {
+    expect(groundRuntime(GROUND_QUALITY.full, true, true, still)).toEqual({ steps: 24, grain: true, meshStep: 2 });
+    expect(groundRuntime(GROUND_QUALITY.full, true, true, { meshStep: 4, shadows: "off", grain: "off" })).toEqual({
+      steps: 0,
+      grain: false,
+      meshStep: 4,
+    });
+    // Moving never raises a level the quality stages lowered.
+    expect(groundRuntime(GROUND_QUALITY.off, true, true, still)).toEqual({ steps: 0, grain: false, meshStep: 2 });
+  });
+
+  it("where the disclosure cannot be shown: no drawn shadows and no texture, moving or not", () => {
+    expect(groundRuntime(GROUND_QUALITY.full, false, false, still)).toMatchObject({ steps: 0, grain: false });
+    expect(groundRuntime(GROUND_QUALITY.full, true, false, still)).toMatchObject({ steps: 0, grain: false });
+  });
+
+  it("the material follows: setDisclosed(false) turns the uniforms off, and back", () => {
+    const { ground, invalidated } = look();
+    ground.setDisclosed(false);
+    expect(ground.uniforms.uSteps.value).toBe(0);
+    expect(ground.uniforms.uGrainOn.value).toBe(0);
+    expect(invalidated()).toBe(1);
+    ground.setDisclosed(true);
+    expect(ground.uniforms.uSteps.value).toBe(64);
+    expect(ground.uniforms.uGrainOn.value).toBe(1);
+    ground.dispose();
   });
 });

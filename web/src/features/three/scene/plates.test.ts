@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sceneContent, type PlateInput } from "./plates";
+import { DECORATION_SHORT, decorationDisclosure, sceneContent, visiblePlates, type PlateInput } from "./plates";
 
 const ridge = { name: "Connecting Ridge", sphere: false };
 const apollo = { name: "Apollo 11", sphere: true };
@@ -133,5 +133,48 @@ describe("the plate that says the drawn ground is decoration", () => {
       place: "foot",
     });
     expect(plate({ view: "terrain", sun: { lit: true, discFraction: Number.NaN } })?.note).toBeUndefined();
+  });
+});
+
+describe("the decoration plate is on screen wherever the drawing is (visiblePlates)", () => {
+  const content = sceneContent(input({ view: "terrain", sun: { lit: true, discFraction: 1 } }));
+  const decoration = content.plates.find((p) => p.id === "decoration")!;
+  const other = { id: "apron-error", text: "The terrain beyond 10 km could not be loaded." };
+  const plates = [other, decoration];
+  const roomy = { width: 900, height: 500, windowOpen: false };
+
+  it("roomy: the full plate at the foot, other plates at the top", () => {
+    expect(decorationDisclosure(roomy)).toBe("full");
+    expect(visiblePlates(plates, roomy, false)).toEqual({ top: [other], foot: [decoration] });
+  });
+
+  it("the phone's free space (374 × 300) still takes the full plate", () => {
+    expect(visiblePlates(plates, { width: 374, height: 300, windowOpen: false }, false).foot).toEqual([decoration]);
+  });
+
+  it("a floating window open (Compare over Local terrain): other plates hide, the decoration shortens to one line", () => {
+    const beside = { width: 420, height: 380, windowOpen: true };
+    expect(visiblePlates(plates, beside, true)).toEqual({ top: [], foot: [{ id: "decoration", text: DECORATION_SHORT, place: "foot" }] });
+  });
+
+  it("a tight free space: one line, even where the overlay hides everything else", () => {
+    const tight = { width: 210, height: 60, windowOpen: false };
+    expect(decorationDisclosure(tight)).toBe("short");
+    expect(visiblePlates(plates, tight, true).foot).toEqual([{ id: "decoration", text: DECORATION_SHORT, place: "foot" }]);
+  });
+
+  it("no room for even one line: no plate, and the scene draws the ground plain (see ground-material.test.ts)", () => {
+    for (const space of [
+      { width: 180, height: 300, windowOpen: false },
+      { width: 600, height: 40, windowOpen: true },
+      { width: 0, height: 0, windowOpen: true },
+    ]) {
+      expect(decorationDisclosure(space)).toBe("none");
+      expect(visiblePlates(plates, space, true).foot).toEqual([]);
+    }
+  });
+
+  it("the short line names both made-up things", () => {
+    expect(DECORATION_SHORT).toBe("Shadows and ground texture are illustrative.");
   });
 });
