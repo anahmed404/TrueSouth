@@ -7,7 +7,8 @@ import {
   saveShellLayout,
   serializeShellLayout,
   setShellPanel,
-  shellColumns,
+  foldAnnouncement,
+  viewBarFitsBetween,
   shortcutPanel,
   toggleShellPanel,
   type ShellLayout,
@@ -91,7 +92,7 @@ describe("the timeline's fold", () => {
     const folded = toggleShellPanel(DEFAULT_SHELL_LAYOUT, "timeline");
     expect(folded.timeline.collapsed).toBe(true);
     expect(folded.sitesRail).toEqual(DEFAULT_SHELL_LAYOUT.sitesRail);
-    expect(shellColumns(folded)).toBe(shellColumns(DEFAULT_SHELL_LAYOUT));
+    expect(folded.focusPanel).toEqual(DEFAULT_SHELL_LAYOUT.focusPanel);
     const storage = memoryStorage();
     saveShellLayout(storage, folded);
     expect(loadShellLayout(storage).timeline.collapsed).toBe(true);
@@ -127,13 +128,27 @@ describe("loadShellLayout and saveShellLayout", () => {
   });
 });
 
-describe("shellColumns", () => {
-  it("gives the freed width to the main view", () => {
-    expect(shellColumns(DEFAULT_SHELL_LAYOUT)).toBe("var(--shell-rail) minmax(0, 1fr) var(--shell-focus)");
-    expect(shellColumns(bothCollapsed)).toBe("var(--shell-slim) minmax(0, 1fr) var(--shell-slim)");
-    expect(shellColumns(toggleShellPanel(DEFAULT_SHELL_LAYOUT, "sitesRail"))).toBe(
-      "var(--shell-slim) minmax(0, 1fr) var(--shell-focus)",
-    );
+describe("foldAnnouncement", () => {
+  it("says which panel folded or opened, for the [ and ] keys", () => {
+    expect(foldAnnouncement("sitesRail", true)).toBe("Sites rail folded.");
+    expect(foldAnnouncement("focusPanel", false)).toBe("Focused-site panel open.");
+    expect(foldAnnouncement("timeline", true)).toBe("Timeline folded.");
+  });
+});
+
+describe("viewBarFitsBetween", () => {
+  it("keeps the view bar between the side panels at 1440 px", () => {
+    expect(viewBarFitsBetween(1440, DEFAULT_SHELL_LAYOUT)).toBe(true);
+  });
+
+  it("moves it above the side panels at 1024 px with both open", () => {
+    expect(viewBarFitsBetween(1024, DEFAULT_SHELL_LAYOUT)).toBe(false);
+  });
+
+  it("brings it back between them when the panels fold", () => {
+    expect(viewBarFitsBetween(1024, bothCollapsed)).toBe(true);
+    expect(viewBarFitsBetween(1024, toggleShellPanel(DEFAULT_SHELL_LAYOUT, "sitesRail"))).toBe(false);
+    expect(viewBarFitsBetween(1024, toggleShellPanel(DEFAULT_SHELL_LAYOUT, "focusPanel"))).toBe(true);
   });
 });
 
