@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -567,15 +567,68 @@ describe("shareable scenario link", () => {
     expect(store.getState().landingUtc).toBe("2028-03-17T00:00:00Z");
   });
 
-  it("does not use local-time Date methods in the scenario store, the scoring hooks, or the sweep worker", () => {
+  it("keeps t, the hours after landing, when the landing slips", () => {
+    const store = createScenarioStore(catalog);
+    const grid = catalog.grid;
+    const landing = utcToHourIndex(grid, store.getState().landingUtc);
+    store.getState().setCurrentTime(hourIndexToUtc(grid, landing + 30));
+    store.getState().slipLanding(14);
+    expect(utcToHourIndex(grid, store.getState().landingUtc)).toBe(landing + 14 * 24);
+    expect(utcToHourIndex(grid, store.getState().currentUtc)).toBe(landing + 14 * 24 + 30);
+    expect(writeScenarioQuery(store.getState())).toContain("t=30");
+
+    store.getState().setCurrentTime(hourIndexToUtc(grid, landing + 14 * 24 - 50));
+    store.getState().slipLanding(-7);
+    expect(writeScenarioQuery(store.getState())).toContain("t=-50");
+  });
+
+  it("keeps t when a new landing date is set", () => {
+    const store = createScenarioStore(catalog);
+    const grid = catalog.grid;
+    const landing = utcToHourIndex(grid, store.getState().landingUtc);
+    store.getState().setCurrentTime(hourIndexToUtc(grid, landing + 5));
+    store.getState().setLandingDate("2029-06-10T12:00:00Z");
+    expect(store.getState().landingUtc).toBe("2029-06-10T12:00:00Z");
+    expect(store.getState().currentUtc).toBe("2029-06-10T17:00:00Z");
+    store.getState().setLandingDate("2029-06-11T12:00:00Z", "replace");
+    expect(store.getState().currentUtc).toBe("2029-06-11T17:00:00Z");
+  });
+
+  it("clamps t only where the timeline would leave the time grid", () => {
+    const store = createScenarioStore(catalog);
+    const grid = catalog.grid;
+    // Three days before landing, then move the landing to the grid's first hour.
+    const landing = utcToHourIndex(grid, store.getState().landingUtc);
+    store.getState().setCurrentTime(hourIndexToUtc(grid, landing - 72));
+    store.getState().setLandingDate(hourIndexToUtc(grid, 10));
+    expect(store.getState().landingUtc).toBe(hourIndexToUtc(grid, 10));
+    expect(store.getState().currentUtc).toBe(hourIndexToUtc(grid, 0));
+
+    // After the window, then slip to the last landing whose window fits: the context
+    // days after the window fall off the grid, so t clamps to the grid's last hour.
+    const hours = windowLength(store.getState().profile.duration_days);
+    store.getState().setCurrentTime(hourIndexToUtc(grid, 10 + hours + 60));
+    expect(writeScenarioQuery(store.getState())).toContain(`t=${hours + 60}`);
+    store.getState().slipLanding(10_000);
+    expect(store.getState().landingUtc).toBe(hourIndexToUtc(grid, lastLandingHour(grid, store.getState().profile.duration_days)));
+    expect(store.getState().currentUtc).toBe(hourIndexToUtc(grid, grid.count - 1));
+  });
+
+  it("does not use local-time Date methods in the scenario store, the scoring hooks, the sweep worker or the timeline", () => {
     const here = path.dirname(fileURLToPath(import.meta.url));
+    const timeline = path.join(here, "../app/mission/timeline");
     const sources = [
       readFileSync(path.join(here, "scenario.ts"), "utf8"),
       readFileSync(path.join(here, "../lib/scoring/hooks.ts"), "utf8"),
       readFileSync(path.join(here, "../lib/scoring/sweep-protocol.ts"), "utf8"),
       readFileSync(path.join(here, "../lib/scoring/sweep-client.ts"), "utf8"),
       readFileSync(path.join(here, "../lib/scoring/sweep.worker.ts"), "utf8"),
+      readFileSync(path.join(here, "../app/mission/throttled-history.ts"), "utf8"),
+      ...readdirSync(timeline)
+        .filter((name) => /\.tsx?$/.test(name) && !name.includes(".test."))
+        .map((name) => readFileSync(path.join(timeline, name), "utf8")),
     ];
+    expect(sources.length).toBeGreaterThan(8);
     const forbidden =
       /\b(?:getHours|getDate|getDay|getMonth|getFullYear|getMinutes|setHours|setDate|setMonth|setFullYear|setMinutes|getTimezoneOffset|toLocale)/;
     for (const source of sources) expect(source).not.toMatch(forbidden);

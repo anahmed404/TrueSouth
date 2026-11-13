@@ -5,7 +5,7 @@ import { Link } from "react-router";
 import { Luna, useLunaReducedMotion } from "../../components/luna";
 import { LESSONS, PATCH_SHELF } from "./catalog";
 import type { WorkedExamples } from "./placeholders";
-import { firstTimeTally, type RunnerState } from "./runner";
+import { completeScreenData, type RunnerState } from "./runner";
 import { useAcademyStore } from "./store";
 import type { Lesson } from "./types";
 import { filledText } from "./ui/filled";
@@ -74,9 +74,13 @@ export function CompleteScreen({ lesson, runner, examples }: { lesson: Lesson; r
   const next = index >= 0 ? LESSONS[index + 1] : undefined;
   const shelfIds = new Set(PATCH_SHELF.map((patch) => patch.id));
   const earnedOfNine = patches.filter((id) => shelfIds.has(id)).length;
-  const tally = firstTimeTally(runner.results);
-  const explanation = panelExplanation(lesson.unlocks);
-  const panel = panelName(lesson.unlocks);
+  const done = completeScreenData(lesson, runner);
+  const unlocked = typeof lesson.unlocks === "string" ? [lesson.unlocks] : lesson.unlocks;
+  const panel = unlocked.map((id) => panelName(id)).join(" and ");
+  const explanation = unlocked
+    .map((id) => panelExplanation(id))
+    .filter((text) => text !== null)
+    .join(" ");
 
   useEffect(() => {
     nextRef.current?.focus();
@@ -113,15 +117,13 @@ export function CompleteScreen({ lesson, runner, examples }: { lesson: Lesson; r
             </motion.div>
             <Moondust size="big" seed={19} />
           </div>
-          <h1>You earned the {lesson.patch.name} patch</h1>
+          <h1>{done.heading}</h1>
           <p className="ac-col-sub">{sub}</p>
 
           <div className="ac-score">
             <div>
-              <FillingStars count={runner.stars} />
-              <p className="ac-score-label">
-                {tally.first} of {tally.scored} right first time
-              </p>
+              <FillingStars count={done.stars} />
+              <p className="ac-score-label">{done.firstTime}</p>
             </div>
             <span className="ac-score-rule" aria-hidden="true" />
             <div>

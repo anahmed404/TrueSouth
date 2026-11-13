@@ -117,6 +117,10 @@ const entries = {
     text: "The terrain point that sets the skyline in one skyline bin: the one that reaches the highest elevation as seen from the site. A small ridge nearby can beat a tall mountain far away, so it is not always the tallest ground.",
     lesson: "l2_skyline",
   },
+  blocker_height: {
+    text: "How high the blocker stands above the Moon's reference sphere, a smooth ball with a radius of 1,737,400 metres. The higher and nearer it is, the more of the sky it hides.",
+    lesson: "l2_skyline",
+  },
   clearance: {
     text: "How far a body's centre sits above the skyline at its azimuth, as an angle. Positive means the centre is above the terrain, and negative means terrain stands in front of it.",
     lesson: "l4_link",

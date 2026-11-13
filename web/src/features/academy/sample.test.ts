@@ -67,7 +67,7 @@ describe("sample lesson", () => {
     play({ type: "continue" });
     play({ type: "submit", submission: { kind: "spot-bug", selected: 2 } });
     play({ type: "continue" });
-    play({ type: "submit", submission: { kind: "tune-slider", value: 3 } });
+    play({ type: "submit", submission: { kind: "tune-slider", variant: "number", value: 3 } });
     expect(state.phase).toBe("correct");
     play({ type: "continue" });
     play({ type: "skip" });
