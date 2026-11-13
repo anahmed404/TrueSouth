@@ -53,6 +53,8 @@ each integration checkpoint.
 - **Who:** Codex agent, for the orchestrator
 - **AI use:** Codex, gpt-6.1-terra — built fixture pipeline and tests — automated checks run; human review pending
 - **State:** built, not verified
+
+- **State:** verified (the orchestrator, Claude Fable 5.2, rebuilt the fixtures and confirmed they equal the committed files, recomputed clearance from elevation and skyline, swept every site with the scoring reference and sent the first version back for lack of variety; Antigravity, gemini-4-hydrogen checked every file against its contract, recomputed all scoring cases and found a weights case that proved nothing, fixed by the agent; 5 sites, 58 scoring cases, 5.9 MB)
 - **Changed:** Science fixture encoding, binary I/O, pipeline, tests, `data/fixtures/`, shared scoring cases and data-contract notes.
 - **Notes:** G9 sampled maximum errors 0.004999907384558355° and 0.00004999858055221296. Fixtures total 5,873,738 bytes; 58 scoring cases total 683,740 bytes. Daily IM-2 windows: ridge 1,732 GO / 450 NO-GO; crater 103 GO / 18 CAUTION / 2,061 NO-GO; wide 504 CAUTION / 1,678 NO-GO; edge 2,182 NO-GO; sphere 365 GO / 11 CAUTION / 1,806 NO-GO. Values are synthetic, not validation measurements.
 
@@ -63,7 +65,8 @@ each integration checkpoint.
   Fable 5.2) reran the full comparison offline from the saved responses and checked the
   result against known facts; Cursor, grok-4.7 recomputed it with its own vector code and
   checked the conventions against the Horizons headers and manual
-- **State:** built; gate G1 verified; gate G2 awaiting the team lead's decision on its wording
+- **State:** verified (gates G1 and G2; the team lead decided on 2026-11-13 that G2
+  compares directions on the sky, see `docs/decisions/0011`)
 - **Changed:** `science/src/truesouth/horizons.py`, `ephemeris.py`,
   `commands/fetch_ephemeris.py`, `science/tests/`, `data/derived/system.bin`,
   `docs/science.md` section 3
