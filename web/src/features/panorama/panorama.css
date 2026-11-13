@@ -19,7 +19,7 @@
 .pano-panel {
   width: min(100%, 860px);
   margin-bottom: var(--float-gap);
-  padding: var(--s2) var(--s3) var(--s3);
+  padding: var(--s2) var(--s3);
 }
 
 /* ── Control row ─────────────────────────────────────────────────────────── */
@@ -428,7 +428,8 @@
 /* Touch screens and phones: every control at least 44 px. */
 @media (pointer: coarse), (max-width: 760px) {
   .pano .seg-option,
-  .pano-reset {
+  .pano-reset,
+  .pano-toggle {
     min-width: 44px;
     min-height: 44px;
   }
@@ -451,4 +452,63 @@
   position: static;
   margin-top: var(--s2);
   box-shadow: none;
+}
+
+/* ── Folding the chart in Mission Control ────────────────────────────────── */
+/* The chart, its controls and its legend: one block that folds away. */
+.pano-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  min-width: 0;
+}
+
+/* Opening rises with the floating window's motion (shell.css, window-rise). */
+.pano-body[data-rise="true"] {
+  animation: window-rise 180ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pano-body[data-rise="true"] {
+    animation: none;
+  }
+}
+
+/* The foot row, in both states: the arrow, then the one-line answer. */
+.pano-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-width: 0;
+}
+
+.pano-toggle {
+  flex: none;
+}
+
+.pano-foot-why {
+  flex: 1;
+  min-width: 0;
+}
+
+.pano-foot-note {
+  padding: 0 var(--s2);
+}
+
+/* The foot row is the same in both states, so the arrow does not move when the chart opens:
+   the panel keeps its width and its bottom padding, and the answer sits flat in the row (the
+   panel is its card). Folded, the row is all there is: about as tall as the "why" plate in
+   the other views, so the 3D horizon keeps nearly the whole free space. */
+.pano-foot .why-line,
+.pano-foot .why {
+  border: 0;
+  background: none;
+}
+
+.pano-foot .why-line {
+  padding: 0 0 0 var(--s1);
+}
+
+.pano-foot .why-ok {
+  padding: 0 var(--s2) 0 var(--s1);
 }

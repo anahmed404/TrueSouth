@@ -557,6 +557,31 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-14 · MC6b · Lander's eye: the horizon chart folds away, closed by default
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (keeping the
+  approved look) — wrote the fold (one arrow button in the panel's foot row, the session
+  memory, the rise), the shell's measurement of the foot stack, and 12 vitest tests — checked
+  by the agent with typecheck, the vitest suite, the build and `uv run pytest`, and by eye
+  with hardware WebGL at 1440 × 900, 1024 × 768 and 390 × 844, folded and open, lit and dark
+  hours, Apollo 11, keyboard only and reduced motion; a human has not reviewed it yet
+- **State:** verified (322 Python tests, 1,756 web tests, typecheck and build pass on the merge with main; reviewed by Gemini (approve with fixes; two mutations caught); the orchestrator made the two small fixes: no aria-controls while the chart is unmounted, and the foot stack is left out of the free space while a window is open; asked for by the team lead, not yet seen by them)
+- **Changed:** `web/src/features/panorama/` (new `fold.ts`, `fold.test.ts`,
+  `collapse.test.ts`; `index.tsx`, `panorama.css`), `web/src/app/mission-screen.tsx` (the
+  free space ends at the foot stack's top), `docs/features/panorama.md`,
+  `docs/design/c2/built-landers-eye-collapsed-*.png`, this entry
+- **Notes:**
+  - In Mission Control the chart starts folded: one 46 px row with the arrow ("Horizon
+    chart", named "Show the horizon chart") and the panel's one-line answer. In a lesson it
+    is always open, with no arrow.
+  - The arrow sits at the start of the foot row in both states and does not move (measured
+    0 px at 1440 × 900); the chart rises above the row.
+  - Kept in sessionStorage (`truesouth.landers-eye-chart.v1`), with the shell's load and save
+    pattern. The shell's side panels use localStorage, which would carry the choice into a
+    new visit; the brief asked for a fresh visit to start folded.
+  - The free space reads the foot stack, which is already where the panel ends up, so the
+    camera reframes once with no jump at the end of the rise.
+
 #### 2026-11-13 · MC6 · Lander's eye: the horizon chart
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (building the

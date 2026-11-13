@@ -35,6 +35,18 @@ Layout and the view bar: [`mission-control.md`](mission-control.md). Prototype:
   "Why is it dark?" card and a one-line legend. The app bar, view bar, sites rail,
   focused-site panel and timeline float as in every view. The scene's free space ends above
   this panel, so the horizon is never covered.
+- **The chart is folded by default in Mission Control,** so the 3D horizon has the room.
+  Folded, the panel is one row at the foot of the free space, about as tall as the "why"
+  plate in the other views: an arrow button ("Horizon chart", named "Show the horizon
+  chart") and the one-line answer at the panel's foot (the lit line, or the dark hour's
+  reason with its "Why?" button; while loading, "Loading the horizon…"). The arrow opens
+  the chart, which rises above the same row with the floating window's motion (none under
+  reduced motion); the arrow, now "Hide the horizon chart", stays where it was and folds it
+  again. The button carries `aria-expanded` and `aria-controls`. The choice is view state:
+  kept for the session (a reload in the same tab keeps it, a fresh visit starts folded),
+  never in the scenario or the link. The free space follows the panel in both states. A
+  sphere-tier site, an error or no site shows its sentence in the row, with no arrow, since
+  there is no chart to open. In an Academy lesson the chart is always open, with no arrow.
 - A plate says that shading and shadows are for understanding only. **Lit or dark comes
   from the series.** Earth's and the Sun's "in view" or "blocked" in the labels come from
   the series' `clearance` and disc fraction, never from what the scene draws.
