@@ -64,15 +64,17 @@ export const pipProfile: MissionProfile = {
 
 /**
  * Story scenario for every lesson unless a step says otherwise: Pip, `im2_athena`,
- * at Connecting Ridge. The landing day is still being defined. Both instants below
- * are provisional and are the only date literals the skeletons use.
+ * at Connecting Ridge. The landing instant is the story key from worked examples,
+ * so the lesson does not keep its own date.
  */
+const storyLanding = "{{example.story.landing_utc}}";
+
 export const storyScenario: Scenario = {
   profile: pipProfile,
   siteIds: ["connecting_ridge"],
   focusedSiteId: "connecting_ridge",
-  landingUtc: "2028-01-01T00:00:00Z", // PROVISIONAL(story-date)
-  currentUtc: "2028-01-01T00:00:00Z", // PROVISIONAL(story-date)
+  landingUtc: storyLanding,
+  currentUtc: storyLanding,
 };
 
 export function storyScene(skyline: SkylineKind, timeRange: TimeRange | null): SceneSpec {

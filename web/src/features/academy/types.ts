@@ -167,11 +167,13 @@ export type MapSpec = {
  * - `stops`: text looked up at exact positions. The lesson does not compute it.
  * - `curvature-drop`: the drop distance² / 2R (docs/science.md §4). `radiusM` is the Moon's radius.
  * - `piecewise-linear`: straight lines through knots. A knot's position or value may be a placeholder.
+ * - `example-list`: one number per slider step, read from a worked-example list. The lesson does not interpolate it.
  */
 export type NumberReadout =
   | { kind: "stops"; label: string; stops: readonly { at: number; text: string }[] }
   | { kind: "curvature-drop"; label: string; radiusM: number }
-  | { kind: "piecewise-linear"; label: string; knots: readonly { at: GoalValue; value: GoalValue }[] };
+  | { kind: "piecewise-linear"; label: string; knots: readonly { at: GoalValue; value: GoalValue }[] }
+  | { kind: "example-list"; label: string; key: string; origin: number; step: number };
 
 export type DateReadout = {
   label: string;

@@ -133,6 +133,10 @@ export function validateLesson(lesson: Lesson, check: LessonCheck): readonly str
     if (step.kind === "tune-slider") {
       if (step.slider.panel) pushPanel(problems, check.panels, step.slider.panel, where);
       checkSlider(problems, step, check);
+      const readout = step.slider.kind === "number" ? step.slider.readout : undefined;
+      if (readout?.kind === "example-list" && !check.exampleKeys.has(readout.key)) {
+        problems.push(`${where} reads a worked-example list that is not in the contract: ${readout.key}`);
+      }
     }
     if (step.kind === "drop-pin" && step.map.aside) pushPanel(problems, check.panels, step.map.aside, where);
     if (step.kind === "draw-skyline") checkWindow(problems, step, check);
