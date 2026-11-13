@@ -176,6 +176,21 @@ with +x right, +y up, and row 0 at the top. Lookup grids use the same orientatio
 projection in [`science.md`](science.md) §2.3. Lookup grids are `Uint8`, where a value $v$
 means $v/255$, and 255 marks "no data".
 
+- **Writing a lookup value.** A fraction $f$ between 0 and 1 is stored as
+  $\min(\operatorname{round}(255 f),\ 254)$. The byte 255 is never a value, so a fraction
+  of exactly 1 is stored as 254 and reads back as 0.996. The largest error is 0.002 below
+  that cap and 0.004 at it.
+- **A lookup cell's value** is the mean of the source map's valid pixels whose centres
+  fall inside the cell. A cell with no valid source pixel is "no data", never 0.
+- **Sources.** The hillshade comes from the 80 m terrain map by
+  [`science.md`](science.md) §2.4. The sunlight and Earth-visibility layers come from
+  NASA's 60 m average maps where they have data (to about 85°S) and from the 120 m maps
+  beyond that, out to the image edge at 80°S. Each file's own scale, offset and no-data
+  value are read from the file.
+- **Overlay images** map a fraction of 0 to black and 1 to white in one channel, with
+  "no data" fully transparent. The web app tints them.
+- **Image sizes.** A `_4k` image is 4,096 pixels on a side and an `_8k` image 8,192.
+
 ### `validation.json` and `academy/worked_examples.json`
 
 Described in [`validation.md`](validation.md) and
