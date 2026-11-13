@@ -162,18 +162,24 @@ export async function loadCloseup(
   return loadMesh(siteId, "closeup.bin", size, fetchImpl);
 }
 
+function isHtml(response: Response): boolean {
+  return (response.headers.get("content-type") ?? "").toLowerCase().includes("text/html");
+}
+
 async function loadMesh(
   siteId: string,
   fileName: "terrain.bin" | "closeup.bin",
   size: number | null,
   fetchImpl: FetchLike,
 ): Promise<DecodedTerrain | null> {
-  const bytes = await fetchOptionalBytes(siteFile(siteId, fileName), fetchImpl);
-  if (bytes === null) return null;
-  if (size === null) {
-    throw new Error(`${fileName} exists but ${siteId} meta.json has no ${fileName === "terrain.bin" ? "terrain" : "close-up"}`);
+  if (size === null) return null;
+  const url = siteFile(siteId, fileName);
+  const response = await fetchImpl(url);
+  if (response.status === 404 || isHtml(response)) return null;
+  if (!response.ok) {
+    throw new Error(`${fileLabel(url)} returned HTTP ${response.status}`);
   }
-  return decodeTerrain(bytes, size, fileName);
+  return decodeTerrain(await response.arrayBuffer(), size, fileName);
 }
 
 export async function loadSystem(count: number, fetchImpl: FetchLike = defaultFetch): Promise<DecodedSystem> {

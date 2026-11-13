@@ -11,5 +11,5 @@ export {
   type SeriesColumnName,
   type SeriesColumnSpec,
 } from "./layouts.ts";
-export { decodeLookup, decodeSkyline, decodeSystem, decodeTerrain, lookupFraction } from "./arrays.ts";
+export { decodeLookup, decodeSkyline, decodeSystem, decodeTerrain, decodeTerrainGrid, lookupFraction } from "./arrays.ts";
 export { decodeSeries } from "./series.ts";

@@ -12,7 +12,7 @@ import {
   loadValidation,
   type FetchLike,
 } from "./load.ts";
-import { parseManifest } from "./parse.ts";
+import { parseManifest, parseProfiles } from "./parse.ts";
 import { isCustomSiteId } from "./paths.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -79,5 +79,49 @@ describe("loaders", () => {
     expect(isCustomSiteId("fixture_ridge")).toBe(false);
     expect(isCustomSiteId("c_-89.200_130.5000")).toBe(false);
     expect(isCustomSiteId("c_-89.2000_-1.0000")).toBe(false);
+  });
+});
+
+describe("optional mesh files", () => {
+  it("does not fetch a mesh the metadata says is absent", async () => {
+    const urls: string[] = [];
+    const fetchImpl: FetchLike = async (url) => {
+      urls.push(url);
+      return new Response(new Uint8Array());
+    };
+    await expect(loadTerrain("fixture_sphere", null, fetchImpl)).resolves.toBeNull();
+    expect(urls).toEqual([]);
+  });
+
+  it("treats an HTML response as a missing optional mesh", async () => {
+    const fetchImpl: FetchLike = async (url) => {
+      expect(url).toBe("/data/sites/fixture_ridge/terrain.bin");
+      return new Response("<!doctype html><html></html>", {
+        status: 200,
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      });
+    };
+    await expect(loadTerrain("fixture_ridge", 33, fetchImpl)).resolves.toBeNull();
+  });
+});
+
+describe("profiles.json required fields", () => {
+  const schema = JSON.parse(
+    readFileSync(path.join(repoRoot, "web", "src", "contracts", "schema.json"), "utf8"),
+  ) as { $defs: { MissionProfile: { required: string[] } } };
+  const profiles = JSON.parse(
+    readFileSync(path.join(repoRoot, "data", "fixtures", "profiles.json"), "utf8"),
+  ) as Record<string, unknown>[];
+
+  it("names every required field from the profile contract", () => {
+    expect(() => parseProfiles(profiles)).not.toThrow();
+    expect(() => parseProfiles([{ id: "viper" }])).toThrow("profiles.json item 0 is missing name");
+    for (const field of schema.$defs.MissionProfile.required) {
+      const broken = profiles.map((profile, index) => {
+        if (index !== 0) return profile;
+        return Object.fromEntries(Object.entries(profile).filter(([key]) => key !== field));
+      });
+      expect(() => parseProfiles(broken), field).toThrow(`missing ${field}`);
+    }
   });
 });
