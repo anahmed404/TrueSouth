@@ -86,7 +86,16 @@ export type SkylineKind = "flat" | "smooth" | "terrain";
  */
 export type TimeRange =
   | { kind: "utc"; fromUtc: string; toUtc: string }
-  | { kind: "span"; span: "one-month"; aroundUtc: GoalValue };
+  | { kind: "span"; span: "one-month"; aroundUtc: GoalValue }
+  | {
+      /**
+       * `halfHours` on either side of `aroundUtc`, inclusive, then clamped to the time grid.
+       * 24 is the 48 hours from −24 h to +24 h.
+       */
+      kind: "hours";
+      aroundUtc: GoalValue;
+      halfHours: number;
+    };
 
 /** A site, a landing date and a profile, plus how the horizon is drawn and the drag window. */
 export type SceneSpec = {
@@ -153,11 +162,16 @@ export type MapSpec = {
   aside: PanelId | null;
 };
 
-/** One line of a slider readout. The text may hold placeholders. The UI looks it up; it never computes it. */
-export type NumberReadout = {
-  label: string;
-  stops: readonly { at: number; text: string }[];
-};
+/**
+ * What a number slider shows beside the handle.
+ * - `stops`: text looked up at exact positions. The lesson does not compute it.
+ * - `curvature-drop`: the drop distance² / 2R (docs/science.md §4). `radiusM` is the Moon's radius.
+ * - `piecewise-linear`: straight lines through knots. A knot's position or value may be a placeholder.
+ */
+export type NumberReadout =
+  | { kind: "stops"; label: string; stops: readonly { at: number; text: string }[] }
+  | { kind: "curvature-drop"; label: string; radiusM: number }
+  | { kind: "piecewise-linear"; label: string; knots: readonly { at: GoalValue; value: GoalValue }[] };
 
 export type DateReadout = {
   label: string;
@@ -170,7 +184,12 @@ export type DateReadout = {
  */
 export type PipFollow =
   | { power: "sun-fraction"; link?: "link-up" }
-  | { link: "link-up"; power?: "sun-fraction" };
+  | {
+      link: "link-up";
+      power?: "sun-fraction";
+      /** `readout` means the link meter shows the slider's readout. Omit it to follow the panel. */
+      source?: "readout";
+    };
 
 /** A slider over a number, such as kilometres or degrees. */
 export type NumberSliderSpec = {
@@ -223,6 +242,15 @@ export type StageSpec =
   | { scene: "pip"; caption: string }
   | { scene: "sky-ruler"; caption: string; angles: readonly (GoalValue | null)[] };
 
+/**
+ * The azimuth window a draw-skyline step scores, in degrees.
+ * `centred` is how a lesson says "this direction": a centre, often a worked-example key,
+ * plus a half-width. It is not two fixed ends.
+ */
+export type AzimuthWindow =
+  | { kind: "between"; from: GoalValue; to: GoalValue }
+  | { kind: "centred"; centre: GoalValue; halfWidthDeg: number };
+
 /** A sketch point for `draw-skyline`, in degrees. */
 export type SketchPoint = { azDeg: number; elDeg: number };
 
@@ -265,12 +293,12 @@ export type Step = StepBase &
         kind: "draw-skyline";
         scene: SceneSpec;
         /**
-         * Azimuth window, in degrees, passed to `skylineGapDeg` as `azFrom` and `azTo`.
-         * A number, or a `{{example.key}}` placeholder. The real skyline is the scene site's
-         * skyline (`scene.skyline`); this step never stores the elevations.
+         * Azimuth window, in degrees, passed to `skylineGapDeg`.
+         * `between` is a clockwise arc. `centred` is `centre` ± `halfWidthDeg`, and it wraps
+         * at 0°/360°. The centre may be a `{{example.key}}` placeholder. The real skyline is
+         * the scene site's skyline; this step never stores the elevations.
          */
-        azFrom: GoalValue;
-        azTo: GoalValue;
+        window: AzimuthWindow;
       }
     | { kind: "drop-pin"; map: MapSpec; goal?: GoalSpec; answerLabel?: string }
     | {
@@ -293,8 +321,8 @@ export type Lesson = {
   /** One line for the path map. */
   tagline: string;
   patch: { name: string; art: string };
-  /** The Mission Control panel shown at the end. */
-  unlocks: PanelId;
+  /** The Mission Control panel or panels shown at the end. */
+  unlocks: PanelId | readonly PanelId[];
   /** The idea in one sentence. */
   recap: string;
   /** Under-the-hood card id. */

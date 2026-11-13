@@ -75,8 +75,12 @@ export function CompleteScreen({ lesson, runner, examples }: { lesson: Lesson; r
   const shelfIds = new Set(PATCH_SHELF.map((patch) => patch.id));
   const earnedOfNine = patches.filter((id) => shelfIds.has(id)).length;
   const done = completeScreenData(lesson, runner);
-  const explanation = panelExplanation(lesson.unlocks);
-  const panel = panelName(lesson.unlocks);
+  const unlocked = typeof lesson.unlocks === "string" ? [lesson.unlocks] : lesson.unlocks;
+  const panel = unlocked.map((id) => panelName(id)).join(" and ");
+  const explanation = unlocked
+    .map((id) => panelExplanation(id))
+    .filter((text) => text !== null)
+    .join(" ");
 
   useEffect(() => {
     nextRef.current?.focus();

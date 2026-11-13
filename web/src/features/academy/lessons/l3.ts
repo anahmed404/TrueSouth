@@ -1,3 +1,4 @@
+import { MOON_RADIUS_M } from "../../../lib/geo/constants";
 import type { Lesson } from "../types";
 import { todo } from "./story";
 
@@ -57,20 +58,13 @@ export const lesson3 = {
       slider: {
         kind: "number",
         min: 0,
-        max: 130,
+        max: 60,
         step: 1,
         unit: "km",
         label: "distance",
-        readout: {
-          label: "drop",
-          stops: [
-            { at: 20, text: "{{example.l3.drop_at_20km_m}} m" },
-            { at: 60, text: "{{example.l3.drop_at_60km_m}} m" },
-            { at: 130, text: "{{example.l3.drop_at_130km_m}} m" },
-          ],
-        },
+        readout: { kind: "curvature-drop", label: "drop", radiusM: MOON_RADIUS_M },
       },
-      goal: { metric: "distance_km", op: "==", value: 20 },
+      goal: { metric: "distance_km", op: "==", value: 20, tolerance: 1 },
       answerLabel: "20 km",
     },
     {

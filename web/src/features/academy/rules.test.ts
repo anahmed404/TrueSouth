@@ -106,12 +106,29 @@ describe("draw-skyline closeness XP", () => {
     // At 0: 0.5. At 10: sketch 2.0, gap 0. At 20: 0.5. 30 is out of range.
     expect(skylineGapDeg(sketch, real, 0, 20)).toBeCloseTo(1 / 3, 10);
     expect(skylineGapDeg([], real, 0, 20)).toBeNaN();
-    expect(skylineGapDeg(sketch, real, 100, 200)).toBeNaN();
+    expect(() => skylineGapDeg(sketch, real, 100, 200)).toThrow(/no skyline sample/);
+  });
+
+  it("scores a window that wraps past 0° and never returns NaN for it", () => {
+    const real = [
+      { azDeg: 355, elDeg: 1 },
+      { azDeg: 5, elDeg: 2 },
+      { azDeg: 180, elDeg: 9 },
+    ];
+    const sketch = [
+      { azDeg: 0, elDeg: 1.5 },
+      { azDeg: 10, elDeg: 2 },
+      { azDeg: 350, elDeg: 1 },
+    ];
+    const gap = skylineGapDeg(sketch, real, 340, 20);
+    expect(gap).toBeCloseTo(0.125, 10);
+    expect(Number.isNaN(gap)).toBe(false);
+    expect(() => skylineGapDeg(sketch, real, 100, 110)).toThrow(/lesson-definition error/);
   });
 
   it("allows one attempt and scores it by closeness", () => {
     const lesson = lessonWith([
-      { ...base, id: "sk", kind: "draw-skyline", scene: { scenario, skyline: "terrain", timeRange: null }, azFrom: 0, azTo: 20 },
+      { ...base, id: "sk", kind: "draw-skyline", scene: { scenario, skyline: "terrain", timeRange: null }, window: { kind: "between", from: 0, to: 20 } },
     ]);
     const close = run(initialRunnerState(), { kind: "draw-skyline", sketch: [], gapDeg: 0.25 }, lesson);
     expect(close.phase).toBe("correct");

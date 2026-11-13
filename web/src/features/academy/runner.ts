@@ -2,6 +2,7 @@ import type { GoalAttempt, GoalEvaluator, PriorValue, ResolvedGoal } from "./eva
 import { fillPlaceholders, resolveValue, type WorkedExamples } from "./placeholders";
 import { skylineRightFirstTime, skylineXp } from "./skyline-score";
 import type { GoalSpec, Lesson, Step, StepKind, Submission } from "./types";
+import { FIXTURE_TIME_GRID, hourOnGrid } from "./utc";
 
 /** XP rules: docs/academy/overview.md, "Game rules". */
 export const XP_FIRST = 10;
@@ -334,10 +335,11 @@ function askEvaluator(evaluator: GoalEvaluator, goal: ResolvedGoal, attempt: Goa
 
 function dateOnSlider(step: Extract<Step, { kind: "tune-slider" }>, utc: string): boolean {
   if (step.slider.kind !== "date") return true;
-  const value = Date.parse(utc);
-  const min = Date.parse(step.slider.minUtc);
-  const max = Date.parse(step.slider.maxUtc);
-  return Number.isFinite(value) && Number.isFinite(min) && Number.isFinite(max) && value >= min && value <= max;
+  const value = hourOnGrid(FIXTURE_TIME_GRID, utc);
+  const min = hourOnGrid(FIXTURE_TIME_GRID, step.slider.minUtc);
+  const max = hourOnGrid(FIXTURE_TIME_GRID, step.slider.maxUtc);
+  if (value === null || min === null || max === null) return false;
+  return value >= min && value <= max;
 }
 
 function optionGrade(

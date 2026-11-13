@@ -9,23 +9,36 @@ import { LessonScreen } from "./lesson-screen";
 import { sampleExamples, sampleLesson } from "./lessons/sample";
 import { PathMap } from "./path-map";
 import type { WorkedExamples } from "./placeholders";
+import type { Lesson } from "./types";
+import { lessonCheck, lessonScreenKind } from "./validate";
 
 type AcademyRoutesProps = {
   lessonId?: string;
+  /** The lesson opened for `lesson.id`. Defaults to the sample. Tests pass a broken one. */
+  playable?: Lesson;
 };
 
+function summaryFrom(lesson: Lesson): LessonSummary {
+  const unlocks = typeof lesson.unlocks === "string" ? lesson.unlocks : (lesson.unlocks[0] ?? "SystemView");
+  return { id: lesson.id, title: lesson.title, tagline: lesson.tagline, patchName: lesson.patch.name, unlocks };
+}
+
 /** Every Academy animation reads the reduce-motion setting itself (useLunaReducedMotion). */
-export default function AcademyRoutes({ lessonId }: AcademyRoutesProps) {
+export default function AcademyRoutes({ lessonId, playable = sampleLesson }: AcademyRoutesProps) {
   const worked = useWorkedExamples();
   // The real worked examples, with the sample's own toy values on top.
   const examples = useMemo<WorkedExamples>(() => ({ ...(worked.data ?? {}), ...sampleExamples }), [worked.data]);
   if (!lessonId) return <PathMap />;
-  if (lessonId === sampleLesson.id) {
+  if (lessonId === playable.id) {
+    const examplesForCheck = playable.id === sampleLesson.id ? sampleExamples : {};
+    if (lessonScreenKind(playable, lessonCheck(examplesForCheck)) === "unwritten") {
+      return <UnwrittenLesson lesson={summaryFrom(playable)} />;
+    }
     return (
       <LessonScreen
-        key={sampleLesson.id}
-        lesson={sampleLesson}
-        examples={examples}
+        key={playable.id}
+        lesson={playable}
+        examples={playable.id === sampleLesson.id ? examples : {}}
         examplesPending={worked.status === "loading"}
       />
     );

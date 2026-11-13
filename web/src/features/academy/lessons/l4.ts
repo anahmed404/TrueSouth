@@ -19,7 +19,7 @@ export const lesson4 = {
   title: "Phone home",
   tagline: "From the pole, Earth bobs above and below the horizon each month.",
   patch: { name: "Signal Keeper", art: "l4_link" },
-  unlocks: "Timeline",
+  unlocks: ["Timeline", "Countdowns"],
   recap: "From the pole, Earth bobs above and below the horizon each month.",
   card: "l4_link",
   steps: [
@@ -75,21 +75,23 @@ export const lesson4 = {
       slider: {
         kind: "number",
         min: 0,
-        max: 5,
-        step: 1,
+        max: 8,
+        step: 0.5,
         unit: "°",
         label: "margin",
         readout: {
+          kind: "piecewise-linear",
           label: "link time",
-          stops: [
-            { at: 0, text: "{{example.l4.link_pct_mask0}}%" },
-            { at: 1, text: "{{example.l4.link_pct_mask1}}%" },
-            { at: 5, text: "{{example.l4.link_pct_mask5}}%" },
+          knots: [
+            { at: 0, value: "{{example.l4.link_pct_mask0}}" },
+            { at: 1, value: "{{example.l4.link_pct_mask1}}" },
+            { at: 5, value: "{{example.l4.link_pct_mask5}}" },
+            { at: "{{example.l4.earth_el_max_deg}}", value: 0 },
           ],
         },
-        follow: { link: "link-up" },
+        follow: { link: "link-up", source: "readout" },
       },
-      goal: { metric: "antenna_mask_deg", op: "==", value: 5 },
+      goal: { metric: "antenna_mask_deg", op: "==", value: 5, tolerance: 1 },
       answerLabel: "5°",
     },
     {

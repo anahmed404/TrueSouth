@@ -1,4 +1,5 @@
 import type { ComparedGoal, GoalSpec, GoalValue, PinAttempt, ValueGoal } from "./types";
+import { compareUtcHours, parseUtcHour } from "./utc";
 
 /**
  * What the learner did on a step whose goal an evaluator checks.
@@ -30,7 +31,6 @@ export type GoalEvaluator = {
   status?(goal: ResolvedGoal, attempt: GoalAttempt): "met" | "unmet" | "impossible";
 };
 
-const UTC_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?Z$/;
 const PLACEHOLDER_PATTERN = /^\{\{example\.[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*\}\}$/;
 
 export type GoalValueKind = "number" | "utc" | "placeholder" | "text";
@@ -39,14 +39,14 @@ export type GoalValueKind = "number" | "utc" | "placeholder" | "text";
 export function goalValueKind(value: GoalValue): GoalValueKind {
   if (typeof value === "number") return "number";
   if (PLACEHOLDER_PATTERN.test(value)) return "placeholder";
-  if (UTC_PATTERN.test(value) && !Number.isNaN(Date.parse(value))) return "utc";
+  if (parseUtcHour(value) !== null) return "utc";
   return "text";
 }
 
 /**
  * Compares an attempt's value with a resolved goal value.
  * - Numbers compare as numbers. For `==`, `tolerance` is how far either side still counts.
- * - Two UTC times compare as moments.
+ * - Two UTC times compare as hour indexes on the time grid, not as strings.
  * - Text compares only with "==". Any other pairing is not met.
  */
 export function compareGoalValues(
@@ -65,7 +65,7 @@ export function compareGoalValues(
   }
   if (typeof actual === "string" && typeof expected === "string") {
     if (goalValueKind(actual) === "utc" && goalValueKind(expected) === "utc") {
-      return compareNumbers(Date.parse(actual), op, Date.parse(expected));
+      return compareUtcHours(actual, op, expected);
     }
     return op === "==" && actual === expected;
   }

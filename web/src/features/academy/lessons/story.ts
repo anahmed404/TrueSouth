@@ -64,15 +64,15 @@ export const pipProfile: MissionProfile = {
 
 /**
  * Story scenario for every lesson unless a step says otherwise: Pip, `im2_athena`,
- * at Connecting Ridge. The story says 2028 and does not name the day; this uses
- * the first instant of that year. See the questions in `lessons/COVERAGE.md`.
+ * at Connecting Ridge. The landing day is still being defined. Both instants below
+ * are provisional and are the only date literals the skeletons use.
  */
 export const storyScenario: Scenario = {
   profile: pipProfile,
   siteIds: ["connecting_ridge"],
   focusedSiteId: "connecting_ridge",
-  landingUtc: "2028-01-01T00:00:00Z",
-  currentUtc: "2028-01-01T00:00:00Z",
+  landingUtc: "2028-01-01T00:00:00Z", // PROVISIONAL(story-date)
+  currentUtc: "2028-01-01T00:00:00Z", // PROVISIONAL(story-date)
 };
 
 export function storyScene(skyline: SkylineKind, timeRange: TimeRange | null): SceneSpec {
@@ -84,7 +84,12 @@ export function todo(description: string): string {
   return `TODO(words): ${description}`;
 }
 
-/** One month around a worked-example hour. The doc says "a month" and does not name the endpoints. */
+/** One month around a worked-example hour. The month's endpoints are not decided yet. */
 export function oneMonth(aroundUtc: GoalValue): { kind: "span"; span: "one-month"; aroundUtc: GoalValue } {
   return { kind: "span", span: "one-month", aroundUtc };
+}
+
+/** `halfHours` on either side of a worked-example hour, clamped to the time grid when it is resolved. */
+export function hoursAround(aroundUtc: GoalValue, halfHours: number): { kind: "hours"; aroundUtc: GoalValue; halfHours: number } {
+  return { kind: "hours", aroundUtc, halfHours };
 }

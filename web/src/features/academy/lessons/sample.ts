@@ -201,8 +201,7 @@ export const sampleLesson = {
       explain: "Every sketch passes; closer sketches earn more.",
       kind: "draw-skyline",
       scene: { scenario, skyline: "terrain", timeRange: null },
-      azFrom: 0,
-      azTo: 1,
+      window: { kind: "between", from: 0, to: 10 },
     },
     {
       id: "pin",

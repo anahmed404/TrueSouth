@@ -110,7 +110,7 @@ type Lesson = {
   title: string;
   tagline: string;            // one line for the path map
   patch: { name: string; art: string };
-  unlocks: PanelId;           // the Mission Control panel shown at the end
+  unlocks: PanelId | readonly PanelId[]; // the panel or panels shown at the end
   recap: string;              // the idea in one sentence
   card: string;               // Under-the-hood card id
   steps: Step[];
@@ -130,7 +130,7 @@ type Step = StepBase & (
   | { kind: "choice";       options: string[]; answer: StepAnswer; stage?: StageSpec }
   | { kind: "predict";      options: string[]; answer: StepAnswer; reveal: RevealSpec; stage?: StageSpec }
   | { kind: "drag-body";    body: "sun" | "earth"; panel: PanelId; scene: SceneSpec; goal: GoalSpec; readout?: string[]; follow?: PipFollow }
-  | { kind: "draw-skyline"; scene: SceneSpec; azFrom: GoalValue; azTo: GoalValue }
+  | { kind: "draw-skyline"; scene: SceneSpec; window: AzimuthWindow }
   | { kind: "drop-pin";     map: MapSpec; goal?: GoalSpec }
   | { kind: "tune-slider";  slider: SliderSpec; goal: GoalSpec; unreachable?: Unreachable }
   | { kind: "fill-formula"; tex: string; options: string[]; answer: number }
@@ -142,6 +142,7 @@ type SceneSpec = {
   skyline: "flat" | "smooth" | "terrain";
   timeRange: { kind: "utc"; fromUtc: string; toUtc: string }
     | { kind: "span"; span: "one-month"; aroundUtc: GoalValue }
+    | { kind: "hours"; aroundUtc: GoalValue; halfHours: number }
     | null;
 };
 
@@ -165,7 +166,7 @@ type GoalSpec =
   `{ metric: "longest_blackout_h", op: "<=", value: 12 }`, or a comparison of two metrics
   (`comparedTo`). Its value may be a number, text, a UTC date-time (ISO-8601 ending in `Z`),
   or a `{{example.key}}` placeholder filled from `worked_examples.json`. Numbers compare as
-  numbers, UTC times as moments, and text only with `==`. For `==` on numbers, `tolerance`
+  numbers, UTC times as hour indexes on the time grid (not as strings), and text only with `==`. For `==` on numbers, `tolerance`
   is how far either side still counts. A placeholder whose key is missing cannot be checked
   yet: it is not a pass. `prior` names an earlier step's answer to pass to the evaluator.
 - `drop-pin`: the learner's attempt is a catalog site id or coordinates in degrees, and the
@@ -175,9 +176,11 @@ type GoalSpec =
   may name a scenario and when to look: an hour, a span such as one month, a UTC range, or
   a timeline band.
 - `SliderSpec` is either a slider over numbers or a slider over UTC dates. Either may carry
-  a readout looked up from lesson data, a scene, and which of Pip's meters follows it.
-- `draw-skyline` carries the azimuth window, in degrees, that `skylineGapDeg` scores. Each
-  end is a number or a `{{example.key}}` placeholder. The real skyline is the scene site's.
+  a readout, a scene, and which of Pip's meters follows it. A readout is looked-up stops,
+  the curvature drop s²/2R, or a piecewise-linear line through knots.
+- `draw-skyline` carries the azimuth window `skylineGapDeg` scores. It is a clockwise arc,
+  or a centre (a number or a `{{example.key}}`) plus a half-width, which wraps at 0°/360°.
+  The real skyline is the scene site's.
 - A `choice` or `predict` step may name a `StageSpec`: the illustration on the stage, such
   as Pip under a sky ruler whose angles come from lesson data or placeholders. It is a
   drawing, never a computed Sun position. A choice or predict answer is an option index, or

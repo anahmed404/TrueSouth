@@ -14,6 +14,8 @@ const PANELS: Record<PanelId, { name: string; term: string }> = {
   MissionControl: { name: "Mission Control", term: "mission_control" },
 };
 
+export const PANEL_IDS: readonly PanelId[] = Object.keys(PANELS) as PanelId[];
+
 export function panelName(panel: PanelId): string {
   return PANELS[panel].name;
 }

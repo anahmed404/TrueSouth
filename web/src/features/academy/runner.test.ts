@@ -273,8 +273,7 @@ describe("goal steps", () => {
           skyline: "terrain",
           timeRange: null,
         },
-        azFrom: 0,
-        azTo: 1,
+        window: { kind: "between", from: 0, to: 20 },
       },
     ]);
     const state = submit(initialRunnerState(), { kind: "draw-skyline", sketch: [], gapDeg: 0.1 }, sketchLesson, no);

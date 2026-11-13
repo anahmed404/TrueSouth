@@ -53,6 +53,8 @@ longitudes; assuming the pole has 14 days of light then 14 of dark.
 | 4 | `drag-body` (Sun) | "The Sun is a disc, not a dot. Find a moment when more than half of it is hidden." | Goal: `sun_frac < 0.5`. Pip's power meter follows the visible share. |
 | 5 | `choice` | "Which blocks more sky: a 300 m ridge 12 km away, or a 3,000 m mountain 150 km away?" | **The near ridge** / The far mountain. Luna: "Surprised? The next lesson explains why." |
 
+**Exact settings:** Step 3 is a 60° azimuth window centred on `l2.sun_az_deg` (−30° to +30°, wrapping at 0°/360°). Step 4 drags the 48 hours centred on `l2.example_utc` (−24 h to +24 h), clamped to the time grid.
+
 **Card:** elevation angle of terrain (§4, the flat version first); the skyline and its two
 methods (§5); disc fraction (§6). Worked example: the step-1 hour, from the skyline bin to
 "blocked". What can go wrong: a peak slipping between two rays; treating the Sun as a dot.
@@ -74,6 +76,8 @@ methods (§5); disc fraction (§6). Worked example: the step-1 hour, from the sk
 | 3 | `tune-slider` | "Slide the distance until the ground has dropped 115 m." | Goal: 20 km. A live readout shows the drop. |
 | 4 | `spot-bug` | "This calculation says Pip is in shadow. One line is wrong." | Lines: (1) the ridge is 1,000 m above Pip; (2) it is 60 km away; **(3) it looks atan(1000 ÷ 60000) = 0.95° tall**; (4) the Sun is 0.8° up, so it is blocked. Line 3 forgot the drop: 1,036 m at 60 km. The ridge is below Pip's horizon. |
 | 5 | `choice` | "Why does a third of a degree matter so much here?" | **Because the Sun is only 1–2° up** / Because my mountains are small / It doesn't |
+
+**Exact settings:** Step 3 slides distance from 0 to 60 km in steps of 1 km. The goal is 20 km, right within ±1 km. The live readout is the drop s²/2R from science.md §4, using the Moon's radius from the manifest.
 
 **Card:** the exact formula and how the simple one follows from it (§4); the flat-Moon
 horizon dip; why 300 km is far enough (§5). Worked example: the blocker for one real bin,
@@ -98,6 +102,8 @@ formula at long range.
 | 3 | `predict` | "Over a month, how much of the time is Earth above Pip's horizon?" | Always / About two-thirds / **About {{l4.earth_up_pct}}%** (38%). Reveal: the timeline's Earth band. |
 | 4 | `tune-slider` | "Pip's antenna needs Earth to clear the ground by some margin. Raise the margin until Pip can talk less than 15% of the time." | Goal: about 5°. Readout: link time. Pip's link meter follows. |
 | 5 | `spot-bug` | "An early TrueSouth used these rules and called every polar site NO-GO. Which rule can never be met here?" | Lines: (1) Earth must clear the skyline; (2) by at least 5°; **(3) for at least half of every month**; (4) or the site is NO-GO. Even with no margin, Earth is up only 38% of the time. Luna: "Judge the mission's own days, not the whole month. Lesson 7." |
+
+**Exact settings:** Step 4 slides the margin from 0° to 8° in steps of 0.5°. The goal is 5°, right within ±1°. Link time is piecewise linear through (0°, `l4.link_pct_mask0`), (1°, `l4.link_pct_mask1`), (5°, `l4.link_pct_mask5`) and 0% at `l4.earth_el_max_deg`. Pip's link meter follows that readout. The lesson unlocks both the timeline and the countdowns.
 
 **Card:** sub-Earth point, libration and distance (§3.1); the exact direction to Earth,
 including the 0.26° shift from standing off-centre (§3.2); link and antenna mask (§9).

@@ -359,6 +359,9 @@ each integration checkpoint.
     part-way.
   - Lessons 1 to 4 are exported and tested. They are not in the catalog. `TODO(words)`
     counts: l1_sun 9, l2_skyline 10, l3_horizon 10, l4_link 10.
+  - Review fixes were made: the skyline window, the lesson 2 drag, the two sliders, both
+    lesson 4 panels, provisional story dates, and UTC hours checked on the time grid.
+    37 of 40 steps are expressible. Lesson 8 steps 3 to 5 are not.
 
 #### 2026-11-13 · A4 · Under the hood card renderer with KaTeX and Fill chips
 - **Who:** Claude Code agent, for the orchestrator

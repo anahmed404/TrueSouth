@@ -90,7 +90,7 @@ function todoBodies(value: unknown): string[] {
 }
 
 function panelsOf(lesson: Lesson): PanelId[] {
-  const ids: PanelId[] = [lesson.unlocks];
+  const ids: PanelId[] = typeof lesson.unlocks === "string" ? [lesson.unlocks] : [...lesson.unlocks];
   for (const step of lesson.steps) {
     if (step.kind === "drag-body") ids.push(step.panel);
     if ((step.kind === "predict" || step.kind === "choice") && step.kind === "predict" && step.reveal.kind === "panel") {

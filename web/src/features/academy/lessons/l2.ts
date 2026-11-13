@@ -1,12 +1,12 @@
 import type { Lesson } from "../types";
-import { oneMonth, storyScene, todo } from "./story";
+import { hoursAround, storyScene, todo } from "./story";
 
 /**
  * Lesson 2, "Mountains steal sunlight". Typed skeleton. Not in the catalog yet.
  * Quoted lines are copied from docs/academy/lessons.md. `TODO(words):` marks a description.
  */
 const terrain = storyScene("terrain", null);
-const month = storyScene("terrain", oneMonth("{{example.l2.example_utc}}"));
+const sunDrag = storyScene("terrain", hoursAround("{{example.l2.example_utc}}", 24));
 
 const shadow =
   "Sunlight / **Shadow**. Reveal: the Lander's eye view at that hour. The ridge looks {{l2.ridge_el_deg}}° tall.";
@@ -59,8 +59,7 @@ export const lesson2 = {
       explain: todo(sketch),
       kind: "draw-skyline",
       scene: terrain,
-      azFrom: "{{example.l2.sun_az_deg}}",
-      azTo: "{{example.l2.sun_az_deg}}",
+      window: { kind: "centred", centre: "{{example.l2.sun_az_deg}}", halfWidthDeg: 30 },
     },
     {
       id: "l2-disc",
@@ -70,7 +69,7 @@ export const lesson2 = {
       kind: "drag-body",
       body: "sun",
       panel: "LandersEye",
-      scene: month,
+      scene: sunDrag,
       goal: { metric: "sun_frac", op: "<", value: 0.5 },
       follow: { power: "sun-fraction" },
     },

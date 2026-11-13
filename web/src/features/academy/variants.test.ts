@@ -117,8 +117,7 @@ const skylineNumbers = {
   id: "sky-numbers",
   kind: "draw-skyline",
   scene: scene("terrain"),
-  azFrom: 0,
-  azTo: 90,
+  window: { kind: "between", from: 0, to: 90 },
 } satisfies Step;
 
 const skylineKeys = {
@@ -126,8 +125,7 @@ const skylineKeys = {
   id: "sky-keys",
   kind: "draw-skyline",
   scene: scene("terrain"),
-  azFrom: "{{example.l2.sun_az_deg}}",
-  azTo: "{{example.l2.sun_az_deg}}",
+  window: { kind: "centred", centre: "{{example.l2.sun_az_deg}}", halfWidthDeg: 30 },
 } satisfies Step;
 
 const pinFree = {
@@ -156,7 +154,7 @@ const numberSlider = {
     step: 1,
     unit: "°",
     label: "Margin",
-    readout: { label: "drop", stops: [{ at: 10, text: "115 m" }] },
+    readout: { kind: "stops", label: "drop", stops: [{ at: 10, text: "115 m" }] },
     scene: scene("smooth"),
     follow: { link: "link-up" },
   },
@@ -290,6 +288,25 @@ describe("a date slider on the time grid", () => {
 
   it("starts the draft on the first day", () => {
     expect(initialDraft(dateSlider)).toEqual({ kind: "tune-slider", variant: "date", utc: GRID_START });
+  });
+
+  it("treats the same grid hour as one hour, whatever spelling it uses", () => {
+    const lesson = lessonWith([
+      {
+        ...dateSlider,
+        slider: { ...dateSlider.slider, minUtc: "2026-01-02T00:00:00Z", maxUtc: "2026-01-04T00:00:00Z" },
+        goal: { metric: "landing_utc", op: "==" as const, value: "2026-01-02T00:00:00Z" },
+      },
+    ]);
+    expect(run(initialRunnerState(), at("2026-01-02T00:00:00.000Z"), lesson).phase).toBe("correct");
+    expect(run(initialRunnerState(), at("2026-01-02T00:00Z"), lesson).phase).toBe("correct");
+  });
+
+  it("rejects a date without Z, with an offset, or off the hour", () => {
+    const lesson = lessonWith([dateSlider]);
+    expect(run(initialRunnerState(), at("2026-01-02T00:00:00"), lesson).phase).toBe("hint");
+    expect(run(initialRunnerState(), at("2026-01-02T00:00:00+00:00"), lesson).phase).toBe("hint");
+    expect(run(initialRunnerState(), at("2026-01-02T00:30:00Z"), lesson).phase).toBe("hint");
   });
 
   it("ignores a number submitted to a date slider", () => {
@@ -430,8 +447,11 @@ describe("predict reveals", () => {
 
 describe("the skyline window", () => {
   it("fills a placeholder azimuth and refuses a missing key", () => {
-    expect(resolveSkylineWindow("{{example.l2.sun_az_deg}}", 10, { "l2.sun_az_deg": 4 })).toEqual({ azFrom: 4, azTo: 10 });
-    expect(resolveSkylineWindow(0, 90, {})).toEqual({ azFrom: 0, azTo: 90 });
-    expect(resolveSkylineWindow("{{example.l2.missing}}", 10, {})).toBeNull();
+    expect(resolveSkylineWindow({ kind: "centred", centre: "{{example.l2.sun_az_deg}}", halfWidthDeg: 30 }, { "l2.sun_az_deg": 10 })).toEqual({
+      fromDeg: 340,
+      toDeg: 40,
+    });
+    expect(resolveSkylineWindow({ kind: "between", from: 0, to: 90 }, {})).toEqual({ fromDeg: 0, toDeg: 90 });
+    expect(resolveSkylineWindow({ kind: "centred", centre: "{{example.l2.missing}}", halfWidthDeg: 30 }, {})).toBeNull();
   });
 });
