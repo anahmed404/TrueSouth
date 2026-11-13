@@ -190,7 +190,7 @@ each integration checkpoint.
   agent with typecheck, 1,116 vitest tests and the build, impeccable's detector (no
   findings), and by eye in a browser on the fixtures at 1440 × 900, 1024 × 768 and
   390 × 844; a human has not reviewed it yet
-- **State:** built, not verified
+- **State:** verified (orchestrator ran typecheck, 1,206 tests and build on the merge with main and opened the screen on the real Connecting Ridge data (no errors; a slip changes the link and the status); Codex, gpt-6.1-terra reviewed the logic and ran six mutations; its four must-fix findings were fixed)
 - **Changed:** `web/src/app/mission-screen.tsx`, `web/src/app/mission/`, `web/src/app/shell.css`,
   `web/src/components/Popover.tsx`, `web/src/components/components.css`,
   `docs/design/c2/built-mission-*.png`, this entry
