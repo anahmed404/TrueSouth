@@ -47,6 +47,14 @@ export function formatClockUtc(ms: number): string {
   return `${String(date.getUTCHours()).padStart(2, "0")}:${String(date.getUTCMinutes()).padStart(2, "0")} UTC`;
 }
 
+const FIELD_NAMES: Record<string, string> = { lat_deg: "Latitude", lon_deg: "East longitude", name: "Name" };
+
+/** A 422's field messages, each after its field's name: "Latitude: …". */
+function fieldText(fields: readonly { field: string; message: string }[]): string | null {
+  if (fields.length === 0) return null;
+  return fields.map((f) => (FIELD_NAMES[f.field] ? `${FIELD_NAMES[f.field]}: ${f.message}` : f.message)).join(" ");
+}
+
 export function customRowView(entry: CustomEntry, nowMs: number): CustomRowView {
   const title = entry.site?.name ?? entry.name ?? "Custom site";
   const coordinates = formatCoordinates(entry.site?.lat_deg ?? entry.latDeg, entry.site?.lon_deg ?? entry.lonDeg);
@@ -79,10 +87,12 @@ export function customRowView(entry: CustomEntry, nowMs: number): CustomRowView 
       };
     case "failed": {
       const waitUntil = entry.retryAtMs !== null && entry.retryAtMs > nowMs ? entry.retryAtMs : null;
+      const fields = fieldText(entry.problem?.fields ?? []);
+      const wait = waitUntil !== null && waitUntil - nowMs > 5000 ? `You can try again after ${formatClockUtc(waitUntil)}.` : null;
       return {
         ...base,
         line: entry.problem?.message ?? "This site could not be computed.",
-        detail: waitUntil !== null ? `You can try again after ${formatClockUtc(waitUntil)}.` : null,
+        detail: [fields, wait].filter(Boolean).join(" ") || null,
         failed: true,
         primary: { action: "retry", label: "Try again", disabled: waitUntil !== null },
         close: remove,

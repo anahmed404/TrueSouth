@@ -162,16 +162,17 @@ async function problemFrom(response: Response, nowMs: number, route: "submit" | 
   if (status === 404 && route === "submit") return problem("unavailable", TEXT.unavailable);
   if (status === 413) return problem("refused", said ?? TEXT.tooLarge);
   if (status === 422 || status === 400) return problem("refused", said ?? TEXT.refused, { fields: fieldMessages(body) });
+  const retry = parseRetryAfter(response.headers.get("retry-after"), nowMs);
   if (status === 429) {
-    const retry = parseRetryAfter(response.headers.get("retry-after"), nowMs);
-    return retry !== null
-      ? problem("rate_limited", said ?? TEXT.rateLimited, { retryAfterS: retry })
-      : problem("queue_full", said ?? TEXT.queueFull);
+    // A full queue says so (and sends Retry-After: 1); the hourly limit sends the wait.
+    if (said ? /queue/i.test(said) : retry === null || retry <= 5) return problem("queue_full", said ?? TEXT.queueFull, { retryAfterS: retry });
+    return problem("rate_limited", said ?? TEXT.rateLimited, { retryAfterS: retry });
   }
   if (status === 507) return problem("storage_full", said ?? TEXT.storageFull);
   if (status === 503) {
     if (said && /storage/i.test(said)) return problem("storage_full", said);
-    return problem("unavailable", said ?? TEXT.mapsMissing);
+    // No terrain maps, no ephemeris, too many clients, or shutting down: the server says which.
+    return problem("unavailable", said ?? TEXT.mapsMissing, { retryAfterS: retry });
   }
   if (!json.ok && status >= 400) return problem("unreadable", TEXT.unreadable);
   return problem("server_error", said ?? TEXT.serverError);

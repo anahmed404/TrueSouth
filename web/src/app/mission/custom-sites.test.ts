@@ -139,6 +139,26 @@ describe("a custom site's row", () => {
     expect(later.primary?.disabled).toBe(false);
   });
 
+  it("puts each server field message after its field's name", () => {
+    const view = customRowView(
+      entry({
+        phase: "failed",
+        problem: {
+          kind: "refused",
+          message: "Please check the request fields.",
+          fields: [
+            { field: "lat_deg", message: "Latitude must be at least 0.001° away from a pole." },
+            { field: "body", message: "Send a JSON object with latitude, longitude and an optional name." },
+          ],
+          retryAfterS: null,
+        },
+      }),
+      0,
+    );
+    expect(view.line).toBe("Please check the request fields.");
+    expect(view.detail).toBe("Latitude: Latitude must be at least 0.001° away from a pole. Send a JSON object with latitude, longitude and an optional name.");
+  });
+
   it("formats times", () => {
     expect(formatElapsed(0)).toBe("0:00");
     expect(formatElapsed(-5)).toBe("0:00");
