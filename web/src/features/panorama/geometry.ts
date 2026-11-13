@@ -286,22 +286,34 @@ export function elevationTicks(range: ElevationRange): number[] {
 
 export type DiscShape = { cx: number; cy: number; rx: number; ry: number };
 
-/** The thinnest a disc is drawn, so a Sun stretched twelve times is still seen. */
-export const MIN_DISC_RX = 1.5;
-
 /**
  * A disc of angular radius `radiusDeg` centred at a stored azimuth and elevation, as the
  * chart draws it: an ellipse, because the two axes have different scales. Across, the disc
- * spans `radius / cos(elevation)` of azimuth, as in docs/science.md §6.
+ * spans `radius / cos(elevation)` of azimuth, as in docs/science.md §6. Always its true
+ * angular size, never widened: a widened disc would show hidden or clear sky that the
+ * series' disc fraction does not.
  */
 export function discShape(scales: ChartScales, azDeg: number, elDeg: number, radiusDeg: number): DiscShape {
   const cosEl = Math.max(0.05, Math.cos((elDeg * Math.PI) / 180));
   return {
     cx: xOfAzimuth(scales, azDeg),
     cy: scales.y(elDeg),
-    rx: Math.max(MIN_DISC_RX, (radiusDeg / cosEl) * scales.pxPerDeg),
+    rx: (radiusDeg / cosEl) * scales.pxPerDeg,
     ry: radiusDeg * scales.pyPerDeg,
   };
+}
+
+/** A disc whose larger radius is under this many pixels is hard to see at its true size. */
+export const LOCATOR_BELOW_PX = 3;
+
+/** Whether a disc gets the dashed locator ring: a marker beside the disc, not part of it. */
+export function needsLocator(disc: DiscShape): boolean {
+  return Math.max(disc.rx, disc.ry) < LOCATOR_BELOW_PX;
+}
+
+/** The locator ring's radius: clear of the disc by 5 px. */
+export function locatorRadius(disc: DiscShape): number {
+  return Math.max(disc.rx, disc.ry) + 5;
 }
 
 // ── The antenna mask ─────────────────────────────────────────────────────────

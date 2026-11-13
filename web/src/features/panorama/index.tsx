@@ -24,7 +24,9 @@ import {
   autoRange,
   chartFrame,
   chartScales,
+  discShape,
   meanAzimuth,
+  needsLocator,
   stretchWords,
   zoomRange,
   type ElevationRange,
@@ -121,11 +123,15 @@ function SiteLandersEye({ siteId, scenario, mode, marker, onMarkerChange, onShow
 
   const data: ChartSeries | null = series.status === "ready" ? series.data : null;
   const sky: SkylineArrays | null = skyline.status === "ready" ? skyline.data : null;
-  // useSite builds a new object each render: key the radii on their numbers, so the chart's
-  // memoised layers do not redraw on every scrub.
-  const sunRadius = site.status === "ready" ? site.data.meta.sun_radius_deg : 0.266;
-  const earthRadius = site.status === "ready" ? site.data.meta.earth_radius_deg : 0.95;
-  const radii = useMemo(() => ({ sun: sunRadius, earth: earthRadius }), [sunRadius, earthRadius]);
+  // The discs' radii are the site meta's (docs/data-contracts.md). Until it loads there are
+  // none, and no disc is drawn. useSite builds a new object each render: key the radii on
+  // their numbers, so the chart's memoised layers do not redraw on every scrub.
+  const sunRadius = site.status === "ready" ? site.data.meta.sun_radius_deg : null;
+  const earthRadius = site.status === "ready" ? site.data.meta.earth_radius_deg : null;
+  const radii = useMemo(
+    () => (sunRadius !== null && earthRadius !== null ? { sun: sunRadius, earth: earthRadius } : null),
+    [sunRadius, earthRadius],
+  );
 
   // ── Centre: Earth's average azimuth by default, so its loop is never split ─
   const earthMean = useMemo(() => (data && window ? meanAzimuth(data.earth_az, window.from, window.to) : null), [data, window]);
@@ -137,7 +143,7 @@ function SiteLandersEye({ siteId, scenario, mode, marker, onMarkerChange, onShow
   // ── Vertical range: from the paths and the skyline, unless zoomed ─────────
   const auto = useMemo(
     () =>
-      data || sky
+      (data || sky) && radii
         ? autoRange({
             skylineEl: sky?.el_deg ?? null,
             sunEl: data?.sun_el ?? null,
@@ -211,7 +217,15 @@ function SiteLandersEye({ siteId, scenario, mode, marker, onMarkerChange, onShow
     );
   }
 
-  const loading = !data || !sky || !grid;
+  const loading = !data || !sky || !grid || !radii;
+  // A disc too small to see at its true size is marked by a dashed ring; the legend and the
+  // text alternative say so.
+  const ringed = loading
+    ? []
+    : [sunNow, earthNow].filter(
+        (b): b is NonNullable<typeof b> => b !== null && needsLocator(discShape(scales, b.azDeg, b.elDeg, radii[b.body])),
+      );
+  const ringWords = ringed.length ? `${ringed.map((b) => (b.body === "sun" ? "the Sun" : "Earth")).join(" and ")}` : null;
   const answer = loading ? "Loading the horizon." : hour === null ? "No Sun or Earth position is stored for this time." : answerSentence(sunNow, earthNow);
   const showLabels = width >= LABELS_MIN_WIDTH;
   // "Why is it dark?": on a dark or blackout hour, the one-line reason (its "Why?" opens the
@@ -278,7 +292,7 @@ function SiteLandersEye({ siteId, scenario, mode, marker, onMarkerChange, onShow
           onResetZoom={onResetZoom}
           utcOfHour={utcOfHour}
           showLabels={showLabels}
-          label={`Horizon chart for ${name}. ${answer}`}
+          label={`Horizon chart for ${name}. ${answer}${ringWords ? ` A dashed ring marks ${ringWords}, too small to see at this stretch.` : ""}`}
         />
         {loading ? (
           <p className="pano-loading" role="status">
@@ -306,6 +320,14 @@ function SiteLandersEye({ siteId, scenario, mode, marker, onMarkerChange, onShow
           Earth's path
         </span>
         <span>A disc's faded part is below the skyline</span>
+        {ringWords ? (
+          <span>
+            <svg className="pano-sw-svg" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+              <circle cx="7" cy="7" r="5.5" className={`pano-locator pano-locator-${ringed[0]?.body ?? "sun"}`} />
+            </svg>
+            A dashed ring marks {ringWords}, too small to see here
+          </span>
+        ) : null}
       </p>
 
       {mode === "mission" ? (

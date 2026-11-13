@@ -200,11 +200,11 @@
   stroke-opacity: 0.7;
 }
 
-.pano-disc-sun .pano-locator {
+.pano-locator-sun {
   stroke: var(--sun);
 }
 
-.pano-disc-earth .pano-locator {
+.pano-locator-earth {
   stroke: var(--earth);
 }
 

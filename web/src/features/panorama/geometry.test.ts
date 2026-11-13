@@ -114,11 +114,10 @@ describe("the skyline is the stored el_deg, bin by bin", () => {
 });
 
 /** The share of a drawn disc above the drawn skyline line, by sampling the ellipse in pixels. */
-function drawnFractionAbove(scales: ChartScales, vertices: SkylineVertex[], azDeg: number, elDeg: number, radius: number): number {
+function drawnFractionAbove(scales: ChartScales, vertices: SkylineVertex[], azDeg: number, elDeg: number, radius: number, n = 200): number {
   const disc = discShape(scales, azDeg, elDeg, radius);
   let inside = 0;
   let above = 0;
-  const n = 200;
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
       const u = -1 + (2 * (i + 0.5)) / n;
@@ -379,6 +378,75 @@ describe("the antenna mask and the discs at the chart's edge", () => {
         expect(xs[0]! - disc.rx).toBeLessThan(scales.frame.left);
         expect(xs[1]! + disc.rx).toBeGreaterThan(scales.frame.right);
         expect(xs[1]! - xs[0]!).toBeCloseTo(scales.frame.right - scales.frame.left, 9);
+      }
+    }
+  });
+});
+
+/** Hours spread over the grid where the body is near its skyline, where the share matters. */
+function nearSkylineHours(series: DecodedSeries, body: "sun" | "earth", radius: number, step: number): number[] {
+  const clear = body === "sun" ? series.sun_clear : series.earth_clear;
+  const hours: number[] = [];
+  for (let h = 0; h < clear.length; h += step) if (Math.abs(clear[h]!) < 2 * radius) hours.push(h);
+  return hours;
+}
+
+describe("a disc is drawn at its true size, so the picture agrees with the series", () => {
+  // The drawn skyline is the stored el_deg joined by straight lines between bin centres,
+  // which is the skyline the pipeline's disc fraction uses between bins (docs/science.md §5,
+  // §6), so the 0.25° bins themselves add no difference. What remains: the series stores
+  // elevations to 0.01°, the chart uses the meta's mean radius while the pipeline used each
+  // hour's, and the pipeline sums 33 strips while the test samples the ellipse's area.
+  // On Connecting Ridge the largest difference measured is 0.019; the tolerance is 0.03.
+  //
+  // The synthetic fixtures do not store the §6 disc fraction: science/src/truesouth/fixtures.py
+  // makes it a straight ramp, 0.5 + clearance / (2 × radius). A circle's share above a level
+  // line differs from that ramp by up to 0.058 (at d = −0.62 in §6's check formula), elevations
+  // stored to 0.01° move the ramp by up to 0.01, and this test samples the ellipse on an 80 × 80
+  // grid; the chart draws the circle, so on the fixtures the tolerance is 0.075. Both rise
+  // together and cross 0.5 at the same clearance, so the words and the drawing never disagree.
+  const TOLERANCE = 0.03;
+  const FIXTURE_TOLERANCE = 0.075;
+  const cases: [string, Site, number][] = [
+    ...FIXTURE_SITES.map((id) => [id, sites[id], FIXTURE_TOLERANCE] as [string, Site, number]),
+    ["connecting_ridge (real data)", ridge, TOLERANCE],
+  ];
+  for (const [name, site, tolerance] of cases) {
+    it(name, () => {
+      let worst = 0;
+      let checked = 0;
+      for (const body of ["sun", "earth"] as const) {
+        const radius = body === "sun" ? site.meta.sun_radius_deg : site.meta.earth_radius_deg;
+        for (const hour of nearSkylineHours(site.series, body, radius, 97)) {
+          const now = bodyAt(site.series, body, hour)!;
+          for (const width of [720, 360]) {
+            const scales = scalesFor(site, now.azDeg, Math.max(0, hour - 120), width);
+            const vertices = skylineVertices(site.skyline.el_deg, scales.centreDeg);
+            const drawn = drawnFractionAbove(scales, vertices, now.azDeg, now.elDeg, radius, 80);
+            worst = Math.max(worst, Math.abs(drawn - now.frac));
+            expect(Math.abs(drawn - now.frac)).toBeLessThan(tolerance);
+            // The words never say "in view" over a mostly hidden drawing, or the reverse.
+            const state = visibility(now.frac);
+            if (state === "in_view") expect(drawn).toBeGreaterThan(0.5);
+            if (state === "blocked") expect(drawn).toBeLessThan(0.5);
+            checked++;
+          }
+        }
+      }
+      expect(checked).toBeGreaterThan(5);
+      expect(worst).toBeLessThan(tolerance);
+    });
+  }
+
+  it("the reviewer's two Connecting Ridge hours", () => {
+    for (const hour of [1131, 27354]) {
+      const now = bodyAt(ridge.series, "sun", hour)!;
+      for (const width of [720, 360]) {
+        const scales = scalesFor(ridge, now.azDeg, hour, width);
+        const vertices = skylineVertices(ridge.skyline.el_deg, scales.centreDeg);
+        const disc = discShape(scales, now.azDeg, now.elDeg, ridge.meta.sun_radius_deg);
+        expect(disc.rx / scales.pxPerDeg).toBeCloseTo(ridge.meta.sun_radius_deg / Math.cos((now.elDeg * Math.PI) / 180), 9);
+        expect(Math.abs(drawnFractionAbove(scales, vertices, now.azDeg, now.elDeg, ridge.meta.sun_radius_deg) - now.frac)).toBeLessThan(TOLERANCE);
       }
     }
   });

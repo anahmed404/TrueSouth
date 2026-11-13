@@ -31,6 +31,8 @@ import {
   discShape,
   elevationTicks,
   discCopies,
+  locatorRadius,
+  needsLocator,
   maskRuns,
   skylineVertices,
   trackSegments,
@@ -53,7 +55,8 @@ export type ChartProps = {
   /** The scrubber's hour on the time grid, or null when it is off the grid. */
   hour: number | null;
   landingHour: number | null;
-  radii: { sun: number; earth: number };
+  /** The site meta's mean disc radii; null until the meta has loaded, when no disc is drawn. */
+  radii: { sun: number; earth: number } | null;
   /** The profile's antenna mask, or null when a relay carries the link. */
   maskDeg: number | null;
   features: readonly Feature[];
@@ -296,9 +299,6 @@ const MarkerLayer = memo(function MarkerLayer({
   );
 });
 
-/** Discs shorter than this many pixels (half-height) get a locator ring. */
-const LOCATOR_BELOW_PX = 5;
-
 /** The two discs at the scrubber's hour: faded in full, and bright where above the skyline. */
 function DiscLayer({
   scales,
@@ -317,12 +317,8 @@ function DiscLayer({
     <g>
       {bodies.map((now) => {
         const disc = discShape(scales, now.azDeg, now.elDeg, radii[now.body]);
-        // A disc only a few pixels tall (the Sun at a small stretch) gets a faint dashed ring
-        // around it so it can be found. The ring is a pointer, not part of the disc.
-        const small = disc.ry < LOCATOR_BELOW_PX;
         return (
           <g key={now.body} className={`pano-disc pano-disc-${now.body}`}>
-            {small ? <circle cx={disc.cx} cy={disc.cy} r={Math.max(disc.ry, disc.rx) + 5} className="pano-locator" /> : null}
             {/* A disc on the chart's edge is drawn on both sides. */}
             {discCopies(scales, disc).map((copy, index) => (
               <g key={index}>
@@ -339,6 +335,27 @@ function DiscLayer({
             ))}
           </g>
         );
+      })}
+    </g>
+  );
+}
+
+/** A faint dashed ring around a disc too small to see at its true size, so it can be found. */
+function LocatorLayer({ scales, bodies, radii }: { scales: ChartScales; bodies: BodyNow[]; radii: { sun: number; earth: number } }) {
+  return (
+    <g>
+      {bodies.map((now) => {
+        const disc = discShape(scales, now.azDeg, now.elDeg, radii[now.body]);
+        if (!needsLocator(disc)) return null;
+        return discCopies(scales, disc).map((copy, index) => (
+          <circle
+            key={`${now.body}-${index}`}
+            cx={copy.cx}
+            cy={copy.cy}
+            r={locatorRadius(copy)}
+            className={`pano-locator pano-locator-${now.body}`}
+          />
+        ));
       })}
     </g>
   );
@@ -506,9 +523,9 @@ export function HorizonChart(props: ChartProps) {
   );
 
   const bodies = useMemo(() => {
-    if (!series || hour === null) return [];
+    if (!series || hour === null || !radii) return [];
     return (["sun", "earth"] as const).map((b) => bodyAt(series, b, hour)).filter((b): b is BodyNow => b !== null);
-  }, [series, hour]);
+  }, [series, hour, radii]);
 
   // Scroll zooms the vertical scale. A native listener, so the page does not scroll too.
   const live = useRef({ scales, onZoom });
@@ -647,7 +664,7 @@ export function HorizonChart(props: ChartProps) {
   };
 
   const cursorX = cursor ? (cursor.kind === "tick" ? cursor.tick.x : xOfAzimuth(scales, cursor.azDeg)) : null;
-  const labels = props.showLabels ? placeLabels(scales, bodies, radii) : [];
+  const labels = props.showLabels && radii ? placeLabels(scales, bodies, radii) : [];
   const marked =
     cursor?.kind === "sky" && marker && skyline
       ? skylineReading(skyline, cursor.azDeg, []).azDeg === wrapAzimuth(marker.azDeg)
@@ -678,8 +695,10 @@ export function HorizonChart(props: ChartProps) {
           <StaticLayer scales={scales} drawing={drawing} clipPlot={clipPlot} clipSky={clipSky} />
           {marker ? <MarkerLayer scales={scales} skyline={skyline} azDeg={marker.azDeg} /> : null}
           <g clipPath={`url(#${clipPlot})`}>
-            <DiscLayer scales={scales} bodies={bodies} radii={radii} clipSky={clipSky} hasSky={drawing.skyD !== null} />
+            {radii ? <DiscLayer scales={scales} bodies={bodies} radii={radii} clipSky={clipSky} hasSky={drawing.skyD !== null} /> : null}
           </g>
+          {/* The locator rings: markers beside a disc too small to see, never clipped or faded. */}
+          {radii ? <LocatorLayer scales={scales} bodies={bodies} radii={radii} /> : null}
           {cursorX !== null ? <line x1={cursorX} x2={cursorX} y1={frame.top} y2={frame.bottom} className="pano-cursor" /> : null}
         </svg>
 
