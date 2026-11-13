@@ -260,6 +260,7 @@ Mission Control mirrors its scenario into the URL:
 | `land` | Landing date |
 | `t` | Current time, in hours after the landing date |
 | `view` | `slip`, `system`, `map`, `terrain`, `panorama` or `compare` |
+| `focus` | Optional site id. Written only when that site is not the first in `sites`. If it is absent, or names a site that is not selected, the first selected site is focused |
 
 A preset is written as its id, for example `im2_athena`. A custom profile is the
 base preset plus only the fields that differ from it:
@@ -285,8 +286,9 @@ custom:im2_athena;duration_days=12;max_dark_h=8;weights=0.5:0.3:0.2
   piece is not `field=value`. That is a malformed custom profile.
 
 `t` is a whole number of hours after `land`, and may be negative when the
-scrubber sits in the three days before landing. The focused site is not in the
-link: opening one focuses the first site in `sites`.
+scrubber sits in the three days before landing. `focus` names the focused site
+when it is not the first in `sites`. Opening a link with no `focus`, or a
+`focus` that is not one of the selected sites, focuses the first site in `sites`.
 
 ## Changing a contract
 

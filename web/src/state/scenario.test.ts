@@ -9,6 +9,7 @@ import {
   CHANGED_BY_YOU,
   DEFAULT_LANDING_UTC,
   DEFAULT_SITE_IDS,
+  PROFILE_FIELDS,
   bindScenarioUrl,
   createScenarioStore,
   lastLandingHour,
@@ -36,6 +37,7 @@ const EXAMPLE =
 function memoryHistory(initial = ""): ScenarioHistory & {
   index: number;
   back: () => void;
+  forward: () => void;
 } {
   const stack = [bare(initial)];
   let index = 0;
@@ -60,6 +62,12 @@ function memoryHistory(initial = ""): ScenarioHistory & {
     back: () => {
       if (index === 0) return;
       index -= 1;
+      const search = stack[index] ? `?${stack[index]}` : "";
+      for (const listener of listeners) listener(search);
+    },
+    forward: () => {
+      if (index >= stack.length - 1) return;
+      index += 1;
       const search = stack[index] ? `?${stack[index]}` : "";
       for (const listener of listeners) listener(search);
     },
@@ -162,7 +170,15 @@ describe("scenario store", () => {
     store.getState().editProfileField("duration_days", 0);
     store.getState().editProfileField("slope_ideal_deg", 10);
     store.getState().editProfileField("weights", { slope: 0, power: 0, comms: 0 });
+    store.getState().editProfileField("weights", { slope: 1, power: 0, comms: 0 });
     expect(selectScenario(store.getState())).toBe(before);
+    expect(store.getState().profile.weights).toEqual(
+      catalog.profiles.find((item) => item.id === "im2_athena")?.weights,
+    );
+    expect(store.getState().notices).toEqual([
+      "A profile's power and comms weights must not both be zero.",
+      "A profile's power and comms weights must not both be zero.",
+    ]);
     expect(catalog.profiles.find((item) => item.id === "im2_athena")?.duration_days).toBe(10);
   });
 
@@ -269,9 +285,10 @@ describe("shareable scenario link", () => {
     expect(read.landingUtc).toBe(store.getState().landingUtc);
     expect(read.currentUtc).toBe(store.getState().currentUtc);
     expect(read.view).toBe("compare");
-    expect(read.focusedSiteId).toBe(read.siteIds[0]);
+    expect(read.focusedSiteId).toBe("fixture_crater");
     expect(query).toContain("t=36");
     expect(query).toContain("view=compare");
+    expect(query).toContain("focus=fixture_crater");
   });
 
   it("round-trips a custom profile and a custom site id", () => {
@@ -389,6 +406,234 @@ describe("shareable scenario link", () => {
     const before = history.index;
     store.getState().slipLanding(1);
     expect(history.index).toBe(before + 1);
+
+    store.getState().focusSite("fixture_crater");
+    expect(history.search()).toContain("focus=fixture_crater");
+    store.getState().focusSite("fixture_ridge");
+    expect(history.search()).not.toContain("focus=");
+    history.back();
+    expect(store.getState().focusedSiteId).toBe("fixture_crater");
+    history.forward();
+    expect(store.getState().focusedSiteId).toBe("fixture_ridge");
     stop();
   });
+
+  it("writes focus only when it is not the first site, and restores it", () => {
+    const store = createScenarioStore(catalog);
+    expect(writeScenarioQuery(store.getState())).not.toContain("focus=");
+
+    const absent = readScenarioQuery("?sites=fixture_ridge,fixture_crater", catalog);
+    expect(absent.focusedSiteId).toBe("fixture_ridge");
+    expect(absent.notices).toEqual([]);
+
+    const selected = readScenarioQuery("?sites=fixture_ridge,fixture_crater&focus=fixture_crater", catalog);
+    expect(selected.focusedSiteId).toBe("fixture_crater");
+    expect(selected.notices).toEqual([]);
+
+    const unselected = readScenarioQuery("?sites=fixture_ridge,fixture_crater&focus=fixture_edge", catalog);
+    expect(unselected.focusedSiteId).toBe("fixture_ridge");
+    expect(unselected.notices).toEqual(['Ignored focus "fixture_edge" because that site is not selected.']);
+
+    const missing = readScenarioQuery("?sites=fixture_ridge&focus=not_a_site", catalog);
+    expect(missing.focusedSiteId).toBe("fixture_ridge");
+    expect(missing.notices).toEqual(['Ignored focus "not_a_site" because that site is not selected.']);
+  });
+
+  it("applies a valid slope pair together and keeps a plain tiny decimal", () => {
+    const pair = readScenarioQuery(
+      "?profile=custom:im2_athena;slope_ideal_deg=1;max_slope_deg=2",
+      catalog,
+    );
+    expect(pair.notices).toEqual([]);
+    expect(pair.profile.id).toBe("custom");
+    expect(pair.profile.slope_ideal_deg).toBe(1);
+    expect(pair.profile.max_slope_deg).toBe(2);
+
+    const reversed = readScenarioQuery(
+      "?profile=custom:im2_athena;max_slope_deg=2;slope_ideal_deg=1",
+      catalog,
+    );
+    expect(reversed.notices).toEqual([]);
+    expect(reversed.profile.slope_ideal_deg).toBe(1);
+    expect(reversed.profile.max_slope_deg).toBe(2);
+
+    const broken = readScenarioQuery(
+      "?profile=custom:im2_athena;slope_ideal_deg=9;max_slope_deg=8&sites=fixture_ridge&view=map",
+      catalog,
+    );
+    expect(broken.profile.id).toBe("im2_athena");
+    expect(broken.profile.slope_ideal_deg).toBe(5);
+    expect(broken.profile.max_slope_deg).toBe(10);
+    expect(broken.siteIds).toEqual(["fixture_ridge"]);
+    expect(broken.view).toBe("map");
+    expect(broken.notices).toEqual([
+      "Ignored the custom profile because slope_ideal_deg must be less than max_slope_deg.",
+    ]);
+
+    const store = createScenarioStore(catalog);
+    store.getState().editProfileField("min_sun_fraction", 1e-7);
+    const query = writeScenarioQuery(store.getState());
+    expect(query).toContain("min_sun_fraction=0.0000001");
+    expect(query).not.toMatch(/min_sun_fraction=[^;&]*e/i);
+    const read = readScenarioQuery(query, catalog);
+    expect(read.notices).toEqual([]);
+    expect(read.profile.min_sun_fraction).toBe(1e-7);
+  });
+
+  it("rejects power and comms weights that are both zero", () => {
+    const preset = catalog.profiles.find((item) => item.id === "im2_athena");
+    const read = readScenarioQuery(
+      "?profile=custom:im2_athena;weights=1:0:0&sites=fixture_edge&view=compare",
+      catalog,
+    );
+    expect(read.profile.id).toBe("im2_athena");
+    expect(read.profile.weights).toEqual(preset?.weights);
+    expect(read.siteIds).toEqual(["fixture_edge"]);
+    expect(read.view).toBe("compare");
+    expect(read.notices).toEqual([
+      "Ignored the custom profile because power and comms weights must not both be zero.",
+    ]);
+  });
+
+  it("splits a custom profile before decoding, so an encoded separator is not a new field", () => {
+    const preset = catalog.profiles.find((item) => item.id === "im2_athena");
+    if (!preset) throw new Error("missing im2_athena");
+
+    const semicolon = readScenarioQuery(
+      "?profile=custom:im2_athena;max_dark_h=1%3Brelay_available=true;duration_days=12",
+      catalog,
+    );
+    expect(semicolon.profile.id).toBe("custom");
+    expect(semicolon.profile.duration_days).toBe(12);
+    expect(semicolon.profile.max_dark_h).toBe(preset.max_dark_h);
+    expect(semicolon.profile.relay_available).toBe(preset.relay_available);
+    expect(semicolon.notices).toEqual([
+      'Ignored max_dark_h because "1%3Brelay_available=true" contains a separator.',
+    ]);
+
+    const equals = readScenarioQuery("?profile=custom:im2_athena;antenna_mask_deg=1%3D2", catalog);
+    expect(equals.profile.antenna_mask_deg).toBe(preset.antenna_mask_deg);
+    expect(equals.notices).toEqual(['Ignored antenna_mask_deg because "1%3D2" contains a separator.']);
+
+    const colon = readScenarioQuery("?profile=custom:im2_athena;min_sun_fraction=0.5%3A1", catalog);
+    expect(colon.profile.min_sun_fraction).toBe(preset.min_sun_fraction);
+    expect(colon.notices).toEqual(['Ignored min_sun_fraction because "0.5%3A1" contains a separator.']);
+  });
+
+  it("keeps the first copy of a repeated site and says so", () => {
+    const read = readScenarioQuery("?sites=fixture_ridge,fixture_ridge,fixture_crater", catalog);
+    expect(read.siteIds).toEqual(["fixture_ridge", "fixture_crater"]);
+    expect(read.notices).toEqual(['Ignored repeated site "fixture_ridge".']);
+  });
+
+  it("slips seven days across 2028-03-12 by exactly 168 hours", () => {
+    const store = createScenarioStore(catalog);
+    store.getState().setLandingDate("2028-03-10T00:00:00Z");
+    const start = utcToHourIndex(catalog.grid, store.getState().landingUtc);
+    store.getState().slipLanding(7);
+    const end = utcToHourIndex(catalog.grid, store.getState().landingUtc);
+    expect(end - start).toBe(168);
+    expect(store.getState().landingUtc).toBe("2028-03-17T00:00:00Z");
+  });
+
+  it("does not use local-time Date methods in the scenario store or the scoring hooks", () => {
+    const here = path.dirname(fileURLToPath(import.meta.url));
+    const sources = [
+      readFileSync(path.join(here, "scenario.ts"), "utf8"),
+      readFileSync(path.join(here, "../lib/scoring/hooks.ts"), "utf8"),
+    ];
+    const forbidden =
+      /\b(?:getHours|getDate|getDay|getMonth|getFullYear|getMinutes|setHours|setDate|setMonth|setFullYear|setMinutes|getTimezoneOffset|toLocale)/;
+    for (const source of sources) expect(source).not.toMatch(forbidden);
+  });
+
+  it("round-trips 500 random valid scenarios, including multi-field custom profiles", () => {
+    const rand = mulberry32(20260312);
+    const views = ["slip", "system", "map", "terrain", "panorama", "compare"] as const;
+    for (let index = 0; index < 500; index += 1) {
+      const store = createScenarioStore(catalog);
+      const ideal = rand() * 12;
+      const maxSlope = ideal + 0.25 + rand() * 20;
+      if (ideal < store.getState().profile.max_slope_deg) {
+        store.getState().editProfileField("slope_ideal_deg", ideal);
+        store.getState().editProfileField("max_slope_deg", maxSlope);
+      } else {
+        store.getState().editProfileField("max_slope_deg", maxSlope);
+        store.getState().editProfileField("slope_ideal_deg", ideal);
+      }
+      if (index % 17 === 0) {
+        store.getState().editProfileField("slope_ideal_deg", 1);
+        store.getState().editProfileField("max_slope_deg", 2);
+      }
+      const tiny = index % 2 === 0 ? 10 ** -(1 + Math.floor(rand() * 10)) : rand();
+      store.getState().editProfileField("min_sun_fraction", tiny);
+      store.getState().editProfileField("duration_days", 11 + rand() * 15);
+      store.getState().editProfileField("max_dark_h", rand() * 48);
+      store.getState().editProfileField("max_blackout_h", rand() * 48);
+      store.getState().editProfileField("antenna_mask_deg", rand() * 20);
+      store.getState().editProfileField("relay_available", rand() < 0.5);
+      store.getState().editProfileField("ops_sun_el_min_deg", rand() < 0.25 ? null : rand() * 30 - 10);
+      if (rand() < 0.5) {
+        const low = rand() * 20 - 10;
+        store.getState().editProfileField("landing_sun_el_min_deg", low);
+        store.getState().editProfileField("landing_sun_el_max_deg", low + rand() * 15);
+      }
+      const power = rand();
+      const comms = power === 0 ? 0.25 + rand() : rand();
+      store.getState().editProfileField("weights", { slope: rand() * 3, power, comms });
+      store.getState().setView(views[Math.floor(rand() * views.length)] ?? "slip");
+      const slip = Math.floor(rand() * 11) - 5;
+      store.getState().slipLanding(slip === 0 ? 1 : slip);
+      const step = Math.floor(rand() * 49) - 24;
+      store.getState().stepCurrentTime(step === 0 ? 1 : step);
+      const selected = store.getState().siteIds;
+      const focus = selected[Math.floor(rand() * selected.length)];
+      if (focus) store.getState().focusSite(focus);
+
+      const state = store.getState();
+      expect(state.changedFields.length, `scenario ${index}`).toBeGreaterThan(1);
+      const read = readScenarioQuery(writeScenarioQuery(state), catalog);
+      expect(read.notices, `scenario ${index}`).toEqual([]);
+      expect(scenarioPicture(read), `scenario ${index}`).toEqual(scenarioPicture(state));
+    }
+  });
 });
+
+function mulberry32(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state |= 0;
+    state = (state + 0x6d2b79f5) | 0;
+    let next = Math.imul(state ^ (state >>> 15), 1 | state);
+    next = (next + Math.imul(next ^ (next >>> 7), 61 | next)) ^ next;
+    return ((next ^ (next >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function scenarioPicture(state: {
+  profile: MissionProfile;
+  basePresetId: string;
+  changedFields: readonly string[];
+  siteIds: readonly string[];
+  focusedSiteId: string | null;
+  landingUtc: string;
+  currentUtc: string;
+  view: string;
+}): unknown {
+  return {
+    id: state.profile.id,
+    name: state.profile.name,
+    basedOn: state.profile.based_on,
+    basePresetId: state.basePresetId,
+    changedFields: [...state.changedFields],
+    siteIds: [...state.siteIds],
+    focusedSiteId: state.focusedSiteId,
+    landingUtc: state.landingUtc,
+    currentUtc: state.currentUtc,
+    view: state.view,
+    fields: Object.fromEntries(PROFILE_FIELDS.map((field) => [field, state.profile[field]])),
+    provenance: Object.fromEntries(
+      PROFILE_FIELDS.map((field) => [field, state.profile.provenance[field]]),
+    ),
+  };
+}

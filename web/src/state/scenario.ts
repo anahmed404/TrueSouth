@@ -181,6 +181,12 @@ export function createScenarioStore(catalog: ScenarioCatalog, search = ""): Scen
       const base = findPreset(state.catalog, state.basePresetId);
       if (!base || !isProfileField(field)) return;
       if (fieldEqual(field, state.profile[field], value)) return;
+      if (field === "weights" && powerAndCommsBothZero(value)) {
+        set({
+          notices: [...state.notices, "A profile's power and comms weights must not both be zero."],
+        });
+        return;
+      }
       const draft: Draft = { profile: state.profile, changed: [...state.changedFields] };
       if (!applyField(draft, base, field, value, state.catalog.grid)) return;
       const times = reclampTimes(
@@ -329,8 +335,7 @@ export function createScenarioStore(catalog: ScenarioCatalog, search = ""): Scen
 /**
  * Keep the address bar equal to the scenario.
  * A dragged value replaces the current history entry. A discrete change pushes,
- * so Back returns to the previous scenario. The focused site is not in the
- * link, so focusing a site does not add a history entry.
+ * so Back returns to the previous scenario, including which site is focused.
  */
 export function bindScenarioUrl(store: ScenarioStore, history: ScenarioHistory): () => void {
   const canonical = writeScenarioQuery(store.getState());
@@ -390,24 +395,31 @@ export function writeScenarioQuery(state: ScenarioData): string {
   const grid = state.catalog.grid;
   const landingHour = utcToHourIndex(grid, state.landingUtc);
   const currentHour = utcToHourIndex(grid, state.currentUtc);
-  const params = new URLSearchParams();
-  params.set("profile", writeProfile(state));
-  params.set("sites", state.siteIds.join(","));
-  params.set("land", formatLinkUtc(state.landingUtc));
-  params.set("t", String(currentHour - landingHour));
-  params.set("view", state.view);
-  return params.toString();
+  const parts = [
+    `profile=${encodeProfileParam(writeProfile(state))}`,
+    `sites=${state.siteIds.map((id) => encodeURIComponent(id)).join(",")}`,
+    `land=${encodeURIComponent(formatLinkUtc(state.landingUtc))}`,
+    `t=${String(currentHour - landingHour)}`,
+    `view=${encodeURIComponent(state.view)}`,
+  ];
+  const first = state.siteIds[0] ?? null;
+  if (state.focusedSiteId !== null && state.focusedSiteId !== first) {
+    parts.push(`focus=${encodeURIComponent(state.focusedSiteId)}`);
+  }
+  return parts.join("&");
 }
 
 /**
  * A bad parameter is dropped and named in `notices`. The rest of the link
  * still loads. An omitted parameter uses the first-visit default.
- * The focused site is the first selected site: the link does not carry it.
+ * `focus` is written only when the focused site is not the first selected
+ * site. If it is absent, or names a site that is not selected, the first
+ * selected site is focused.
  */
 export function readScenarioQuery(search: string, catalog: ScenarioCatalog): ReadScenario {
   const params = new URLSearchParams(bareQuery(search));
   const notices: string[] = [];
-  const { profile, basePresetId, changedFields } = readProfile(params.get("profile"), catalog, notices);
+  const { profile, basePresetId, changedFields } = readProfile(rawParam(search, "profile"), catalog, notices);
   const sitesParam = params.get("sites");
   const siteIds = sitesParam === null ? defaultSiteIds(catalog) : parseSites(sitesParam, catalog, notices);
   const landingUtc = readLanding(params.get("land"), catalog.grid, profile.duration_days, notices);
@@ -418,7 +430,7 @@ export function readScenarioQuery(search: string, catalog: ScenarioCatalog): Rea
     basePresetId,
     changedFields,
     siteIds,
-    focusedSiteId: siteIds[0] ?? null,
+    focusedSiteId: readFocus(params.get("focus"), siteIds, notices),
     landingUtc,
     currentUtc,
     view,
@@ -480,9 +492,9 @@ function readCustomProfile(
 ): { profile: MissionProfile; basePresetId: string; changedFields: ProfileField[] } | null {
   const body = raw.slice("custom:".length);
   const splitAt = body.indexOf(";");
-  const baseId = splitAt === -1 ? body : body.slice(0, splitAt);
+  const baseId = decodeQueryComponent(splitAt === -1 ? body : body.slice(0, splitAt));
   const rest = splitAt === -1 ? "" : body.slice(splitAt + 1);
-  const base = CATALOG_ID.test(baseId) ? findPreset(catalog, baseId) : undefined;
+  const base = baseId !== null && CATALOG_ID.test(baseId) ? findPreset(catalog, baseId) : undefined;
   if (!base) {
     notices.push("Ignored the custom profile because it could not be read.");
     return null;
@@ -495,10 +507,15 @@ function readCustomProfile(
       notices.push("Ignored the custom profile because it could not be read.");
       return null;
     }
-    pairs.push({ field: segment.slice(0, eq), raw: segment.slice(eq + 1) });
+    const field = decodeQueryComponent(segment.slice(0, eq));
+    if (field === null) {
+      notices.push("Ignored the custom profile because it could not be read.");
+      return null;
+    }
+    pairs.push({ field, raw: segment.slice(eq + 1) });
   }
 
-  const draft: Draft = { profile: structuredClone(base), changed: [] };
+  const accepted: { field: ProfileField; value: unknown }[] = [];
   const seen = new Set<string>();
   for (const pair of pairs) {
     if (!isProfileField(pair.field)) {
@@ -507,10 +524,24 @@ function readCustomProfile(
     }
     if (seen.has(pair.field)) continue;
     seen.add(pair.field);
-    const value = parseFieldValue(pair.field, pair.raw);
-    if (value === undefined || !applyField(draft, base, pair.field, value, catalog.grid)) {
-      notices.push(`Ignored ${pair.field} because ${quote(pair.raw)} is out of range.`);
+    const decoded = decodedFieldText(pair.field, pair.raw);
+    if (decoded === null) {
+      notices.push(`Ignored ${pair.field} because ${quote(pair.raw)} contains a separator.`);
+      continue;
     }
+    const value = parseFieldValue(pair.field, decoded);
+    if (value === undefined || !isFieldInRange(pair.field, value, catalog.grid)) {
+      notices.push(`Ignored ${pair.field} because ${quote(decoded)} is out of range.`);
+      continue;
+    }
+    accepted.push({ field: pair.field, value });
+  }
+
+  const draft = applyParsed(base, accepted);
+  const rule = wholeProfileRule(draft.profile);
+  if (rule !== null) {
+    notices.push(`Ignored the custom profile because ${rule}.`);
+    return null;
   }
   return {
     profile: draft.profile,
@@ -574,7 +605,11 @@ function parseSites(raw: string, catalog: ScenarioCatalog, notices: string[]): s
   const seen = new Set<string>();
   for (const part of raw.split(",")) {
     const id = part.trim();
-    if (id.length === 0 || seen.has(id)) continue;
+    if (id.length === 0) continue;
+    if (seen.has(id)) {
+      notices.push(`Ignored repeated site ${quote(id)}.`);
+      continue;
+    }
     seen.add(id);
     if (!catalog.sites.some((site) => site.id === id) && !isCustomSiteId(id)) {
       notices.push(`Ignored unknown site ${quote(id)}.`);
@@ -609,7 +644,15 @@ function formatField(field: ProfileField, profile: MissionProfile): string {
 
 function formatNumber(value: number): string {
   if (Object.is(value, -0)) return "0";
-  return String(value);
+  const text = String(value);
+  const match = /^(-?)(\d+)(?:\.(\d+))?[eE]([+-]?\d+)$/.exec(text);
+  if (!match) return text;
+  const sign = match[1] ?? "";
+  const digits = `${match[2] ?? "0"}${match[3] ?? ""}`;
+  const point = (match[2] ?? "0").length + Number(match[4]);
+  if (point <= 0) return `${sign}0.${"0".repeat(-point)}${digits}`;
+  if (point >= digits.length) return `${sign}${digits}${"0".repeat(point - digits.length)}`;
+  return `${sign}${digits.slice(0, point)}.${digits.slice(point)}`;
 }
 
 function formatLinkUtc(utc: string): string {
@@ -645,6 +688,133 @@ function parseDecimal(raw: string): number | null {
   if (!/^-?\d+(?:\.\d+)?$/.test(raw)) return null;
   const value = Number(raw);
   return Number.isFinite(value) ? value : null;
+}
+
+/** Structural separators stay literal so a `%3B` inside a value is not a new field. */
+function encodeProfileParam(value: string): string {
+  return value
+    .split(/([;=:])/)
+    .map((part) => (part === ";" || part === "=" || part === ":" ? part : encodeURIComponent(part)))
+    .join("");
+}
+
+function rawParam(search: string, name: string): string | null {
+  const query = bareQuery(search);
+  if (query.length === 0) return null;
+  let found: string | null = null;
+  for (const part of query.split("&")) {
+    if (part.length === 0) continue;
+    const eq = part.indexOf("=");
+    const rawKey = eq === -1 ? part : part.slice(0, eq);
+    const rawValue = eq === -1 ? "" : part.slice(eq + 1);
+    const key = decodeQueryComponent(rawKey);
+    if (key === name) found = rawValue;
+  }
+  return found;
+}
+
+function decodeQueryComponent(value: string): string | null {
+  try {
+    return decodeURIComponent(value.replace(/\+/g, " "));
+  } catch {
+    return null;
+  }
+}
+
+function readFocus(raw: string | null, siteIds: readonly string[], notices: string[]): string | null {
+  const first = siteIds[0] ?? null;
+  if (raw === null || raw.length === 0) return first;
+  if (!siteIds.includes(raw)) {
+    notices.push(`Ignored focus ${quote(raw)} because that site is not selected.`);
+    return first;
+  }
+  return raw;
+}
+
+const SEPARATOR = /[;=:]/;
+
+function decodedFieldText(field: ProfileField, raw: string): string | null {
+  if (field === "weights") {
+    const parts = raw.split(":");
+    const decoded = parts.map((part) => decodeQueryComponent(part));
+    if (decoded.some((part) => part === null || SEPARATOR.test(part))) return null;
+    return decoded.join(":");
+  }
+  const text = decodeQueryComponent(raw);
+  if (text === null || SEPARATOR.test(text)) return null;
+  return text;
+}
+
+function isFieldInRange(field: ProfileField, value: unknown, grid: TimeGrid): boolean {
+  switch (field) {
+    case "duration_days":
+      if (!isFiniteNumber(value) || value <= 0) return false;
+      try {
+        return windowLength(value) <= grid.count;
+      } catch {
+        return false;
+      }
+    case "min_sun_fraction":
+      return isFiniteNumber(value) && value >= 0 && value <= 1;
+    case "ops_sun_el_min_deg":
+    case "landing_sun_el_min_deg":
+    case "landing_sun_el_max_deg":
+      return value === null || isFiniteNumber(value);
+    case "max_dark_h":
+    case "max_blackout_h":
+    case "antenna_mask_deg":
+      return isFiniteNumber(value) && value >= 0;
+    case "max_slope_deg":
+      return isFiniteNumber(value) && value > 0;
+    case "slope_ideal_deg":
+      return isFiniteNumber(value) && value >= 0;
+    case "relay_available":
+      return typeof value === "boolean";
+    case "weights":
+      return isWeights(value) && value.slope >= 0 && value.power >= 0 && value.comms >= 0;
+    default:
+      return false;
+  }
+}
+
+function applyParsed(base: MissionProfile, fields: readonly { field: ProfileField; value: unknown }[]): Draft {
+  const profile = structuredClone(base);
+  const changed: ProfileField[] = [];
+  for (const { field, value } of fields) {
+    if (fieldEqual(field, base[field], value)) continue;
+    assignField(profile, field, value);
+    profile.provenance = {
+      ...profile.provenance,
+      [field]: { kind: "assumed", reason: CHANGED_BY_YOU },
+    };
+    changed.push(field);
+  }
+  if (changed.length === 0) return { profile: structuredClone(base), changed: [] };
+  profile.id = CUSTOM_ID;
+  profile.name = CUSTOM_NAME;
+  return { profile, changed: PROFILE_FIELDS.filter((item) => changed.includes(item)) };
+}
+
+function wholeProfileRule(profile: MissionProfile): string | null {
+  if (!(profile.slope_ideal_deg < profile.max_slope_deg)) {
+    return "slope_ideal_deg must be less than max_slope_deg";
+  }
+  const min = profile.landing_sun_el_min_deg;
+  const max = profile.landing_sun_el_max_deg;
+  if (min !== null && max !== null && !(min <= max)) {
+    return "landing_sun_el_min_deg must not be above landing_sun_el_max_deg";
+  }
+  if (powerAndCommsBothZero(profile.weights)) {
+    return "power and comms weights must not both be zero";
+  }
+  if (profile.weights.slope + profile.weights.power + profile.weights.comms <= 0) {
+    return "weights must sum to more than zero";
+  }
+  return null;
+}
+
+function powerAndCommsBothZero(value: unknown): boolean {
+  return isWeights(value) && value.power === 0 && value.comms === 0;
 }
 
 type Draft = { profile: MissionProfile; changed: ProfileField[] };
@@ -717,7 +887,8 @@ function isValidValue(field: ProfileField, value: unknown, profile: MissionProfi
         value.slope >= 0 &&
         value.power >= 0 &&
         value.comms >= 0 &&
-        value.slope + value.power + value.comms > 0
+        value.slope + value.power + value.comms > 0 &&
+        !powerAndCommsBothZero(value)
       );
     default:
       return false;

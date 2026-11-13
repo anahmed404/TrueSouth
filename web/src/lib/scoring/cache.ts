@@ -60,6 +60,26 @@ const EVAL_FIELDS = [
   "weights",
 ] as const satisfies readonly (keyof ScoringProfile)[];
 
+/**
+ * Hour flags are two byte arrays over the full grid (about 100 KB at 52,584
+ * hours) and a sweep is about 2 MB, so those caches stop at 24 entries:
+ * 8 selected sites times a few profiles. An evaluation and a countdown are
+ * one small object, so they stop at 512 (8 sites times 64 landings) and
+ * 2048 (8 sites times 256 scrubbed hours). Each cache drops the least
+ * recently used entry past that maximum.
+ */
+const FLAG_CACHE_LIMIT = 24;
+const SWEEP_CACHE_LIMIT = 24;
+const EVALUATION_CACHE_LIMIT = 512;
+const COUNTDOWN_CACHE_LIMIT = 2048;
+
+export const SCORING_CACHE_LIMITS = {
+  flags: FLAG_CACHE_LIMIT,
+  sweeps: SWEEP_CACHE_LIMIT,
+  evaluations: EVALUATION_CACHE_LIMIT,
+  countdowns: COUNTDOWN_CACHE_LIMIT,
+} as const;
+
 const flagsCache = new Map<string, HourFlags>();
 const evaluationCache = new Map<string, Evaluation | null>();
 const countdownCache = new Map<string, Countdowns>();
@@ -75,6 +95,20 @@ export function clearScoringCache(): void {
   sweepCache.clear();
 }
 
+export function scoringCacheSizes(): {
+  flags: number;
+  sweeps: number;
+  evaluations: number;
+  countdowns: number;
+} {
+  return {
+    flags: flagsCache.size,
+    sweeps: sweepCache.size,
+    evaluations: evaluationCache.size,
+    countdowns: countdownCache.size,
+  };
+}
+
 /** Slope from a `sites.json` entry. Missing and sphere-tier sites are null. */
 export function siteSlopeDeg(
   sites: readonly { id: string; slope: { deg: number } | null }[],
@@ -86,7 +120,7 @@ export function siteSlopeDeg(
 
 export function cachedHourFlags(siteId: string, series: Series, profile: ScoringProfile): HourFlags {
   const key = cacheKey(siteId, series, picked(profile, FLAG_FIELDS));
-  return lookup(flagsCache, key, () => hourFlags(series, profile));
+  return lookup(flagsCache, FLAG_CACHE_LIMIT, key, () => hourFlags(series, profile));
 }
 
 export function cachedEvaluation(
@@ -97,7 +131,9 @@ export function cachedEvaluation(
   slopeDeg: number | null,
 ): Evaluation | null {
   const key = cacheKey(siteId, series, [landingHour, slopeDeg, ...picked(profile, EVAL_FIELDS)]);
-  return lookup(evaluationCache, key, () => evaluate(series, profile, landingHour, slopeDeg));
+  return lookup(evaluationCache, EVALUATION_CACHE_LIMIT, key, () =>
+    evaluate(series, profile, landingHour, slopeDeg),
+  );
 }
 
 export function cachedCountdowns(
@@ -107,7 +143,7 @@ export function cachedCountdowns(
   currentHour: number,
 ): Countdowns {
   const key = cacheKey(siteId, series, [currentHour, ...picked(profile, FLAG_FIELDS)]);
-  return lookup(countdownCache, key, () => countdowns(series, profile, currentHour));
+  return lookup(countdownCache, COUNTDOWN_CACHE_LIMIT, key, () => countdowns(series, profile, currentHour));
 }
 
 export function cachedSlipSweep(
@@ -117,14 +153,22 @@ export function cachedSlipSweep(
   slopeDeg: number | null,
 ): SlipSweep {
   const key = cacheKey(siteId, series, [slopeDeg, ...picked(profile, SWEEP_FIELDS)]);
-  return lookup(sweepCache, key, () => slipSweep(series, profile, slopeDeg));
+  return lookup(sweepCache, SWEEP_CACHE_LIMIT, key, () => slipSweep(series, profile, slopeDeg));
 }
 
-function lookup<T>(cache: Map<string, T>, key: string, compute: () => T): T {
-  const hit = cache.get(key);
-  if (hit !== undefined) return hit;
+function lookup<T>(cache: Map<string, T>, limit: number, key: string, compute: () => T): T {
+  if (cache.has(key)) {
+    const hit = cache.get(key) as T;
+    cache.delete(key);
+    cache.set(key, hit);
+    return hit;
+  }
   const value = compute();
   cache.set(key, value);
+  if (cache.size > limit) {
+    const oldest = cache.keys().next().value;
+    if (oldest !== undefined) cache.delete(oldest);
+  }
   return value;
 }
 

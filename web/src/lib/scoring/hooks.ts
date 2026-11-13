@@ -2,8 +2,8 @@
  * The only door from a loaded series to lit, link, metrics, countdowns and
  * the slip sweep. No other module decides whether an hour is lit or linked.
  *
- * `useSweep` runs on the main thread for now. Its `data` is a `SlipSweep`,
- * the value a Web Worker can post back in a later work package.
+ * `useSweep` is not called unless a component that needs the sweep is mounted.
+ * It stays on the main thread in this package. Moving it to a Web Worker is MC7.
  */
 
 import type { MissionProfile } from "../../contracts/generated.ts";
@@ -106,6 +106,10 @@ export function useCountdowns(
   }
 }
 
+/**
+ * Call only from a component that is showing the slip sweep. It runs on the
+ * main thread until MC7 moves it to a Web Worker, so nothing else should call it.
+ */
 export function useSweep(siteId: string, profile: MissionProfile): HookResult<SlipSweep> {
   const series = useSeries(siteId);
   const slope = useSlope(siteId);

@@ -400,6 +400,7 @@ $$U_{comms} = \begin{cases} 1 & \text{with a relay} \\ \text{link\_fraction} \ti
 $$\text{score} = 100 \times \frac{\sum_i w_i U_i}{\sum_i w_i}$$
 
 A site with no slope leaves slope out of both sums and is flagged "slope not assessed".
+So that a score always exists, a profile's power and comms weights must not both be zero.
 
 **Status.**
 
