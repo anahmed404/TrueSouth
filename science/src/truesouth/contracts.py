@@ -344,34 +344,78 @@ class MapMeta(Contract):
 
 
 class Gate(Contract):
-    """Validation hard gate result."""
+    """Validation hard gate result. See docs/validation.md, "Hard gates"."""
 
-    id: str = Field(description='Gate identifier.')
-    name: str = Field(description='Gate name.')
+    id: str = Field(description='Gate identifier, G1 to G11.')
+    name: str = Field(description='Gate name, a plain sentence.')
     passed: bool = Field(description='Whether the gate passed.')
-    measured: float = Field(description='Measured value in unit.')
+    measured: float = Field(description='Measured value in unit: for most gates the largest difference found.')
     limit: float = Field(description='Passing limit in unit.')
     unit: str = Field(description='Unit of measured value and limit.')
-    samples: int = Field(description='Number of samples.')
+    samples: int = Field(ge=0, description='Number of samples compared.')
+    detail: str | None = Field(
+        default=None,
+        description='Optional plain sentence with the expected and measured values of a synthetic test, '
+        'written by the pipeline from its own numbers. Null when there is nothing to add.',
+    )
 
 
 class Comparison(Contract):
-    """Reported validation comparison."""
+    """Reported validation comparison. See docs/validation.md, "Reported comparisons"."""
 
-    id: str = Field(description='Comparison identifier.')
+    id: str = Field(description='Comparison identifier, R1 to R6.')
     site_id: SiteId = Field(description='Site identifier.')
     ours: float = Field(description='Our measured value in unit.')
     reference: float = Field(description='Reference value in unit.')
-    unit: str = Field(description='Unit of both values.')
+    unit: str = Field(description='Unit of both values and of investigate_above.')
     reference_source: str = Field(description='Reference source URL.')
+    investigate_above: float = Field(
+        ge=0,
+        description='The "investigate when" mark from docs/validation.md, in unit: the largest difference '
+        'between ours and reference that needs no explanation.',
+    )
+    outside_mark: bool = Field(description='True when the difference between ours and reference is above investigate_above.')
+    explanation: str | None = Field(
+        description='Our best plain-language explanation. Required when outside_mark is true; null otherwise or when none is needed.',
+    )
+
+    @model_validator(mode='after')
+    def outside_mark_is_explained(self):
+        if self.outside_mark and not (self.explanation and self.explanation.strip()):
+            raise ValueError('a comparison outside its investigate mark needs an explanation')
+        return self
+
+
+class DifferenceOverTime(Contract):
+    """Gate G2 at one site for one body: the largest difference in each step of the time grid."""
+
+    site_id: SiteId = Field(description='Site identifier.')
+    body: Literal['sun', 'earth'] = Field(description='The body whose direction was compared with JPL Horizons.')
+    start_utc: UTC = Field(description='UTC time of the first step.')
+    step_h: int = Field(ge=1, description='Length of one step in hours; 24 gives one value per day.')
+    max_difference_deg: list[float] = Field(
+        description='Largest difference on the sky in degrees within each step, in time order.',
+    )
+
+
+class DataSource(Contract):
+    """One NASA product the results rest on."""
+
+    name: str = Field(description='Product name.')
+    url: str = Field(description='Link to the product.')
+    used_for: str = Field(description='What TrueSouth uses it for, in a plain phrase.')
 
 
 class Validation(Contract):
-    """Hard gates and reported comparisons."""
+    """Hard gates and reported comparisons: everything the validation page shows."""
 
-    generated_utc: UTC = Field(description='Generation time in UTC.')
+    generated_utc: UTC = Field(description='When the validation was last run, in UTC.')
     gates: list[Gate] = Field(description='Hard gate results.')
     comparisons: list[Comparison] = Field(description='Reported comparisons.')
+    g2_over_time: list[DifferenceOverTime] = Field(
+        description='Gate G2 over time, for the chart on the validation page. Empty until the check has been run.',
+    )
+    sources: list[DataSource] = Field(description='Every NASA product used, with its link.')
 
 
 class WorkedExamples(Contract):

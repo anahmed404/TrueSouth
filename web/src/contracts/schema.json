@@ -462,17 +462,40 @@
     },
     "Comparison": {
       "additionalProperties": false,
-      "description": "Reported validation comparison.",
+      "description": "Reported validation comparison. See docs/validation.md, \"Reported comparisons\".",
       "properties": {
+        "explanation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Our best plain-language explanation. Required when outside_mark is true; null otherwise or when none is needed.",
+          "title": "Explanation"
+        },
         "id": {
-          "description": "Comparison identifier.",
+          "description": "Comparison identifier, R1 to R6.",
           "title": "Id",
           "type": "string"
+        },
+        "investigate_above": {
+          "description": "The \"investigate when\" mark from docs/validation.md, in unit: the largest difference between ours and reference that needs no explanation.",
+          "minimum": 0,
+          "title": "Investigate Above",
+          "type": "number"
         },
         "ours": {
           "description": "Our measured value in unit.",
           "title": "Ours",
           "type": "number"
+        },
+        "outside_mark": {
+          "description": "True when the difference between ours and reference is above investigate_above.",
+          "title": "Outside Mark",
+          "type": "boolean"
         },
         "reference": {
           "description": "Reference value in unit.",
@@ -491,7 +514,7 @@
           "type": "string"
         },
         "unit": {
-          "description": "Unit of both values.",
+          "description": "Unit of both values and of investigate_above.",
           "title": "Unit",
           "type": "string"
         }
@@ -502,7 +525,10 @@
         "ours",
         "reference",
         "unit",
-        "reference_source"
+        "reference_source",
+        "investigate_above",
+        "outside_mark",
+        "explanation"
       ],
       "title": "Comparison",
       "type": "object"
@@ -627,6 +653,84 @@
       "title": "CustomSiteStatus",
       "type": "object"
     },
+    "DataSource": {
+      "additionalProperties": false,
+      "description": "One NASA product the results rest on.",
+      "properties": {
+        "name": {
+          "description": "Product name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "url": {
+          "description": "Link to the product.",
+          "title": "Url",
+          "type": "string"
+        },
+        "used_for": {
+          "description": "What TrueSouth uses it for, in a plain phrase.",
+          "title": "Used For",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "url",
+        "used_for"
+      ],
+      "title": "DataSource",
+      "type": "object"
+    },
+    "DifferenceOverTime": {
+      "additionalProperties": false,
+      "description": "Gate G2 at one site for one body: the largest difference in each step of the time grid.",
+      "properties": {
+        "body": {
+          "description": "The body whose direction was compared with JPL Horizons.",
+          "enum": [
+            "sun",
+            "earth"
+          ],
+          "title": "Body",
+          "type": "string"
+        },
+        "max_difference_deg": {
+          "description": "Largest difference on the sky in degrees within each step, in time order.",
+          "items": {
+            "type": "number"
+          },
+          "title": "Max Difference Deg",
+          "type": "array"
+        },
+        "site_id": {
+          "description": "Site identifier.",
+          "pattern": "^(?:[a-z][a-z0-9]*(?:_[a-z0-9]+)*|c_-?\\d+\\.\\d{4}_\\d+\\.\\d{4})$",
+          "title": "Site Id",
+          "type": "string"
+        },
+        "start_utc": {
+          "description": "UTC time of the first step.",
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "Start Utc",
+          "type": "string"
+        },
+        "step_h": {
+          "description": "Length of one step in hours; 24 gives one value per day.",
+          "minimum": 1,
+          "title": "Step H",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "site_id",
+        "body",
+        "start_utc",
+        "step_h",
+        "max_difference_deg"
+      ],
+      "title": "DifferenceOverTime",
+      "type": "object"
+    },
     "ErrorDetail": {
       "additionalProperties": false,
       "description": "Structured API error.",
@@ -736,10 +840,23 @@
     },
     "Gate": {
       "additionalProperties": false,
-      "description": "Validation hard gate result.",
+      "description": "Validation hard gate result. See docs/validation.md, \"Hard gates\".",
       "properties": {
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional plain sentence with the expected and measured values of a synthetic test, written by the pipeline from its own numbers. Null when there is nothing to add.",
+          "title": "Detail"
+        },
         "id": {
-          "description": "Gate identifier.",
+          "description": "Gate identifier, G1 to G11.",
           "title": "Id",
           "type": "string"
         },
@@ -749,12 +866,12 @@
           "type": "number"
         },
         "measured": {
-          "description": "Measured value in unit.",
+          "description": "Measured value in unit: for most gates the largest difference found.",
           "title": "Measured",
           "type": "number"
         },
         "name": {
-          "description": "Gate name.",
+          "description": "Gate name, a plain sentence.",
           "title": "Name",
           "type": "string"
         },
@@ -764,7 +881,8 @@
           "type": "boolean"
         },
         "samples": {
-          "description": "Number of samples.",
+          "description": "Number of samples compared.",
+          "minimum": 0,
           "title": "Samples",
           "type": "integer"
         },
@@ -2152,7 +2270,7 @@
     },
     "Validation": {
       "additionalProperties": false,
-      "description": "Hard gates and reported comparisons.",
+      "description": "Hard gates and reported comparisons: everything the validation page shows.",
       "properties": {
         "comparisons": {
           "description": "Reported comparisons.",
@@ -2160,6 +2278,14 @@
             "$ref": "#/$defs/Comparison"
           },
           "title": "Comparisons",
+          "type": "array"
+        },
+        "g2_over_time": {
+          "description": "Gate G2 over time, for the chart on the validation page. Empty until the check has been run.",
+          "items": {
+            "$ref": "#/$defs/DifferenceOverTime"
+          },
+          "title": "G2 Over Time",
           "type": "array"
         },
         "gates": {
@@ -2171,16 +2297,26 @@
           "type": "array"
         },
         "generated_utc": {
-          "description": "Generation time in UTC.",
+          "description": "When the validation was last run, in UTC.",
           "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
           "title": "Generated Utc",
           "type": "string"
+        },
+        "sources": {
+          "description": "Every NASA product used, with its link.",
+          "items": {
+            "$ref": "#/$defs/DataSource"
+          },
+          "title": "Sources",
+          "type": "array"
         }
       },
       "required": [
         "generated_utc",
         "gates",
-        "comparisons"
+        "comparisons",
+        "g2_over_time",
+        "sources"
       ],
       "title": "Validation",
       "type": "object"

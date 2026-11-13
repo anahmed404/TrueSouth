@@ -109,8 +109,20 @@ def test_viper_preset_round_trips_with_sourced_and_assumed_provenance():
 
 
 def test_documented_validation_example_and_api_error_detail():
-    # Documentation uses ellipses for the generated timestamp and gate name.
-    example = {'generated_utc': '2026-11-14T09:00:00Z', 'gates': [{'id': 'G2', 'name': 'Horizons check', 'passed': True, 'measured': .011, 'limit': .02, 'unit': 'deg', 'samples': 2103360}], 'comparisons': [{'id': 'R1', 'site_id': 'connecting_ridge', 'ours': .83, 'reference': .86, 'unit': 'fraction', 'reference_source': 'https://pgda.gsfc.nasa.gov/products/69'}]}
+    # The validation.json example itself is checked against docs/validation.md in
+    # test_validation_contract.py; here a hand-built one must round-trip unchanged.
+    example = {
+        'generated_utc': '2026-11-14T09:00:00Z',
+        'gates': [{'id': 'G2', 'name': 'Horizons check', 'passed': True, 'measured': .011, 'limit': .02,
+                   'unit': 'deg', 'samples': 2103360, 'detail': None}],
+        'comparisons': [{'id': 'R1', 'site_id': 'connecting_ridge', 'ours': .83, 'reference': .86,
+                         'unit': 'fraction', 'reference_source': 'https://pgda.gsfc.nasa.gov/products/69',
+                         'investigate_above': .1, 'outside_mark': False, 'explanation': None}],
+        'g2_over_time': [{'site_id': 'connecting_ridge', 'body': 'sun', 'start_utc': '2026-01-01T00:00:00Z',
+                          'step_h': 24, 'max_difference_deg': [.0002, .0002]}],
+        'sources': [{'name': 'JPL Horizons', 'url': 'https://ssd.jpl.nasa.gov/horizons/',
+                     'used_for': 'Sun and Earth positions'}],
+    }
     assert c.Validation.model_validate(example).model_dump() == example
     status = {'site_id': 'c_-89.2000_130.5000', 'status': 'failed', 'site': None, 'error': {'code': 'terrain_unavailable', 'message': 'Terrain unavailable.'}}
     assert c.CustomSiteStatus.model_validate(status).model_dump() == status
