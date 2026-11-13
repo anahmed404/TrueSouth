@@ -9,9 +9,9 @@ export const proud: LunaMoodArt = {
   mouth: <path className={FEATURE_LINE} strokeWidth={LINE} d="M38 61 Q52 72 64 58" />,
   extras: (
     <g>
-      <circle className="fill-status-go stroke-text" cx={78} cy={80} r={10} strokeWidth={2} />
+      <circle className="fill-raised stroke-text" cx={78} cy={80} r={10} strokeWidth={2} />
       <path
-        className="fill-status-caution"
+        className="fill-sun"
         d="M78 73 L80 78 L85 78.5 L81 81.5 L82.5 86.5 L78 83.5 L73.5 86.5 L75 81.5 L71 78.5 L76 78 Z"
       />
     </g>

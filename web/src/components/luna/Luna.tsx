@@ -71,7 +71,7 @@ function useBlink(enabled: boolean): boolean {
   return closed;
 }
 
-/** A small squash-and-settle of the whole body whenever the mood changes. */
+/** A small settle of the whole body whenever the mood changes: an ease-out, no bounce. */
 function useMoodPop(mood: Mood, enabled: boolean) {
   const [scope, animate] = useAnimate<SVGGElement>();
   const previous = useRef(mood);
@@ -79,7 +79,7 @@ function useMoodPop(mood: Mood, enabled: boolean) {
     if (previous.current === mood) return;
     previous.current = mood;
     if (!enabled || !scope.current) return;
-    animate(scope.current, { scale: [0.95, 1] }, { type: "spring", stiffness: 420, damping: 14 });
+    animate(scope.current, { scale: [0.95, 1] }, { duration: 0.25, ease: [0.16, 1, 0.3, 1] });
   }, [mood, enabled, animate, scope]);
   return scope;
 }
