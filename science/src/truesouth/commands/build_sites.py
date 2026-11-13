@@ -26,8 +26,6 @@ from truesouth.contracts import (Manifest, TimeGrid, Site, Sites, SiteMeta,
 from truesouth.dem import DemStore, site_tier
 from truesouth.derived_io import write_series, write_skyline, read_series, read_skyline, write_terrain, read_terrain
 from truesouth.ephemeris import load_global
-from truesouth.placement import build_variant
-from truesouth.placement_cache import CandidateCache
 from truesouth.series import build_series
 from truesouth.skyline import compute_skyline
 from truesouth.slope import polar_slope
@@ -183,15 +181,18 @@ def _select(all_sites, only):
     return [site for site in all_sites if site.id in chosen]
 
 
-def _derive(site_id, lat, lon, store, global_data, skyline=None, series=None):
+def _derive(site_id, lat, lon, store, global_data, skyline=None, series=None, *, tier=None):
     """Terrain, slope and, unless they were supplied, skyline and series."""
-    tier = site_tier(lat).item()
+    custom_tier = tier is not None
+    tier = site_tier(lat).item() if tier is None else tier
     site_store = DemStore() if tier == 'sphere' else store
     ground = None
     slope = None
     mesh = None
     if tier != 'sphere':
-        if site_store.tiers(lat, lon).item() != tier:
+        selected_map = site_store.core if tier == 'core80' else site_store.wide
+        covered = (selected_map is not None and selected_map.contains(lat, lon)) if custom_tier else site_store.tiers(lat, lon).item() == tier
+        if not covered:
             raise ValueError(f'{site_id}: prepared {tier} terrain unavailable at site')
         height, missing = site_store.sample(lat, lon)
         if missing:
@@ -211,7 +212,9 @@ def _derive(site_id, lat, lon, store, global_data, skyline=None, series=None):
     return tier, ground, slope, mesh, skyline, series, meta
 
 
-def _stage_site(target, meta, series, skyline, mesh):
+def _stage_site(target, meta, series, skyline, mesh, *, site=None, publish=None, cancelled=None):
+    if cancelled and cancelled():
+        raise InterruptedError('site build interrupted')
     target.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(dir=target.parent, prefix='.'+target.name+'.'))
     try:
@@ -227,7 +230,11 @@ def _stage_site(target, meta, series, skyline, mesh):
         read_skyline(staging/'skyline.bin', SKYLINE_BINS)
         if mesh is not None:
             read_terrain(staging/'terrain.bin', mesh.size)
-        _publish_site(staging, target)
+        if site is not None:
+            _write_model(staging/'site.json', site)
+        if cancelled and cancelled():
+            raise InterruptedError('site build interrupted')
+        (publish or _publish_site)(staging, target)
     finally:
         if staging.exists():
             shutil.rmtree(staging)
@@ -264,6 +271,25 @@ def _record(site, tier, ground, slope, nearby):
                 quickmap_url=QUICKMAP_URL, moontrek_url=MOONTREK_URL, nearby_sun=nearby)
 
 
+def build_site(site, store, global_data, target, *, tier=None, site_entry=False,
+               publish=None, cancelled=None, parts=None, nearby=None):
+    """Shared one-site derivation, record and atomic publication.
+
+    The catalog may supply parts derived before placement was evaluated, so its
+    listed point is computed only once. Custom callers supply neither parts nor
+    nearby: they never evaluate placement, write the catalog index or build a variant.
+    """
+    if cancelled and cancelled():
+        raise InterruptedError('site build interrupted')
+    if parts is None:
+        parts = _derive(site.id, site.lat_deg, site.lon_deg, store, global_data, tier=tier)
+    tier, ground, slope, mesh, skyline, series, meta = parts
+    derived = _record(site, tier, ground, slope, nearby)
+    _stage_site(Path(target), meta, series, skyline, mesh,
+                site=derived if site_entry else None, publish=publish, cancelled=cancelled)
+    return derived
+
+
 def run(args):
     """Read prepared maps only; publish validated complete site directories.
 
@@ -276,6 +302,9 @@ def run(args):
     own folder still matches those inputs. Removing the site from sunlit_peak,
     or from the core80 tier, deletes the variant.
     """
+    from truesouth.placement import build_variant
+    from truesouth.placement_cache import CandidateCache
+
     all_sites = catalog.load_sites()
     selected = _select(all_sites, args.only)
     # Validate the complete catalog before changing any output.
@@ -330,8 +359,7 @@ def run(args):
         nearby = None if placement is None else placement.nearby_sun
         if parts is not None:
             tier, ground, slope, mesh, skyline, series, meta = parts
-            derived = _record(site, tier, ground, slope, nearby)
-            _stage_site(target, meta, series, skyline, mesh)
+            derived = build_site(site, store, global_data, target, parts=parts, nearby=nearby)
             built[site.id] = derived
             _write_index(index, built)
             print(f'{site.id}: built in {perf_counter()-started:.6f} s; tier={tier}; ground_m={ground}')

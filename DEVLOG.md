@@ -49,6 +49,30 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-14 · S10b integration · Merge main's placement builder
+- **Who:** Codex implementation agent
+- **AI use:** Codex resolved build-sites and DEVLOG conflicts, preserved main's placement flow, adapted the custom-site wrapper to main's helpers, and added integration tests; human and orchestrator review pending.
+- **State:** verified (425 Python tests (1 skipped: the real-map test, run separately by the author and passed), 1,900 web tests and the typecheck pass on the merge with main; regenerating the schema and types leaves no diff; no derived data changed; reviewed by Gemini (pipeline reuse and byte-identity at Connecting Ridge confirmed; eleven findings on failure handling, all fixed with tests); the catalog build and the API share one site builder on top of the variants work; a full catalog rebuild under the new source fingerprint is still to be run)
+- **Changed:** build_site now composes _derive, _record and _stage_site; catalog callers reuse prederived parts and placement metadata, variants still reuse the winning skyline/series. Custom publication retains cancellation, storage hook and internal site.json without touching the index or candidate cache. Placement imports are local to the catalog command. API storage prunes the reserved placement directory before traversal so catalog candidates do not consume the custom quota. Every DEVLOG line from both merge parents was retained.
+- **Checks:** Full Python run 424 passed, 1 real-map skip, exit 0. After the placement-quota interaction fix, affected API/integration checks 106 passed, 1 skipped, exit 0. Explicit real-map test: 1 passed, exit 0, Connecting Ridge custom series.bin/skyline.bin/terrain.bin byte-identical to catalog in 36.617 s (37.90 s test); meta differs only site_id. Catalog verification ran --only chandrayaan3 apollo11 --force in a staging copy and rebuilt Connecting Ridge's listed point with the shared builder, retaining its published nearby range. All 25 staged folders and sites.json match origin/main Git blob hashes; tracked derived files also match before and after. Full 25-site recomputation was not run: placement key 0826b46027c9dc5fdfbb91366e2b4a200804f04c6669ce577f9463b7f19b0254 has no shared cache; --only on a peak would also trigger the cold candidate evaluation. API import 1.110 s with no numpy/scipy/pyproj/rasterio/placement_cache modules loaded. Frozen pnpm install, 1,849 web tests (one worker) and typecheck exit 0. Docker skipped as requested; mandatory API dependency closure excludes rasterio.
+- **Notes:** Site fields and custom contracts are unchanged by the merge; main's validation exclusions for variants remain intact. Dockerfile and dependencies are unchanged, so the requested Docker rebuild exception does not apply.
+
+#### 2026-11-14 · S10b review fixes · Public-endpoint failure handling
+- **Who:** Codex implementation agent
+- **AI use:** Codex reproduced the review findings with HTTP/worker regression tests, implemented the fixes and ran targeted checks; human and orchestrator review pending.
+- **State:** verified (425 Python tests (1 skipped: the real-map test, run separately by the author and passed), 1,900 web tests and the typecheck pass on the merge with main; regenerating the schema and types leaves no diff; no derived data changed; reviewed by Gemini (pipeline reuse and byte-identity at Connecting Ridge confirmed; eleven findings on failure handling, all fixed with tests); the catalog build and the API share one site builder on top of the variants work; a full catalog rebuild under the new source fingerprint is still to be run)
+- **Changed:** Strict finite JSON numbers; safe 422 fields without input echoes; 4 KiB streamed body cap; initialization-only compute locking; surviving/restarting workers; bounded recent states and expiring client histories; 2 GiB configured cache budget and health accounting; canonical ASCII ids and printable names; shared science latitude limit with up-front rejection; catalog latitude tiers including raster corners; ephemeris readiness; cancellable atomic publication, 90 s shutdown grace and proxy headers disabled.
+- **Tests:** Each numbered finding reproduced before its fix and pushed separately (small items 9-11 together). Final suite: 409 passed, 1 optional real-map skip, exit 0; explicit real-map test: 1 passed, exit 0 (51.904 s computation, 52.97 s test). All three Connecting Ridge binaries byte-identical; meta only differs in site_id. Frozen pnpm install and typecheck exit 0; all 1,744 web tests pass with maxWorkers=2, unchanged timeouts. Schema export and type generation exit 0. Added 70 review regression cases including invalid UTF-8 and staging rename races. Initial full check found missing contract descriptions; fixed. Under heavy contention the timing check and one default-worker web test timed out; final runs pass without increasing limits. Docker rebuilt and served port 18081: same byte-identical files in 51.141 s, concurrent sphere 0.109 s, corner sphere, safe non-finite 422 and spoofed-proxy 429 checks pass; image 425,121,437 bytes, rasterio absent. Review containers, volume, network and image removed; S13 untouched.
+- **Notes:** Merged origin/main and retained all DEVLOG entries. During the disk-full incident, all changed files were rechecked as nonempty, Python parsed, JSON decoded; no truncated source found. Full suites and Docker paused until the orchestrator confirmed restored space. Tier selection now follows site_tier (core80 <= -80; wide240 to -60; sphere north of -60), superseding the first S10b coverage labels. Error bodies and statuses are documented precisely for the form agent; success/status contracts remain unchanged.
+
+#### 2026-11-13 · S10b · Custom sites in the API
+- **Who:** Codex implementation agent
+- **AI use:** Codex wrote the shared builder extraction, queue, routes, Docker changes and tests; checked with pytest, vitest, typecheck, real terrain byte comparison and HTTP measurement; human review pending.
+- **State:** verified (425 Python tests (1 skipped: the real-map test, run separately by the author and passed), 1,900 web tests and the typecheck pass on the merge with main; regenerating the schema and types leaves no diff; no derived data changed; reviewed by Gemini (pipeline reuse and byte-identity at Connecting Ridge confirmed; eleven findings on failure handling, all fixed with tests); the catalog build and the API share one site builder on top of the variants work; a full catalog rebuild under the new source fingerprint is still to be run)
+- **Changed:** science shared site builder and request contracts; API jobs, routes, settings and health; generated schema/types; Docker and Compose; architecture and API message docs; decision 0013.
+- **Checks:** Final Python suite 339 passed, 1 real-map test skipped by default (exit 0); API suite 31 passed, 1 skipped. Real-map test explicitly run with TRUESOUTH_DATA_ROOT: 1 passed, exit 0. Web 1,581 tests passed, typecheck and frozen install exit 0. Docker image built and ran; Connecting Ridge ready with identical binaries in 43.805 s, cached POST ready after restart in 0.078 s. Image 198,930,368 bytes before (catalog), 423,959,216 bytes after. Rasterio absent; prepared mount read-only; no-maps catalog/503/sphere checks pass. S10b containers, volume, network and image removed. Host 8080 was occupied by S13, so smoke test used temporary host 18080, container 8080; S13 untouched. A temporary host-network build override worked around stalled wheel downloads.
+- **Measured:** Connecting Ridge custom series.bin, skyline.bin and terrain.bin byte-identical to catalog; meta differs only site_id. Real comparison 48.987 s; separate HTTP submission through all four downloads 43.445 s, peak process working set 647.801 MiB (Windows GetProcessMemoryInfo, including mapped pages). API import 1.597 s, no numpy/scipy/rasterio/terrain imports.
+- **Limits:** Existing science rejects within 0.001 degrees of a pole. Custom entries have outcome, variant_of, offset_m and nearby_sun null; sphere also elevation/slope null. source_url is empty (user coordinates), group contrast. Close-up and apron files are not built; loaders skip them from null metadata/missing scene entries. Map coverage selects core80 then wide240 then sphere; nominal polar sites require installed maps when coverage cannot be inspected. Rasterio is a prepare extra, absent from runtime.
 #### 2026-11-13 · S15b · Nearby range and best-lit variants in build-sites
 - **Who:** implementation sub-agent
 - **AI use:** Cursor, grok-4.7 — wired placement into `build-sites`, added the candidate cache, wrote the synthetic tests, built the five variants and their aprons, and reran validation — exit codes below were read from the logs; human review pending.
@@ -556,6 +580,54 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 
 ## Mission Control
+
+#### 2026-11-14 · MC shell feedback · No view sentence; the landing date joins the timeline; "Next GO"
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (a rearrangement
+  of the approved C2 shell, no redesign) — removed the view's sentence plate (its text now in
+  an "About" button inside the current tab and in the tab's accessible description), wrote
+  `LandingDateControl` and moved the landing date from the app bar to the head of the
+  bottom strip, wrote `nextGoDay` and the "Next GO" button with its states, Undo and polite
+  status line, updated the specs and DESIGN.md, and wrote 34 vitest tests (fixture tests of
+  `nextGoDay`, the button's states, the control's reads and writes, and a render-count test
+  that a scrub does not re-render the control, on a small fake DOM) — checked by the agent
+  with typecheck, the vitest suite, the build, `uv run pytest`, impeccable's detector (no
+  findings), and by eye on the real data at 1440 × 900, 1024 × 768 and 390 × 844 in the four
+  camera views and with Compare open, folded, by keyboard and in an accessibility snapshot;
+  then fixed the review of PR #83 (Cursor, approve with fixes): the window's end and the
+  duration's tag at every width, the note cleared on a site or profile change, a clamping
+  Undo test (fails without the restore), focusable reasons at the ends of the grid, the
+  scrubber's pill hiding the day labels under it, and a fake DOM that honours `disabled` —
+  checked again by eye at 1440 × 900, 1024 × 768 (open and folded) and 390 × 844, keyboard
+  only on the control and the picker sheet; a human has not reviewed it yet
+- **State:** verified (333 Python tests, 1,900 web tests, typecheck and build pass on the merge with main; reviewed by Cursor (Next GO equals the ordinary evaluation on three fixture sites and two profiles; time zones; two mutations caught); six findings fixed: the window's end and the duration's tag show at every width, the note clears on a site or profile change, Undo is tested where the time clamps, disabled buttons give a reason, the pill no longer covers day labels; the layout is not yet judged by the team lead)
+  build pass on the merge with main; the team lead has not judged the layout)
+- **Changed:** `web/src/app/mission/` (new `landing-date-control.tsx`, `next-go-button.tsx`,
+  `landing-control.ts`, `fake-dom.ts` and their tests; `view-bar.tsx`, `top-bar.tsx`,
+  `free-space.ts`, `timeline/timeline.tsx`, `timeline/axis.ts`, `timeline/timeline.css`),
+  `web/src/app/mission-screen.tsx` (three small lines), `web/src/app/shell.css`,
+  `web/src/lib/scoring/next-go.ts` (new), `docs/features/` (mission-control, site-detail,
+  local-terrain, polar-map, panorama, slip-planner), `DESIGN.md`,
+  `docs/design/c2/built-shell-feedback-*.png`
+- **Notes:**
+  - The free space now starts 8 px under the view bar: at 1440 × 900 it is 59 px taller,
+    and the camera's centre rises by half that.
+  - Changing the landing date keeps the current time's offset from the landing, clamped to
+    the timeline (window ± 3 days), as `moveLandingKeepingOffset` did before; each change
+    pushes one history entry, so Back undoes it.
+  - "Next GO" searches from the day after the landing date's day, over the sweep's 00:00 UTC
+    landings, and lands at 00:00 UTC. With Chandrayaan-3 and Malapert Massif from 2029-01-10
+    it says "No GO date before 2032".
+  - The Slip Planner can mount `LandingDateControl` in its panel's header as it is; it
+    reads and writes only the scenario store.
+  - The header shows, after the date, "→ 11 Mar · 10 d [sourced]": where the window ends,
+    its length and the duration's tag, in the open, folded and phone strips; screen readers
+    hear "Mission window ends 11 Mar 2028 00:00 UTC, 10 d after landing." To keep the open
+    header at one row at 1440, "Slip +7 d" and "+14 d" live in the date's picker.
+  - At the ends of the grid the day and slip buttons stay focusable, do nothing, and give
+    the reason with the real dates ("The data starts at 2026-01-01 00:00 UTC …").
+  - Not done: a draggable start of the window on the timeline (the timeline's range follows
+    the landing, so a handle would drag its own axis), and a "Previous GO" twin.
 
 #### 2026-11-14 · MC6b · Lander's eye: the horizon chart folds away, closed by default
 - **Who:** Claude Code agent, for the orchestrator

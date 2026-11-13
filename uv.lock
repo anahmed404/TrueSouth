@@ -397,9 +397,13 @@ dependencies = [
     { name = "pillow" },
     { name = "pydantic" },
     { name = "pyproj" },
-    { name = "rasterio" },
     { name = "scipy" },
     { name = "truststore" },
+]
+
+[package.optional-dependencies]
+prepare = [
+    { name = "rasterio" },
 ]
 
 [package.metadata]
@@ -409,10 +413,11 @@ requires-dist = [
     { name = "pillow" },
     { name = "pydantic", specifier = ">=2,<3" },
     { name = "pyproj" },
-    { name = "rasterio" },
+    { name = "rasterio", marker = "extra == 'prepare'" },
     { name = "scipy" },
     { name = "truststore" },
 ]
+provides-extras = ["prepare"]
 
 [[package]]
 name = "truesouth-api"
@@ -420,12 +425,14 @@ version = "0.1.0"
 source = { editable = "api" }
 dependencies = [
     { name = "fastapi" },
+    { name = "truesouth" },
     { name = "uvicorn" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "fastapi" },
+    { name = "truesouth", editable = "science" },
     { name = "uvicorn" },
 ]
 
@@ -441,6 +448,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "pytest" },
+    { name = "rasterio" },
 ]
 
 [package.metadata]
@@ -450,7 +458,10 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest" }]
+dev = [
+    { name = "pytest" },
+    { name = "rasterio" },
+]
 
 [[package]]
 name = "truststore"

@@ -129,9 +129,9 @@ def test_health_everything_present(tmp_path: Path) -> None:
     assert response.headers["content-type"].startswith("application/json")
     body = response.json()
     assert body["status"] == "ok"
-    assert body["custom_sites"] == "not_available"
+    assert body["custom_sites"] == "available"
     assert body["sensitivity_grid"] == "not_available"
-    assert "not available in this version" in body["message"]
+    assert "Custom sites are available" in body["message"]
     derived = body["derived"]
     for key in (
         "manifest",
@@ -167,7 +167,7 @@ def test_health_missing_files(tmp_path: Path) -> None:
     assert body["derived"]["site_files"]["ridge"]["series.bin"] is False
     assert body["derived"]["site_files"]["ridge"]["meta.json"] is True
     assert body["prepared_maps"]["LDEM_80S_80MPP_ADJ.npy"] is False
-    assert "not available in this version" in body["message"]
+    assert "terrain maps" in body["message"]
 
 
 def test_health_empty_folder(tmp_path: Path) -> None:
@@ -330,21 +330,21 @@ def test_unknown_api_route_is_json_404(tmp_path: Path) -> None:
     assert MARKER not in response.content
 
 
-def test_custom_site_stub_is_501(tmp_path: Path) -> None:
+def test_custom_site_unknown_is_404(tmp_path: Path) -> None:
     client = TestClient(_app(tmp_path, fill=True))
     for path in (
         "/api/custom/c_-89.2000_130.5000/meta.json",
         "/api/custom/c_-89.2000_130.5000/series.bin",
     ):
         response = client.get(path)
-        assert response.status_code == 501, path
-        assert response.json() == {"message": "Custom sites are not available in this version."}
+        assert response.status_code == 404, path
+        assert "POST /api/sites/custom" in response.json()["message"]
         assert "html" not in response.headers["content-type"]
 
 
 def test_job_and_sensitivity_routes_are_not_registered(tmp_path: Path) -> None:
     client = TestClient(_app(tmp_path, fill=True))
-    for path in ("/api/sites/custom", "/api/sites/custom/c_-89.2000_130.5000", "/api/sensitivity"):
+    for path in ("/api/sites/custom/c_-89.2000_130.5000", "/api/sensitivity"):
         response = client.post(path)
         assert response.status_code == 404, path
         assert response.headers["content-type"].startswith("application/json")

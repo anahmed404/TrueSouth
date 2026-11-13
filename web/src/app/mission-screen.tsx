@@ -9,6 +9,7 @@ import { selectScenario } from "../state/scenario";
 import { Countdowns, Timeline, WhyDarkLine, type TimeWrite } from "./mission/timeline";
 import { FloatingWindow } from "./mission/floating-window";
 import { FocusedSitePanel } from "./mission/focused-site-panel";
+import { LandingDateControl } from "./mission/landing-date-control";
 import { ScenarioProvider, useScenario, useScenarioStore } from "./mission/scenario-context";
 import { windowPlacement, type Rect, type ShellState } from "./mission/free-space";
 import { SceneSlot } from "./mission/scene-slot";
@@ -29,7 +30,7 @@ import {
 import { rectOf, useFreeSpace, usePhone, useReducedMotion, useViewportWidth } from "./mission/shell-hooks";
 import { SitesRail } from "./mission/sites-rail";
 import { TopBar } from "./mission/top-bar";
-import { ViewBar, ViewSentence, windowElementId, type WindowButtons } from "./mission/view-bar";
+import { ViewBar, ViewNotices, windowElementId, type WindowButtons } from "./mission/view-bar";
 import { windowView, type CameraViewId, type WindowViewId } from "./mission/views";
 import { useViewCommands, useViewState } from "./mission/view-state";
 import { escapeCloses } from "./mission/window-focus";
@@ -284,7 +285,7 @@ function MissionShell() {
       <TopBar />
 
       <ViewBar state={state} onPick={pick} windowButtons={windowButtons} />
-      <ViewSentence ref={topRef} camera={state.camera} />
+      <ViewNotices ref={topRef} />
 
       <SitesRail
         collapsed={railCollapsed}
@@ -424,7 +425,10 @@ const FootStack = memo(function FootStack({
 
 type TimelineStripProps = { folded: boolean; compact: boolean; onToggleFold: () => void; regionRef: Ref<HTMLElement> };
 
-/** The bottom strip: the timeline and the two countdown cards. Folded, one row; on a phone, the compact strip. */
+/**
+ * The bottom strip: the landing date at the left of the timeline, the timeline and the two
+ * countdown cards. Folded, one row; on a phone, the compact strip.
+ */
 const TimelineStrip = memo(function TimelineStrip({ folded, compact, onToggleFold, regionRef }: TimelineStripProps) {
   const store = useScenarioStore();
   const scenario = useScenario(selectScenario);
@@ -449,6 +453,7 @@ const TimelineStrip = memo(function TimelineStrip({ folded, compact, onToggleFol
           compact={compact}
           onToggleFold={compact ? undefined : onToggleFold}
           onTimeChange={onTimeChange}
+          landing={<LandingDateControl />}
         />
       </div>
       {folded || compact ? null : (

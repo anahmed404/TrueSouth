@@ -5,7 +5,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = ["truesouth", "truesouth-api"]
 
 [dependency-groups]
-dev = ["pytest"]
+dev = ["pytest", "rasterio"]
 
 [tool.uv.workspace]
 members = ["science", "api"]

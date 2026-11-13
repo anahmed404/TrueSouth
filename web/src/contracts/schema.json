@@ -1,5 +1,30 @@
 {
   "$defs": {
+    "APIValidationError": {
+      "additionalProperties": false,
+      "description": "HTTP 422 body, without client values or internal validator details.",
+      "properties": {
+        "fields": {
+          "description": "Safe field identifiers and validation advice.",
+          "items": {
+            "$ref": "#/$defs/ValidationField"
+          },
+          "title": "Fields",
+          "type": "array"
+        },
+        "message": {
+          "description": "Plain request validation summary.",
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "message",
+        "fields"
+      ],
+      "title": "APIValidationError",
+      "type": "object"
+    },
     "ApronLayout": {
       "additionalProperties": false,
       "description": "Surrounding-terrain apron: one little-endian uint16 grid.\n\nA finite value decodes as ``raw / scale - offset_m`` (step 0.5 m). The value\n65535 is no height, never a real elevation. Row 0 is north and column 0 is west,\nthe same axes as ``terrain.bin``.",
@@ -641,22 +666,21 @@
           "type": "number"
         },
         "lon_deg": {
-          "description": "East longitude in degrees.",
-          "exclusiveMaximum": 360,
-          "minimum": 0,
+          "description": "Finite east longitude; normalised to [0, 360).",
           "title": "Lon Deg",
           "type": "number"
         },
         "name": {
-          "description": "Custom site display name.",
+          "default": "Custom site",
+          "description": "Optional display name, trimmed and length limited.",
+          "maxLength": 120,
           "title": "Name",
           "type": "string"
         }
       },
       "required": [
         "lat_deg",
-        "lon_deg",
-        "name"
+        "lon_deg"
       ],
       "title": "CustomSiteRequest",
       "type": "object"
@@ -804,7 +828,9 @@
             "rate_limited",
             "queue_full",
             "terrain_unavailable",
-            "not_found"
+            "not_found",
+            "computation_failed",
+            "storage_full"
           ],
           "title": "Code",
           "type": "string"
@@ -2689,6 +2715,34 @@
         "sources"
       ],
       "title": "Validation",
+      "type": "object"
+    },
+    "ValidationField": {
+      "additionalProperties": false,
+      "description": "A safe field identifier and plain validation advice; never the submitted value.",
+      "properties": {
+        "field": {
+          "description": "Safe field identifier; body covers malformed JSON and unknown fields.",
+          "enum": [
+            "lat_deg",
+            "lon_deg",
+            "name",
+            "body"
+          ],
+          "title": "Field",
+          "type": "string"
+        },
+        "message": {
+          "description": "Plain validation advice without submitted values.",
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "message"
+      ],
+      "title": "ValidationField",
       "type": "object"
     },
     "Weights": {

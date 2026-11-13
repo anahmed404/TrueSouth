@@ -37,7 +37,7 @@ def test_bad_times(timestamp):
         c.TimeGrid(start_utc=timestamp, step_s=3600, count=1)
 
 
-@pytest.mark.parametrize('lat,lon', [(90.0001, 0), (-90.0001, 0), (0, 360), (0, -0.1)])
+@pytest.mark.parametrize('lat,lon', [(90.0001, 0), (-90.0001, 0), (0, float('inf')), (0, float('nan'))])
 def test_bad_coordinates(lat, lon):
     with pytest.raises(ValidationError):
         c.CustomSiteRequest(lat_deg=lat, lon_deg=lon, name='test')
@@ -45,7 +45,8 @@ def test_bad_coordinates(lat, lon):
 
 @pytest.mark.parametrize('lat', [-90, 90])
 def test_boundary_coordinates(lat):
-    c.CustomSiteRequest(lat_deg=lat, lon_deg=0, name='test')
+    with pytest.raises(ValidationError):
+        c.CustomSiteRequest(lat_deg=lat, lon_deg=0, name='test')
 
 
 def test_extra_fields_rejected():

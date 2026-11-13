@@ -7,7 +7,7 @@ import { SERIES_COLUMNS, decodeSeries } from "../../../data/decode/index";
 import { evaluate, hourFlags } from "../../../lib/scoring";
 import { utcToHourIndex } from "../../../lib/time";
 import { hourScale, hourToX, timelineRange } from "./axis";
-import { PLOT, bandLayers, clearanceSummary, plotLayout, segmentRects, stretchOutline, stretches } from "./draw";
+import { PLOT, bandLayers, clearanceSummary, coveredLabels, plotLayout, segmentRects, stretchOutline, stretches } from "./draw";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../../..");
 const root = path.join(repoRoot, "data", "fixtures");
@@ -170,5 +170,28 @@ describe("clearanceSummary", () => {
     expect(clearanceSummary({ sun_clear: flat, earth_clear: flat }, { landing: 0, windowEnd: 2 }, { relay_available: true, antenna_mask_deg: 1 })).toContain(
       "at or above 0° for 2 of 2 hours.",
     );
+  });
+});
+
+describe("coveredLabels: the axis labels under the scrubber's pill", () => {
+  const labels = [
+    { left: 0, right: 30 },
+    { left: 50, right: 90 },
+    { left: 110, right: 150 },
+    { left: 200, right: 240 },
+  ];
+
+  it("hides every label the pill touches, and no other", () => {
+    expect(coveredLabels(labels, { left: 40, right: 190 })).toEqual([false, true, true, false]);
+  });
+
+  it("keeps a clear gap: a label within 4 px of the pill counts as covered", () => {
+    expect(coveredLabels(labels, { left: 93, right: 105 })).toEqual([false, true, false, false]);
+    expect(coveredLabels(labels, { left: 95, right: 105 })).toEqual([false, false, false, false]);
+  });
+
+  it("works at the ends of the axis, where the pill is clamped", () => {
+    expect(coveredLabels(labels, { left: 0, right: 120 })).toEqual([true, true, true, false]);
+    expect(coveredLabels(labels, { left: 180, right: 240 })).toEqual([false, false, false, true]);
   });
 });
