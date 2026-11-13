@@ -167,6 +167,13 @@ each integration checkpoint.
 
 ## Mission Control
 
+#### 2026-11-13 · MC7a · Slip sweep in a Web Worker
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote the sweep worker, the message handler, the client and `useSweeps`, with vitest tests — agent ran `pnpm --dir web typecheck`, `pnpm --dir web test` and `pnpm --dir web build`; a human has not reviewed it yet
+- **State:** built, not verified
+- **Changed:** `web/src/lib/scoring/` (worker, protocol, client, hooks and cache; `scoring.ts` unchanged), `web/vite.config.ts`, `web/src/state/scenario.test.ts` (the local-time Date scan now includes the worker files), this entry
+- **Notes:** The worker keeps each site's three sweep columns after the first request. The client copies those columns and transfers the copies, so the data store's buffers stay usable. Later profile edits send no series. One worker: a profile edit is compute once the series is resident, and a pool would keep another copy per worker. A landing date does not change the sweep, so a newer request for the same site drops the previous reply. Where `Worker` is missing, `useSweep` still computes on the main thread. Measured on this machine: one site through the handler, 52,584 hours, 100-day window, 3.8 ms (after one warmup); structured clone of 8 columns × 52,584 float64, 4.4 ms; copying those columns 1.0 ms and transferring them 0.1 ms. The production build emits `sweep.worker-CjJBYZ0h.js`, 3.96 kB (1.64 kB gzip). The shell does not import the sweep yet, so `vite.config.ts` lists the worker as a build input; remove that input once a screen imports `useSweep`, or the build will emit the worker twice.
+
 #### 2026-11-13 · MC3 · Scenario store, shareable link and evaluation hooks
 - **Who:** Cursor agent, for the orchestrator
 - **AI use:** Cursor, grok-4.7 — wrote the scenario store, the share-link reader and writer, the scoring cache and the evaluation hooks, with vitest tests — agent ran `pnpm --dir web typecheck`, `pnpm --dir web test` and `pnpm --dir web build`; a human has not reviewed it yet

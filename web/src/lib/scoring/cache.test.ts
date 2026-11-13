@@ -12,6 +12,8 @@ import {
   cachedHourFlags,
   cachedSlipSweep,
   clearScoringCache,
+  peekSlipSweep,
+  rememberSlipSweep,
   scoringCacheSizes,
   siteSlopeDeg,
 } from "./cache.ts";
@@ -241,6 +243,25 @@ function changedProfile(field: string): ScoringProfile {
       throw new Error(`no change for ${field}`);
   }
 }
+
+describe("worker sweep cache", () => {
+  it("stores a computed sweep under the sweep key and drops the least recently used", () => {
+    const samples = series();
+    const limits = profile();
+    const sweep = slipSweep(samples, limits, 3);
+    rememberSlipSweep("site", samples, limits, 3, sweep);
+
+    expect(peekSlipSweep("site", samples, limits, 3)).toBe(sweep);
+    expect(cachedSlipSweep("site", samples, limits, 3)).toBe(sweep);
+
+    for (let index = 0; index < SCORING_CACHE_LIMITS.sweeps; index += 1) {
+      rememberSlipSweep(`pad-${index}`, samples, limits, 3, sweep);
+    }
+    expect(scoringCacheSizes().sweeps).toBe(SCORING_CACHE_LIMITS.sweeps);
+    expect(peekSlipSweep("site", samples, limits, 3)).toBeUndefined();
+    expect(peekSlipSweep("pad-1", samples, limits, 3)).toBe(sweep);
+  });
+});
 
 describe("fixture scoring through the cache", () => {
   const manifest = JSON.parse(readFileSync(path.join(fixtureRoot, "manifest.json"), "utf8")) as Manifest;

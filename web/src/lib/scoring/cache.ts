@@ -4,8 +4,8 @@
  * The key is the site, the series array the data store is holding, and only
  * the profile fields that computation reads. Dragging the scrubber changes
  * the current hour, which flags and the slip sweep do not read, so those
- * results keep their identity. A worker can later fill a `SlipSweep`; the
- * cached value is already that shape.
+ * results keep their identity. The sweep worker fills the same `SlipSweep`
+ * shape through `rememberSlipSweep`; a later read uses the same key.
  */
 
 import {
@@ -146,13 +146,55 @@ export function cachedCountdowns(
   return lookup(countdownCache, COUNTDOWN_CACHE_LIMIT, key, () => countdowns(series, profile, currentHour));
 }
 
+/** Same key `cachedSlipSweep` uses. A hit and a worker store must agree. */
+export function slipSweepCacheKey(
+  siteId: string,
+  series: Series,
+  profile: ScoringProfile,
+  slopeDeg: number | null,
+): string {
+  return cacheKey(siteId, series, [slopeDeg, ...picked(profile, SWEEP_FIELDS)]);
+}
+
+/** The cached sweep, or undefined. A hit becomes the most recently used. */
+export function peekSlipSweep(
+  siteId: string,
+  series: Series,
+  profile: ScoringProfile,
+  slopeDeg: number | null,
+): SlipSweep | undefined {
+  const key = slipSweepCacheKey(siteId, series, profile, slopeDeg);
+  if (!sweepCache.has(key)) return undefined;
+  const hit = sweepCache.get(key) as SlipSweep;
+  sweepCache.delete(key);
+  sweepCache.set(key, hit);
+  return hit;
+}
+
+/** Store a sweep the worker (or a test) already computed. Same cap as the lookup. */
+export function rememberSlipSweep(
+  siteId: string,
+  series: Series,
+  profile: ScoringProfile,
+  slopeDeg: number | null,
+  sweep: SlipSweep,
+): void {
+  const key = slipSweepCacheKey(siteId, series, profile, slopeDeg);
+  sweepCache.delete(key);
+  sweepCache.set(key, sweep);
+  if (sweepCache.size > SWEEP_CACHE_LIMIT) {
+    const oldest = sweepCache.keys().next().value;
+    if (oldest !== undefined) sweepCache.delete(oldest);
+  }
+}
+
 export function cachedSlipSweep(
   siteId: string,
   series: Series,
   profile: ScoringProfile,
   slopeDeg: number | null,
 ): SlipSweep {
-  const key = cacheKey(siteId, series, [slopeDeg, ...picked(profile, SWEEP_FIELDS)]);
+  const key = slipSweepCacheKey(siteId, series, profile, slopeDeg);
   return lookup(sweepCache, SWEEP_CACHE_LIMIT, key, () => slipSweep(series, profile, slopeDeg));
 }
 
