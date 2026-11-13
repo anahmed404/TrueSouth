@@ -40,7 +40,7 @@ import { sceneContent, type LoadState } from "./plates";
 import { southPolePose } from "./navigate";
 import { Rig } from "./rig";
 import { sightState, type SightState } from "./sight";
-import { FrameMeter, STEP_DOWN_MS, WINDOW_FRAMES, drawDpr, judgeWindow, median, qualityStages } from "./perf";
+import { FrameMeter, STEP_DOWN_MS, WINDOW_FRAMES, drawDpr, judgeWindow, median, moonSegments, qualityStages } from "./perf";
 import { Stars, starExposure } from "./stars";
 import { mul, type V3 } from "./vec";
 import { World, type WorldInputs, type WorldSite } from "./world";
@@ -971,6 +971,13 @@ function Director(props: DirectorProps) {
       exposure = starExposure((Math.PI * moonRadius * moonRadius) / (fovY * fovY * cam.aspect));
     }
     stars.update(gl.getPixelRatio(), exposure, inputs.bodies ? inputs.sunDir : null);
+    // The Moon's level of detail from its radius on screen, in device pixels (perf.ts).
+    const moonDistance = cam.position.length();
+    const moonPixels =
+      moonDistance > 1.0001
+        ? (Math.tan(Math.asin(1 / moonDistance)) / Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2)) * (size.height / 2) * gl.getPixelRatio()
+        : Number.POSITIVE_INFINITY;
+    world.setMoonSegments(moonSegments(moonPixels));
     const overlayStart = devMeter ? performance.now() : 0;
     latest.current.bus.current.overlay?.(anchors, frameCamera as THREE.PerspectiveCamera, size);
     if (devMeter) devMeter.parts.overlay += performance.now() - overlayStart;
@@ -1042,12 +1049,13 @@ function Director(props: DirectorProps) {
         p95: devMeter.meter.p95(),
         frames: devMeter.meter.count,
         dpr: gl.getPixelRatio(),
+        stage: quality.stage,
         overlayMs: devMeter.parts.overlay / Math.max(1, devMeter.frames),
         renderMs: devMeter.parts.render / Math.max(1, devMeter.frames),
       }),
     };
     return () => devMeter.hud?.remove();
-  }, [devMeter, gl]);
+  }, [devMeter, gl, quality]);
 
   // Exposed for checking by the numbers in the browser (dev only).
   useEffect(() => {

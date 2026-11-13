@@ -117,3 +117,21 @@ export class FrameMeter {
     return percentile(this.times, 0.95, this.count);
   }
 }
+
+/** The Moon sphere's levels of detail (segments around; half as many from pole to pole). The last is today's mesh. */
+export const MOON_SEGMENTS = [64, 96, 128, 192, 256, 384] as const;
+/** The full Moon mesh, as drawn before levels of detail. */
+export const MOON_SEGMENTS_FULL = 384;
+
+/**
+ * How many segments the Moon sphere needs when its disc is `pixelRadius` device pixels
+ * across the radius: enough that a facet's flat edge stays within a quarter of a pixel of the
+ * true circle, R (1 − cos(π / N)) < 0.25, so N > π √(2R), with a third more for margin.
+ * Shading is per pixel from the normalised position, so fewer segments change nothing but
+ * that edge. Close up (or unknown), the full mesh, as today.
+ */
+export function moonSegments(pixelRadius: number): number {
+  if (!Number.isFinite(pixelRadius) || pixelRadius <= 0) return MOON_SEGMENTS_FULL;
+  const needed = Math.PI * Math.sqrt(2 * pixelRadius) * 1.33;
+  return MOON_SEGMENTS.find((n) => n >= needed) ?? MOON_SEGMENTS_FULL;
+}

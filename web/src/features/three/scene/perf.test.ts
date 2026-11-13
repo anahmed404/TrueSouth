@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FrameMeter, SLOW_MEDIAN_MS, STEP_DOWN_MS, drawDpr, judgeWindow, median, qualityStages } from "./perf";
+import { FrameMeter, MOON_SEGMENTS_FULL, SLOW_MEDIAN_MS, STEP_DOWN_MS, drawDpr, judgeWindow, median, moonSegments, qualityStages } from "./perf";
 
 describe("quality stages from the screen", () => {
   it("stage 0 is today's picture: the device pixel ratio up to 2, unchanged while moving", () => {
@@ -75,5 +75,32 @@ describe("the frame meter", () => {
     meter.reset();
     expect(meter.count).toBe(0);
     expect(median([3, 1, 2])).toBe(2);
+  });
+});
+
+describe("the Moon's level of detail", () => {
+  /** How far a facet's flat edge falls inside the true circle, in pixels. */
+  const edgeError = (radius: number, segments: number) => radius * (1 - Math.cos(Math.PI / segments));
+
+  it("keeps the silhouette within a quarter of a pixel at every size", () => {
+    for (const radius of [20, 105, 300, 700, 1_000, 1_800]) {
+      expect(edgeError(radius, moonSegments(radius))).toBeLessThan(0.25);
+    }
+  });
+
+  it("draws far fewer triangles for a small Moon, and the full mesh close up", () => {
+    expect(moonSegments(105)).toBe(64);
+    expect(moonSegments(5_000)).toBe(MOON_SEGMENTS_FULL);
+    expect(moonSegments(Number.POSITIVE_INFINITY)).toBe(MOON_SEGMENTS_FULL);
+    expect(moonSegments(Number.NaN)).toBe(MOON_SEGMENTS_FULL);
+  });
+
+  it("never needs fewer segments for a bigger Moon", () => {
+    let previous = 0;
+    for (let radius = 1; radius < 6_000; radius *= 1.1) {
+      const n = moonSegments(radius);
+      expect(n).toBeGreaterThanOrEqual(previous);
+      previous = n;
+    }
   });
 });
