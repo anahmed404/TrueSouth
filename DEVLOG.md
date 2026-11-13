@@ -49,6 +49,28 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-14 · S2b · Stable score boundaries and exact window means
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — documented the arithmetic first, implemented
+  matching Python and TypeScript scoring, added seeded translation and boundary
+  tests, regenerated G10, and ran sequential catalog audits and checks.
+- **State:** built, not verified
+- **Changed:** scoring functions and their tests, the fixture generator and shared
+  cases, a scoring-only fixture series, `docs/science.md` sections 9–11, decision
+  0014 and `docs/reviews/s2b-score-boundary.md`. No screens or contracts changed.
+- **Notes:**
+  - Exact integer prefix counts replace floating prefix subtraction; a stated
+    12-decimal rule handles comparisons and the returned score in both copies.
+  - Audited 25 sites × 5 presets × 2,191 days, once before and once after, each
+    single-process. Zero status changes and zero score changes above 1e-9 for
+    every preset. The largest score difference is 1.1802114841e-11 points.
+  - Worked examples regenerate byte-identically. No derived file changed. The
+    complete per-profile counts and regression evidence are in the report.
+  - Checks: pytest 432 passed, 1 skipped; web 1,926 passed; frozen install,
+    typecheck and build passed, each exit 0. Fixed a new fixture-label collision
+    found by the first Python run, then reran Python and the affected G10 test.
+    Checks ran sequentially, with numerical threads and Vitest workers limited.
+
 #### 2026-11-14 · S10b integration · Merge main's placement builder
 - **Who:** Codex implementation agent
 - **AI use:** Codex resolved build-sites and DEVLOG conflicts, preserved main's placement flow, adapted the custom-site wrapper to main's helpers, and added integration tests; human and orchestrator review pending.

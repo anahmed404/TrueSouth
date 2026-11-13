@@ -500,7 +500,7 @@ $$U_{power} = \text{sun\_fraction\_mean} \times g(\text{longest\_dark\_h},\ \tex
 $$U_{comms} = \begin{cases} 1 & \text{with a relay} \\ \text{link\_fraction} \times g(\text{longest\_blackout\_h},\ \text{max\_blackout\_h}) & \text{otherwise} \end{cases}$$
 
 Apply section 9's comparison rule at each utility breakpoint. At or below the
-ideal slope the slope utility is exactly 1; at or above the maximum it is
+ideal slope the slope utility is exactly 1; otherwise, at or above the maximum it is
 exactly 0. For $g$, a limit equal to zero gives exactly 1; with a positive
 limit, a run at or above it gives exactly 0 and a zero run gives exactly 1.
 Between breakpoints use the formulas above without intermediate rounding.
@@ -535,7 +535,8 @@ grid, for every selected site. Means use prefix sums of the exact integer
 counts in section 9. Across the 52,584-hour grid the largest Sun-fraction sum
 is 525,840,000 counts, well within binary64's exact integer range. Subtract
 integer prefix sums before the single division. A single-window evaluation
-uses the same count and division rules. Longest runs are scanned directly.
+uses the same count and division rules. Longest runs use equivalent window
+and range-maximum methods; their definition is still the unbroken run in section 9.
 It runs in a Web Worker. The reference in `scoring.py` evaluates every landing hour; the
 Slip Planner reads the 00:00 UTC rows.
 
