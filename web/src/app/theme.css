@@ -1,45 +1,200 @@
 @import "tailwindcss";
+@import "@fontsource-variable/jost";
+@import "../components/components.css";
+@import "./shell.css";
 
 /*
-  Theme tokens. Names are the contract; values are neutral placeholders
-  until a design is chosen. Colour values live only in this file.
+  TrueSouth theme: direction C2, "the calm instrument".
+  Spec: design/variants/direction-c2.md. System record: DESIGN.md.
+
+  Rules for this file:
+  - Every colour value in the web app lives here and nowhere else. Components use
+    the tokens (as `var(--token)` or the Tailwind classes mapped below).
+  - Surfaces are near-black neutral greys. The only hues are data: the Sun, Earth
+    and the three statuses. The accent is moonlight white, for what the user controls.
+  - No purple, indigo or violet. No glow, glass blur or decorative gradient.
 */
 
 :root {
-  --background: #141414;
-  --surface-1: #1c1c1c;
-  --surface-2: #242424;
-  --surface-3: #2e2e2e;
+  color-scheme: dark;
 
-  --text: #e8e8e8;
-  --text-muted: #b0b0b0;
-  --text-faint: #808080;
+  /* ── Surfaces, darkest to lightest ─────────────────────────────────────── */
+  --bg: #0b0b0c; /* page, gutters between docked panels */
+  --surface: #141415; /* panels */
+  --raised: #1b1b1d; /* cards and wells in a panel, inputs, the selected tab */
+  --hover: #232326; /* hover fill, focused row, meter track */
+  --line: #262629; /* panel and card borders, dividers */
+  --line-strong: #37373b; /* control borders, tag outlines */
 
-  --border: #404040;
-  --accent: #707070;
+  /* ── Text ──────────────────────────────────────────────────────────────── */
+  --ink: #ececee; /* primary text: 13.3–16.7:1 on every surface */
+  --ink-2: #b3b3b8; /* secondary text: 7.5–9.4:1 */
+  --ink-3: #8c8c93; /* labels and captions: 4.69–5.89:1, the faintest text colour */
+  --ink-4: #5c5c63; /* disabled controls only, never text that carries meaning */
 
-  --status-go: #3f6b4a;
-  --status-caution: #8a7040;
-  --status-nogo: #8a4545;
+  /* ── The accent: moonlight white, only for what the user controls ─────── */
+  --accent: #f3efe6;
+  --accent-ink: #141414; /* text on the accent, 16:1 */
 
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.5rem;
-  --space-6: 2rem;
-  --space-7: 3rem;
-  --space-8: 4rem;
+  /* ── Data colours ──────────────────────────────────────────────────────── */
+  --sun: #ffe2a0; /* Sun band, Sun path, Sun icon */
+  --sun-core: #fff4d8; /* Sun disc */
+  --earth: #6cc4ff; /* Earth band, Earth path, antenna mask */
+  --earth-core: #9fdbff; /* Earth disc */
+  --earth-land: #0b2a40; /* the land drawn on the small Earth icon */
 
-  --type-xs: 0.75rem;
-  --type-sm: 0.875rem;
-  --type-base: 1rem;
-  --type-lg: 1.25rem;
-  --type-xl: 1.5rem;
-  --type-2xl: 2rem;
+  --status-go: #45c98b;
+  --status-caution: #f2a33a;
+  --status-nogo: #f0646d;
+  --status-glyph: #0b0b0c; /* the cut glyph in a status lamp: 9.4, 9.4 and 6.3:1 */
+  --status-nogo-edge: color-mix(in oklab, var(--status-nogo), transparent 55%); /* broken-rule card border */
+
+  /* ── Plots ─────────────────────────────────────────────────────────────── */
+  --plot: #0e0e0f; /* chart and panorama background: the sky */
+  --terrain: #1d1d20; /* skyline silhouette fill, flat */
+  --terrain-rim: #a8a8af; /* skyline edge line */
+  --grid: rgb(255 255 255 / 0.06); /* chart grid lines */
+
+  /* ── Luna and the Academy (used by components/luna once restyled) ──────── */
+  --luna-body: #d8d5ce; /* her face: a warm regolith grey */
+  --luna-crater: #b2afa8; /* craters and the shaded limb */
+  --luna-feature: #18181a; /* eyes, mouth and brows */
+  --luna-sparkle: #fffaf0; /* catch-lights and sparkles */
+  --luna-tear: #a6d2ef; /* a tear: pale, so it is not read as Earth */
+  --speech-bg: #1f1f22; /* Luna's speech bubble */
+  --speech-border: var(--line-strong);
+  --speech-ink: var(--ink);
+  /* Celebration confetti: five colours that never reuse a status colour. */
+  --celebrate-1: #f3efe6; /* moonlight */
+  --celebrate-2: #ffd36b; /* gold */
+  --celebrate-3: #8fd6ff; /* light sky */
+  --celebrate-4: #ff9ec4; /* rose */
+  --celebrate-5: #c9c9cf; /* silver */
+
+  /* ── Interaction ───────────────────────────────────────────────────────── */
+  --focus-ring: var(--accent);
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --selection-bg: var(--accent);
+  --selection-ink: var(--accent-ink);
+  --shadow-popover: 0 8px 20px rgb(0 0 0 / 0.45); /* the only shadow: things that float */
+  --scrollbar-thumb: var(--line-strong);
+  --scrollbar-thumb-hover: var(--ink-4);
+
+  /* ── Type ──────────────────────────────────────────────────────────────── */
+  --font:
+    "Jost Variable", "Jost", "Futura", "Century Gothic", "Avenir Next", "Trebuchet MS",
+    system-ui, sans-serif;
+  --t-xs: 11px; /* SVG axis ticks only; HTML text never goes below --t-sm */
+  --t-sm: 12px; /* captions, labels, tags, tab lines, legends */
+  --t-md: 13px; /* Mission Control body */
+  --t-lg: 15px; /* panel titles, the view sentence, Academy body */
+  --t-xl: 18px; /* site name, section titles, brand */
+  --t-2xl: 24px; /* status word, broken rule's value, door titles */
+  --t-3xl: 32px; /* close-study titles and countdowns */
+  --t-display: 44px; /* start-screen headline */
+
+  /* ── Spacing ───────────────────────────────────────────────────────────── */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --gutter: 8px; /* between docked panels */
+
+  /* ── Radius ────────────────────────────────────────────────────────────── */
+  --r-sm: 6px; /* buttons and keys */
+  --r-md: 10px; /* cards, inputs, plot frames */
+  --r-lg: 14px; /* panels */
+  --r-pill: 999px; /* segmented controls, tags, lamps, door buttons */
+
+  /* ── Motion ────────────────────────────────────────────────────────────── */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 150ms;
+  --dur-panel: 200ms;
+
+  /* ── Mission Control shell ─────────────────────────────────────────────── */
+  --shell-rail: 256px;
+  --shell-focus: 328px;
+  --shell-slim: 48px;
+  --shell-top: 52px;
+  --shell-strip: 196px;
+  --shell-foot: 28px;
+
+  /*
+    Earlier token names, kept so existing code keeps working. They point at the C2
+    tokens above; prefer the C2 names in new code.
+  */
+  --background: var(--bg);
+  --surface-1: var(--surface);
+  --surface-2: var(--raised);
+  --surface-3: var(--hover);
+  --text: var(--ink);
+  --text-muted: var(--ink-2);
+  --text-faint: var(--ink-3);
+  --border: var(--line);
+  --border-strong: var(--line-strong);
+
+  --space-1: var(--s1);
+  --space-2: var(--s2);
+  --space-3: var(--s3);
+  --space-4: var(--s4);
+  --space-5: var(--s5);
+  --space-6: var(--s6);
+  --space-7: var(--s7);
+  --space-8: 64px;
+
+  --type-xs: var(--t-sm);
+  --type-sm: var(--t-md);
+  --type-base: var(--t-lg);
+  --type-lg: var(--t-xl);
+  --type-xl: var(--t-2xl);
+  --type-2xl: var(--t-3xl);
 }
 
 @theme inline {
+  /* Only the project's colours exist as utilities: Tailwind's own palette is off. */
+  --color-*: initial;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-hover: var(--hover);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-sun: var(--sun);
+  --color-sun-core: var(--sun-core);
+  --color-earth: var(--earth);
+  --color-earth-core: var(--earth-core);
+  --color-status-go: var(--status-go);
+  --color-status-caution: var(--status-caution);
+  --color-status-nogo: var(--status-nogo);
+  --color-plot: var(--plot);
+  --color-terrain: var(--terrain);
+  --color-terrain-rim: var(--terrain-rim);
+  --color-luna-body: var(--luna-body);
+  --color-luna-crater: var(--luna-crater);
+  --color-luna-feature: var(--luna-feature);
+  --color-luna-sparkle: var(--luna-sparkle);
+  --color-luna-tear: var(--luna-tear);
+  --color-speech-bg: var(--speech-bg);
+  --color-speech-border: var(--speech-border);
+  --color-celebrate-1: var(--celebrate-1);
+  --color-celebrate-2: var(--celebrate-2);
+  --color-celebrate-3: var(--celebrate-3);
+  --color-celebrate-4: var(--celebrate-4);
+  --color-celebrate-5: var(--celebrate-5);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  /* Earlier names */
   --color-background: var(--background);
   --color-surface-1: var(--surface-1);
   --color-surface-2: var(--surface-2);
@@ -48,10 +203,9 @@
   --color-text-muted: var(--text-muted);
   --color-text-faint: var(--text-faint);
   --color-border: var(--border);
-  --color-accent: var(--accent);
-  --color-status-go: var(--status-go);
-  --color-status-caution: var(--status-caution);
-  --color-status-nogo: var(--status-nogo);
+  --color-border-strong: var(--border-strong);
+
+  --font-sans: var(--font);
 
   --spacing-1: var(--space-1);
   --spacing-2: var(--space-2);
@@ -68,10 +222,116 @@
   --text-lg: var(--type-lg);
   --text-xl: var(--type-xl);
   --text-2xl: var(--type-2xl);
+  --text-display: var(--t-display);
+
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-pill: var(--r-pill);
+
+  --shadow-popover: var(--shadow-popover);
+  --ease-out: var(--ease-out);
 }
 
-body {
-  margin: 0;
-  background: var(--background);
-  color: var(--text);
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  html {
+    background: var(--bg);
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font);
+    font-size: var(--t-md);
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+    font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--selection-bg);
+    color: var(--selection-ink);
+  }
+
+  :focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  a {
+    color: inherit;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  svg text {
+    font-family: var(--font);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border: 3px solid transparent;
+    border-radius: var(--r-pill);
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+  }
+}
+
+/* ── Utilities the components share ──────────────────────────────────────── */
+
+@layer utilities {
+  /* A unit after a number: 0.7 em in --ink-2, as in "31 h". */
+  .unit {
+    font-size: 0.7em;
+    font-weight: 400;
+    color: var(--ink-2);
+    margin-left: 0.12em;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/*
+  Reduced motion: nothing moves or resizes over time. State still changes at once, and
+  colour fades (hover, focus) stay, since they do not move anything.
+*/
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-panel: 0ms;
+  }
+
+  .shell,
+  .disclosure-chevron,
+  .door .btn-door svg {
+    transition: none;
+  }
 }
