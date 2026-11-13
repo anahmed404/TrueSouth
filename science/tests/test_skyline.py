@@ -76,20 +76,23 @@ def test_g5_wall_and_blocker(tmp_path, distance, height, method):
     assert result.height_m[0] == pytest.approx(height, abs=1e-5)
 
 
-def test_g6_switch_both_methods(tmp_path):
+@pytest.mark.parametrize('pixel', [80, 240])
+def test_g6_switch_both_methods(tmp_path, pixel):
     site = (-89., 0.)
-    # The same 80 m pixel lies exactly at the 1,440-bin switch. With 720 bins,
+    # The same pixel lies exactly at the 1,440-bin switch. With 720 bins,
     # its angular width is smaller than a bin and every-pixel evaluation applies.
-    distance = 80 / np.tan(np.radians(.25))
+    distance = pixel / np.tan(np.radians(.25))
     point = destination(*site, 0, distance)
     peak = np.zeros((3, 3))
     peak[1, 1] = 1000
-    store = DemStore(prepared(tmp_path, 'peak', peak, point),
-                     prepared(tmp_path, 'ground', np.zeros((11, 11)), site, 240))
+    peak_path = prepared(tmp_path, 'peak', peak, point, pixel)
+    ground_path = prepared(tmp_path, 'ground', np.zeros((11, 11)), site,
+                           240 if pixel == 80 else 80)
+    store = DemStore(peak_path, ground_path) if pixel == 80 else DemStore(ground_path, peak_path)
     near = compute_skyline(store, *site)
     far = compute_skyline(store, *site, bins=720)
     error = abs(near.el_deg[0] - far.el_deg[0])
-    print(f'G6 switch error: {error:.12g} deg')
+    print(f'G6 {pixel} m switch error: {error:.12g} deg')
     assert near.method[0] == 'near'
     assert far.method[0] == 'far'
     assert error <= .02
@@ -188,3 +191,36 @@ def test_r5_smooth_terrain_and_chunk_invariance(tmp_path):
     assert np.sqrt(np.mean((fine.el_deg[::2] - coarse.el_deg) ** 2)) < .05
     again = compute_skyline(store, *site, chunk_size=90000)
     np.testing.assert_allclose(again.arrays, coarse.arrays, equal_nan=True)
+
+
+def test_contiguous_maps_at_core_edge(tmp_path):
+    site = (-89., 0.)
+    core = prepared(tmp_path, 'core', np.zeros((11, 11)), site)
+    wide_heights = np.zeros((501, 51))
+    # North is +y here. Rows 124..126 are about 30 km north of the observer.
+    # A three-row plateau crosses a ray sample exactly, avoiding a grid-phase
+    # assumption. It is past the 80 m switch and before the 240 m switch.
+    wide_heights[124:127, :] = 3000
+    wide = prepared(tmp_path, 'wide', wide_heights, site, 240)
+    result = compute_skyline(DemStore(core, wide), *site)
+    assert result.method[0] == 'near'
+    assert result.height_m[0] == pytest.approx(3000)
+    assert 29 < result.dist_km[0] < 31
+
+
+def test_far_missing_pixel_and_chunk_invariance(tmp_path):
+    site = (-89., 0.)
+    point = destination(*site, 90, 100000)
+    core = prepared(tmp_path, 'ground', np.zeros((11, 11)), site)
+    pixels = np.zeros((5, 5))
+    pixels[2, 2] = np.nan
+    pixels[2, 3] = 10000
+    wide = prepared(tmp_path, 'far_missing', pixels, point, 240)
+    store = DemStore(core, wide)
+    small = compute_skyline(store, *site, chunk_size=50000)
+    large = compute_skyline(store, *site, chunk_size=100000)
+    np.testing.assert_allclose(small.arrays, large.arrays, equal_nan=True)
+    assert small.missing_samples == large.missing_samples
+    assert small.missing_samples > 0
+    assert small.method[np.argmax(small.el_deg)] == 'far'
+    assert small.height_m[np.argmax(small.el_deg)] == 10000
