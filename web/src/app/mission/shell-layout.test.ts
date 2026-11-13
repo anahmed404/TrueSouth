@@ -28,6 +28,7 @@ function memoryStorage(initial: Record<string, string> = {}) {
 const bothCollapsed: ShellLayout = {
   sitesRail: { collapsed: true },
   focusPanel: { collapsed: true },
+  timeline: { collapsed: false },
 };
 
 describe("toggleShellPanel", () => {
@@ -77,7 +78,28 @@ describe("parseShellLayout", () => {
 
   it("keeps the panels it can read and defaults the rest", () => {
     const parsed = parseShellLayout(JSON.stringify({ sitesRail: { collapsed: true }, focusPanel: { collapsed: "yes" } }));
-    expect(parsed).toEqual({ sitesRail: { collapsed: true }, focusPanel: { collapsed: false } });
+    expect(parsed).toEqual({
+      sitesRail: { collapsed: true },
+      focusPanel: { collapsed: false },
+      timeline: { collapsed: false },
+    });
+  });
+});
+
+describe("the timeline's fold", () => {
+  it("folds and unfolds without touching the side panels, and is remembered", () => {
+    const folded = toggleShellPanel(DEFAULT_SHELL_LAYOUT, "timeline");
+    expect(folded.timeline.collapsed).toBe(true);
+    expect(folded.sitesRail).toEqual(DEFAULT_SHELL_LAYOUT.sitesRail);
+    expect(shellColumns(folded)).toBe(shellColumns(DEFAULT_SHELL_LAYOUT));
+    const storage = memoryStorage();
+    saveShellLayout(storage, folded);
+    expect(loadShellLayout(storage).timeline.collapsed).toBe(true);
+  });
+
+  it("reads a layout saved before the timeline could fold as unfolded", () => {
+    const old = JSON.stringify({ sitesRail: { collapsed: true }, focusPanel: { collapsed: true } });
+    expect(parseShellLayout(old)).toEqual(bothCollapsed);
   });
 });
 

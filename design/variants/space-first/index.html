@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mission Control · Space first</title>
+<meta name="description" content="Prototype: Mission Control with a live 3D Sun, Earth and Moon behind a floating interface. Mock data.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%2214%22 fill=%22%230b0b0c%22 stroke=%22%238c8c93%22 stroke-width=%222%22/%3E%3Cpath d=%22M16 4L19 16L16 28L13 16Z%22 fill=%22%23ececee%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="g-go" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="g-caution" viewBox="0 0 24 24"><path d="M12 5.5v8"/><path d="M12 18.5v.2"/></symbol>
+  <symbol id="g-nogo" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></symbol>
+  <symbol id="g-none" viewBox="0 0 24 24"><path d="M7 12h10"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2" fill="#ffe2a0" stroke="none"/><g stroke="#ffe2a0" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></g></symbol>
+  <symbol id="i-earth" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="#6cc4ff" stroke="none"/><path d="M7 9c2 0 2.5 1.5 4 1.5S13 9 14.5 9.5 16 12 18 12M8 15.5c1.5-.5 3 .5 4.5 0" stroke="#0b2a40" stroke-width="1.6" fill="none" stroke-linecap="round"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 16 16"><path d="M6 3.5L10.5 8 6 12.5"/></symbol>
+  <symbol id="i-l" viewBox="0 0 16 16"><path d="M10 3.5L5.5 8 10 12.5"/></symbol>
+  <symbol id="i-r" viewBox="0 0 16 16"><path d="M6 3.5L10.5 8 6 12.5"/></symbol>
+  <symbol id="i-down" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></symbol>
+  <symbol id="i-up" viewBox="0 0 16 16"><path d="M4 10l4-4 4 4"/></symbol>
+  <symbol id="i-panel-l" viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="15" height="13" rx="2.5"/><path d="M7.5 3.5v13"/></symbol>
+  <symbol id="i-panel-r" viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="15" height="13" rx="2.5"/><path d="M12.5 3.5v13"/></symbol>
+  <symbol id="i-window" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="2"/><path d="M2 6h12"/></symbol>
+  <symbol id="i-x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 16 16"><path d="M3 8h10"/></symbol>
+  <symbol id="i-reset" viewBox="0 0 16 16"><path d="M3 8a5 5 0 1 0 1.5-3.5M3 3v3h3"/></symbol>
+  <symbol id="i-share" viewBox="0 0 20 20"><circle cx="5" cy="10" r="2.2"/><circle cx="15" cy="4.5" r="2.2"/><circle cx="15" cy="15.5" r="2.2"/><path d="M7 9l6-3.4M7 11l6 3.4"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 20 20"><path d="M2 10s3-5.5 8-5.5S18 10 18 10s-3 5.5-8 5.5S2 10 2 10z"/><circle cx="10" cy="10" r="2.5"/></symbol>
+</svg>
+
+<!-- the scene: WebGL, the flat polar map, and a still picture for when 3D is off -->
+<div class="stage" id="stage" data-layer="gl">
+  <canvas id="gl" tabindex="0" aria-label="3D scene. Drag or use the arrow keys to turn; scroll or press + and − to zoom."></canvas>
+  <canvas id="map" aria-label="Polar map. Drag to pan, scroll to zoom, click the ground to place a site." role="img"></canvas>
+  <img class="still" id="still" alt="Still picture of the System view: the Moon lit from the side, Earth beyond it, and the selected sites at the south pole." src="assets/still_home.webp">
+  <div class="ov" id="ov"></div>
+  <div id="dip"></div>
+</div>
+
+<div class="ui" id="ui">
+  <header class="appbar">
+    <div class="blk panel">
+      <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="#8c8c93" stroke-width="1.6"/><path d="M16 4 L19 16 L16 28 L13 16Z" fill="#ececee"/><path d="M16 16 L19 16 L16 28Z" fill="#8c8c93"/></svg><span class="wm">TrueSouth</span></div>
+      <nav class="seg" aria-label="Mode"><button aria-pressed="true">Mission Control</button><button aria-pressed="false" title="The Academy is not part of this prototype">Academy</button></nav>
+    </div>
+    <div class="spacer"></div>
+    <button class="blk panel field prof" aria-label="Mission profile: IM-2 Athena, 10 days, sourced">
+      <span class="lbl">Mission profile</span><span class="v">IM-2 Athena</span><span class="sub">10 d</span><span class="tag src">sourced</span>
+      <svg class="i" style="width:14px;height:14px;color:var(--ink-3);margin-right:6px" viewBox="0 0 16 16"><use href="#i-down"/></svg>
+    </button>
+    <div class="blk panel field">
+      <span class="lbl prof-l">Landing date</span>
+      <button class="ib" data-slip="-1" aria-label="One day earlier"><svg class="i"><use href="#i-l"/></svg></button>
+      <span class="v" id="landing"><span class="d-long">2028-03-01 00:00 <small>UTC</small></span><span class="d-short">01 Mar 2028</span></span>
+      <button class="ib" data-slip="1" aria-label="One day later"><svg class="i"><use href="#i-r"/></svg></button>
+      <span class="vr"></span>
+      <button class="btn slip" data-slip="7">Slip +7 d</button><button class="btn slip" data-slip="14">+14 d</button>
+    </div>
+    <button class="blk panel btn share" style="height:100%;border-radius:var(--r-lg);padding:0 14px;font-size:var(--t-md);color:var(--ink)" aria-label="Share"><svg class="i"><use href="#i-share"/></svg><span class="tx">Share</span></button>
+  </header>
+
+  <!-- view picker and the view's one sentence -->
+  <div class="top-c">
+    <nav class="viewbar panel" aria-label="Views" id="viewbar">
+      <button class="vt" data-view="system" aria-current="true">System view</button>
+      <button class="vt" data-view="polar">Polar map</button>
+      <button class="vt" data-view="terrain">Local terrain</button>
+      <button class="vt" data-view="eye">Lander's eye</button>
+      <span class="vr" aria-hidden="true"></span>
+      <button class="vt" data-win="slip" aria-expanded="false" aria-controls="win-slip">Slip Planner <svg class="i wi"><use href="#i-window"/></svg></button>
+      <button class="vt" data-win="compare" aria-expanded="false" aria-controls="win-compare">Compare <svg class="i wi"><use href="#i-window"/></svg></button>
+    </nav>
+    <p class="what" id="what" aria-live="polite"></p>
+  </div>
+
+  <aside class="panel rail" id="rail" aria-label="Selected sites">
+    <div class="ph"><h2>Selected sites</h2><span class="cnt">5 of 8</span><button class="tgl" id="tgl-l" aria-label="Fold the sites panel ([)" aria-expanded="true"><svg class="i"><use href="#i-panel-l"/></svg></button></div>
+    <p class="rail-sub" id="rail-sub"></p>
+    <ul class="sites" id="sites"></ul>
+    <button class="add"><svg class="i"><use href="#i-plus"/></svg>Add site</button>
+    <div class="mini" id="rail-mini"></div>
+  </aside>
+
+  <aside class="panel focus" id="focus" aria-label="Focused site">
+    <div class="ph"><div class="f-h" id="f-h" style="flex:1;min-width:0"></div><button class="btn phone-only" id="sites-btn" aria-expanded="false" aria-controls="rail">Sites</button><button class="tgl" id="tgl-r" aria-label="Fold the focused-site panel (])" aria-expanded="true"><svg class="i"><use href="#i-panel-r"/></svg></button></div>
+    <div id="f-body"></div>
+    <div class="mini" id="focus-mini"></div>
+  </aside>
+
+  <div class="bot-c" id="bot-c">
+    <div id="pcard-slot"></div>
+    <div class="vctl panel" id="vctl"></div>
+  </div>
+
+  <div class="panel mapctl" id="mapctl" hidden>
+    <button data-z="1" aria-label="Zoom in"><svg class="i"><use href="#i-plus"/></svg></button>
+    <button data-z="-1" aria-label="Zoom out"><svg class="i"><use href="#i-minus"/></svg></button>
+    <button data-z="0" aria-label="Reset the map"><svg class="i"><use href="#i-reset"/></svg></button>
+  </div>
+  <div class="note scalebar" id="scalebar" hidden><span id="scale-t">50 km · north is outward from the pole</span><i id="scale-i" style="width:80px"></i></div>
+
+  <section class="panel strip" id="strip" aria-label="Timeline and countdowns">
+    <div style="min-width:0">
+      <div class="tl-h">
+        <h2>Timeline</h2>
+        <span class="tl-win" id="tl-win"></span>
+        <div class="ctl">
+          <button class="play" id="play" aria-label="Play"><svg viewBox="0 0 10 10" id="play-g"><path d="M2 1l7 4-7 4z"/></svg></button>
+          <button class="btn" id="speed">1 h per second</button>
+          <span class="tl-now" id="tl-now"></span>
+          <button class="tgl" id="tgl-t" aria-label="Fold the timeline" aria-expanded="true"><svg class="i"><use href="#i-down"/></svg></button>
+        </div>
+      </div>
+      <div class="tlwrap"><svg id="tl" role="slider" tabindex="0" aria-label="Scrubber: the hour every view shows" aria-valuemin="-72" aria-valuemax="312"></svg></div>
+    </div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <!-- floating windows -->
+  <section class="panel win" id="win-slip" role="dialog" aria-modal="false" aria-labelledby="slip-t" hidden>
+    <div class="win-h"><div><h2 id="slip-t">Slip Planner</h2><p>Every selected site against landing dates. Each square says whether a landing that day would be GO, CAUTION or NO-GO, so you can see how far a launch can slip.</p></div>
+      <button class="x" data-close aria-label="Close the Slip Planner (Escape)"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="win-b">
+      <div class="win-c"><span>Show</span><span class="mseg" id="slip-zoom"><button data-z="91">3 months</button><button data-z="548" aria-pressed="true">18 months</button><button data-z="2190">6 years</button></span>
+        <span style="margin-left:auto">Click a square to land on that date, or press ← → to move a day.</span></div>
+      <div class="heat" id="heat"></div>
+      <div class="legend" id="slip-legend"></div>
+      <div class="slipcard" id="slipcard"></div>
+    </div>
+  </section>
+
+  <section class="panel win" id="win-compare" role="dialog" aria-modal="false" aria-labelledby="cmp-t" hidden>
+    <div class="win-h"><div><h2 id="cmp-t">Compare</h2><p id="cmp-sum" class="summary"></p></div>
+      <button class="btn" style="margin-left:auto;align-self:center">Export CSV</button>
+      <button class="x" data-close aria-label="Close Compare (Escape)" style="margin-left:0"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="win-b"><table class="cmp" id="cmp"></table></div>
+  </section>
+
+  <footer class="foot">
+    <span class="proto">prototype · mock data</span>
+    <span class="ln">Planning aid, not flight certification. Limits marked assumed are our estimates.</span>
+    <button class="dopt-b" id="dopt-b" aria-expanded="false" aria-controls="dopt">Design options</button>
+  </footer>
+
+  <section class="panel dopt" id="dopt" hidden aria-label="Design options, prototype only">
+    <h2>Design options<small>Prototype only. Not part of the product.</small></h2>
+    <div class="q">Panel surface
+      <span class="mseg" data-opt="surface"><button data-v="solid" aria-pressed="true">Solid</button><button data-v="see">See-through</button></span>
+      <span class="rec">Recommended: solid.</span></div>
+    <div class="q">The move to the pole
+      <span class="mseg" data-opt="pole"><button data-v="flight" aria-pressed="true">One flight</button><button data-v="fade">Cross-fade</button></span>
+      <span class="rec">Recommended: one flight.</span></div>
+    <div class="q">Moon texture
+      <span class="mseg" data-opt="tex"><button data-v="4k" aria-pressed="true">4K, 1.0 MB</button><button data-v="8k">8K, 3.0 MB</button></span></div>
+    <div class="q">Motion
+      <span class="mseg" data-opt="motion"><button data-v="full" aria-pressed="true">Full</button><button data-v="reduce">Reduced</button></span></div>
+    <div class="q">Show a state
+      <span class="mseg" data-opt="state"><button data-v="live" aria-pressed="true">Live</button><button data-v="loading">Textures loading</button><button data-v="still">Still image</button></span></div>
+  </section>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -8,7 +8,7 @@ import { LessonTopBar } from "./lesson/top-bar";
 import { sampleCard } from "./lessons/sample";
 import type { WorkedExamples } from "./placeholders";
 import {
-  completionRecord,
+  commitLessonProgress,
   initialRunnerState,
   needsLeaveCheck,
   reduceRunner,
@@ -36,7 +36,10 @@ const cards: Record<string, UnderTheHoodCard> = {
 
 function submissionFrom(draft: Draft): Submission | null {
   if (!draft) return null;
-  if (draft.kind === "tune-slider") return { kind: "tune-slider", value: draft.value };
+  if (draft.kind === "tune-slider") {
+    if (draft.variant === "date") return { kind: "tune-slider", variant: "date", utc: draft.utc };
+    return { kind: "tune-slider", variant: "number", value: draft.value };
+  }
   return { kind: draft.kind, selected: draft.selected };
 }
 
@@ -78,10 +81,11 @@ export function LessonScreen({
 
   // Save once, when the lesson is complete. Leaving part-way saves nothing.
   useEffect(() => {
-    const record = completionRecord(runner);
-    if (!record || recorded.current) return;
-    recorded.current = true;
-    recordCompletion(lesson.id, record.stars, record.xp);
+    if (recorded.current) return;
+    commitLessonProgress(runner, (record) => {
+      recorded.current = true;
+      recordCompletion(lesson.id, record.stars, record.xp, record.patch);
+    });
   }, [runner, lesson.id, recordCompletion]);
 
   const dispatch = useCallback(

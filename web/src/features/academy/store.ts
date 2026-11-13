@@ -28,7 +28,7 @@ type AcademyData = AcademyProgress & {
 };
 
 export type AcademyState = AcademyData & {
-  recordCompletion: (lessonId: string, stars: 1 | 2 | 3, xp: number) => void;
+  recordCompletion: (lessonId: string, stars: 1 | 2 | 3, xp: number, patch?: boolean) => void;
   setSound: (sound: boolean) => void;
   reset: () => void;
 };
@@ -37,9 +37,9 @@ export function createAcademyStore(storage: AcademyStorage) {
   const loaded = loadProgress(storage);
   return create<AcademyState>((set) => ({
     ...withDerived(loaded),
-    recordCompletion: (lessonId, stars, xp) => {
+    recordCompletion: (lessonId, stars, xp, patch = true) => {
       set((current) => {
-        const next = applyCompletion(toProgress(current), lessonId, stars, xp);
+        const next = applyCompletion(toProgress(current), lessonId, stars, xp, patch);
         saveProgress(storage, next);
         return withDerived(next);
       });
@@ -112,6 +112,7 @@ function applyCompletion(
   lessonId: string,
   stars: 1 | 2 | 3,
   xp: number,
+  patch: boolean,
 ): AcademyProgress {
   const previous = progress.lessons[lessonId];
   const bestStars = Math.max(previous?.stars ?? 0, stars) as 1 | 2 | 3;
@@ -120,7 +121,7 @@ function applyCompletion(
     ...progress,
     lessons: {
       ...progress.lessons,
-      [lessonId]: { stars: bestStars, xp: bestXp, patch: true },
+      [lessonId]: { stars: bestStars, xp: bestXp, patch: (previous?.patch ?? false) || patch },
     },
   };
 }

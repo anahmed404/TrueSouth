@@ -150,7 +150,7 @@ export const sampleLesson = {
       kind: "predict",
       options: ["nibble", "apple"],
       answer: 1,
-      reveal: { text: "Sorted from a to z, apple comes before nibble." },
+      reveal: { kind: "text", text: "Sorted from a to z, apple comes before nibble." },
     },
     {
       id: "sum",
@@ -179,7 +179,7 @@ export const sampleLesson = {
       explain: "The slider is at {{example.sample.slider_target}} steps.",
       pip: { power: 40, link: false },
       kind: "tune-slider",
-      slider: { min: 0, max: 5, step: 1, unit: "steps", label: "Steps" },
+      slider: { kind: "number", min: 0, max: 5, step: 1, unit: "steps", label: "Steps" },
       goal: { metric: "sample_slider", op: "==", value: "{{example.sample.slider_target}}" },
       answerLabel: "{{example.sample.slider_target}} steps",
     },
@@ -190,7 +190,8 @@ export const sampleLesson = {
       explain: "The marker is set.",
       kind: "drag-body",
       body: "sun",
-      scene: { scenario },
+      panel: "LandersEye",
+      scene: { scenario, skyline: "terrain", timeRange: null },
       goal: { metric: "sample_marker", op: ">=", value: 0 },
     },
     {
@@ -199,9 +200,8 @@ export const sampleLesson = {
       hint: "Every sketch passes.",
       explain: "Every sketch passes; closer sketches earn more.",
       kind: "draw-skyline",
-      scene: { scenario },
-      azFrom: 0,
-      azTo: 1,
+      scene: { scenario, skyline: "terrain", timeRange: null },
+      window: { kind: "between", from: 0, to: 10 },
     },
     {
       id: "pin",
@@ -209,7 +209,7 @@ export const sampleLesson = {
       hint: "Any pin passes in this sample.",
       explain: "The pin is placed.",
       kind: "drop-pin",
-      map: { siteIds: ["sample-site"] },
+      map: { view: "polar", siteIds: ["sample-site"], sitesKey: null, aside: null },
     },
   ],
 } as const satisfies Lesson;

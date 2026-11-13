@@ -4,10 +4,12 @@ import { MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
 import { LESSONS } from "./catalog";
 import AcademyRoutes from "./index";
+import { sampleProfile } from "./lessons/sample-profile";
+import type { Lesson } from "./types";
 
-function render(lessonId?: string): string {
+function render(lessonId?: string, playable?: Lesson): string {
   return renderToStaticMarkup(
-    createElement(MemoryRouter, null, createElement(AcademyRoutes, { lessonId })),
+    createElement(MemoryRouter, null, createElement(AcademyRoutes, { lessonId, playable })),
   );
 }
 
@@ -48,5 +50,42 @@ describe("academy screens", () => {
 
   it("says when there is no such lesson", () => {
     expect(render("nope")).toContain("There is no lesson with the id");
+  });
+
+  it("shows the unwritten lesson instead of crashing when a date is not UTC", () => {
+    const bad: Lesson = {
+      id: "bad-date",
+      title: "Bad date",
+      tagline: "A date that is not UTC.",
+      patch: { name: "Bad", art: "bad" },
+      unlocks: "SystemView",
+      recap: "Bad.",
+      card: "bad",
+      steps: [
+        {
+          id: "drag",
+          luna: { mood: "thinking", says: "Drag." },
+          hint: "A hint.",
+          explain: "Because.",
+          kind: "drag-body",
+          body: "sun",
+          panel: "LandersEye",
+          scene: {
+            scenario: {
+              profile: sampleProfile,
+              siteIds: ["sample-site"],
+              focusedSiteId: "sample-site",
+              landingUtc: "2026-01-02T00:00:00",
+              currentUtc: "2028-01-01T00:00:00Z",
+            },
+            skyline: "flat",
+            timeRange: null,
+          },
+          goal: { metric: "sun_el_deg", op: "==", value: 1 },
+        },
+      ],
+    };
+    const html = render("bad-date", bad);
+    expect(html).toContain("This lesson is not written yet.");
   });
 });

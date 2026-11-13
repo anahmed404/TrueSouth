@@ -169,13 +169,13 @@ function Reveal({ reveal, examples }: { reveal: RevealSpec; examples: WorkedExam
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: reduced ? 0.15 : 0.8, ease: EASE }}
     >
-      {"text" in reveal ? (
+      {reveal.kind === "panel" ? (
+        <PanelBox panel={reveal.panel} caption={filledText(reveal.caption, examples)} />
+      ) : (
         <div className="ac-reveal-card" role="status">
           <h3>What happened</h3>
-          <p>{filledText(reveal.text, examples)}</p>
+          <p>{filledText(reveal.kind === "text" ? reveal.text : reveal.caption, examples)}</p>
         </div>
-      ) : (
-        <PanelBox panel={reveal.panel} caption={filledText(reveal.caption, examples)} />
       )}
     </motion.div>
   );
@@ -300,11 +300,18 @@ function SliderStage({
   onDraft: (draft: Draft) => void;
 }) {
   const { slider } = step;
+  if (slider.kind === "date") {
+    return (
+      <div className="ac-slider">
+        <p>A date slider is not on this screen yet.</p>
+      </div>
+    );
+  }
   const last = runner.attempts[runner.attempts.length - 1];
   const value =
-    draft && draft.kind === "tune-slider"
+    draft && draft.kind === "tune-slider" && draft.variant === "number"
       ? draft.value
-      : last && last.kind === "tune-slider" && typeof last.value === "number"
+      : last && last.kind === "tune-slider" && last.variant === "number"
         ? last.value
         : slider.min;
   const label = slider.label ?? "Value";
@@ -328,7 +335,7 @@ function SliderStage({
         disabled={answered}
         aria-valuetext={`${value} ${slider.unit}`}
         data-ac-slider=""
-        onChange={(event) => onDraft({ kind: "tune-slider", value: Number(event.target.value) })}
+        onChange={(event) => onDraft({ kind: "tune-slider", variant: "number", value: Number(event.target.value) })}
       />
       <div className="ac-slider-ends" aria-hidden="true">
         <span>
