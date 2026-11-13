@@ -119,6 +119,8 @@ const NOT_USER_FACING = [
   "Floating window",
   "Free space",
   "Plate",
+  "Spot",
+  "Landing-date panel",
 ];
 
 /** Every mission profile field in docs/mission-profiles.md, by field name. */

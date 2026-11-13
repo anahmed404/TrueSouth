@@ -140,6 +140,7 @@ Compare follows these rules. The Slip Planner is a camera view and does not.
 - **Escape closes it,** and focus returns to the button that opened it. The close button
   does the same.
 - Opening a window does not change the camera or the selected view.
+- Picking a camera view while the window is open closes it, and the camera moves there.
 
 ## Folding
 

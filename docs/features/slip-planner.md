@@ -152,6 +152,12 @@ Before any slip, none of these are shown.
 - **Spots and strips change at once,** with no animation. The change is the moment, and it
   must keep up with a drag.
 - **A click on a spot** focuses the site. It does not change the date.
+- **Whole days.** Each mark on a strip is a landing at 00:00 UTC on that day
+  ([`../science.md`](../science.md) §11). The slider, a strip's Enter key and a drag set
+  the landing to 00:00 UTC on the chosen day. The slip buttons and the date picker can
+  leave another hour. Then the spots, the sites rail and the focused-site panel show
+  that exact landing, the slider sits on its day, and the panel's header says "Strips
+  show landings at 00:00 UTC".
 
 ## Hover and focus
 
@@ -179,11 +185,11 @@ Before any slip, none of these are shown.
 - **The ground's light is fixed.** It is a drawing light from the view's top left, 55° up, at
   half strength, never the real Sun on the chosen date. So the ground does not change as the
   date moves and cannot be read as a result.
-- **The shading is optional.** A switch in the view's controls shades the ground from dark to
-  bright by NASA's average sunlight inside the 80°S circle. It carries this label whenever it
-  is on: "NASA's average sunlight over 18.6 years, not for your date". It is context, never
-  a result. The prototype starts with it on, because it gives the "bright and dark" the lead
-  asked for. Off is calmer.
+- **The shading can be switched off.** It shades the ground from dark to bright by NASA's
+  average sunlight inside the 80°S circle. It is on when the view first opens, because it
+  is the "bright and dark" the team lead asked for; a switch in the view's controls turns
+  it off. It carries this label whenever it is on: "NASA's average sunlight over 18.6
+  years, not for your date". It is context, never a result.
 - **Shadows and shading in the scene never decide a result.** Statuses come from the sweep.
 
 ## How it is computed
@@ -262,8 +268,11 @@ This replaces the still picture for this view only.
 
 ## Done when
 
-- The spot, the strip, the hover text and the sites panel agree for every date. A test sweeps
-  every selected fixture site and a spread of dates and compares all four.
+- The spot, the strip, the hover text and the sites panel agree for every landing at 00:00
+  UTC. A test sweeps every selected fixture site and a spread of dates and compares all
+  four.
+- With a landing at another hour, the spot equals the sites rail and the header shows the
+  "Strips show landings at 00:00 UTC" note.
 - Eight sites with a 100-day profile recompute in under 200 ms on a mid-range laptop.
 - Results equal the focused-site panel's result for the same site and date.
 - No colour appears on the ground between sites, on any date and with the shading on or off.
