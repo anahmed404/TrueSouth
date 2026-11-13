@@ -174,8 +174,11 @@ export function dayUtc(gridStartMs: number, day: number): string {
 
 // ── Sites, results and the comparison ─────────────────────────────────────
 
-/** One site's result for a landing: an evaluation, no data (window off the grid), or not yet known. */
-export type SiteResult = { kind: "ready"; evaluation: Evaluation } | { kind: "none" } | { kind: "pending" };
+/**
+ * One site's result for a landing: an evaluation, no data (window off the grid), not yet
+ * known, or failed (its data or its sweep could not be computed).
+ */
+export type SiteResult = { kind: "ready"; evaluation: Evaluation } | { kind: "none" } | { kind: "pending" } | { kind: "failed" };
 
 export function resultStatus(result: SiteResult): Status | null {
   return result.kind === "ready" ? result.evaluation.status : null;
@@ -204,7 +207,8 @@ function statusCodeOf(status: Status): number {
 
 /** Did a site's status change between two landings? Unknown results never count as a change. */
 export function changed(before: SiteResult, after: SiteResult): boolean {
-  if (before.kind === "pending" || after.kind === "pending") return false;
+  const unknown = (r: SiteResult) => r.kind === "pending" || r.kind === "failed";
+  if (unknown(before) || unknown(after)) return false;
   return resultStatus(before) !== resultStatus(after);
 }
 
@@ -217,6 +221,7 @@ export function signedDays(days: number): string {
  * The before-and-after line (slip-planner.md, "Before and after a slip"): "Slipped +21 d,
  * 01 Mar → 22 Mar 2028. 4 of 5 sites changed. Best now: Mons Mouton, GO, score 99 (was
  * Malapert Massif)." Null until every site's result is known, so no line is ever half true.
+ * A site that could not be computed is left out, and the line says so.
  */
 export function slipSummary(args: {
   fromHour: number;
@@ -225,8 +230,11 @@ export function slipSummary(args: {
   sites: readonly { siteId: string; name: string; before: SiteResult; after: SiteResult }[];
   scoreText: (score: number) => string;
 }): string | null {
-  const { fromHour, toHour, gridStartMs, sites } = args;
-  if (sites.some((s) => s.before.kind === "pending" || s.after.kind === "pending")) return null;
+  const { fromHour, toHour, gridStartMs } = args;
+  if (args.sites.some((s) => s.before.kind === "pending" || s.after.kind === "pending")) return null;
+  const sites = args.sites.filter((s) => s.before.kind !== "failed" && s.after.kind !== "failed");
+  const missing = args.sites.length - sites.length;
+  const missingText = missing === 0 ? "" : ` ${missing} ${missing === 1 ? "site" : "sites"} could not be computed.`;
   const days = Math.round((toHour - fromHour) / 24);
   const fromDay = dayOfHour(fromHour);
   const toDay = dayOfHour(toHour);
@@ -247,7 +255,7 @@ export function slipSummary(args: {
     const wasText = was && was.siteId !== now.siteId ? ` (was ${nameOf(was.siteId)})` : "";
     best = `Best now: ${nameOf(now.siteId)}, ${now.evaluation.status}, score ${args.scoreText(now.evaluation.score)}${wasText}.`;
   }
-  return `Slipped ${signedDays(days)}, ${dates}. ${changedText} ${best}`;
+  return `Slipped ${signedDays(days)}, ${dates}. ${changedText} ${best}${missingText}`;
 }
 
 /** Spot priority for close sites: the focused site, then the best, changed, listed, variants. */

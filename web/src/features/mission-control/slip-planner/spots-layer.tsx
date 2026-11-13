@@ -27,7 +27,7 @@ import { flatProjection } from "./flat";
 import { placeLabels, placeSpots, type Box } from "./placement";
 import { spotReason } from "./readout";
 import { comparisonHour, slipStore } from "./slip-store";
-import { resultAt, useSlipDays } from "./use-slip-days";
+import { useEvaluate } from "./landing-results";
 import "./slip-planner.css";
 
 /** The shading's label, whenever it is on (slip-planner.md, "Honesty"). */
@@ -60,6 +60,14 @@ type SpotModel = {
   priority: number;
 };
 
+/** The status, or what stands in for it: "computing", "could not compute", "no data". */
+function statusWord(result: SiteResult): string {
+  if (result.kind === "ready") return result.evaluation.status;
+  if (result.kind === "pending") return "computing";
+  if (result.kind === "failed") return "could not compute";
+  return "no data";
+}
+
 function statusClass(result: SiteResult): string {
   const status = resultStatus(result);
   return status === "GO" ? "go" : status === "CAUTION" ? "caution" : status === "NO-GO" ? "nogo" : "none";
@@ -77,7 +85,9 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
   const manifest = useManifest();
   const sitesData = useSites();
   const catalog = sitesData.status === "ready" ? sitesData.data : null;
-  const entries = useSlipDays(scenario.siteIds, scenario.profile);
+  // The rail's own evaluation (landing-results.ts): a spot always equals the sites rail, for
+  // the current profile and sites, whether or not the slip sweep has finished.
+  const evaluate = useEvaluate(scenario.siteIds, scenario.profile);
   const ui = useStore(slipStore);
   const grid = manifest.status === "ready" ? manifest.data.time_grid : null;
   let landingHour = -1;
@@ -96,17 +106,16 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
     [scenario.siteIds, catalog],
   );
 
-  // Each site's result now and, after a slip, before it: the same sweep entries as the strips.
+  // Each site's result now and, after a slip, before it.
   const models = useMemo((): SpotModel[] => {
     const nows = selected.map((site) => ({
       siteId: site.id,
-      result: landingHour >= 0 ? resultAt(entries.find((e) => e.siteId === site.id), landingHour) : ({ kind: "pending" } as SiteResult),
+      result: landingHour >= 0 ? evaluate(site.id, landingHour) : ({ kind: "pending" } as SiteResult),
     }));
     const best = fromHour !== null ? bestSite(nows) : null;
     return selected.map((site, i) => {
-      const entry = entries.find((e) => e.siteId === site.id);
       const now = nows[i]!.result;
-      const before = fromHour !== null ? resultAt(entry, fromHour) : null;
+      const before = fromHour !== null ? evaluate(site.id, fromHour) : null;
       const changed = before ? changedResult(before, now) : false;
       const parentId = variantOf(site);
       const parent = parentId ? (catalog?.find((s) => s.id === parentId) ?? null) : null;
@@ -124,7 +133,7 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
         priority: spotPriority({ focused, best: isBest, changed, variant: Boolean(parentId) }),
       };
     });
-  }, [selected, entries, landingHour, fromHour, scenario.focusedSiteId, catalog]);
+  }, [selected, evaluate, landingHour, fromHour, scenario.focusedSiteId, catalog]);
 
   const onMap = models.filter((m) => inSlipView(m.site));
   const offView = models.filter((m) => !inSlipView(m.site));
@@ -355,13 +364,12 @@ const Spot = memo(function Spot({
   onHover: (siteId: string | null) => void;
 }) {
   const { site, now, before, changed, best, focused } = model;
-  const status = resultStatus(now);
   const reason = spotReason(now);
   const label = [
     site.name,
-    status ?? (now.kind === "pending" ? "working out" : "no data"),
+    statusWord(now),
     reason,
-    changed && before ? `was ${resultStatus(before) ?? "no data"}` : null,
+    changed && before ? `was ${statusWord(before)}` : null,
     best ? "best on this date" : null,
     model.variantText ? `${model.variantText}, chosen by TrueSouth` : null,
   ]
@@ -421,7 +429,7 @@ const SpotLabel = memo(function SpotLabel({ model, refFor }: { model: SpotModel;
       {changed && before ? (
         <small className="slip-was">
           was {resultStatus(before) ? <StatusLamp status={resultStatus(before)!} size="xs" /> : null}
-          {resultStatus(before) ?? "no data"}
+          {statusWord(before)}
         </small>
       ) : null}
     </div>
@@ -457,13 +465,13 @@ function OffViewNote({ model, onFocus }: { model: SpotModel; onFocus: (siteId: s
       className="plate slip-off"
       data-site={site.id}
       data-focused={focused}
-      aria-label={`${site.name}, ${status ?? "no data"}. ${where[0]?.toUpperCase()}${where.slice(1)}.`}
+      aria-label={`${site.name}, ${statusWord(now)}. ${where[0]?.toUpperCase()}${where.slice(1)}.`}
       onClick={() => onFocus(site.id)}
     >
       {status ? <StatusLamp status={status} size="xs" /> : <span className="lamp-none" aria-hidden="true" />}
       <span>
-        <b>{site.name}</b> <span className={`slip-word is-${statusClass(now)}`}>{status ?? "no data"}</span>
-        {changed && before ? <small className="slip-was"> was {resultStatus(before) ?? "no data"}</small> : null}
+        <b>{site.name}</b> <span className={`slip-word is-${statusClass(now)}`}>{statusWord(now)}</span>
+        {changed && before ? <small className="slip-was"> was {statusWord(before)}</small> : null}
         <small className="slip-off-where">
           {where[0]?.toUpperCase()}
           {where.slice(1)}

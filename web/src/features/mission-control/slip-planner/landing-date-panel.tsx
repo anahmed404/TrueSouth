@@ -47,12 +47,14 @@ import {
   variantLine,
   variantOf,
   zoomDays,
+  type SiteResult,
   type Zoom,
 } from "./model";
 import { anyReadout, readoutText, siteReadout, type Readout } from "./readout";
 import { comparisonHour, slipStore } from "./slip-store";
 import { StripCanvas, stripsHeight, type StripColours } from "./strips-canvas";
-import { resultAt, useSlipDays, type SiteDays } from "./use-slip-days";
+import { useSlipDays, type SiteDays } from "./use-slip-days";
+import { useEvaluate } from "./landing-results";
 import { nextGo, nextGoWords, shortDay } from "./next-go-words";
 import { MOON_RADIUS_M } from "../../../lib/geo";
 import "./slip-planner.css";
@@ -149,6 +151,14 @@ function Dates(props: DatesProps) {
   const sitesData = useSites();
   const catalog = sitesData.status === "ready" ? sitesData.data : null;
   const entries = useSlipDays(scenario.siteIds, profile);
+  const evaluate = useEvaluate(scenario.siteIds, profile);
+  // What a strip's words say for a 00:00 UTC day: computing, or failed, exactly while its mark
+  // says so; otherwise the rail's evaluation (landing-results.ts), never the packed sweep.
+  const rowResult = useCallback(
+    (entry: SiteDays, day: number): SiteResult =>
+      entry.state === "loading" ? { kind: "pending" } : entry.state === "error" ? { kind: "failed" } : evaluate(entry.siteId, day * 24),
+    [evaluate],
+  );
   const ui = useStore(slipStore);
   const dayCount = useMemo(() => utcMidnightHours(gridCount).length, [gridCount]);
   const windowHours = windowLength(profile.duration_days);
@@ -240,12 +250,12 @@ function Dates(props: DatesProps) {
       if (row.kind === "any") {
         return anyReadout(
           when,
-          entries.map((e) => ({ siteId: e.siteId, name: nameOf(e.siteId), result: resultAt(e, day * 24) })),
+          entries.map((e) => ({ siteId: e.siteId, name: nameOf(e.siteId), result: rowResult(e, day) })),
         );
       }
-      return siteReadout(nameOf(row.siteId), when, resultAt(row.entry, day * 24), profile);
+      return siteReadout(nameOf(row.siteId), when, rowResult(row.entry, day), profile);
     },
-    [rows, entries, gridStartMs, dayCount, nameOf, profile],
+    [rows, entries, gridStartMs, dayCount, nameOf, profile, rowResult],
   );
 
   // ── Pointer: drag anywhere on the strips; a click also focuses that row's site ──

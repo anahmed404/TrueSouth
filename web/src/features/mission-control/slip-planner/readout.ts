@@ -11,10 +11,13 @@ import { bestSite, type SiteResult } from "./model";
 export type Readout = { title: string; status: Status | null; lines: string[] };
 
 export const NO_DATA_LINE = "No data: the mission window runs past the end of 2031.";
+export const FAILED_LINE = "Could not compute this site.";
+export const COMPUTING_LINE = "Still computing this site.";
 
 /** "Dark: 31 h, limit 6 h" or "Score 81": the one reason a spot's label adds. */
 export function spotReason(result: SiteResult): string {
-  if (result.kind === "pending") return "Working out…";
+  if (result.kind === "pending") return "Computing…";
+  if (result.kind === "failed") return "Could not compute";
   if (result.kind === "none") return "No data";
   return railFact(result.evaluation);
 }
@@ -22,7 +25,8 @@ export function spotReason(result: SiteResult): string {
 /** A site's readout: the status, each broken rule with its measured value, and the score. */
 export function siteReadout(name: string, when: string, result: SiteResult, profile: MissionProfile): Readout {
   const title = `${name} · ${when}`;
-  if (result.kind === "pending") return { title, status: null, lines: ["Still working out this date."] };
+  if (result.kind === "pending") return { title, status: null, lines: [COMPUTING_LINE] };
+  if (result.kind === "failed") return { title, status: null, lines: [FAILED_LINE] };
   if (result.kind === "none") return { title, status: null, lines: [NO_DATA_LINE] };
   const e = result.evaluation;
   const view = describeEvaluation(e, profile);
