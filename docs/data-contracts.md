@@ -256,3 +256,13 @@ Mission Control mirrors its scenario into the URL:
 3. Raise `schema_version` if old files can no longer be read.
 4. Update this page and rebuild fixtures.
 5. Open a pull request. The Science track and every consuming track review it.
+
+### S0 serialization choices
+
+Profile `provenance` maps each profile value field (including optional null values and
+`weights`) to either `{ "kind": "sourced", "source_url": "...", "quote": "..." }`
+or `{ "kind": "assumed", "reason": "..." }`. Identity fields are not mission values.
+Worked examples are an object keyed by lesson (`l1` through `l8`), with each lesson's
+keys as described in `academy/lessons.md`; nested example objects remain nested.
+The JSON Schema includes `BinaryLayouts`, describing the binary files' array order,
+data types and series scaling for decoders.

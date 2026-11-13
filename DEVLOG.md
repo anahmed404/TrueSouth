@@ -49,7 +49,13 @@ each integration checkpoint.
 
 ## Science
 
-_No entries yet._
+#### 2026-11-13 · S0 · Python workspace and contracts
+- **Who:** Science track
+- **AI use:** Codex, gpt-6.1-terra — implemented workspace, contracts and CLI — automated checks run; human review pending
+- **State:** built, not verified
+- **Changed:** Python workspace, science, api, schema and data contract documentation
+- **Notes:** Provenance serialization and worked-example nesting are specified in data-contracts.md.
+
 
 ## Mission Control
 

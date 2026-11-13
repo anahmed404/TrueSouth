@@ -1,0 +1,1206 @@
+{
+  "$defs": {
+    "ArtemisRegion": {
+      "properties": {
+        "lat_deg": {
+          "anyOf": [
+            {
+              "maximum": 90,
+              "minimum": -90,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Lat Deg"
+        },
+        "lon_deg": {
+          "anyOf": [
+            {
+              "exclusiveMaximum": 360,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Lon Deg"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "size_km": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Size Km"
+        },
+        "source_url": {
+          "title": "Source Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "lat_deg",
+        "lon_deg",
+        "size_km",
+        "source_url"
+      ],
+      "title": "ArtemisRegion",
+      "type": "object"
+    },
+    "ArtemisRegions": {
+      "items": {
+        "$ref": "#/$defs/ArtemisRegion"
+      },
+      "title": "ArtemisRegions",
+      "type": "array"
+    },
+    "Assumed": {
+      "properties": {
+        "kind": {
+          "const": "assumed",
+          "title": "Kind",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "reason"
+      ],
+      "title": "Assumed",
+      "type": "object"
+    },
+    "BinaryLayouts": {
+      "properties": {
+        "layouts": {
+          "additionalProperties": true,
+          "default": {
+            "closeup": {
+              "arrays": [
+                "east_km",
+                "north_km",
+                "up_km",
+                "slope_deg"
+              ],
+              "byte_order": "little",
+              "column_order": "west_to_east",
+              "dtype": "float32",
+              "row_order": "north_to_south"
+            },
+            "map_lookup": {
+              "byte_order": "little",
+              "dtype": "uint8",
+              "missing": 255,
+              "scale": 0.00392156862745098
+            },
+            "series": {
+              "arrays": [
+                {
+                  "name": "sun_az",
+                  "offset": 180.0,
+                  "scale": 0.01
+                },
+                {
+                  "name": "sun_el",
+                  "offset": 0.0,
+                  "scale": 0.01
+                },
+                {
+                  "name": "sun_frac",
+                  "offset": 0.0,
+                  "scale": 0.0001
+                },
+                {
+                  "name": "sun_clear",
+                  "offset": 0.0,
+                  "scale": 0.01
+                },
+                {
+                  "name": "earth_az",
+                  "offset": 180.0,
+                  "scale": 0.01
+                },
+                {
+                  "name": "earth_el",
+                  "offset": 0.0,
+                  "scale": 0.01
+                },
+                {
+                  "name": "earth_frac",
+                  "offset": 0.0,
+                  "scale": 0.0001
+                },
+                {
+                  "name": "earth_clear",
+                  "offset": 0.0,
+                  "scale": 0.01
+                }
+              ],
+              "byte_order": "little",
+              "dtype": "int16"
+            },
+            "skyline": {
+              "arrays": [
+                "el_deg",
+                "dist_km",
+                "lat_deg",
+                "lon_deg",
+                "height_m"
+              ],
+              "byte_order": "little",
+              "dtype": "float32"
+            },
+            "system": {
+              "arrays": [
+                "subsolar_lat",
+                "subsolar_lon",
+                "subearth_lat",
+                "subearth_lon",
+                "earth_dist_km",
+                "sun_dist_km"
+              ],
+              "byte_order": "little",
+              "dtype": "float32"
+            },
+            "terrain": {
+              "arrays": [
+                "east_km",
+                "north_km",
+                "up_km",
+                "slope_deg"
+              ],
+              "byte_order": "little",
+              "column_order": "west_to_east",
+              "dtype": "float32",
+              "row_order": "north_to_south"
+            }
+          },
+          "title": "Layouts",
+          "type": "object"
+        }
+      },
+      "title": "BinaryLayouts",
+      "type": "object"
+    },
+    "Comparison": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "ours": {
+          "title": "Ours",
+          "type": "number"
+        },
+        "reference": {
+          "title": "Reference",
+          "type": "number"
+        },
+        "reference_source": {
+          "title": "Reference Source",
+          "type": "string"
+        },
+        "site_id": {
+          "title": "Site Id",
+          "type": "string"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "site_id",
+        "ours",
+        "reference",
+        "unit",
+        "reference_source"
+      ],
+      "title": "Comparison",
+      "type": "object"
+    },
+    "CustomSiteQueued": {
+      "properties": {
+        "position_in_queue": {
+          "title": "Position In Queue",
+          "type": "integer"
+        },
+        "site_id": {
+          "title": "Site Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "queued",
+            "running",
+            "ready",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "site_id",
+        "status",
+        "position_in_queue"
+      ],
+      "title": "CustomSiteQueued",
+      "type": "object"
+    },
+    "CustomSiteRequest": {
+      "properties": {
+        "lat_deg": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Lat Deg",
+          "type": "number"
+        },
+        "lon_deg": {
+          "exclusiveMaximum": 360,
+          "minimum": 0,
+          "title": "Lon Deg",
+          "type": "number"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "lat_deg",
+        "lon_deg",
+        "name"
+      ],
+      "title": "CustomSiteRequest",
+      "type": "object"
+    },
+    "CustomSiteStatus": {
+      "properties": {
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error"
+        },
+        "site": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Site"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "site_id": {
+          "title": "Site Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "queued",
+            "running",
+            "ready",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "site_id",
+        "status",
+        "site",
+        "error"
+      ],
+      "title": "CustomSiteStatus",
+      "type": "object"
+    },
+    "ErrorDetail": {
+      "properties": {
+        "code": {
+          "enum": [
+            "invalid_coordinates",
+            "date_outside_time_grid",
+            "rate_limited",
+            "queue_full",
+            "terrain_unavailable",
+            "not_found"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "ErrorDetail",
+      "type": "object"
+    },
+    "ErrorResponse": {
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/ErrorDetail"
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "title": "ErrorResponse",
+      "type": "object"
+    },
+    "Feature": {
+      "properties": {
+        "diameter_km": {
+          "title": "Diameter Km",
+          "type": "number"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "lat_deg": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Lat Deg",
+          "type": "number"
+        },
+        "lon_deg": {
+          "exclusiveMaximum": 360,
+          "minimum": 0,
+          "title": "Lon Deg",
+          "type": "number"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "lat_deg",
+        "lon_deg",
+        "diameter_km"
+      ],
+      "title": "Feature",
+      "type": "object"
+    },
+    "Features": {
+      "items": {
+        "$ref": "#/$defs/Feature"
+      },
+      "title": "Features",
+      "type": "array"
+    },
+    "Gate": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "limit": {
+          "title": "Limit",
+          "type": "number"
+        },
+        "measured": {
+          "title": "Measured",
+          "type": "number"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "samples": {
+          "title": "Samples",
+          "type": "integer"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "passed",
+        "measured",
+        "limit",
+        "unit",
+        "samples"
+      ],
+      "title": "Gate",
+      "type": "object"
+    },
+    "Manifest": {
+      "properties": {
+        "generated_utc": {
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "Generated Utc",
+          "type": "string"
+        },
+        "moon_radius_m": {
+          "title": "Moon Radius M",
+          "type": "number"
+        },
+        "observer_height_m": {
+          "title": "Observer Height M",
+          "type": "number"
+        },
+        "schema_version": {
+          "const": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "skyline_bins": {
+          "title": "Skyline Bins",
+          "type": "integer"
+        },
+        "time_grid": {
+          "$ref": "#/$defs/TimeGrid"
+        }
+      },
+      "required": [
+        "schema_version",
+        "generated_utc",
+        "time_grid",
+        "observer_height_m",
+        "skyline_bins",
+        "moon_radius_m"
+      ],
+      "title": "Manifest",
+      "type": "object"
+    },
+    "MapLayer": {
+      "properties": {
+        "files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Files",
+          "type": "array"
+        },
+        "lookup": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lookup"
+        },
+        "lookup_size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lookup Size"
+        }
+      },
+      "required": [
+        "files"
+      ],
+      "title": "MapLayer",
+      "type": "object"
+    },
+    "MapLayers": {
+      "properties": {
+        "earthvis": {
+          "$ref": "#/$defs/MapLayer"
+        },
+        "hillshade": {
+          "$ref": "#/$defs/MapLayer"
+        },
+        "sunlight": {
+          "$ref": "#/$defs/MapLayer"
+        }
+      },
+      "required": [
+        "hillshade",
+        "sunlight",
+        "earthvis"
+      ],
+      "title": "MapLayers",
+      "type": "object"
+    },
+    "MapMeta": {
+      "properties": {
+        "half_width_m": {
+          "title": "Half Width M",
+          "type": "number"
+        },
+        "layers": {
+          "$ref": "#/$defs/MapLayers"
+        },
+        "projection": {
+          "const": "south_polar_stereographic",
+          "title": "Projection",
+          "type": "string"
+        }
+      },
+      "required": [
+        "projection",
+        "half_width_m",
+        "layers"
+      ],
+      "title": "MapMeta",
+      "type": "object"
+    },
+    "MeshMeta": {
+      "properties": {
+        "size": {
+          "title": "Size",
+          "type": "integer"
+        },
+        "window_km": {
+          "title": "Window Km",
+          "type": "number"
+        }
+      },
+      "required": [
+        "size",
+        "window_km"
+      ],
+      "title": "MeshMeta",
+      "type": "object"
+    },
+    "MissionProfile": {
+      "properties": {
+        "antenna_mask_deg": {
+          "title": "Antenna Mask Deg",
+          "type": "number"
+        },
+        "based_on": {
+          "title": "Based On",
+          "type": "string"
+        },
+        "duration_days": {
+          "title": "Duration Days",
+          "type": "number"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "landing_sun_el_max_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Landing Sun El Max Deg"
+        },
+        "landing_sun_el_min_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Landing Sun El Min Deg"
+        },
+        "max_blackout_h": {
+          "title": "Max Blackout H",
+          "type": "number"
+        },
+        "max_dark_h": {
+          "title": "Max Dark H",
+          "type": "number"
+        },
+        "max_slope_deg": {
+          "title": "Max Slope Deg",
+          "type": "number"
+        },
+        "min_sun_fraction": {
+          "title": "Min Sun Fraction",
+          "type": "number"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "ops_sun_el_min_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Ops Sun El Min Deg"
+        },
+        "provenance": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Sourced"
+              },
+              {
+                "$ref": "#/$defs/Assumed"
+              }
+            ]
+          },
+          "title": "Provenance",
+          "type": "object"
+        },
+        "relay_available": {
+          "title": "Relay Available",
+          "type": "boolean"
+        },
+        "slope_ideal_deg": {
+          "title": "Slope Ideal Deg",
+          "type": "number"
+        },
+        "weights": {
+          "$ref": "#/$defs/Weights"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "based_on",
+        "duration_days",
+        "min_sun_fraction",
+        "ops_sun_el_min_deg",
+        "max_dark_h",
+        "relay_available",
+        "antenna_mask_deg",
+        "max_blackout_h",
+        "max_slope_deg",
+        "slope_ideal_deg",
+        "landing_sun_el_min_deg",
+        "landing_sun_el_max_deg",
+        "weights",
+        "provenance"
+      ],
+      "title": "MissionProfile",
+      "type": "object"
+    },
+    "Profiles": {
+      "items": {
+        "$ref": "#/$defs/MissionProfile"
+      },
+      "title": "Profiles",
+      "type": "array"
+    },
+    "SensitivityCentre": {
+      "properties": {
+        "link_fraction": {
+          "title": "Link Fraction",
+          "type": "number"
+        },
+        "sun_fraction_mean": {
+          "title": "Sun Fraction Mean",
+          "type": "number"
+        }
+      },
+      "required": [
+        "sun_fraction_mean",
+        "link_fraction"
+      ],
+      "title": "SensitivityCentre",
+      "type": "object"
+    },
+    "SensitivityRequest": {
+      "properties": {
+        "antenna_mask_deg": {
+          "title": "Antenna Mask Deg",
+          "type": "number"
+        },
+        "duration_days": {
+          "title": "Duration Days",
+          "type": "number"
+        },
+        "landing_utc": {
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "Landing Utc",
+          "type": "string"
+        },
+        "lat_deg": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Lat Deg",
+          "type": "number"
+        },
+        "lon_deg": {
+          "exclusiveMaximum": 360,
+          "minimum": 0,
+          "title": "Lon Deg",
+          "type": "number"
+        },
+        "min_sun_fraction": {
+          "title": "Min Sun Fraction",
+          "type": "number"
+        }
+      },
+      "required": [
+        "lat_deg",
+        "lon_deg",
+        "landing_utc",
+        "duration_days",
+        "min_sun_fraction",
+        "antenna_mask_deg"
+      ],
+      "title": "SensitivityRequest",
+      "type": "object"
+    },
+    "SensitivityResponse": {
+      "properties": {
+        "centre_fast_method": {
+          "$ref": "#/$defs/SensitivityCentre"
+        },
+        "centre_full_method": {
+          "$ref": "#/$defs/SensitivityCentre"
+        },
+        "link_fraction": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Link Fraction",
+          "type": "array"
+        },
+        "size": {
+          "title": "Size",
+          "type": "integer"
+        },
+        "spacing_m": {
+          "title": "Spacing M",
+          "type": "number"
+        },
+        "sun_fraction_mean": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Sun Fraction Mean",
+          "type": "array"
+        }
+      },
+      "required": [
+        "size",
+        "spacing_m",
+        "sun_fraction_mean",
+        "link_fraction",
+        "centre_full_method",
+        "centre_fast_method"
+      ],
+      "title": "SensitivityResponse",
+      "type": "object"
+    },
+    "SeriesColumn": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "offset": {
+          "title": "Offset",
+          "type": "number"
+        },
+        "scale": {
+          "title": "Scale",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "scale",
+        "offset"
+      ],
+      "title": "SeriesColumn",
+      "type": "object"
+    },
+    "SeriesMeta": {
+      "properties": {
+        "columns": {
+          "items": {
+            "$ref": "#/$defs/SeriesColumn"
+          },
+          "title": "Columns",
+          "type": "array"
+        }
+      },
+      "required": [
+        "columns"
+      ],
+      "title": "SeriesMeta",
+      "type": "object"
+    },
+    "Site": {
+      "properties": {
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "elevation_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Elevation M"
+        },
+        "group": {
+          "enum": [
+            "artemis",
+            "sunlit_peak",
+            "polar_lander",
+            "contrast"
+          ],
+          "title": "Group",
+          "type": "string"
+        },
+        "has_closeup": {
+          "title": "Has Closeup",
+          "type": "boolean"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "lat_deg": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Lat Deg",
+          "type": "number"
+        },
+        "lon_deg": {
+          "exclusiveMaximum": 360,
+          "minimum": 0,
+          "title": "Lon Deg",
+          "type": "number"
+        },
+        "moontrek_url": {
+          "title": "Moontrek Url",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Outcome"
+        },
+        "quickmap_url": {
+          "title": "Quickmap Url",
+          "type": "string"
+        },
+        "slope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slope"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_url": {
+          "title": "Source Url",
+          "type": "string"
+        },
+        "terrain_tier": {
+          "enum": [
+            "core80",
+            "wide240",
+            "sphere"
+          ],
+          "title": "Terrain Tier",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "group",
+        "lat_deg",
+        "lon_deg",
+        "description",
+        "source_url",
+        "outcome",
+        "terrain_tier",
+        "has_closeup",
+        "elevation_m",
+        "slope",
+        "quickmap_url",
+        "moontrek_url"
+      ],
+      "title": "Site",
+      "type": "object"
+    },
+    "SiteMeta": {
+      "properties": {
+        "closeup": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MeshMeta"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "earth_radius_deg": {
+          "title": "Earth Radius Deg",
+          "type": "number"
+        },
+        "series": {
+          "$ref": "#/$defs/SeriesMeta"
+        },
+        "site_id": {
+          "title": "Site Id",
+          "type": "string"
+        },
+        "skyline": {
+          "$ref": "#/$defs/SkylineMeta"
+        },
+        "sun_radius_deg": {
+          "title": "Sun Radius Deg",
+          "type": "number"
+        },
+        "terrain": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MeshMeta"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "site_id",
+        "series",
+        "sun_radius_deg",
+        "earth_radius_deg",
+        "skyline",
+        "terrain",
+        "closeup"
+      ],
+      "title": "SiteMeta",
+      "type": "object"
+    },
+    "Sites": {
+      "items": {
+        "$ref": "#/$defs/Site"
+      },
+      "title": "Sites",
+      "type": "array"
+    },
+    "SkylineMeta": {
+      "properties": {
+        "bins": {
+          "title": "Bins",
+          "type": "integer"
+        },
+        "max_range_km": {
+          "title": "Max Range Km",
+          "type": "number"
+        },
+        "missing_samples": {
+          "title": "Missing Samples",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "bins",
+        "missing_samples",
+        "max_range_km"
+      ],
+      "title": "SkylineMeta",
+      "type": "object"
+    },
+    "Slope": {
+      "properties": {
+        "baseline_m": {
+          "title": "Baseline M",
+          "type": "number"
+        },
+        "deg": {
+          "title": "Deg",
+          "type": "number"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "deg",
+        "baseline_m",
+        "source"
+      ],
+      "title": "Slope",
+      "type": "object"
+    },
+    "Sourced": {
+      "properties": {
+        "kind": {
+          "const": "sourced",
+          "title": "Kind",
+          "type": "string"
+        },
+        "quote": {
+          "title": "Quote",
+          "type": "string"
+        },
+        "source_url": {
+          "title": "Source Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "source_url",
+        "quote"
+      ],
+      "title": "Sourced",
+      "type": "object"
+    },
+    "TimeGrid": {
+      "properties": {
+        "count": {
+          "title": "Count",
+          "type": "integer"
+        },
+        "start_utc": {
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "Start Utc",
+          "type": "string"
+        },
+        "step_s": {
+          "title": "Step S",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start_utc",
+        "step_s",
+        "count"
+      ],
+      "title": "TimeGrid",
+      "type": "object"
+    },
+    "Validation": {
+      "properties": {
+        "comparisons": {
+          "items": {
+            "$ref": "#/$defs/Comparison"
+          },
+          "title": "Comparisons",
+          "type": "array"
+        },
+        "gates": {
+          "items": {
+            "$ref": "#/$defs/Gate"
+          },
+          "title": "Gates",
+          "type": "array"
+        },
+        "generated_utc": {
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "Generated Utc",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generated_utc",
+        "gates",
+        "comparisons"
+      ],
+      "title": "Validation",
+      "type": "object"
+    },
+    "Weights": {
+      "properties": {
+        "comms": {
+          "minimum": 0,
+          "title": "Comms",
+          "type": "number"
+        },
+        "power": {
+          "minimum": 0,
+          "title": "Power",
+          "type": "number"
+        },
+        "slope": {
+          "minimum": 0,
+          "title": "Slope",
+          "type": "number"
+        }
+      },
+      "required": [
+        "slope",
+        "power",
+        "comms"
+      ],
+      "title": "Weights",
+      "type": "object"
+    },
+    "WorkedExamples": {
+      "additionalProperties": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "WorkedExamples",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TrueSouthContracts"
+}
