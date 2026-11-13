@@ -1,0 +1,457 @@
+/*
+  Lander's eye: the horizon chart, its control row, legend and card (docs/features/panorama.md).
+  The approved look: design/variants/landers-eye/c2/ and the chart card in
+  design/variants/space-first/. Tokens only: every colour is a var() from web/src/app/theme.css.
+*/
+
+.pano {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  min-width: 0;
+  color: var(--ink);
+  font-size: var(--t-md);
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+/* In Mission Control: the floating panel under the horizon, at most as wide as the prototype's card. */
+.pano-panel {
+  width: min(100%, 860px);
+  margin-bottom: var(--float-gap);
+  padding: var(--s2) var(--s3) var(--s3);
+}
+
+/* ── Control row ─────────────────────────────────────────────────────────── */
+.pano-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2) var(--s3);
+}
+
+.pano-centre {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.pano-centre-label,
+.pano-stretch {
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+  white-space: nowrap;
+}
+
+.pano-centre .seg-option[aria-pressed="true"] {
+  background: var(--hover);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.pano-centre .seg-option:disabled {
+  color: var(--ink-4);
+}
+
+.pano-stretch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.pano-reset {
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.pano-reset:hover {
+  color: var(--ink);
+}
+
+/* ── The chart ───────────────────────────────────────────────────────────── */
+.pano-host {
+  position: relative;
+  min-width: 0;
+}
+
+.pano-chart {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--plot);
+  cursor: crosshair;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pano-chart:active {
+  cursor: grabbing;
+}
+
+.pano-chart:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.pano-chart svg {
+  display: block;
+}
+
+.pano-chart text {
+  font-family: var(--font);
+}
+
+.pano-grid {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+
+.pano-frame {
+  fill: none;
+  stroke: none;
+}
+
+.pano-ground {
+  fill: var(--terrain);
+}
+
+.pano-rim {
+  fill: none;
+  stroke: var(--terrain-rim);
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+}
+
+.pano-zero {
+  stroke: var(--ink-2);
+  stroke-opacity: 0.55;
+  stroke-dasharray: 1 3;
+}
+
+.pano-mask {
+  fill: none;
+  stroke: var(--earth);
+  stroke-width: 1.3;
+  stroke-dasharray: 6 4;
+  stroke-opacity: 0.8;
+}
+
+.pano-mask-label {
+  fill: var(--earth);
+  font-size: 11px;
+}
+
+.pano-track {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pano-track-sun {
+  stroke: var(--sun);
+  stroke-dasharray: 2 4;
+}
+
+.pano-track-earth {
+  stroke: var(--earth);
+}
+
+.pano-dot-sun {
+  fill: var(--sun);
+}
+
+.pano-dot-earth {
+  fill: var(--earth);
+}
+
+/* A path or dot behind the skyline is drawn faded, as a disc's hidden part is. */
+.pano-faded {
+  opacity: 0.32;
+}
+
+.pano-disc-sun {
+  fill: var(--sun-core);
+}
+
+.pano-disc-earth {
+  fill: var(--earth-core);
+}
+
+.pano-disc-hidden {
+  fill-opacity: 0.3;
+}
+
+.pano-locator {
+  fill: none;
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+  stroke-opacity: 0.7;
+}
+
+.pano-disc-sun .pano-locator {
+  stroke: var(--sun);
+}
+
+.pano-disc-earth .pano-locator {
+  stroke: var(--earth);
+}
+
+.pano-marker-line {
+  stroke: var(--ink);
+  stroke-opacity: 0.5;
+  stroke-dasharray: 2 3;
+}
+
+.pano-marker-ring {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.pano-cursor {
+  stroke: var(--ink-2);
+  stroke-opacity: 0.6;
+  pointer-events: none;
+}
+
+.pano-axis {
+  fill: var(--ink-3);
+  font-size: 11px;
+}
+
+.pano-axis-zero {
+  fill: var(--ink-2);
+}
+
+.pano-tick {
+  stroke: var(--ink-3);
+}
+
+.pano-tick-minor,
+.pano-tick-mid {
+  stroke-opacity: 0.55;
+}
+
+.pano-compass {
+  fill: var(--ink-3);
+  font-size: 11px;
+}
+
+.pano-compass-major {
+  fill: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pano-compass-mid {
+  fill: var(--ink-2);
+  font-weight: 500;
+}
+
+/* The labels beside the discs: a plate of Sky, as on the scene. */
+.pano-label {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  padding: 3px 7px 4px;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--plot) 88%, transparent);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.pano-label[data-align="end"] {
+  align-items: flex-end;
+}
+
+.pano-label-title {
+  font-size: var(--t-md);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.pano-label-sun .pano-label-title {
+  color: var(--sun);
+}
+
+.pano-label-earth .pano-label-title {
+  color: var(--earth);
+}
+
+.pano-label-detail {
+  color: var(--ink-2);
+  font-size: var(--t-sm);
+  line-height: 1.3;
+}
+
+/* The hover readout: the one shadow, for what floats over a plot. */
+.pano-readout {
+  position: absolute;
+  z-index: 2;
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--raised);
+  box-shadow: var(--shadow-popover);
+  pointer-events: none;
+}
+
+.pano-readout p {
+  margin: 0;
+}
+
+.pano-readout-title {
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+}
+
+.pano-readout-big {
+  margin-top: 1px;
+  font-size: var(--t-lg);
+  font-weight: 500;
+}
+
+.pano-readout dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px var(--s3);
+  margin: var(--s1) 0 0;
+  font-size: var(--t-sm);
+}
+
+.pano-readout dt {
+  color: var(--ink-2);
+}
+
+.pano-readout dd {
+  margin: 0;
+  font-weight: 500;
+  text-align: right;
+}
+
+.pano-readout-hint {
+  margin-top: var(--s2) !important;
+  padding-top: var(--s1);
+  border-top: 1px solid var(--line);
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+}
+
+.pano-loading {
+  position: absolute;
+  inset: 0 0 30px 34px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+  pointer-events: none;
+}
+
+/* ── Under the chart ─────────────────────────────────────────────────────── */
+.pano-answer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--s4);
+  margin: 0;
+  font-size: var(--t-md);
+}
+
+.pano-answer-sun {
+  color: var(--sun);
+}
+
+.pano-answer-earth {
+  color: var(--earth);
+}
+
+.pano-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--s4);
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+}
+
+.pano-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pano-sw {
+  display: inline-block;
+  width: 18px;
+  height: 0;
+}
+
+.pano-sw-sun {
+  border-top: 2px dashed var(--sun);
+}
+
+.pano-sw-earth {
+  border-top: 2px solid var(--earth);
+}
+
+.pano-note {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--t-md);
+}
+
+.pano-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s2);
+  padding: var(--s2) var(--s1);
+}
+
+.pano-state p {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.pano-state .pano-state-title {
+  color: var(--ink);
+  font-size: var(--t-lg);
+  text-wrap: pretty;
+}
+
+.pano .why {
+  margin: 0;
+}
+
+/* Touch screens and phones: every control at least 44 px. */
+@media (pointer: coarse), (max-width: 760px) {
+  .pano .seg-option,
+  .pano-reset {
+    min-height: 44px;
+  }
+
+  .pano .seg-option {
+    min-width: 44px;
+    justify-content: center;
+  }
+}
+
+/* The one-line "why" inside the panel: a card, not a plate over the scene. */
+.pano .why-line {
+  margin: 0;
+  border: 1px solid var(--line);
+  background: var(--raised);
+}
