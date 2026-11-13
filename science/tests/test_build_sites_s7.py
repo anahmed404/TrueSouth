@@ -12,7 +12,9 @@ from truesouth import paths
 from truesouth.cli import main
 from truesouth.constants import TIME_GRID_COUNT
 from truesouth.contracts import (Manifest, Sites, SiteMeta, Profiles, Features, ArtemisRegions)
-from truesouth.derived_io import write_system, read_series, read_skyline
+from truesouth.derived_io import write_system, read_series, read_skyline, read_terrain
+from truesouth.dem import DemStore
+from truesouth.slope import polar_slope
 from truesouth.frames import polar_stereo_forward
 
 STAMP = '2026-11-13T00:00:00Z'
@@ -59,10 +61,12 @@ def test_build_contracts_repeatability_and_second_site(tree, capsys):
     sites = Sites.model_validate_json((output/'sites.json').read_bytes()).root
     assert sites[0].elevation_m == pytest.approx(1234)
     assert sites[0].terrain_tier == 'core80'
-    assert sites[0].slope is None and not sites[0].has_closeup
+    assert sites[0].slope.deg == 0 and sites[0].slope.baseline_m == 160
+    assert not sites[0].has_closeup
     site_dir = output/'sites/connecting_ridge'
     meta = SiteMeta.model_validate_json((site_dir/'meta.json').read_bytes())
-    assert meta.terrain is None and meta.closeup is None
+    assert meta.terrain.size == 257 and meta.terrain.window_km == 20 and meta.closeup is None
+    assert read_terrain(site_dir/'terrain.bin', 257)['up_km'][128, 128] == 0
     assert len(read_series(site_dir/'series.bin', manifest.time_grid.count)['sun_el']) == TIME_GRID_COUNT
     assert read_skyline(site_dir/'skyline.bin', meta.skyline.bins)['el_deg'].shape == (1440,)
     for name, model in [('profiles', Profiles), ('features', Features), ('artemis_regions', ArtemisRegions)]:
@@ -80,6 +84,9 @@ def test_build_contracts_repeatability_and_second_site(tree, capsys):
     assert {s.id for s in sites} == {'connecting_ridge', 'apollo11'}
     sphere = next(s for s in sites if s.id == 'apollo11')
     assert sphere.terrain_tier == 'sphere' and sphere.elevation_m is None
+    assert sphere.slope is None
+    assert SiteMeta.model_validate_json((output/'sites/apollo11/meta.json').read_bytes()).terrain is None
+    assert not (output/'sites/apollo11/terrain.bin').exists()
     arrays = read_skyline(output/'sites/apollo11/skyline.bin', 1440)
     np.testing.assert_allclose(arrays['el_deg'], -.086935, atol=.00001)
     assert np.isnan(arrays['dist_km']).all()
@@ -154,3 +161,73 @@ def test_missing_polar_terrain_is_not_silently_sphere(tree):
     with pytest.raises(ValueError, match='prepared core80 terrain unavailable'):
         build('connecting_ridge')
     assert not (output/'sites/connecting_ridge').exists()
+
+
+def test_tilted_plane_slope_matches_direct_calculation(tree):
+    output, prepared, _ = tree
+    core = prepared/'LDEM_80S_80MPP_ADJ.npy'
+    rows, cols = np.indices((11, 11))
+    np.save(core, (1234 + 8*cols - 4*rows).astype(np.float32))
+    build('connecting_ridge')
+    site = Sites.model_validate_json((output/'sites.json').read_bytes()).root[0]
+    direct = polar_slope(DemStore(core, None).core, site.lat_deg, site.lon_deg)
+    assert site.slope == direct
+    assert site.slope.deg == pytest.approx(np.degrees(np.arctan(np.hypot(.1, .05))), abs=.001)
+    assert site.slope.baseline_m == 160
+    assert np.isnan(read_terrain(output/'sites/connecting_ridge/terrain.bin', 257)['up_km']).any()
+
+
+def test_wide_and_sphere_coverage_gate(tree):
+    output, prepared, catalog = tree
+    entries = json.loads((catalog/'sites.json').read_text(encoding='utf-8'))
+    for entry in entries:
+        if entry['id'] == 'apollo11':
+            entry.update(lat_deg=-59, lon_deg=45)
+    (catalog/'sites.json').write_text(json.dumps(entries), encoding='utf-8')
+    x, y = polar_stereo_forward(-69.3741, 32.32)
+    wide = prepared/'LDEM_60S_240MPP_ADJ.npy'
+    np.save(wide, np.full((11, 11), 4321., dtype=np.float32))
+    wide.with_suffix('.json').write_text(json.dumps(dict(origin_x=float(x-1320), origin_y=float(y+1320), pixel_x=240, pixel_y=-240)), encoding='utf-8')
+    build('chandrayaan3', 'apollo11')
+    sites = {s.id: s for s in Sites.model_validate_json((output/'sites.json').read_bytes()).root}
+    assert sites['chandrayaan3'].slope.baseline_m == 480
+    assert SiteMeta.model_validate_json((output/'sites/chandrayaan3/meta.json').read_bytes()).terrain.size == 257
+    assert (output/'sites/chandrayaan3/terrain.bin').exists()
+    assert sites['apollo11'].slope is None
+    assert not (output/'sites/apollo11/terrain.bin').exists()
+    x, y = polar_stereo_forward(-59, 45)
+    wide.with_suffix('.json').write_text(json.dumps(dict(origin_x=float(x-1320), origin_y=float(y+1320), pixel_x=240, pixel_y=-240)), encoding='utf-8')
+    assert DemStore(None, wide).tiers(-59, 45).item() == 'wide240'
+    build('apollo11', force=True)
+    assert Sites.model_validate_json((output/'sites.json').read_bytes()).root[0].slope is None
+    assert SiteMeta.model_validate_json((output/'sites/apollo11/meta.json').read_bytes()).terrain is None
+    assert not (output/'sites/apollo11/terrain.bin').exists()
+
+
+def test_missing_ground_rejected(tree):
+    output, prepared, _ = tree
+    np.save(prepared/'LDEM_80S_80MPP_ADJ.npy', np.full((11, 11), np.nan, dtype=np.float32))
+    with pytest.raises(ValueError, match='site ground height is missing'):
+        build('connecting_ridge')
+    assert not (output/'sites/connecting_ridge').exists()
+
+
+@pytest.mark.parametrize('name', ['slope.py', 'terrain_mesh.py'])
+def test_newer_science_source_rebuilds(tree, tmp_path, monkeypatch, capsys, name):
+    from truesouth.commands import build_sites
+    output, _, _ = tree
+    package = tmp_path/'package'
+    (package/'commands').mkdir(parents=True)
+    fake_command = package/'commands/build_sites.py'
+    fake_command.touch()
+    source = package/name
+    source.touch()
+    monkeypatch.setattr(build_sites, '__file__', str(fake_command))
+    build('connecting_ridge')
+    build('connecting_ridge')
+    assert 'up to date' in capsys.readouterr().out
+    site_file = output/'sites/connecting_ridge/meta.json'
+    newer = site_file.stat().st_mtime_ns + 1_000_000_000
+    os.utime(source, ns=(newer, newer))
+    build('connecting_ridge')
+    assert 'connecting_ridge: built in' in capsys.readouterr().out

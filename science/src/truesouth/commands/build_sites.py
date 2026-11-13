@@ -1,4 +1,4 @@
-"""Build catalog skylines and series; slope and meshes await S8."""
+"""Build catalog skylines, series, slopes and terrain meshes."""
 
 from datetime import datetime, timezone
 import json
@@ -11,12 +11,14 @@ from truesouth import catalog, paths
 from truesouth.constants import (MOON_RADIUS_M, OBSERVER_HEIGHT_M, SKYLINE_BINS,
                                  TIME_GRID_COUNT, TIME_GRID_START_UTC, TIME_GRID_STEP_S)
 from truesouth.contracts import (Manifest, TimeGrid, Site, Sites, SiteMeta,
-                                 SeriesLayout, SeriesMeta, SkylineLayout)
+                                 SeriesLayout, SeriesMeta, SkylineLayout, MeshMeta)
 from truesouth.dem import DemStore, site_tier
-from truesouth.derived_io import write_series, write_skyline, read_series, read_skyline
+from truesouth.derived_io import write_series, write_skyline, read_series, read_skyline, write_terrain, read_terrain
 from truesouth.ephemeris import load_global
 from truesouth.series import build_series
 from truesouth.skyline import compute_skyline
+from truesouth.slope import polar_slope
+from truesouth.terrain_mesh import terrain_mesh
 
 
 def add_arguments(parser):
@@ -82,6 +84,15 @@ def _current(target, site, previous, newest_input):
         return False
     try:
         meta = SiteMeta.model_validate_json(files[0].read_bytes())
+        tier = site_tier(site.lat_deg).item()
+        terrain = target/'terrain.bin'
+        if tier == 'sphere':
+            if meta.terrain is not None or terrain.exists():
+                return False
+        else:
+            if meta.terrain is None or not terrain.is_file() or terrain.stat().st_mtime_ns < newest_input:
+                return False
+            read_terrain(terrain, meta.terrain.size)
         return (meta.site_id == site.id and meta.skyline.bins == SKYLINE_BINS
                 and files[1].stat().st_size == TIME_GRID_COUNT*8*2
                 and files[2].stat().st_size == SKYLINE_BINS*5*4)
@@ -125,8 +136,7 @@ def run(args):
     if terrain_needed:
         inputs += [p for map_path in (core, wide) for p in (map_path, map_path.with_suffix('.json')) if p.exists()]
     newest_input = max(p.stat().st_mtime_ns for p in inputs)
-    print('S7: slope and meshes await S8: slope=null, has_closeup=false, terrain=null, closeup=null; '
-          'these are unassessed, not findings.')
+    print('Close-up meshes are not built yet; has_closeup=false and closeup=null.')
     print('Quickmap and Moon Trek links use documented home pages; exact site link formats await MC9.')
     for site in selected:
         started = perf_counter()
@@ -139,6 +149,8 @@ def run(args):
         tier = site_tier(site.lat_deg).item()
         site_store = DemStore() if tier == 'sphere' else store
         ground = None
+        slope = None
+        mesh = None
         if tier != 'sphere':
             if site_store.tiers(site.lat_deg, site.lon_deg).item() != tier:
                 raise ValueError(f'{site.id}: prepared {tier} terrain unavailable at site')
@@ -146,14 +158,19 @@ def run(args):
             if missing:
                 raise ValueError(f'{site.id}: site ground height is missing')
             ground = float(height)
+            slope = polar_slope(site_store.core if tier == 'core80' else site_store.wide,
+                                site.lat_deg, site.lon_deg)
+            mesh = terrain_mesh(site_store, site.lat_deg, site.lon_deg)
         skyline = compute_skyline(site_store, site.lat_deg, site.lon_deg)
         series = build_series(site.lat_deg, site.lon_deg, ground if ground is not None else 0.,
                               skyline.el_deg, global_data)
         meta = SiteMeta(site_id=site.id, series=SeriesMeta(columns=SeriesLayout().arrays),
                         sun_radius_deg=series.sun_radius_deg, earth_radius_deg=series.earth_radius_deg,
-                        skyline=skyline.meta, terrain=None, closeup=None)
+                        skyline=skyline.meta,
+                        terrain=MeshMeta(size=mesh.size, window_km=mesh.window_km) if mesh else None,
+                        closeup=None)
         derived_site = Site(**site.model_dump(), terrain_tier=tier, has_closeup=False,
-                            elevation_m=ground, slope=None,
+                            elevation_m=ground, slope=slope,
                             quickmap_url='https://quickmap.lroc.asu.edu/',
                             moontrek_url='https://trek.nasa.gov/moon/')
         staging = Path(tempfile.mkdtemp(dir=target.parent, prefix='.'+site.id+'.'))
@@ -161,10 +178,14 @@ def run(args):
             _write_model(staging/'meta.json', meta)
             write_series(staging/'series.bin', series.columns)
             write_skyline(staging/'skyline.bin', dict(zip(SkylineLayout().arrays, skyline.arrays)), SKYLINE_BINS)
+            if mesh is not None:
+                write_terrain(staging/'terrain.bin', mesh.arrays, mesh.size)
             # Validate the serialized artifacts before publishing any of them.
             SiteMeta.model_validate_json((staging/'meta.json').read_bytes())
             read_series(staging/'series.bin', TIME_GRID_COUNT)
             read_skyline(staging/'skyline.bin', SKYLINE_BINS)
+            if mesh is not None:
+                read_terrain(staging/'terrain.bin', mesh.size)
             _publish_site(staging, target)
         finally:
             if staging.exists():
