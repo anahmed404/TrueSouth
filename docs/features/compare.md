@@ -73,7 +73,9 @@ The site row carries the same notes as the sites rail and the focused-site panel
   TrueSouth" and its distance from the listed point, never a source tag, and its sunlight
   is marked an **upper reading**. A best-lit variant is never given the "best" mark in the
   Sunlight row, because it is chosen to be the highest of our own estimates and would win by
-  construction (built in MC9).
+  construction (built in MC9). When one is in the table, the footer says so in one sentence.
+  The wording and the range's rounding (low end down, high end up) follow the sites rail's
+  (`app/mission/site-labels.ts`, #92).
 - **An Artemis candidate entry** carries a "map centre" tag under its name; its tip, and its
   screen-reader text, say "Centre of NASA's close-up map, not a chosen landing point".
 

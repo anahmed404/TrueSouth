@@ -30,12 +30,12 @@ import {
 } from "../../../app/mission/rules";
 import { NO_RESULT_TEXT, isSphere, siteName, type SiteStatus } from "../../../app/mission/site-status";
 import type { ProfileField } from "../../../state/scenario";
+import { ARTEMIS_NOTE, nearbyRangeText, upperReadingLine, variantLine } from "./site-wording";
 
-/** The focused-site panel's note for an Artemis candidate entry (docs/features/mission-control.md). */
-export const MAP_CENTRE_NOTE = "Centre of NASA's close-up map, not a chosen landing point";
+/** The note for an Artemis candidate entry (the shared wording, see `site-wording.ts`). */
+export const MAP_CENTRE_NOTE = ARTEMIS_NOTE;
 export const SPHERE_NOTE = "Terrain not modelled";
 export const SLOPE_NOT_ASSESSED = "Slope not assessed";
-export const UPPER_READING = "upper reading";
 export const TOO_FEW_SITES = "Compare needs two or more sites. Add one from the sites rail.";
 
 /** One selected site, ready to draw as a column. */
@@ -43,13 +43,15 @@ export type ColumnView = {
   siteId: string;
   name: string;
   site: Site | null;
+  /** For a best-lit variant, the site it belongs to. */
+  parent: Site | null;
   /** "−89.4555°, 222.6190° E", as in the focused-site panel. */
   coords: string | null;
   /** "core80", "core80, close-up DEM", or "Terrain not modelled". */
   tier: string | null;
   /** Lines under the name: the map-centre note. */
   notes: string[];
-  /** For a best-lit variant: "Chosen by TrueSouth, 149 m from Connecting Ridge". */
+  /** For a best-lit variant: "Best-lit map pixel, 149 m from Connecting Ridge". */
   chosenBy: string | null;
   status: SiteStatus;
   evaluation: Evaluation | null;
@@ -58,11 +60,13 @@ export type ColumnView = {
   metrics: Readonly<Record<string, MetricView>> | null;
 };
 
+function parentOf(site: Site | null, sites: readonly Site[]): Site | null {
+  return site?.variant_of ? (sites.find((s) => s.id === site.variant_of) ?? null) : null;
+}
+
 function variantNote(site: Site, sites: readonly Site[]): string | null {
-  if (!site.variant_of) return null;
-  const parent = sites.find((s) => s.id === site.variant_of);
-  const distance = site.offset_m === null || site.offset_m === undefined ? "" : `, ${formatValue(site.offset_m, "m")} from ${siteName(parent, site.variant_of)}`;
-  return `Chosen by TrueSouth${distance}`;
+  const parent = parentOf(site, sites);
+  return variantLine(site, parent ? siteName(parent, parent.id) : null);
 }
 
 export function compareColumn(siteId: string, sites: readonly Site[], status: SiteStatus, profile: MissionProfile): ColumnView {
@@ -74,6 +78,7 @@ export function compareColumn(siteId: string, sites: readonly Site[], status: Si
     siteId,
     name: siteName(site, siteId),
     site,
+    parent: parentOf(site, sites),
     coords: site ? `${formatNumber(site.lat_deg, 4)}°, ${formatNumber(site.lon_deg, 4)}° E` : null,
     tier: site ? (isSphere(site) ? SPHERE_NOTE : `${site.terrain_tier}${site.has_closeup ? ", close-up DEM" : ""}`) : null,
     notes,
@@ -147,12 +152,6 @@ function cellOf(partial: Partial<Cell> & Pick<Cell, "text">): Cell {
   return { value: null, sub: null, notes: [], bar: null, broken: false, best: false, ...partial };
 }
 
-/** "40 to 87 % within 160 m (six-year average)", or null for a site without a nearby range. */
-export function nearbyRangeText(site: Site | null): string | null {
-  const nearby = site?.nearby_sun;
-  if (!nearby) return null;
-  return `Nearby range ${formatNumber(nearby.min * 100)} to ${formatValue(nearby.max * 100, "%")} within ${formatValue(nearby.radius_m, "m")}, six-year average`;
-}
 
 function litFields(profile: MissionProfile): ProfileField[] {
   return profile.ops_sun_el_min_deg === null ? ["min_sun_fraction"] : ["min_sun_fraction", "ops_sun_el_min_deg"];
@@ -201,9 +200,10 @@ export function metricRows(columns: readonly ColumnView[], profile: MissionProfi
       const lit = m(column, "lit_fraction");
       if (!mean || !lit) return null;
       const notes: string[] = [];
-      const range = nearbyRangeText(column.site);
+      const range = nearbyRangeText(column.site?.nearby_sun);
       if (range) notes.push(range);
-      if (column.site?.variant_of) notes.push(`An ${UPPER_READING}: chosen by TrueSouth as the best-lit point`);
+      const upper = column.site ? upperReadingLine(column.site, column.parent) : null;
+      if (upper) notes.push(upper);
       return cellOf({
         text: metricText(mean),
         value: metricNumber(mean),

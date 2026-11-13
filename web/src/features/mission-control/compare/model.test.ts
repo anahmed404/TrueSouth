@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import type { Manifest, MissionProfile, Site, Sites } from "../../../contracts/generated";
 import { NO_RESULT_TEXT, type SiteStatus } from "../../../app/mission/site-status";
+import { nearbyRangeText } from "./site-wording";
 import { parseCsv } from "../../../lib/export";
 import type { Evaluation, VetoId } from "../../../lib/scoring";
 import { COMPARE_CSV_HEADER, compareCsv, compareFileName, scenarioFileName, scenarioJson, type ExportScenario } from "./export";
@@ -163,12 +164,12 @@ describe("site notes", () => {
   const slope = metricRows(cols, athena).find((r) => r.id === "slope")!;
 
   it("a sunlit-peak site shows its nearby range, beside its own sunlight", () => {
-    expect(plain(sunlight.cells[0]?.notes)).toEqual(["Nearby range 40 to 87 % within 160 m, six-year average"]);
+    expect(plain(sunlight.cells[0]?.notes)).toEqual(["Within 160 m: 40 % to 87 %"]);
   });
 
   it("a best-lit variant is chosen by TrueSouth, with its distance and an upper-reading note", () => {
-    expect(plain(cols[1]?.chosenBy)).toBe("Chosen by TrueSouth, 149 m from Peak");
-    expect(sunlight.cells[1]?.notes.some((n) => n.includes("upper reading"))).toBe(true);
+    expect(plain(cols[1]?.chosenBy)).toBe("Best-lit map pixel, 149 m from Peak");
+    expect(plain(sunlight.cells[1]?.notes)).toEqual(["Within 160 m: 40 % to 87 %", "Its sunlight is an upper reading: the brightest of the map pixels within 160 m."]);
   });
 
   it("an Artemis candidate entry carries the map-centre note", () => {
@@ -180,6 +181,17 @@ describe("site notes", () => {
     expect(slope.cells[3]?.text).toBe("Slope not assessed");
     expect(slope.cells[3]?.sub).toBe("terrain not modelled");
     expect(slope.cells[3]?.value).toBeNull();
+  });
+});
+
+describe("the nearby range never looks narrower than the data", () => {
+  it("rounds the low end down and the high end up", () => {
+    // Connecting Ridge's real range (sites.json, #77): 39.75 % to 86.96 %.
+    const ridge = { radius_m: 160, points: 13, min: 0.3974903475727703, max: 0.8696149458331431 };
+    expect(plain(nearbyRangeText(ridge))).toBe("Within 160 m: 39 % to 87 %");
+    expect(plain(nearbyRangeText({ radius_m: 160, points: 3, min: 0.4, max: 0.87 }))).toBe("Within 160 m: 40 % to 87 %");
+    expect(plain(nearbyRangeText({ radius_m: 160, points: 3, min: 0.001, max: 0.999 }))).toBe("Within 160 m: 0 % to 100 %");
+    expect(nearbyRangeText(null)).toBeNull();
   });
 });
 
@@ -312,7 +324,8 @@ describe("the exports", () => {
     expect(parsed.rows[0]?.[col("landing_sun_el_deg")]).toBe("-0.25");
     expect(parsed.rows[1]?.[col("broken_rules")]).toBe(`Longest blackout 31 h, limit ${athena.max_blackout_h} h`);
     expect(parsed.rows[1]?.[col("score_used")]).toBe("no: a broken rule decides");
-    expect(parsed.rows[3]?.[col("notes")]).toContain("Chosen by TrueSouth, 149 m from Peak");
+    expect(parsed.rows[3]?.[col("notes")]).toContain("Best-lit map pixel, 149 m from Peak");
+    expect(parsed.rows[3]?.[col("notes")]).toContain("Within 160 m: 40 % to 87 %");
   });
 
   it("the JSON carries the scenario, every limit's tag and full-precision results", () => {

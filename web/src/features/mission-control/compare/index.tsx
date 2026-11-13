@@ -4,9 +4,8 @@ import type { MissionProfile, Site } from "../../../contracts/generated";
 import type { PanelProps } from "../../../app/panel";
 import { Button } from "../../../components/Button";
 import { Explain } from "../../../components/Explain";
-import { cx, firstSentence, formatNumber, formatUtc } from "../../../components/format";
+import { cx, formatNumber, formatUtc } from "../../../components/format";
 import { Tip } from "../../../components/Tip";
-import { explanations } from "../../../lib/explain";
 import { StatusBadge, StatusLamp } from "../../../components/StatusLamp";
 import { useSites } from "../../../data/hooks";
 import { saveTextFile } from "../../../lib/export";
@@ -28,6 +27,7 @@ import {
   type MetricRow,
   type StatusCell,
 } from "./model";
+import { CHOSEN_TAG, CHOSEN_TIP, NOT_RANKED_NOTE, isVariant } from "./site-wording";
 import "./compare.css";
 
 /** How many times the table has rendered. For the test that a scrub does not re-render it. */
@@ -254,6 +254,7 @@ export const CompareTable = memo(function CompareTable({ columns, rows, statuses
       </div>
       <p className="cmp-foot">
         A tie for best marks every tied site.
+        {columns.some((column) => isVariant(column.site)) ? ` ${NOT_RANKED_NOTE}` : null}
         {sources.length > 0 ? ` Slope from ${sources.join("; ")}.` : null}
       </p>
     </>
@@ -293,8 +294,8 @@ function SiteHeader({ column, focused, onFocusSite }: { column: ColumnView; focu
       ) : null}
       {column.chosenBy ? (
         <span className="cmp-meta">
-          <NoteTag label="chosen by TrueSouth" text={`${column.chosenBy}. ${firstSentence(explanations.best_lit_variant?.text ?? "")}`} dotted />
-          <span className="cmp-meta-line">{column.chosenBy.replace(/^Chosen by TrueSouth, /, "")}</span>
+          <NoteTag label={CHOSEN_TAG} text={CHOSEN_TIP} dotted />
+          <span className="cmp-meta-line">{column.chosenBy}</span>
         </span>
       ) : null}
     </th>
