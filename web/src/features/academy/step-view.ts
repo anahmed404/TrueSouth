@@ -9,8 +9,12 @@ import type { LunaMood, Step, Submission } from "./types";
 /** A step kind whose learner picks one of a list. */
 export type PickKind = "choice" | "predict" | "fill-formula" | "spot-bug";
 
-/** What the learner has set but not yet checked. */
-export type Draft = { kind: PickKind; selected: number } | { kind: "tune-slider"; value: number } | null;
+/** What the learner has set but not yet checked. A date slider carries a UTC instant, not a number. */
+export type Draft =
+  | { kind: PickKind; selected: number }
+  | { kind: "tune-slider"; variant: "number"; value: number }
+  | { kind: "tune-slider"; variant: "date"; utc: string }
+  | null;
 
 export type OptionState = "default" | "selected" | "missed" | "answer" | "dimmed";
 
@@ -28,7 +32,9 @@ export function isPickKind(kind: Step["kind"]): kind is PickKind {
 
 export function correctIndex(step: Step): number | null {
   if (step.kind === "spot-bug") return step.buggyLine;
-  if (step.kind === "choice" || step.kind === "predict" || step.kind === "fill-formula") return step.answer;
+  if (step.kind === "choice" || step.kind === "predict" || step.kind === "fill-formula") {
+    return typeof step.answer === "number" ? step.answer : null;
+  }
   return null;
 }
 
@@ -44,7 +50,7 @@ function pickedIndices(attempts: readonly Submission[]): number[] {
 }
 
 export function isAnswered(runner: RunnerState): boolean {
-  return runner.phase === "correct" || runner.phase === "revealed";
+  return runner.phase === "correct" || runner.phase === "revealed" || runner.phase === "unavailable";
 }
 
 /** The state of every option of a pick step. */
@@ -83,8 +89,12 @@ export function canCheck(step: Step, runner: RunnerState, draft: Draft): boolean
     if (draft.selected < 0 || draft.selected >= optionCount(step)) return false;
     return !pickedIndices(runner.attempts).includes(draft.selected);
   }
+  if (step.kind !== "tune-slider" || draft.variant !== step.slider.kind) return false;
   const last = runner.attempts[runner.attempts.length - 1];
-  return !(last && last.kind === "tune-slider" && last.value === draft.value);
+  if (!last || last.kind !== "tune-slider") return true;
+  if (draft.variant === "number" && last.variant === "number") return last.value !== draft.value;
+  if (draft.variant === "date" && last.variant === "date") return last.utc !== draft.utc;
+  return true;
 }
 
 export type PrimaryAction =
@@ -104,8 +114,9 @@ export function primaryAction(step: Step, runner: RunnerState, draft: Draft, isL
 
 /** The draft to start a step with. A slider starts at its minimum; a pick starts empty. */
 export function initialDraft(step: Step | undefined): Draft {
-  if (step?.kind === "tune-slider") return { kind: "tune-slider", value: step.slider.min };
-  return null;
+  if (step?.kind !== "tune-slider") return null;
+  if (step.slider.kind === "date") return { kind: "tune-slider", variant: "date", utc: step.slider.minUtc };
+  return { kind: "tune-slider", variant: "number", value: step.slider.min };
 }
 
 /** The draft after a check: a missed pick is cleared, so the learner picks again. */
@@ -131,7 +142,9 @@ export function replyText(step: Step, submission: Submission): string {
     case "spot-bug":
       return `Line ${submission.selected + 1} is wrong.`;
     case "tune-slider":
-      return step.kind === "tune-slider" ? `${submission.value} ${step.slider.unit}` : String(submission.value);
+      if (step.kind !== "tune-slider") return "";
+      if (submission.variant === "date") return submission.utc;
+      return step.slider.kind === "number" ? `${submission.value} ${step.slider.unit}` : String(submission.value);
     case "drag-body":
       return String(submission.value);
     case "drop-pin":
@@ -155,7 +168,8 @@ export function conversationFor(step: Step, runner: RunnerState): ConversationEn
   runner.attempts.forEach((attempt, index) => {
     const last = index === runner.attempts.length - 1;
     const right =
-      attempt.kind === "draw-skyline" || ("selected" in attempt ? attempt.selected === answer : last && runner.phase === "correct");
+      attempt.kind === "draw-skyline" ||
+      (answer !== null && "selected" in attempt ? attempt.selected === answer : last && (runner.phase === "correct" || runner.phase === "unavailable"));
     entries.push({ who: "me", text: replyText(step, attempt), miss: !right, key: `${step.id}-me-${index}` });
 
     if (!last) {
@@ -166,6 +180,14 @@ export function conversationFor(step: Step, runner: RunnerState): ConversationEn
       entries.push({ who: "luna", mood: "worried", text: `Not quite. ${step.hint}`, old: false, key: `${step.id}-hint-${index}` });
     } else if (runner.phase === "correct") {
       entries.push({ who: "luna", mood: "cheering", text: lunaOnCorrect(step, runner), old: false, key: `${step.id}-ok` });
+    } else if (runner.phase === "unavailable") {
+      entries.push({
+        who: "luna",
+        mood: "worried",
+        text: runner.feedback ?? "This cannot be checked yet.",
+        old: false,
+        key: `${step.id}-unchecked`,
+      });
     } else if (runner.phase === "revealed") {
       entries.push({
         who: "luna",
@@ -196,6 +218,9 @@ export type ResultView = {
 
 export function resultFor(step: Step, runner: RunnerState): ResultView | null {
   if (!isAnswered(runner) || runner.stepXp === null) return null;
+  if (runner.phase === "unavailable") {
+    return { tone: "shown", headline: runner.feedback ?? "This cannot be checked yet.", xp: runner.stepXp };
+  }
   if (runner.phase === "correct") {
     if (step.kind === "draw-skyline") {
       const close = runner.results[runner.results.length - 1] === "first";

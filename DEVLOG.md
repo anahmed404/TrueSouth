@@ -383,6 +383,32 @@ each integration checkpoint.
 
 ## Academy
 
+#### 2026-11-13 · A5a · Lesson types for lessons 1 to 8, skeletons for 1 to 4
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — widened the lesson types, the runner and the evaluator,
+  wrote the coverage table, the lessons 1 to 4 skeletons and the vitest checks — checked
+  by the agent with typecheck, tests and build. A human has not played a lesson.
+- **State:** verified (orchestrator ran typecheck, 1,350 tests and build on the merge with main and played the sample lesson through all eight steps in a browser; Codex, gpt-6.1-terra reviewed the types and skeletons against the lesson document and ran nine mutations; its findings were fixed and the ambiguous settings decided and written into lessons.md)
+- **Changed:** `web/src/features/academy/` (`types.ts`, `runner.ts`, `evaluator.ts`,
+  `step-view.ts`, `skyline-score.ts`, `store.ts`, `lessons/l1.ts`–`l4.ts`, `lessons/story.ts`,
+  `lessons/COVERAGE.md`, and the smallest screen edits the new types needed),
+  `docs/academy/overview.md` (the star rule and the type sketch)
+- **Notes:**
+  - A reveal can be text, an illustration, or a panel at an hour, a month, a UTC range or
+    a timeline band. A scene names a flat, smooth or terrain skyline and a drag window.
+    A slider is either numbers or UTC dates, and may carry a readout, a scene and which
+    of Pip's meters follows it.
+  - A lesson with no scored step earns 1 star and no patch. `starsFor(0, 0)` had been 3.
+    A negative or non-finite skyline gap is 2 XP and not right first time.
+  - Progress is still saved only when the lesson is complete. That decision now lives in
+    `commitLessonProgress`, which the lesson screen calls, and a test fails if it writes
+    part-way.
+  - Lessons 1 to 4 are exported and tested. They are not in the catalog. `TODO(words)`
+    counts: l1_sun 9, l2_skyline 10, l3_horizon 10, l4_link 10.
+  - Review fixes were made: the skyline window, the lesson 2 drag, the two sliders, both
+    lesson 4 panels, provisional story dates, and UTC hours checked on the time grid.
+    37 of 40 steps are expressible. Lesson 8 steps 3 to 5 are not.
+
 #### 2026-11-13 · A4 · Under the hood card renderer with KaTeX and Fill chips
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — wrote the card type, the renderer, the lazy
