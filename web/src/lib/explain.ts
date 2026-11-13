@@ -298,7 +298,7 @@ const entries = {
     lesson: "l2_skyline",
   },
   compare: {
-    text: "A table that puts up to four sites side by side, for the same mission profile and landing date, so you can see which one wins and why.",
+    text: "Compare puts your selected sites side by side, for one mission profile and landing date. It shows which one wins, and why.",
     lesson: "l6_tradeoffs",
   },
   timeline: {

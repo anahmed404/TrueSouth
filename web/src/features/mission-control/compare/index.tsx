@@ -4,7 +4,9 @@ import type { MissionProfile, Site } from "../../../contracts/generated";
 import type { PanelProps } from "../../../app/panel";
 import { Button } from "../../../components/Button";
 import { Explain } from "../../../components/Explain";
-import { cx, formatUtc } from "../../../components/format";
+import { cx, firstSentence, formatNumber, formatUtc } from "../../../components/format";
+import { Tip } from "../../../components/Tip";
+import { explanations } from "../../../lib/explain";
 import { StatusBadge, StatusLamp } from "../../../components/StatusLamp";
 import { useSites } from "../../../data/hooks";
 import { saveTextFile } from "../../../lib/export";
@@ -251,8 +253,7 @@ export const CompareTable = memo(function CompareTable({ columns, rows, statuses
         </table>
       </div>
       <p className="cmp-foot">
-        “Best” marks the highest score, sunlight and link and the shortest dark stretch, blackout and slope; a tie marks each tied
-        site.
+        A tie for best marks every tied site.
         {sources.length > 0 ? ` Slope from ${sources.join("; ")}.` : null}
       </p>
     </>
@@ -260,27 +261,54 @@ export const CompareTable = memo(function CompareTable({ columns, rows, statuses
 });
 
 function SiteHeader({ column, focused, onFocusSite }: { column: ColumnView; focused: boolean; onFocusSite: (siteId: string) => void }) {
+  const site = column.site;
   return (
     <th scope="col" className={cx("cmp-site", focused && "cmp-site-focused")}>
       <button type="button" className="cmp-site-name" aria-current={focused ? "true" : undefined} onClick={() => onFocusSite(column.siteId)}>
         {column.name}
         <span className="sr-only">{focused ? ", the focused site" : ", focus this site"}</span>
       </button>
-      {column.coords ? <span className="cmp-meta tabular">{column.coords}</span> : null}
-      {column.tier ? <span className="cmp-meta">{column.tier}</span> : null}
+      {site ? (
+        <span className="cmp-meta tabular" title={column.coords ?? undefined}>
+          <span aria-hidden="true">{shortCoordinates(site.lat_deg, site.lon_deg)}</span>
+          <span className="sr-only">{column.coords}</span>
+        </span>
+      ) : null}
+      {column.tier || column.notes.length > 0 ? (
+        <span className="cmp-meta">
+          {column.tier}
+          {column.tier && column.notes.length > 0 ? " " : null}
+          {column.notes.map((note) => (
+            <NoteTag key={note} label="map centre" text={note} />
+          ))}
+        </span>
+      ) : null}
       {column.chosenBy ? (
         <span className="cmp-meta">
-          <span className="tag tag-chosen">chosen by TrueSouth</span>{" "}
-          <Explain term="best_lit_variant" label="best-lit variant" />
+          <NoteTag label="chosen by TrueSouth" text={`${column.chosenBy}. ${firstSentence(explanations.best_lit_variant?.text ?? "")}`} dotted />
           <span className="cmp-meta-line">{column.chosenBy.replace(/^Chosen by TrueSouth, /, "")}</span>
         </span>
       ) : null}
-      {column.notes.map((note) => (
-        <span key={note} className="cmp-note">
-          {note}
-        </span>
-      ))}
     </th>
+  );
+}
+
+/** "−89.46°, 222.62° E": short enough for a column; the full coordinates are in its title. */
+function shortCoordinates(latDeg: number, lonDeg: number): string {
+  return `${formatNumber(latDeg, 2)}°, ${formatNumber(lonDeg, 2)}° E`;
+}
+
+/** A quiet tag whose tip, and screen-reader text, is the whole note. */
+function NoteTag({ label, text, dotted = false }: { label: string; text: string; dotted?: boolean }) {
+  return (
+    <Tip content={text}>
+      {(trigger) => (
+        <button {...trigger} type="button" className={cx("tag cmp-tag", dotted && "tag-chosen")}>
+          {label}
+          <span className="sr-only">: {text}</span>
+        </button>
+      )}
+    </Tip>
   );
 }
 
@@ -328,12 +356,10 @@ function BrokenContent({ column }: { column: ColumnView }) {
           </span>
           {rule.value !== null ? (
             <span className="cmp-sub tabular">
-              <b>{rule.valueLabel}</b>, {rule.limitText} <SettingsTag settings={rule.provenance} />
+              <b>{rule.valueLabel}</b>, {rule.limitText}
             </span>
           ) : (
-            <span className="cmp-sub">
-              {rule.limitText} <SettingsTag settings={rule.provenance} />
-            </span>
+            <span className="cmp-sub">{rule.limitText}</span>
           )}
         </li>
       ))}

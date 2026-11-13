@@ -405,3 +405,9 @@
     flex: 1;
   }
 }
+
+/* A note on a site, as a quiet tag; its tip holds the whole sentence. */
+.cmp-tag {
+  margin: 2px 0 0;
+  cursor: help;
+}
