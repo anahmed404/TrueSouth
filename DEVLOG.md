@@ -53,7 +53,24 @@ _No entries yet._
 
 ## Mission Control
 
-_No entries yet._
+#### 2026-11-13 · MC0 · Web scaffold with panel placeholders
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote the Vite app, router, theme tokens, data middleware,
+  panel placeholders and tests — the orchestrator (Claude Fable 5.2) read the diff, ran the
+  tests, typecheck and build, and probed every route and the `/data` middleware on a
+  running dev server; Antigravity, gemini-3.8-flash reviewed the pull request
+- **State:** verified
+- **Changed:** `web/`, this entry
+- **Notes:**
+  - Every screen is a plain placeholder until the design choice at checkpoint C1.
+  - S0 had not merged, so `panel.ts` has a temporary `MissionProfile` and `generated.ts`
+    does not exist yet. Both are replaced when S0 lands.
+  - The sample scenario on `/mission` is hard-coded: profile `{ id: "im2_athena" }`,
+    landing date and current time `2028-03-01T00:00:00Z`, no sites. MC3 replaces it.
+  - Review fixes: the pnpm release-age exception for `motion` 14.13.0 was removed and the
+    lockfile resolves 14.12.0; `/data` responses send a content type; the dev-server path
+    helper moved from `web/src/app/` to `web/dev/`.
+  - Measured: 4 vitest tests pass; production bundle 259 kB (82 kB gzipped).
 
 ## 3D and Map
 
