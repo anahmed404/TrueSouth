@@ -219,11 +219,13 @@ normalised and rounded before computing.
 
 The API and catalog command share build_sites.build_site. The committed global
 ephemeris supplies all hours, without network access. Prepared arrays are read-only,
-memory-mapped once per process, lazily on first custom use. Actual map coverage selects
-core80, then wide240, then sphere. Sphere sites complete synchronously. With maps
-absent, nominal polar latitudes (at or south of 60 degrees S) return 503; other points
-can use sphere. The existing science rule rejects sites within 0.001 degrees of either
-pole; these jobs fail rather than inventing a local frame. No close-up or apron is built.
+memory-mapped once per process, lazily on first custom use. The catalog rule site_tier selects
+core80 for latitude <= -80 degrees, wide240 for -80 < latitude <= -60 degrees,
+and sphere for latitude > -60 degrees. Square raster corners do not extend these
+site-tier bounds. Sphere sites complete synchronously without opening terrain maps.
+Terrain sample points along rays still use the prepared map coverage, as in the catalog.
+With maps absent, terrain-tier points return 503. Points within 0.001 degrees of either
+pole are rejected with 422 before admission. No close-up or apron is built.
 
 /api/health always returns 200. `status` is ok when manifest, readable sites.json and
 every listed site's meta, series and skyline exist; empty when no derived files exist;

@@ -46,17 +46,16 @@ class Computer:
 
     def tier(self, request):
         from truesouth.dem import DemStore, site_tier
-        # A running calculation must not block admission to the waiting queue.
-        if self.store is not None:
-            return self.store.tiers(request.lat_deg, request.lon_deg).item()
-        with self.lock:
-            if self.store is None:
-                if not all((self.prepared / n).is_file() and (self.prepared / n).with_suffix('.json').is_file() for n in MAPS):
-                    if site_tier(request.lat_deg).item() != 'sphere':
+        tier = site_tier(request.lat_deg).item()
+        if tier == 'sphere':
+            return tier
+        if self.store is None:
+            with self.lock:
+                if self.store is None:
+                    if not all((self.prepared / n).is_file() and (self.prepared / n).with_suffix('.json').is_file() for n in MAPS):
                         raise Rejected(503, NEED_MAPS)
-                    return 'sphere'
-                self.store = DemStore(*(self.prepared / n for n in MAPS))
-            return self.store.tiers(request.lat_deg, request.lon_deg).item()
+                    self.store = DemStore(*(self.prepared / n for n in MAPS))
+        return tier
 
     def __call__(self, request, tier):
         from truesouth.commands.build_sites import build_site

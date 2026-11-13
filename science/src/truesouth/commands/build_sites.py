@@ -165,7 +165,8 @@ def build_site(site, store, global_data, target, *, tier=None, site_entry=False,
     slope = None
     mesh = None
     if tier != 'sphere':
-        if site_store.tiers(site.lat_deg, site.lon_deg).item() != tier:
+        selected_map = site_store.core if tier == 'core80' else site_store.wide
+        if selected_map is None or not selected_map.contains(site.lat_deg, site.lon_deg):
             raise ValueError(f'{site.id}: prepared {tier} terrain unavailable at site')
         height, missing = site_store.sample(site.lat_deg, site.lon_deg)
         if missing:

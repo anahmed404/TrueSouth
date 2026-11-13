@@ -257,3 +257,21 @@ def test_science_latitude_boundary_is_allowed(empty_tree, latitude):
     jobs = Jobs(cache, Instant())
     with TestClient(create_app(derived=derived, prepared=prepared, cache=cache, jobs=jobs)) as client:
         assert client.post('/api/sites/custom', json=dict(lat_deg=latitude, lon_deg=0)).json()['status'] == 'ready'
+
+
+def test_wide_square_corner_uses_catalog_sphere_rule(synthetic):
+    import numpy as np
+    derived, prepared, cache = synthetic
+    computer = Computer(derived, prepared, cache)
+    class CoversCorner:
+        def tiers(self, lat, lon): return np.asarray('wide240')
+    computer.store = CoversCorner()
+    body = request(-58, 45)
+    assert computer.tier(body) == 'sphere'
+    jobs = Jobs(cache, computer)
+    assert jobs.submit(body, 'one')['status'] == 'ready'
+    site = jobs.cached(site_id(body))
+    assert site['terrain_tier'] == 'sphere' and site['slope'] is None
+    assert not (cache/site_id(body)/'terrain.bin').exists()
+    skyline = np.fromfile(cache/site_id(body)/'skyline.bin', dtype='<f4')[:1440]
+    assert np.ptp(skyline) == 0

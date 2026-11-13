@@ -197,7 +197,13 @@ def test_http_rate_limit_retry_after(synthetic):
 def test_wide_map_and_outside_coverage(synthetic):
     derived, prepared, cache = synthetic
     computer = Computer(derived, prepared, cache)
-    body = request(-89.97, 0)
+    from truesouth.frames import polar_stereo_forward
+    x, y = polar_stereo_forward(-70, 0)
+    sidecar = prepared/'LDEM_60S_240MPP_ADJ.json'
+    metadata = json.loads(sidecar.read_text())
+    metadata.update(origin_x=float(x-5.5*240), origin_y=float(y+5.5*240))
+    sidecar.write_text(json.dumps(metadata))
+    body = request(-70, 0)
     assert computer.tier(body) == 'wide240'
     store = computer.store
     site = computer(body, 'wide240')
@@ -231,7 +237,7 @@ def test_running_calculation_does_not_block_terrain_admission(synthetic):
     finished = Event()
     result = []
     def lookup():
-        result.append(computer.tier(request(-89.97, 0)))
+        result.append(computer.tier(request(-89.99, 0)))
         finished.set()
     with computer.lock:
         thread = Thread(target=lookup)
@@ -239,4 +245,4 @@ def test_running_calculation_does_not_block_terrain_admission(synthetic):
         admitted = finished.wait(2)
     thread.join()
     assert admitted
-    assert result == ['wide240']
+    assert result == ['core80']
