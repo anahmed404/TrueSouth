@@ -169,8 +169,9 @@ def test_cache_hits_corruption_and_input_changes(tree, monkeypatch):
     assert snapshot(output) == first
     assert all(path.read_bytes() == untouched[path] for path in untouched)
     assert note.read_text(encoding='utf-8') == 'leave me'
-    # placement_cache.py is not part of the candidate fingerprint. Its clock still
-    # makes the site look stale, and the candidates must stay cached.
+    # The content hash includes placement_cache.py. A clock change is not a
+    # content change, so the candidate key stays and only the parent skyline
+    # is rebuilt because the site looks stale.
     from truesouth import placement_cache, skyline
     extra = Path(placement_cache.__file__)
     extra_mtime = extra.stat().st_mtime_ns
@@ -278,3 +279,69 @@ def test_only_force_skip_interruption_and_removal(tree, capsys):
     assert (output / 'sites/connecting_ridge/series.bin').read_bytes() == listed
     assert not (output / 'sites/connecting_ridge_best_lit').exists()
     assert 'connecting_ridge_best_lit' not in records(output)
+
+
+def test_a_byte_outside_the_old_three_modules_changes_the_key(tmp_path):
+    """A key of only skyline, series and placement would ignore this edit."""
+    from truesouth.placement_cache import fingerprint, input_files, package_sources
+    package = tmp_path / 'pkg'
+    package.mkdir()
+    for name in ('skyline.py', 'series.py', 'placement.py', 'constants.py'):
+        (package / name).write_text('value = 1\n', encoding='utf-8')
+    prepared = tmp_path / 'prepared'
+    prepared.mkdir()
+    array = prepared / 'LDEM_80S_80MPP_ADJ.npy'
+    np.save(array, np.zeros((2, 2), dtype=np.float32))
+    array.with_suffix('.json').write_text('{}', encoding='utf-8')
+    system = tmp_path / 'system.bin'
+    system.write_bytes(b'ephemeris')
+    sources = package_sources(package)
+    first = fingerprint(input_files(prepared, system, sources))
+    narrow = fingerprint([(path.name, path) for path in sources if path.name != 'constants.py'])
+    (package / 'constants.py').write_text('value = 2\n', encoding='utf-8')
+    second = fingerprint(input_files(prepared, system, package_sources(package)))
+    narrow_after = fingerprint([(path.name, path) for path in sources if path.name != 'constants.py'])
+    assert first != second
+    assert narrow == narrow_after
+
+
+def test_old_key_is_unread_and_a_truncated_entry_is_replaced(tree, monkeypatch):
+    from truesouth import placement_cache
+    output, prepared, _, cache = tree
+    extra = cache.parent / 'outside.py'
+    extra.write_bytes(b'value = 1\n')
+    real = placement_cache.package_sources
+
+    def sources(root=None):
+        found = real(root)
+        return [*found, extra] if root is None else found
+
+    monkeypatch.setattr(placement_cache, 'package_sources', sources)
+    calls = count_skylines(monkeypatch)
+    count, _ = candidate_count(prepared)
+    build('connecting_ridge')
+    assert len(calls) == count + 1
+    old_folder = next((cache / 'placement').iterdir())
+    old_bytes = {path.name: path.read_bytes() for path in old_folder.glob('*.npz')}
+    assert old_bytes
+    extra.write_bytes(b'value = 2\n')
+    calls.clear()
+    build('connecting_ridge', force=True)
+    assert len(calls) == count + 1
+    assert {path.name: path.read_bytes() for path in old_folder.glob('*.npz')} == old_bytes
+    current = next(path for path in (cache / 'placement').iterdir() if path != old_folder)
+    stored = sorted(current.glob('*.npz'))
+    target, others = stored[0], stored[1:]
+    untouched = {path: path.read_bytes() for path in others}
+    original = target.read_bytes()
+    target.write_bytes(original[:32])
+    calls.clear()
+    build('connecting_ridge', force=True)
+    assert len(calls) == 2
+    replaced = target.read_bytes()
+    assert replaced != original[:32] and len(replaced) > len(original[:32])
+    with np.load(target, allow_pickle=False) as data:
+        assert int(data['format']) == placement_cache.FORMAT
+        assert 'checksum' in data.files
+    assert all(path.read_bytes() == untouched[path] for path in others)
+    assert (output / 'sites/connecting_ridge_best_lit').is_dir()
