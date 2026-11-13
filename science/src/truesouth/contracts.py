@@ -714,7 +714,7 @@ class SceneInput(Contract):
 
     name: str = Field(min_length=1, description='File name.')
     bytes: int = Field(ge=0, description='Size in bytes.')
-    mtime_ns: int = Field(ge=0, description='Modification time in nanoseconds.')
+    sha256: str = Field(pattern=r'^[0-9a-f]{64}$', description='SHA-256 of the file content, in hex.')
 
 
 class SceneMeta(Contract):

@@ -1420,13 +1420,13 @@ export interface SceneInput {
    */
   bytes: number;
   /**
-   * Modification time in nanoseconds.
-   */
-  mtime_ns: number;
-  /**
    * File name.
    */
   name: string;
+  /**
+   * SHA-256 of the file content, in hex.
+   */
+  sha256: string;
 }
 /**
  * scene/meta.json: every scene file, its pixels, encoding, orientation and source.

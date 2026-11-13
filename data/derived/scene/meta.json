@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_utc": "2026-11-13T19:10:58Z",
+  "generated_utc": "2026-11-13T00:00:00Z",
   "images": [
     {
       "file": "scene/moon_2k.webp",
@@ -255,77 +255,77 @@
     {
       "name": "lroc_color_poles_4k.tif",
       "bytes": 13095388,
-      "mtime_ns": 1794596269309864600
+      "sha256": "918649a7f8ed2f1329b2cd95bb0d25483befdcb60ae1a66db681a637cc21344f"
     },
     {
       "name": "lroc_color_poles_8k.tif",
       "bytes": 50641970,
-      "mtime_ns": 1794596281188241900
+      "sha256": "4af8b0cd4d50c30851359d98e7e72040240dd8d03256b58b345b5b76e9edb4ef"
     },
     {
       "name": "ldem_4.tif",
       "bytes": 4153352,
-      "mtime_ns": 1794596282879826500
+      "sha256": "330afa2556a86fd05ac6ba2f912f246600fdade35de2a0d90593d50d07b01b65"
     },
     {
       "name": "world.topo.bathy.200403.3x5400x2700.jpg",
       "bytes": 2522112,
-      "mtime_ns": 1794596283309607500
+      "sha256": "1df1a3ff1067a5ccf99031280f77acc3fff4dab202b18b6b2c7f913a9a78a0a4"
     },
     {
       "name": "LDEM_80S_80MPP_ADJ.npy",
       "bytes": 231040128,
-      "mtime_ns": 1794583956199688600
+      "sha256": "1c1e4ac62224f786ad67a01998e6c557309181c9f39770429ad3f16da37b1c34"
     },
     {
       "name": "LDEM_80S_80MPP_ADJ.json",
       "bytes": 1018,
-      "mtime_ns": 1794583958513495000
+      "sha256": "bb1e03a9fe69b66cbe8b3a1dc913c3b80ad5f305d789600592b785f843809be0"
     },
     {
       "name": "LDEM_60S_240MPP_ADJ.npy",
       "bytes": 240870528,
-      "mtime_ns": 1794585323675021100
+      "sha256": "7a3dc28fe1dd04ee054eeda8176a4e3fe02ee380c62600d5e9a4891602adca7e"
     },
     {
       "name": "LDEM_60S_240MPP_ADJ.json",
       "bytes": 1021,
-      "mtime_ns": 1794585325783231700
+      "sha256": "79386b9dbba7528fd336bdcc923f5220802f9540ad2463addf079c5623988aaa"
     },
     {
       "name": "hillshade_4k.webp",
       "bytes": 1279620,
-      "mtime_ns": 1794595533567573000
+      "sha256": "42e03a7af92eb77cff29616a86fdf12ba80f2771003dda3da2cdddc1e0d7dafc"
     },
     {
       "name": "hillshade_8k.webp",
       "bytes": 3897152,
-      "mtime_ns": 1794595533588858400
+      "sha256": "06c681119fc3bfdf4f37e4f93e9b62988a47f1ada741d481b2c990ddda37b1fb"
     },
     {
       "name": "sunlight_4k.webp",
       "bytes": 1364104,
-      "mtime_ns": 1794595533597215000
+      "sha256": "ac22d851d2290b58aaf28c2368c787cc9085aae4afa1825ae379dbfef2cdb1f8"
     },
     {
       "name": "earthvis_4k.webp",
       "bytes": 1287842,
-      "mtime_ns": 1794595533522824800
+      "sha256": "b75eca12c76191a11778f627f9107c6518745b77c362629c61956ec7241372a6"
     },
     {
       "name": "meta.json",
       "bytes": 480,
-      "mtime_ns": 1794595533592297200
+      "sha256": "5489b659e5ae8898fea9ac5e3053874b43f7cc76c2485601144816c7245673e2"
     },
     {
       "name": "sites.json",
       "bytes": 12748,
-      "mtime_ns": 1794595533636688700
+      "sha256": "ff528258a6bbf4914f43c747a3cab704bf39e08c7b8d45ad1e90d18c754bc58b"
     },
     {
       "name": "scene_assets.py",
-      "bytes": 30945,
-      "mtime_ns": 1794596812864827100
+      "bytes": 31236,
+      "sha256": "f4b294f351784ea6ad378c76045b13c4cd64ffb4c4c6aa9d148c350e3aabebfa"
     }
   ]
 }

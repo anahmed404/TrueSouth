@@ -240,7 +240,7 @@ The catalog grid is 161 × 161 over a 300 km square centred on the site. Points 
 
 `scene/meta.json` records each apron's site id, file, row count, column count and window in metres. Fixture aprons use the same encoding on a 5 × 5 grid so the web app can load them without the NASA maps.
 
-**Inputs.** `inputs` in `scene/meta.json` is the byte size and modification time of each file the build read, including `scene_assets.py`. A second run whose fingerprints match, and whose output files are all present, does nothing. The same inputs written again are byte-identical: WebP method and quality are pinned, PNG ancillary chunks that carry the clock are dropped, and JPEG uses quality 84, progressive, 4:2:0.
+**Inputs.** `inputs` in `scene/meta.json` is the byte size and SHA-256 of each file the build read, including `scene_assets.py`. A second run whose fingerprints match, and whose output files are all present, does nothing. The same inputs written again are byte-identical: WebP method and quality are pinned, PNG ancillary chunks that carry the clock are dropped, and JPEG uses quality 84, progressive, 4:2:0.
 
 **Credits**, stored on each image: NASA Scientific Visualization Studio and the LRO LROC and LOLA teams for the Moon; NASA Earth Observatory, Reto Stöckli, for Blue Marble; NASA LOLA / PGDA for the cap, the slopes and the aprons.
 

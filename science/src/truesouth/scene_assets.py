@@ -6,6 +6,7 @@ section 2.3: +x right, +y up. An apron uses the same walk and the same
 north-to-south, west-to-east axes as the 20 km patch in terrain_mesh.py.
 The patch itself stays in sites/<id>/terrain.bin and is not written again.
 """
+import hashlib
 import json
 import warnings
 from pathlib import Path
@@ -406,8 +407,13 @@ def _image_entry(file, array, encoding, orientation, source, operation, credit, 
 
 
 def _fingerprint(path):
-    stat = Path(path).stat()
-    return SceneInput(name=Path(path).name, bytes=stat.st_size, mtime_ns=stat.st_mtime_ns)
+    """Size and content hash. Not the modification time: that differs on every checkout,
+    and scene/meta.json is committed."""
+    digest = hashlib.sha256()
+    with open(path, 'rb') as handle:
+        for block in iter(lambda: handle.read(1 << 20), b''):
+            digest.update(block)
+    return SceneInput(name=Path(path).name, bytes=Path(path).stat().st_size, sha256=digest.hexdigest())
 
 
 def scene_inputs(paths):

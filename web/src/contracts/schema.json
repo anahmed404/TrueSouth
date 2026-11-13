@@ -1746,23 +1746,23 @@
           "title": "Bytes",
           "type": "integer"
         },
-        "mtime_ns": {
-          "description": "Modification time in nanoseconds.",
-          "minimum": 0,
-          "title": "Mtime Ns",
-          "type": "integer"
-        },
         "name": {
           "description": "File name.",
           "minLength": 1,
           "title": "Name",
+          "type": "string"
+        },
+        "sha256": {
+          "description": "SHA-256 of the file content, in hex.",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
           "type": "string"
         }
       },
       "required": [
         "name",
         "bytes",
-        "mtime_ns"
+        "sha256"
       ],
       "title": "SceneInput",
       "type": "object"
