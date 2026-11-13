@@ -620,6 +620,27 @@ export class World {
   }
 
   /** Releases every geometry, material and texture on the GPU. */
+  /** The Moon's spheres by segment count, made when first needed (perf.ts, `moonSegments`). */
+  private readonly moonLods = new Map<number, THREE.BufferGeometry>();
+  private moonSegmentsNow = 384;
+
+  /**
+   * Level of detail: draws the Moon with `segments` around (and half as many pole to pole).
+   * Shading is per pixel from the normalised position, so this moves only the silhouette, by
+   * under a quarter of a pixel at the size the Director asks for it. 384 is the full mesh.
+   */
+  setMoonSegments(segments: number): void {
+    if (segments === this.moonSegmentsNow) return;
+    if (this.moonLods.size === 0) this.moonLods.set(this.moonSegmentsNow, this.moonMesh.geometry);
+    let geometry = this.moonLods.get(segments);
+    if (!geometry) {
+      geometry = this.own(new THREE.SphereGeometry(1, segments, segments / 2));
+      this.moonLods.set(segments, geometry);
+    }
+    this.moonMesh.geometry = geometry;
+    this.moonSegmentsNow = segments;
+  }
+
   dispose(): void {
     this.disposed = true;
     this.clearGround();

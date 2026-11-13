@@ -167,3 +167,54 @@ describe("the Slip Planner's orbit and zoom", () => {
     expect(len(sub(pos, pose.centre))).toBeCloseTo(SLIP_MAX_DISTANCE, 12);
   });
 });
+
+describe("the Slip Planner's entry in the rig's per-view table", () => {
+  async function slipRig() {
+    const THREE = await import("three");
+    const { ORBIT_STYLE, Rig } = await import("./rig");
+    const rig = new Rig(new THREE.PerspectiveCamera(30, 1440 / 900, 1e-7, 5000));
+    const pose = slipPose(polar, space);
+    rig.mode = "slip";
+    rig.slipCentre = { centre: pose.centre, up0: pose.up0 };
+    rig.apply(pose);
+    const at = () => [rig.camera.position.x, rig.camera.position.y, rig.camera.position.z] as [number, number, number];
+    const elevation = () => (Math.asin(dot(norm(sub(at(), pose.centre)), pose.up0)) * 180) / Math.PI;
+    return { rig, pose, at, elevation, style: ORBIT_STYLE.slip };
+  }
+
+  it("turns about the sites' centre, within 28° to 88° up", async () => {
+    const { rig, pose, at, elevation, style } = await slipRig();
+    expect(style).toBe("centre");
+    const r = len(sub(at(), pose.centre));
+    rig.beginDrag();
+    for (let i = 0; i < 80; i += 1) rig.orbit(37, 40);
+    expect(len(sub(at(), pose.centre))).toBeCloseTo(r, 6);
+    expect(elevation()).toBeLessThanOrEqual(SLIP_MAX_EL_DEG + 1e-6);
+    for (let i = 0; i < 160; i += 1) rig.orbit(-11, -40);
+    expect(elevation()).toBeGreaterThanOrEqual(SLIP_MIN_EL_DEG - 1e-6);
+  });
+
+  it("has no pan, so a right-drag turns instead and the sites stay in view", async () => {
+    const { rig, at } = await slipRig();
+    const before = at();
+    expect(rig.pan(120, 40)).toBe(false);
+    expect(at()).toEqual(before);
+  });
+
+  it("zooms toward the sites' centre, not the pointer, within 60 to 2,600 km, keeping the aim", async () => {
+    const { rig, pose, at } = await slipRig();
+    const look = () => {
+      const v = new (rig.camera.position.constructor as typeof import("three").Vector3)(0, 0, -1).applyQuaternion(rig.camera.quaternion);
+      return [v.x, v.y, v.z] as [number, number, number];
+    };
+    const aim = look();
+    rig.zoom(0.5, { x: 0.9, y: -0.8 });
+    expect(dot(look(), aim)).toBeGreaterThan(1 - 1e-9);
+    // The camera stays on the line through the centre.
+    expect(len(cross(norm(sub(at(), pose.centre)), norm(sub(pose.pos, pose.centre))))).toBeLessThan(1e-6);
+    for (let i = 0; i < 40; i += 1) rig.zoom(0.5, null);
+    expect(len(sub(at(), pose.centre))).toBeGreaterThanOrEqual(SLIP_MIN_DISTANCE - 1e-9);
+    for (let i = 0; i < 40; i += 1) rig.zoom(2, null);
+    expect(len(sub(at(), pose.centre))).toBeLessThanOrEqual(SLIP_MAX_DISTANCE + 1e-9);
+  });
+});

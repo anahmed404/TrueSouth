@@ -30,7 +30,12 @@ Polar map and Local terrain.
   or two sites), fits the free space with room at the sides for labels. Changing the site
   set, or folding a panel, refits the camera in 450 to 600 ms.
 - **Orbit and zoom.** Drag orbits around the sites' centre, from 28° to 88° up. Scroll zooms
-  from 60 km to 2,600 km.
+  from 60 km to 2,600 km, along the line to that centre, keeping the aim: not toward the
+  pointer, which would move the aim off the centre the orbit turns about. There is no pan
+  (a right-drag, Shift-drag or two-finger drag turns as a drag does), so the sites never
+  leave the view. A double-click frames the sites again. This is the view's entry in the
+  rig's per-view table (`ORBIT_STYLE.slip = "centre"`, `three/scene/rig.ts`), and its About
+  text says so.
 - **The scene in this view.** Earth, the Sun, the guide lines, the sight-lines and the
   focused site's close-up ground are hidden. The Moon's light is a fixed drawing light, not
   the real Sun (see "Honesty").
