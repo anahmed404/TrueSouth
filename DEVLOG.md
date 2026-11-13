@@ -52,7 +52,7 @@ each integration checkpoint.
 #### 2026-11-13 · S8 part 2 · Catalog slopes and terrain meshes
 - **Who:** Codex agent, for the orchestrator
 - **AI use:** Codex, gpt-6.1-terra — wrote tests first, implemented build-sites wiring, and ran real-data builds and checks — human and orchestrator review pending
-- **State:** built, not verified
+- **State:** verified (orchestrator ran the 212 tests on the merge with main and rebuilt Connecting Ridge byte for byte; Antigravity, gemini-4-hydrogen validated every derived file against the contracts, recomputed tiers, slopes and all 15 meshes independently, rebuilt three sites byte for byte and ran six mutations, all caught)
 - **Changed:** science/src/truesouth/commands/build_sites.py, science/tests/test_build_sites_s7.py, data/derived/ sites and catalog, this entry.
 - **Notes:** All 20 sites built in 593.193 s; per-site build times appear below. Derived tree: 50,785,780 bytes. Mean sun_frac and hourly shares use the decoded series; missing mesh vertices count nonfinite up coordinates. A dash means unavailable. All 15 terrain-site slopes match direct polar_slope results exactly. Connecting Ridge series and skyline match main byte-for-byte and its slope is 4.052094 degrees over 160 m. Chandrayaan-3 is wide240, 0.860984 degrees over 480 m; IM-2 is core80. All five sphere sites have null slope and terrain, and no terrain.bin. Mesh centres have relative up within 4.657e-10 m of zero (roundoff), so match the site's ground height. Forced repeats of Connecting Ridge and Chandrayaan-3 reproduced all eight site files byte-for-byte. Close-up data remains unavailable. No spec questions. uv run pytest: 212 passed in 47.36 s, exit 0.
 

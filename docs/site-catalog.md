@@ -65,7 +65,7 @@ Points that illumination studies single out for unusually long sunlight. All pub
 
 | Id | Name | Lat | East lon | Source | Sunlight in the source |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `connecting_ridge` | Connecting Ridge | −89.4555 | 222.6192 | Gläser et al. 2014, point CR1. <https://www.sciencedirect.com/science/article/abs/pii/S0019103514004278> | In sunlight 92.27% of the time (hours with any Sun, not average sunlight) at 2 m above ground, over 19 years |
+| `connecting_ridge` | Connecting Ridge | −89.4555 | 222.6192 | Gläser et al. 2014, point CR1. <https://www.sciencedirect.com/science/article/abs/pii/S0019103514004278> | 92.27% of the time in sunlight (hours with any Sun, not average sunlight) at 2 m above ground, over 19 years |
 | `shackleton_rim` | Shackleton rim | −89.7742 | 203.4952 | Gläser et al. 2014, point SR1 (same paper) | not stated for this point |
 | `de_gerlache_rim` | de Gerlache rim | −88.6952 | 291.7154 | De Rosa et al. 2012, region GR1. <https://arxiv.org/abs/1208.5587> | not stated |
 | `peak_near_shackleton` | Peak near Shackleton | −88.74 | 124.5 | Bussey et al. 2010. <https://www.sciencedirect.com/science/article/abs/pii/S0019103510001375> | "86% of the year" (2020) |
