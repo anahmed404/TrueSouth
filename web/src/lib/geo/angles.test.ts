@@ -58,3 +58,16 @@ describe("signed azimuth difference", () => {
     expect(signedAzimuthDifference(370, -10)).toBeCloseTo(-20, 12);
   });
 });
+
+describe("wrapping stays inside [0, 360)", () => {
+  it("folds float noise just below zero to 0, never to 360", () => {
+    // −1e-16 + 360 rounds to exactly 360 in float64, which is outside [0, 360).
+    expect(wrapAzimuth(-1e-16)).toBe(0);
+    expect(wrapLongitude(-1e-16)).toBe(0);
+    expect(wrapAzimuth(360 - 1e-16)).toBeLessThan(360);
+    for (const value of [-720, -360, -1e-14, -1e-20, 0, 360, 720, 359.99999999999994]) {
+      expect(wrapAzimuth(value)).toBeGreaterThanOrEqual(0);
+      expect(wrapAzimuth(value)).toBeLessThan(360);
+    }
+  });
+});

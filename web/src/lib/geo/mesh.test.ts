@@ -51,3 +51,21 @@ describe("skyline bins", () => {
     expect(skylineBinForAzimuth(-0.25)).toBe(1_439);
   });
 });
+
+describe("skyline bins near the wrap", () => {
+  it("rounds to the nearest bin, so the last eighth of a degree belongs to bin 0", () => {
+    // Bin 1,439 is centred on 359.75° and bin 0 on 360° = 0°. The midpoint is 359.875°.
+    expect(skylineBinForAzimuth(359.874)).toBe(1_439);
+    expect(skylineBinForAzimuth(359.875)).toBe(0);
+    expect(skylineBinForAzimuth(359.99)).toBe(0);
+    expect(skylineBinForAzimuth(0.124)).toBe(0);
+    expect(skylineBinForAzimuth(0.125)).toBe(1);
+  });
+
+  it("takes the bin count from data when one is given", () => {
+    // 2,880 bins are 0.125° each.
+    expect(skylineBinCentreDeg(1, 2_880)).toBe(0.125);
+    expect(skylineBinForAzimuth(0.125, 2_880)).toBe(1);
+    expect(skylineBinForAzimuth(359.95, 2_880)).toBe(0);
+  });
+});

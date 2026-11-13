@@ -12,7 +12,9 @@ export function radiansToDegrees(radians: number): number {
 function wrapFullCircle(degrees: number): number {
   const remainder = degrees % 360;
   const positive = remainder < 0 ? remainder + 360 : remainder;
-  return positive === 0 ? 0 : positive;
+  // A remainder just below zero (float noise) adds up to exactly 360, which is outside
+  // [0, 360). Fold it, and −0, to 0.
+  return positive >= 360 || positive === 0 ? 0 : positive;
 }
 
 /** docs/science.md §1. Azimuth is clockwise from north, reported in [0, 360). */

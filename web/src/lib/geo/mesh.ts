@@ -1,5 +1,5 @@
 import { wrapAzimuth } from "./angles";
-import { SKYLINE_BINS, SKYLINE_BIN_DEG } from "./constants";
+import { SKYLINE_BINS } from "./constants";
 
 /**
  * docs/data-contracts.md `terrain.bin`. Row-major index.
@@ -34,16 +34,17 @@ export function terrainOffsetM(
 
 /**
  * docs/data-contracts.md `skyline.bin` and docs/science.md §1.
- * Bin k is centred on azimuth 0.25k degrees.
+ * Bin k is centred on azimuth 0.25k degrees. Pass `bins` from the manifest's
+ * `skyline_bins` or a site's `meta.skyline.bins`; the default is the 1,440 of §1.
  */
-export function skylineBinCentreDeg(bin: number): number {
-  return bin * SKYLINE_BIN_DEG;
+export function skylineBinCentreDeg(bin: number, bins: number = SKYLINE_BINS): number {
+  return (bin * 360) / bins;
 }
 
 /**
  * docs/data-contracts.md `skyline.bin`. Nearest skyline bin to an azimuth.
  * A tie rounds toward the higher bin, and 359.875° lands on bin 0.
  */
-export function skylineBinForAzimuth(azimuthDeg: number): number {
-  return Math.round(wrapAzimuth(azimuthDeg) / SKYLINE_BIN_DEG) % SKYLINE_BINS;
+export function skylineBinForAzimuth(azimuthDeg: number, bins: number = SKYLINE_BINS): number {
+  return Math.round((wrapAzimuth(azimuthDeg) * bins) / 360) % bins;
 }

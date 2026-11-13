@@ -122,3 +122,23 @@ describe("map pixels", () => {
     expect(MOON_RADIUS_M).toBe(1_737_400);
   });
 });
+
+describe("map pixels left and right of the pole", () => {
+  // A 5 × 5 image over ±304,000 m has 121,600 m pixels. Pixel (col 3, row 2) is one pixel
+  // right of the centre: x = +121,600 m, y = 0, so λ = atan2(x, y) = 90° east and
+  // φ = 2 atan(121,600 / (2 × 1,737,400)) − 90° = −85.9915°.
+  const small = { half_width_m: 304_000, size_px: 5 };
+
+  it("puts longitude 90° east to the right of the pole", () => {
+    const right = pixelToLatLon(3, 2, small);
+    expect(right.lonDeg).toBeCloseTo(90, 9);
+    expect(right.latDeg).toBeCloseTo(-85.9915, 3);
+  });
+
+  it("puts longitude 270° east to the left of the pole", () => {
+    expect(pixelToLatLon(1, 2, small).lonDeg).toBeCloseTo(270, 9);
+    const pixel = latLonToPixel(-85.99152481, 270, small);
+    expect(pixel.col).toBeCloseTo(1, 5);
+    expect(pixel.row).toBeCloseTo(2, 5);
+  });
+});

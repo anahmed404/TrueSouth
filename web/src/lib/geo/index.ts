@@ -1,6 +1,5 @@
+// Degree and radian conversion stays inside lib/geo: angles cross this boundary in degrees.
 export {
-  degreesToRadians,
-  radiansToDegrees,
   signedAzimuthDifference,
   wrapAzimuth,
   wrapLongitude,

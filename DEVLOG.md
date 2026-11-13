@@ -77,7 +77,7 @@ _No entries yet._
 #### 2026-11-13 · T0 · Coordinate helpers and a shared Canvas mount
 - **Who:** Cursor agent, for the orchestrator
 - **AI use:** Cursor, grok-4.7 — wrote `web/src/lib/geo/` (tests first), the `SceneCanvas` wrapper and this entry — not checked by a human; the orchestrator marks this verified after `pnpm --dir web test`, typecheck and build
-- **State:** built, not verified
+- **State:** verified (the orchestrator, Claude Fable 5.2, compared every helper with docs/science.md and ran the tests, typecheck and build; Antigravity, gemini-4-hydrogen reviewed the math and found an angle-wrap bug, a hard-coded bin count and three test blind spots, all fixed by the orchestrator; 64 tests pass)
 - **Changed:** `web/src/lib/geo/`, `web/src/features/three/scene-canvas.tsx`, this entry
 - **Notes:**
   - The two view placeholders are unchanged. `SceneCanvas` is not mounted yet, so the production bundle stays 259 kB.

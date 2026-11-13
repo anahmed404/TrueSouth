@@ -125,3 +125,17 @@ describe("skyline wall", () => {
     expect(skylineWallHeightKm(0, 10)).toBeCloseTo(0, 12);
   });
 });
+
+describe("true local position south-east of the site", () => {
+  it("keeps the sign of both offsets", () => {
+    // E = 6,000 m, N = −8,000 m: s = 10,000 m, sin A = 0.6, cos A = −0.8, γ = s/R = 0.00575573.
+    // (R + z) sin γ = 1,738,600 × 0.00575570 = 10,006.85 m, so east = 6,004.11 m and
+    // north = −8,005.48 m. up = 1,738,600 cos γ − 1,737,600 = 971.20 m.
+    const position = trueLocalPosition(6_000, -8_000, 1_200, 200);
+    expect(position.eastM).toBeCloseTo(6_004.11, 1);
+    expect(position.northM).toBeCloseTo(-8_005.48, 1);
+    expect(position.upM).toBeCloseTo(971.2, 1);
+    // Scene z is −north, so a point south of the site has positive z.
+    expect(trueLocalToSceneKm(6_000, -8_000, 1_200, 200)[2]).toBeCloseTo(8.00548, 4);
+  });
+});
