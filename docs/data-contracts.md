@@ -318,7 +318,7 @@ Custom-site HTTP errors use `{ "message": "plain sentence" }`; validation errors
 Job failures in the status response use `{ code, message }`. Other API errors use
 `{ "error": { "code": "...", "message": "plain sentence" } }` with a
 matching HTTP status. Codes: `invalid_coordinates`, `date_outside_time_grid`,
-`rate_limited`, `queue_full`, `terrain_unavailable`, `not_found`.
+`rate_limited`, `queue_full`, `terrain_unavailable`, `not_found`, `computation_failed`.
 
 ## Shareable scenario link
 

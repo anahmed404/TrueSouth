@@ -178,3 +178,46 @@ def test_real_catalog_byte_identity(tmp_path):
         print(f'Connecting Ridge byte-identical series, skyline, terrain; meta differs only site_id; {perf_counter()-started:.3f} seconds')
     finally:
         jobs.close()
+
+def test_http_rate_limit_retry_after(synthetic):
+    derived, prepared, cache = synthetic
+    class Sphere:
+        def tier(self, body): return 'sphere'
+        def __call__(self, body, tier): return entry(body)
+    jobs = Jobs(cache, Sphere(), clock=lambda: 10.)
+    with TestClient(create_app(derived=derived, prepared=prepared, cache=cache, jobs=jobs)) as client:
+        for i in range(6):
+            assert client.post('/api/sites/custom', json=dict(lat_deg=0, lon_deg=i)).status_code == 200
+        response = client.post('/api/sites/custom', json=dict(lat_deg=0, lon_deg=6))
+        assert response.status_code == 429
+        assert response.headers['retry-after'] == '3600'
+        assert isinstance(response.json()['message'], str)
+
+
+def test_wide_map_and_outside_coverage(synthetic):
+    derived, prepared, cache = synthetic
+    computer = Computer(derived, prepared, cache)
+    body = request(-89.97, 0)
+    assert computer.tier(body) == 'wide240'
+    store = computer.store
+    site = computer(body, 'wide240')
+    assert site.terrain_tier == 'wide240'
+    assert site.slope.baseline_m == 480
+    assert computer.tier(request(0, 0)) == 'sphere'
+    assert computer.store is store
+
+
+def test_restart_forgets_waiting_jobs(tmp_path):
+    fake = Fake()
+    jobs = Jobs(tmp_path, fake)
+    try:
+        jobs.submit(request(lon=1), 'one')
+        assert fake.entered.wait(5)
+        jobs.submit(request(lon=2), 'two')
+        restarted = Jobs(tmp_path, fake)
+        assert restarted.status(site_id(request(lon=2))) is None
+        assert restarted.submit(request(lon=2), 'two')['status'] == 'queued'
+    finally:
+        fake.release.set()
+        jobs.close()
+        restarted.close()

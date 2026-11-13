@@ -15,7 +15,6 @@ from truesouth_api.health import health_report
 from truesouth_api.settings import derived_dir, prepared_dir, web_dist_dir
 from truesouth_api.static import ASSET_CACHE, DATA_CACHE, SHELL_CACHE, file_response, safe_file, unsafe
 
-CUSTOM_MESSAGE = "Custom sites are not available in this version."
 NOT_FOUND = "Not found"
 API_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"]
 

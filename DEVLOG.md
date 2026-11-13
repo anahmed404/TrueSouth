@@ -49,6 +49,15 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-13 ? S10b ? Custom sites in the API
+- **Who:** Codex implementation agent
+- **AI use:** Codex wrote the shared builder extraction, queue, routes, Docker changes and tests; checked with pytest, vitest, typecheck, real terrain byte comparison and HTTP measurement; human review pending.
+- **State:** built, not verified
+- **Changed:** science shared site builder and request contracts; API jobs, routes, settings and health; generated schema/types; Docker and Compose; architecture and API message docs; decision 0013.
+- **Checks:** Python suite 335 passed, 1 real-map test skipped by default (exit 0); three further API cases pass. Real-map test explicitly run with TRUESOUTH_DATA_ROOT: 1 passed, exit 0. Web 1,581 tests passed, typecheck and frozen install exit 0. Final checks and Docker measurement are recorded in the PR.
+- **Measured:** Connecting Ridge custom series.bin, skyline.bin and terrain.bin byte-identical to catalog; meta differs only site_id. Real comparison 48.987 s; separate HTTP submission through all four downloads 43.445 s, peak process working set 647.801 MiB (Windows GetProcessMemoryInfo, including mapped pages). API import 1.597 s, no numpy/scipy/rasterio/terrain imports.
+- **Limits:** Existing science rejects within 0.001 degrees of a pole. Custom entries have outcome, variant_of, offset_m and nearby_sun null; sphere also elevation/slope null. source_url is empty (user coordinates), group contrast. Close-up and apron files are not built; loaders skip them from null metadata/missing scene entries. Map coverage selects core80 then wide240 then sphere; nominal polar sites require installed maps when coverage cannot be inspected. Rasterio is a prepare extra, absent from runtime.
+
 #### 2026-11-13 · S12b · Worked examples from the stored series
 - **Who:** Cursor implementation agent
 - **AI use:** Cursor, grok-4.7 — wrote the selection tests first, then the worked-example command, the contract keys and the smallest Academy wiring — human and orchestrator review pending.
