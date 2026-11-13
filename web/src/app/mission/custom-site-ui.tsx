@@ -1,5 +1,5 @@
 import { ChevronDown, X } from "lucide-react";
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useStore } from "zustand";
 import { Button, IconButton } from "../../components/Button";
 import { Explain } from "../../components/Explain";
@@ -90,6 +90,8 @@ export function CustomPendingRow({ entry, handle, onAnnounce }: { entry: CustomE
   const close = () => {
     removeCustomSite(scenario, entry.key);
     onAnnounce(view.close.action === "stop" ? STOPPED_WAITING : `${view.title} removed.`);
+    // The row is gone: keep the keyboard in the rail.
+    requestAnimationFrame(() => document.querySelector<HTMLElement>(".rail-full .rail-add")?.focus());
   };
   return (
     <div className="site-row cs-row" data-site={entry.siteId ?? entry.key} aria-busy={view.busy || undefined}>
@@ -122,6 +124,10 @@ export function CustomCoordinates({ full, onStarted }: { full: boolean; onStarte
   const [name, setName] = useState("");
   const [refusal, setRefusal] = useState<string | null>(null);
   const id = useId();
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (open) formRef.current?.scrollIntoView({ block: "end" });
+  }, [open]);
 
   useEffect(() => {
     customSitesStore.getState().checkAvailability();
@@ -158,6 +164,7 @@ export function CustomCoordinates({ full, onStarted }: { full: boolean; onStarte
       </h3>
       {open ? (
         <form
+          ref={formRef}
           id={`${id}-body`}
           className="cs-form"
           noValidate
@@ -200,7 +207,7 @@ export function CustomCoordinates({ full, onStarted }: { full: boolean; onStarte
               </label>
               <input
                 id={nameId}
-                className={cx("cs-input cs-input-text", check.nameMessage && "cs-input-invalid")}
+                className={cx("cs-input-text", check.nameMessage && "cs-input-invalid")}
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 aria-invalid={check.nameMessage ? true : undefined}

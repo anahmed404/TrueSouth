@@ -11,7 +11,7 @@ export const COMPUTING_TEXT = "Computing terrain for your site…";
 export const NOT_COMPUTED_TEXT = "Not computed on this server yet";
 export const YOUR_SITE_TAG = "Your site";
 export const YOUR_SITE_TIP =
-  "You typed this point. TrueSouth computed it from NASA's terrain; it is not a sourced mission site.";
+  "A point typed into TrueSouth (by you, or by whoever shared the link). TrueSouth computes it from NASA's terrain; it is not a sourced mission site.";
 export const STOPPED_WAITING =
   "Stopped waiting. The server may still finish this site; if it does, asking again later finds it ready.";
 

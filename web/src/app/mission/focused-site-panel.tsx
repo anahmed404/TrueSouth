@@ -147,7 +147,7 @@ function SiteIdentity({ siteId, site, sites, pending }: { siteId: string; site: 
   if (isCustomSiteId(siteId) && (site || pending)) {
     return (
       <p className="focus-what">
-        <YourSiteTag /> Computed by TrueSouth at the point you typed, not a sourced mission site.
+        <YourSiteTag /> {site ? "Computed by TrueSouth at a typed point" : "A typed point"}, not a sourced mission site.
       </p>
     );
   }

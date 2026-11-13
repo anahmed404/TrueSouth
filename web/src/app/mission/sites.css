@@ -17,6 +17,12 @@
     color: var(--ink-2);
   }
 
+  .site-name-tag {
+    margin-left: var(--s2);
+    font-weight: 400;
+    vertical-align: 2px;
+  }
+
   .site-note .tag,
   .pick-sub .tag {
     margin-right: 2px;
@@ -267,8 +273,12 @@
   }
 
   .cs-input-text {
+    width: 100%;
     height: 32px;
     padding: 0 8px;
+    color: var(--ink);
+    font: inherit;
+    caret-color: var(--accent);
     border: 1px solid var(--line-strong);
     border-radius: var(--r-md);
     background: var(--surface);

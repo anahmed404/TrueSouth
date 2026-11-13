@@ -367,18 +367,21 @@ const SiteRow = memo(function SiteRow({
         aria-current={focused ? "true" : undefined}
         onClick={() => store.getState().focusSite(siteId)}
       >
-        <span className="site-name">{name}</span>
+        <span className="site-name">
+          {name}
+          {custom ? (
+            <>
+              {" "}
+              <span className="tag tag-yours site-name-tag">{YOUR_SITE_TAG}</span>
+            </>
+          ) : null}
+        </span>
         <RowLine status={status} />
         {status.kind === "ready" && moreBroken(status.evaluation) ? <span className="site-note">{moreBroken(status.evaluation)}</span> : null}
         {isSphere(site) ? <span className="site-note">Terrain not modelled</span> : null}
         {variant ? (
           <span className="site-note">
             <span className="tag tag-chosen">{CHOSEN_TAG}</span> {variant}
-          </span>
-        ) : null}
-        {custom ? (
-          <span className="site-note">
-            <span className="tag tag-yours">{YOUR_SITE_TAG}</span>
           </span>
         ) : null}
       </button>
@@ -542,6 +545,7 @@ function AddSite({ selected, pendingCount, compact = false }: { selected: readon
     <Popover
       label="Add a site"
       width={320}
+      placement="auto"
       trigger={(props) =>
         compact ? (
           <button {...props} type="button" className="btn btn-quiet rail-add-compact" aria-label={name} title={name} disabled={full}>
