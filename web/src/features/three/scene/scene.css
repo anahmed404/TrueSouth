@@ -124,6 +124,10 @@
     transform: translateX(-50%);
   }
 
+  .scene-anchor > * {
+    max-width: inherit;
+  }
+
   .scene-anchor-foot {
     transform: translate(-50%, -100%);
   }
@@ -135,7 +139,6 @@
     justify-content: center;
     gap: var(--s2) var(--s3);
     width: max-content;
-    max-width: min(640px, 100%);
     margin: 0;
     padding: 6px 12px 7px;
     border-radius: var(--r-md);
@@ -162,7 +165,6 @@
     align-items: center;
     gap: var(--s2);
     width: max-content;
-    max-width: min(760px, calc(100vw - 24px));
     padding: 6px;
     overflow-x: auto;
     border-radius: var(--r-lg);

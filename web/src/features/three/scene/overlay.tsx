@@ -263,8 +263,10 @@ export function Overlay(props: OverlayProps) {
     };
   }, [bus]);
 
-  const fit = { maxWidth: Math.max(0, freeSpace.width - 16) };
-  const fsStyleTop = { left: freeSpace.x + freeSpace.width / 2, top: freeSpace.y + 8, ...fit };
+  // Plates and controls stay inside the free space; the anchor's limit passes to its child.
+  const room = Math.max(0, freeSpace.width - 16);
+  const fit = { maxWidth: Math.min(room, 760) };
+  const fsStyleTop = { left: freeSpace.x + freeSpace.width / 2, top: freeSpace.y + 8, maxWidth: Math.min(room, 640) };
   const fsStyleFoot = { left: freeSpace.x + freeSpace.width / 2, top: freeSpace.y + freeSpace.height - 8, ...fit };
   const small = tooSmall(freeSpace) || freeSpace.windowOpen;
   const sphere = Boolean(focusedSite?.sphere);
