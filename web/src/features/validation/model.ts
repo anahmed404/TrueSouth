@@ -357,3 +357,19 @@ export function utcDay(time: Date): string {
 export function isWebLink(url: string): boolean {
   return /^https?:\/\//.test(url);
 }
+
+// ── Gate G2's raw compass-bearing note ───────────────────────────────────────
+
+/**
+ * The sentences of G2's `detail` that speak of the raw compass bearing, word for word.
+ * Decision 0011 says the raw bearing difference is shown beside the gate; the file holds
+ * it only inside `detail`, so the page quotes those sentences and reads no number out of
+ * them. A sentence ends at a full stop followed by a space and a letter, so "0.0823" and
+ * "system.bin" stay whole. Null when no sentence mentions it.
+ */
+export function rawBearingNote(detail: string | null | undefined): string | null {
+  if (!detail) return null;
+  const sentences = detail.split(/(?<=\.)\s+(?=[A-Za-z])/);
+  const raw = sentences.filter((sentence) => /\braw\b/i.test(sentence));
+  return raw.length > 0 ? raw.join(" ") : null;
+}

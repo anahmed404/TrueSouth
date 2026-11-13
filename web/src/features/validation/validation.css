@@ -970,3 +970,25 @@
 .vl-row-broken td {
   white-space: normal;
 }
+
+/* ── G2's raw bearing note, quoted from the file ─────────────────────────── */
+
+.vl-bearing .vl-h3 {
+  margin-top: var(--s5);
+}
+
+.vl-quote {
+  max-width: 72ch;
+  margin: 0 0 var(--s4);
+  padding: var(--s3) var(--s4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--t-md);
+  overflow-wrap: anywhere;
+}
+
+.vl-quote p {
+  margin: 0;
+}

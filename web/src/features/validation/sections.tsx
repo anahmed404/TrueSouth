@@ -31,6 +31,7 @@ import {
   tableRows,
   type TableRow,
   isWebLink,
+  rawBearingNote,
   scatterPoints,
   sharedMark,
   utcDay,
@@ -97,11 +98,10 @@ export function SkySection({
         <GateResult verdict={verdict} />
       </div>
       <p className="vl-prose">{skySentence(gate)}</p>
+      <BearingNote detail={gate.detail} />
       <p className="vl-prose vl-quiet">
         <Explain term="horizons">JPL Horizons</Explain> is run by NASA's Jet Propulsion Laboratory, and space missions
-        use it to know where things are. Differences are angles on the sky. A compass bearing stops meaning anything
-        when the Sun or Earth is almost straight overhead or underfoot, so the check compares directions on the sky
-        rather than raw bearings; the raw bearing difference is in the pipeline's note below.
+        use it to know where things are.
       </p>
       <G2Over series={series} gate={gate} names={names} />
       {brokenSeries > 0 ? (
@@ -117,6 +117,31 @@ export function SkySection({
         </Disclosure>
       ) : null}
     </>
+  );
+}
+
+/**
+ * Decision 0011: G2 is gated on the angle on the sky, and the raw compass-bearing
+ * difference is shown beside it, in the open. The numbers are the file's own words,
+ * quoted from `detail`; nothing is read out of them.
+ */
+function BearingNote({ detail }: { detail: string | null | undefined }) {
+  const quote = rawBearingNote(detail);
+  return (
+    <div className="vl-bearing">
+      <h3 className="vl-h3">Measured on the sky, not by compass bearing</h3>
+      <p className="vl-prose">
+        This check measures each difference as an angle on the sky. When the Sun or Earth is almost straight overhead
+        or underfoot, a tiny shift on the sky can swing its compass bearing a long way, so the raw difference between
+        compass bearings says little about whether a direction is right. It is reported here, and it is not gated
+        {quote ? ". The pipeline's note on it reads:" : ". This run's file does not report it."}
+      </p>
+      {quote ? (
+        <blockquote className="vl-quote">
+          <p>{quote}</p>
+        </blockquote>
+      ) : null}
+    </div>
   );
 }
 
