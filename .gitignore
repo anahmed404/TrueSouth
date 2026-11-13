@@ -1,0 +1,30 @@
+# NASA downloads and fast-read copies: rebuilt by `uv run truesouth fetch-raw` and `prepare-dem`
+data/raw/
+data/prepared/
+
+# Custom sites computed by the API
+data/cache/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node
+node_modules/
+web/dist/
+*.tsbuildinfo
+
+# Local settings and secrets
+.env
+.env.*
+!.env.example
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
