@@ -68,6 +68,15 @@ def download(client, item, size, directory):
         response.raise_for_status()
         if start and (response.status_code != 206 or not response.headers.get('content-range', '').startswith(f'bytes {start}-')):
             raise RuntimeError(f'{item.name}: server did not honour resume range')
+        # Refuse anything that is not the rest of this file before a byte is written: an error
+        # page, or a body whose length is not what remains. A wrong body kept as a .part file
+        # would otherwise be extended on the next run and renamed into place once the byte
+        # count matched.
+        if 'text/html' in response.headers.get('content-type', ''):
+            raise RuntimeError(f'{item.name}: server sent a web page, not the file')
+        announced = response.headers.get('content-length')
+        if announced is not None and int(announced) != size - start:
+            raise RuntimeError(f'{item.name}: size mismatch: server offers {announced} bytes, expected {size - start}')
         with part.open('ab' if start else 'wb') as f:
             last = began
             for chunk in response.iter_bytes(1024 * 1024):
@@ -76,8 +85,14 @@ def download(client, item, size, directory):
                 if now-last >= 5:
                     print(f'{item.name}: {f.tell()}/{size} bytes, {(f.tell()-start)/max(now-began, .001):.0f} B/s', flush=True)
                     last = now
-    if part.stat().st_size != size:
-        raise RuntimeError(f'{item.name}: size mismatch: got {part.stat().st_size}, expected {size}')
+    got = part.stat().st_size
+    if got > size:
+        # More bytes than the file has: the partial file cannot be trusted. Start again next run.
+        part.unlink()
+        raise RuntimeError(f'{item.name}: size mismatch: got {got}, expected {size}; partial file removed')
+    if got < size:
+        # The connection ended early. The bytes so far are the file's own; the next run resumes.
+        raise RuntimeError(f'{item.name}: size mismatch: got {got} of {size} bytes; run again to resume')
     print(f'{item.name}: complete, {(size-start)/max(time.monotonic()-began, .001):.0f} B/s', flush=True)
     part.replace(target)
 

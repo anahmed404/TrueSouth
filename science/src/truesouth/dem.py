@@ -1,4 +1,4 @@
-"""Prepared lunar DEMs and vectorized terrain sampling (science.md ?2.3)."""
+"""Prepared lunar DEMs and vectorized terrain sampling (science.md §2.3)."""
 import json
 from pathlib import Path
 
@@ -13,7 +13,13 @@ from .frames import polar_stereo_forward
 EXPECTED_CRS = CRS.from_proj4(f"+proj=stere +lat_0=-90 +lat_ts=-90 +lon_0=0 +a={MOON_RADIUS_M} +b={MOON_RADIUS_M} +units=m")
 
 def site_tier(latitude):
-    """Classify sites by latitude, as specified in docs/site-catalog.md."""
+    """Terrain tier of a *site*, from its latitude alone (docs/site-catalog.md, decision 0008).
+
+    `core80` at or south of 80°S, `wide240` from there to 60°S, `sphere` anywhere else.
+    This is the label a site carries. It is not the rule for a sample point along a ray:
+    see `DemStore.tiers`, which asks which map actually covers a point. The two differ in
+    the corners of the square 80 m map, which reach north of 80°S.
+    """
     lat = np.asarray(latitude)
     return np.where(lat <= -80, 'core80', np.where(lat <= -60, 'wide240', 'sphere'))
 
@@ -59,21 +65,40 @@ def prepare_map(source, output):
 
 
 class PreparedMap:
+    """One prepared polar map: a memory-mapped float32 array and its JSON sidecar.
+
+    Opening is instant and uses almost no memory. Heights are metres above the reference
+    sphere, after the source file's own scale and offset. Row 0 is the top edge (+y) and
+    column 0 the left edge (−x); a value belongs to the centre of its pixel.
+    """
+
     def __init__(self, path):
         self.path = Path(path)
         self.meta = json.loads(self.path.with_suffix('.json').read_text(encoding='utf-8'))
         self.data = np.load(self.path, mmap_mode='r')
 
     def coordinates(self, lat, lon):
+        """Fractional (row, column) of each point, with integers at pixel centres."""
         x, y = polar_stereo_forward(lat, lon)
         m = self.meta
         return (y-m['origin_y'])/m['pixel_y'] - .5, (x-m['origin_x'])/m['pixel_x'] - .5
 
     def contains(self, lat, lon):
+        """True where a point lies between the outermost pixel centres, so it can be sampled.
+
+        The outer half-pixel border of the raster is outside: bilinear sampling needs a
+        pixel centre on every side.
+        """
         row, col = self.coordinates(lat, lon)
         return np.isfinite(row) & np.isfinite(col) & (row >= -1e-8) & (col >= -1e-8) & (row <= self.data.shape[0]-1+1e-8) & (col <= self.data.shape[1]-1+1e-8)
 
     def sample(self, lat, lon):
+        """Bilinear height in metres at each latitude and east longitude (degrees).
+
+        Exact at pixel centres. NaN, never zero, where the point is outside the map, where
+        its own pixel is missing, or where any of the four neighbours it uses is missing.
+        Vectorised: pass arrays of any shape.
+        """
         row, col = self.coordinates(lat, lon)
         valid = self.contains(lat, lon)
         r = np.clip(np.where(valid, row, 0), 0, self.data.shape[0]-1)
@@ -91,11 +116,21 @@ class PreparedMap:
 
 
 class DemStore:
+    """The terrain the skyline samples: the 80 m core map and the 240 m wide map together.
+
+    Give the paths of the prepared maps you have; either may be missing. A point is sampled
+    from the core map where that map covers it, from the wide map where only that covers
+    it, and has no terrain (NaN) outside both. So a ray that leaves the core map carries on
+    across the wide one with no gap. A missing pixel inside the core map stays missing: it
+    is not filled from the wide map.
+    """
+
     def __init__(self, core=None, wide=None):
         self.core = PreparedMap(core) if core else None
         self.wide = PreparedMap(wide) if wide else None
 
     def tiers(self, lat, lon):
+        """Which map covers each *sample point*: 'core80', 'wide240' or 'sphere' (neither)."""
         lat, lon = np.broadcast_arrays(lat, lon)
         tiers = np.full(lat.shape, 'sphere', dtype='<U7')
         if self.wide: tiers = np.where(self.wide.contains(lat, lon), 'wide240', tiers)
@@ -103,6 +138,12 @@ class DemStore:
         return tiers
 
     def sample(self, lat, lon):
+        """Heights in metres and the number of samples with no height.
+
+        Returns `(heights, missing_count)`. `heights` has the broadcast shape of the inputs,
+        with NaN for every point that has no terrain or whose pixel is missing; the count is
+        how many of those there are, which the skyline must report. Never treat NaN as zero.
+        """
         lat, lon = np.broadcast_arrays(lat, lon)
         tiers = self.tiers(lat, lon)
         heights = np.full(lat.shape, np.nan)
