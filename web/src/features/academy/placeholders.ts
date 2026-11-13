@@ -1,7 +1,34 @@
+import { formatExample, type ExampleValue } from "./format-example";
+
 const PLACEHOLDER = /\{\{example\.([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*)\}\}/g;
 
-/** A worked-examples object. Keys match `{{example.key}}`, and may contain dots. */
-export type WorkedExamples = Readonly<Record<string, string | number>>;
+/**
+ * A worked-examples object. Keys match `{{example.key}}`, and may contain dots. Values are
+ * as in `worked_examples.json`: numbers, text, yes/no, or lists.
+ */
+export type WorkedExamples = Readonly<Record<string, ExampleValue>>;
+
+/** True when `examples` has a value for `key`. */
+export function hasExample(examples: WorkedExamples, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(examples, key) && examples[key] !== undefined;
+}
+
+/** A piece of text: plain text, or a `{{example.key}}` placeholder. */
+export type PlaceholderPart = { kind: "text"; text: string } | { kind: "key"; key: string };
+
+/** Splits text around its `{{example.key}}` placeholders, in order. */
+export function splitPlaceholders(text: string): PlaceholderPart[] {
+  const parts: PlaceholderPart[] = [];
+  let last = 0;
+  for (const match of text.matchAll(PLACEHOLDER)) {
+    const index = match.index ?? 0;
+    if (index > last) parts.push({ kind: "text", text: text.slice(last, index) });
+    parts.push({ kind: "key", key: match[1] ?? "" });
+    last = index + match[0].length;
+  }
+  if (last < text.length) parts.push({ kind: "text", text: text.slice(last) });
+  return parts;
+}
 
 export type FilledText = {
   text: string;
@@ -9,22 +36,18 @@ export type FilledText = {
 };
 
 /**
- * Fills `{{example.key}}` from a worked-examples object.
- * A missing key is left in place and reported, once per occurrence.
+ * Fills `{{example.key}}` from a worked-examples object, written by the rounding rule in
+ * `format-example.ts`. A missing key is left in place and reported, once per occurrence.
  */
 export function fillPlaceholders(text: string, examples: WorkedExamples): FilledText {
   const missing: string[] = [];
   const filled = text.replace(PLACEHOLDER, (token, key: string) => {
-    if (!Object.prototype.hasOwnProperty.call(examples, key)) {
-      missing.push(key);
-      return token;
-    }
     const value = examples[key];
-    if (value === undefined) {
+    if (!hasExample(examples, key) || value === undefined) {
       missing.push(key);
       return token;
     }
-    return String(value);
+    return formatExample(key, value);
   });
   return { text: filled, missing };
 }
@@ -39,17 +62,20 @@ export type ResolvedValue = {
 
 /**
  * Fills a value that is a whole `{{example.key}}` placeholder, keeping its type: a number
- * stays a number. Any other value is returned as it is. A missing key gives `null`.
+ * stays a number and text stays text; yes/no and lists become their written form. Any other
+ * value is returned as it is. A missing key gives `null`.
  */
 export function resolveValue(value: number | string, examples: WorkedExamples): ResolvedValue {
   if (typeof value === "number") return { value, missing: [] };
   const match = WHOLE_PLACEHOLDER.exec(value);
   if (!match) return { value, missing: [] };
   const key = match[1] ?? "";
-  if (!Object.prototype.hasOwnProperty.call(examples, key) || examples[key] === undefined) {
+  const found = examples[key];
+  if (!hasExample(examples, key) || found === undefined) {
     return { value: null, missing: [key] };
   }
-  return { value: examples[key] ?? null, missing: [] };
+  if (typeof found === "number" || typeof found === "string") return { value: found, missing: [] };
+  return { value: formatExample(key, found), missing: [] };
 }
 
 /**

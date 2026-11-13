@@ -28,6 +28,7 @@ type ConversationProps = {
   runner: RunnerState;
   views: readonly OptionView[];
   examples: WorkedExamples;
+  examplesPending: boolean;
   card: CardData | undefined;
   lessonTitle: string;
   tab: TalkTab;
@@ -212,11 +213,11 @@ function KeyHint({ step, primary }: { step: Step; primary: PrimaryAction }) {
   );
 }
 
-function HoodTab({ card, examples, onTab, lessonTitle }: ConversationProps) {
+function HoodTab({ card, examples, examplesPending, onTab, lessonTitle }: ConversationProps) {
   return (
     <>
       <div className="ac-hood">
-        <UnderTheHoodCard card={card} examples={examples} title={lessonTitle} />
+        <UnderTheHoodCard card={card} examples={examples} title={lessonTitle} pending={examplesPending} />
       </div>
       <div className="ac-act">
         <button type="button" className="ac-btn ac-btn--secondary ac-btn--wide" onClick={() => onTab("luna")}>

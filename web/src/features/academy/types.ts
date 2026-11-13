@@ -141,18 +141,103 @@ export type Lesson = {
   steps: readonly Step[];
 };
 
-/**
- * The five parts of an Under-the-hood card. `UnderTheHoodCard` in `card/index.tsx`
- * takes it as a prop. KaTeX and Markdown rendering is A4.
+/*
+ * ── Under-the-hood cards ─────────────────────────────────────────────────────────────────
+ * The spec is docs/academy/overview.md, "Under the hood cards". A card is typed data with
+ * five fixed parts, in this order: the idea, the formula, a worked example, in the code,
+ * and what can go wrong. `UnderTheHoodCard` in `card/index.tsx` renders it.
+ *
+ * Text fields marked "card text" may hold:
+ * - `$…$` inline maths in TeX (write `\$` for a dollar sign);
+ * - `{{example.key}}` placeholders, filled from `worked_examples.json`. A unit written right
+ *   after one (`°`, `%`, ` m`, ` km`, ` h`, ` UTC`) is kept with its number;
+ * - `[[term]]` or `[[term|label]]`, a glossary term explained by `<Explain>` from
+ *   `web/src/lib/explain.ts`. A card never explains a term in its own words;
+ * - `` `code` `` for a name in the code.
+ * No number about the Moon is typed into card text: it is always a placeholder.
  */
+
+/** A section of docs/science.md, as its heading reads, such as "4" and "How high a piece of terrain looks". */
+export type ScienceSection = {
+  /** "4", or "3.1" for a subsection. */
+  number: string;
+  /** The heading's words after the number, exactly as in docs/science.md. */
+  title: string;
+};
+
+/** A letter in a formula. */
+export type FormulaSymbol = {
+  /** The symbol in TeX, such as "s" or "h_{obs}". */
+  tex: string;
+  /** What it stands for. Card text. */
+  meaning: string;
+  /** Its unit inside the formula, such as "m" or "rad". `null` when it has none. */
+  unit: string | null;
+};
+
+/** One formula, quoted from docs/science.md. */
+export type CardFormula = {
+  /** Unique within the card. */
+  id: string;
+  /** A short sentence that leads into the formula. Card text. */
+  lead: string;
+  /**
+   * The formula in TeX, copied from the cited section of docs/science.md. It may hold
+   * `{{example.key}}` placeholders, though a quoted formula rarely needs one.
+   */
+  tex: string;
+  /** "block" draws it on its own line; "inline" ends the lead's sentence. */
+  display: "block" | "inline";
+  /** The formula read out in plain words, for learners and for screen readers. */
+  reading: string;
+  /** The section of docs/science.md it is quoted from. */
+  section: ScienceSection;
+  /** The letters it uses, with their units. Shared letters are listed once on the card. */
+  symbols: readonly FormulaSymbol[];
+};
+
+/**
+ * One line of a worked example: a label and either a value in card text, or a
+ * calculation in TeX drawn on its own line. Both may hold placeholders.
+ */
+export type WorkedRow =
+  | { label: string; value: string }
+  | { label: string; tex: string };
+
+/** A worked example on real data, with every intermediate number as a placeholder. */
+export type WorkedExample = {
+  /** What the example is about, after "A worked example: ". Card text. */
+  title: string;
+  /** Where and when the numbers come from. Card text. */
+  intro: string;
+  rows: readonly [WorkedRow, ...WorkedRow[]];
+  /** What the numbers show, in a sentence. Card text. */
+  outro?: string;
+};
+
+/** A function in the code that does the card's work. */
+export type CodeRef = {
+  /** The function's name, such as "elevation_angle". */
+  fn: string;
+  /** Its file from the repository root, such as "science/src/truesouth/skyline.py". */
+  file: string;
+  /** What it does, in a sentence. Card text. */
+  does?: string;
+};
+
+/** An Under-the-hood card: the full maths behind one lesson. */
 export type UnderTheHoodCard = {
   id: string;
+  /** 1. The idea, in two or three sentences. Card text. */
   idea: string;
-  formula: string;
-  formulaSection: string;
-  workedExample: string;
-  inTheCode: { fn: string; file: string };
-  whatCanGoWrong: string;
+  /** 2. The formula: one or more, each quoted and cited. */
+  formulas: readonly [CardFormula, ...CardFormula[]];
+  /** 3. A worked example on real data. */
+  workedExample: WorkedExample;
+  /** 4. In the code: the functions that do it, linked to their files. */
+  inTheCode: readonly [CodeRef, ...CodeRef[]];
+  /** 5. What can go wrong: the mistakes this formula invites, one per item. Card text. */
+  whatCanGoWrong: readonly [string, ...string[]];
 };
 
 export type Submission =

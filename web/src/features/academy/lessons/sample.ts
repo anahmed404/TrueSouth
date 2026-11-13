@@ -5,8 +5,8 @@ import { sampleProfile } from "./sample-profile";
 
 /**
  * Sample lesson for the step runner and the lesson screen. A5 replaces it.
- * It is not one of the eight lessons, and it states no fact about the Moon: its questions
- * are about angles, the alphabet and sums. It has one step of every kind, so every state
+ * It is not one of the eight lessons, and its steps state no fact about the Moon: its
+ * questions are about angles, the alphabet and sums. Its card is real (see `sampleCard`). It has one step of every kind, so every state
  * of every step can be seen. The last three kinds embed Mission Control panels and are
  * work package A3; until then the screen shows a placeholder and lets the learner skip.
  */
@@ -26,14 +26,91 @@ export const sampleExamples = {
   "sample.slider_target": 3,
 } as const satisfies WorkedExamples;
 
+/** Section 4 of docs/science.md, which the sample card quotes. */
+const section4 = { number: "4", title: "How high a piece of terrain looks" } as const;
+
+/**
+ * The sample card. Unlike the sample's steps it is real: it quotes section 4 of
+ * docs/science.md, and its worked example uses lesson 3's keys from
+ * `worked_examples.json`, so every part of the renderer can be seen with real data. One
+ * key, `sample.sun_el_deg`, is missing on purpose, to show the "value not built yet" chip.
+ * A5 writes the eight lessons' own cards.
+ */
 export const sampleCard: UnderTheHoodCard = {
   id: "sample",
-  idea: "This sample shows the step runner. It does not teach a formula. A5 replaces it.",
-  formula: "There is no formula in this sample.",
-  formulaSection: "This sample cites no section.",
-  workedExample: "The sample label is {{example.sample.label}}.",
-  inTheCode: { fn: "reduceRunner", file: "web/src/features/academy/runner.ts" },
-  whatCanGoWrong: "Treating this sample as one of the eight lessons.",
+  idea:
+    "This sample card shows every part a card can hold, with a real formula. The Moon is round, so the ground falls away below a level line as you look farther out. A far ridge therefore looks lower than it would on a flat Moon, and with the Sun this low, that small drop can decide light or shadow.",
+  formulas: [
+    {
+      id: "drop",
+      lead: "How far the round Moon drops away below a level line, at a ground distance $s$:",
+      tex: "s^2/2R",
+      display: "inline",
+      reading: "s squared, divided by two times R.",
+      section: section4,
+      symbols: [
+        { tex: "s", meaning: "Distance along the ground to the terrain point", unit: "m" },
+        { tex: "R", meaning: "The Moon's radius, the size of its reference sphere", unit: "m" },
+      ],
+    },
+    {
+      id: "elevation",
+      lead: "How high a piece of terrain looks, when it is much closer than the Moon's radius:",
+      tex: String.raw`e \approx \arctan\left(\frac{(z - z_0 - h_{obs}) - \dfrac{s^2}{2R}}{s}\right)`,
+      display: "block",
+      reading:
+        "The elevation e is about the angle whose tangent is: the terrain's height above your eyes, take away the drop, all divided by the distance.",
+      section: section4,
+      symbols: [
+        { tex: "e", meaning: "The terrain's [[elevation]]: how far above level it looks", unit: "rad" },
+        { tex: "z", meaning: "The terrain point's height above the reference sphere", unit: "m" },
+        { tex: "z_0", meaning: "The ground's height under the observer", unit: "m" },
+        { tex: "h_{obs}", meaning: "How high the observer's eyes are above the ground", unit: "m" },
+        { tex: "s", meaning: "Distance along the ground to the terrain point", unit: "m" },
+        { tex: "R", meaning: "The Moon's radius, the size of its reference sphere", unit: "m" },
+      ],
+    },
+    {
+      id: "dip",
+      lead: "On flat ground, the horizon itself sits a little below level for an observer at height $h$:",
+      tex: String.raw`-\arccos\left(\tfrac{R}{R+h}\right) \approx -\sqrt{2h/R}`,
+      display: "block",
+      reading:
+        "Minus the angle whose cosine is R divided by R plus h. That is close to minus the square root of two h divided by R.",
+      section: section4,
+      symbols: [{ tex: "h", meaning: "The observer's height above flat ground", unit: "m" }],
+    },
+  ],
+  workedExample: {
+    title: "one skyline bin",
+    intro:
+      "One [[skyline_bin|skyline bin]], looking towards azimuth {{example.l3.example_bin_az}}°. The terrain point that sets it is its [[blocker]].",
+    rows: [
+      { label: "Distance along the ground, $s$", value: "{{example.l3.example_dist_km}} km" },
+      { label: "Height above Pip's eyes, $z - z_0 - h_{obs}$", value: "{{example.l3.example_height_m}} m" },
+      {
+        label: "Putting them into the formula",
+        tex: String.raw`e \approx \arctan\left(\frac{ {{example.l3.example_height_m}}\,\text{m} - \dfrac{s^2}{2R} }{s}\right), \quad s = {{example.l3.example_dist_km}}\,\text{km}`,
+      },
+      { label: "It would look, on a flat Moon", value: "{{example.l3.example_el_flat_deg}}°" },
+      { label: "It looks, on the round Moon, $e$", value: "{{example.l3.example_el_true_deg}}°" },
+      { label: "For scale: the drop at 20 km", value: "{{example.l3.drop_at_20km_m}} m" },
+      { label: "The Sun's height at that hour", value: "{{example.sample.sun_el_deg}}°" },
+    ],
+    outro: "The round Moon makes the ridge look lower than the flat sum says.",
+  },
+  inTheCode: [
+    {
+      fn: "elevation_angle",
+      file: "science/src/truesouth/skyline.py",
+      does: "Works out the exact angle for one terrain point, with the round Moon in it.",
+    },
+  ],
+  whatCanGoWrong: [
+    "A flat-Moon calculation, with no $s^2/2R$ term, puts far ridges in the sky that are really below the horizon.",
+    "The short formula drifts at long range, so the code uses the exact one from the same section.",
+    "Mixing kilometres and metres: $s$ and $R$ must be in the same unit.",
+  ],
 };
 
 export const sampleLesson = {
