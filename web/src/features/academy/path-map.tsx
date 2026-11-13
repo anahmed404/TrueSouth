@@ -76,6 +76,9 @@ function lunaLine(selected: number, saved: Saved, nextIndex: number, fresh: bool
   if (lesson && !isWritten(lesson.id)) {
     return { mood: "thinking" as const, text: `I'm still writing this one. ${READY} are ready for you.` };
   }
+  if (nextIndex < 0 && selected === 0 && lesson && saved[lesson.id]?.patch) {
+    return { mood: "proud" as const, text: `You've finished ${READY.toLowerCase()}. The rest are still being written; replays keep your best stars.` };
+  }
   if (lesson && saved[lesson.id]?.patch) return { mood: "proud" as const, text: "Back for another go? Your best stars are kept." };
   if (fresh && selected === 0) return { mood: "happy" as const, text: "Fresh start. Let's find the Sun." };
   if (selected === nextIndex) return { mood: "happy" as const, text: "This is the next stop. I'll wait for you here." };

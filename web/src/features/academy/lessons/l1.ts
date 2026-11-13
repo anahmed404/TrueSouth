@@ -12,7 +12,7 @@ const flatMonth = storyScene("flat", oneMonth("{{example.l1.example_utc}}"));
 const highestLuna =
   "This month the Sun climbs only to {{example.l1.sun_el_max_deg}}°, and sinks to {{example.l1.sun_el_min_deg}}°. It skims my horizon.";
 const formulaLuna =
-  "That 2.08° is the most my Sun can reach here, in the best season. This month it only gets to {{example.l1.sun_el_max_deg}}°. Both numbers are true.";
+  "At Pip's latitude that gives 2.08°, the most my Sun can reach here in the best season. This month it only gets to {{example.l1.sun_el_max_deg}}°; both numbers are true.";
 
 export const lesson1 = {
   id: "l1_sun",

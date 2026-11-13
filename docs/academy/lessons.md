@@ -42,7 +42,7 @@ XP and does not count for the stars.
 1. Hint: "My south pole is as far from my equator as you can go. Picture the Sun near the edge of the sky." Explanation: "At my south pole the Sun stays low, skimming the horizon. Pip sees it side-on, never overhead."
 2. Hint: "The Sun's height changes slowly. Drag back and forth near the top of its path." Explanation: Luna's line in the table. Until it is ready, Luna: "Soon you'll drag the Sun through a whole month here, to find its highest moment. For now, here's what you would find." Reveal: Luna's line in the table.
 3. Hint: "The Sun is low all month long. Where can a low Sun go?" Explanation: "All the way round. Here the Sun circles the whole horizon about once a month, and stays low the whole time." Reveal caption: "Over the month the Sun goes all the way round Pip's compass, while its height stays between {{l1.sun_el_min_deg}}° and {{l1.sun_el_max_deg}}°."
-4. Hint: "The missing piece is a small angle of my own: how far my spin axis leans." Explanation: Luna's line in the table.
+4. Hint: "The missing piece is a small angle of my own: how far my spin axis leans." Explanation: "At Pip's latitude that gives 2.08°, the most my Sun can reach here in the best season. This month it only gets to {{l1.sun_el_max_deg}}°; both numbers are true." (the table's description and Luna's line, in one bubble).
 5. Hint: "Stand on the very point I spin around. Every step you take leads away from it." Explanation: "Every step away from my south pole is a step north. That is why this tool is called TrueSouth."
 
 **Card:** sub-solar point and the Moon's 1.54° tilt (§3.1); direction to the Sun from any

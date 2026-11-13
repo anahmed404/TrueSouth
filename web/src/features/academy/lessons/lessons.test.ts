@@ -182,9 +182,8 @@ describe("lessons 1 to 4 against docs/academy/lessons.md", () => {
 
   it("gives every panel step a preview: what the learner will do, and the real answer", () => {
     for (const lesson of lessons) {
-      for (const step of lesson.steps) {
-        if (!PANEL_STEP_KINDS.includes(step.kind)) continue;
-        expect(step.kind === "drag-body" || step.kind === "draw-skyline" || step.kind === "drop-pin").toBe(true);
+      const steps: readonly Step[] = lesson.steps;
+      for (const step of steps) {
         if (step.kind !== "drag-body" && step.kind !== "draw-skyline" && step.kind !== "drop-pin") continue;
         expect(step.preview, step.id).toBeDefined();
         expect(step.preview?.reveal, step.id).toMatch(/\{\{example\./);

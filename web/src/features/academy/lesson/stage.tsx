@@ -12,7 +12,7 @@ import { filledText } from "../ui/filled";
 import { CorrectMark } from "../ui/marks";
 import { Moondust } from "../ui/moondust";
 import { panelName, PENDING_STEPS } from "../ui/panels";
-import { PipScene, SkyRuler, type RulerMark } from "./scenes";
+import { CurvedMoonSide, PipScene, SkyRuler, type RulerMark } from "./scenes";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -58,7 +58,12 @@ function StageBody({ step, runner, draft, views, examples, celebrate, onDraft }:
   switch (step.kind) {
     case "choice":
     case "predict": {
-      const scene = <ChoiceScene step={step} views={views} draft={draft} answered={answered} examples={examples} celebrate={celebrate} />;
+      const drawing = step.kind === "predict" && answered && step.reveal.kind === "illustration" ? step.reveal : null;
+      const scene = drawing ? (
+        <CurvedMoonSide label={filledText(drawing.caption, examples)} />
+      ) : (
+        <ChoiceScene step={step} views={views} draft={draft} answered={answered} examples={examples} celebrate={celebrate} />
+      );
       return (
         <>
           {scene}
@@ -406,7 +411,7 @@ function PendingStep({
     <div className="ac-pending">
       <Hourglass size={28} strokeWidth={1.6} aria-hidden="true" color="var(--ink-3)" />
       <h2>{pendingAction(step)} comes later</h2>
-      <p>This step will work inside the {panel} view. For now, here is what you would find.</p>
+      <p>Once it is ready, this step works inside the {panel} view.</p>
       {preview ? (
         <div className="ac-reveal-card ac-pending-answer" role="status">
           <h3>What you would find</h3>

@@ -720,6 +720,42 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Academy
 
+#### 2026-11-13 · A5 · Lessons 1 to 4 playable, with their cards
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the final hints, explanations, reveals
+  and panel-step previews of lessons 1 to 4 (and the matching "Words" lists in
+  `lessons.md`), the four Under-the-hood cards, the routing, path and completion changes,
+  the slider readout, the "not ready" form of panel steps and their vitest tests; checked
+  each multiple-choice answer against `worked_examples.json` and the story month's
+  series. **AI-generated images:** the side view of the curved Moon for lesson 3's reveal
+  (inline SVG in `lesson/scenes.tsx`, a labelled schematic, not to scale). Checked by the
+  agent with the tests, typecheck, build and pytest, by playing lessons 1 to 4 in a
+  browser at 1440 × 900 and 390 × 844 (and once with `VITE_DATA=fixtures`, and once by
+  keyboard only), and with the Impeccable detector. A human has not played the lessons.
+- **State:** built, not verified (1,640 web tests, typecheck, build and 322 Python tests pass)
+- **Changed:** `web/src/features/academy/` (`lessons/l1.ts`–`l4.ts`, `lessons/index.ts`,
+  `lessons/story.ts`, `lessons/COVERAGE.md`, `cards/`, `index.tsx`, `path-map.tsx`,
+  `complete-screen.tsx`, `lesson-screen.tsx`, `lesson/stage.tsx`, `lesson/scenes.tsx`,
+  `lesson/conversation.tsx`, `step-view.ts`, `types.ts`, `academy.css`, tests),
+  `docs/academy/lessons.md` (a "Words" list per lesson and two card notes),
+  `docs/design/c2/built-lessons-*.png`
+- **Notes:**
+  - `/academy/l1_sun` to `/academy/l4_link` open with the real worked examples, with plain
+    loading and failed-to-load pages. Every lesson is open from the start, as
+    `overview.md` says; lessons 5 to 8 show "Not written yet" on the path. The sample is
+    no longer linked from the path; it still opens at `/academy/sample`.
+  - Panel steps (`drag-body`, `draw-skyline`, `drop-pin`) wait for A3. Until then each
+    shows a `preview` (a new optional field): Luna says what the learner will do there,
+    the stage shows the real answer, and "Continue" moves on for no XP. A skipped step
+    is not counted for the stars; `starsFor(0, 0)` already gave 1 star and no patch.
+  - Number sliders now show their readout (the s²/2R drop in lesson 3, the link time
+    from `l4.link_pct_by_mask` in lesson 4). Lesson 3's illustration reveal is now drawn.
+  - `docs/science.md` has no 1.54° tilt (lesson 1's card) and no 0.26° off-centre shift
+    (lesson 4's card); the cards describe both in words. §9 names
+    `web/src/lib/scoring/metrics.ts`, which does not exist; the code is `scoring.ts`.
+  - On the fixture the lessons validate and play, but its synthetic numbers do not fit
+    the story (lesson 2's Sun is above the ridge; lesson 1's maximum is 4.4°).
+
 #### 2026-11-13 · A5b · Lessons 1 to 4 reworded to the real numbers
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-sonnet-5-5 — rewrote the text of lessons 1 to 4 in
