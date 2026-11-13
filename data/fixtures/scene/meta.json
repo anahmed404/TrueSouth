@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "generated_utc": "2026-01-01T00:00:00Z",
+  "images": [
+    {
+      "file": "scene/moon_2k.webp",
+      "width_px": 16,
+      "height_px": 8,
+      "encoding": "webp_q82_m6",
+      "orientation": "equirectangular_lon0_center_north_up",
+      "source": "synthetic fixture",
+      "operation": "Asymmetric pattern, not a NASA image.",
+      "credit": "Synthetic fixture. Not a scientific image.",
+      "optional": false
+    },
+    {
+      "file": "scene/moon_4k.webp",
+      "width_px": 32,
+      "height_px": 16,
+      "encoding": "webp_q82_m6",
+      "orientation": "equirectangular_lon0_center_north_up",
+      "source": "synthetic fixture",
+      "operation": "Asymmetric pattern, not a NASA image.",
+      "credit": "Synthetic fixture. Not a scientific image.",
+      "optional": false
+    },
+    {
+      "file": "scene/moon_8k_w.webp",
+      "width_px": 16,
+      "height_px": 16,
+      "encoding": "webp_q80_m6",
+      "orientation": "equirectangular_lon0_center_north_up",
+      "source": "synthetic fixture",
+      "operation": "Asymmetric pattern, not a NASA image.",
+      "credit": "Synthetic fixture. Not a scientific image.",
+      "optional": true
+    },
+    {
+      "file": "scene/moon_8k_e.webp",
+      "width_px": 16,
+      "height_px": 16,
+      "encoding": "webp_q80_m6",
+      "orientation": "equirectangular_lon0_center_north_up",
+      "source": "synthetic fixture",
+      "operation": "Asymmetric pattern, not a NASA image.",
+      "credit": "Synthetic fixture. Not a scientific image.",
+      "optional": true
+    },
+    {
+      "file": "scene/moon_height_1440.png",
+      "width_px": 16,
+      "height_px": 8,
+      "encoding": "png_grey8",
+      "orientation": "equirectangular_lon0_center_north_up",
+      "source": "synthetic fixture",
+      "operation": "Asymmetric pattern, not a NASA image.",
+      "credit": "Synthetic fixture. Not a scientific image.",
+      "optional": false
+    },
+    {
+      "file": "scene/earth_2k.jpg",
+      "width_px": 16,
+      "height_px": 8,
+      "encoding": "jpeg_q84_progressive",
+      "orientation": "equirectangular_lon0_center_north_up",
+      "source": "synthetic fixture",
+      "operation": "Asymmetric pattern, not a NASA image.",
+      "credit": "Synthetic fixture. Not a scientific image.",
+      "optional": false
+    },
+    {
+      "file": "maps/hillshade_4k.webp",
+      "width_px": 64,
+      "height_px": 64,
+      "encoding": "webp_lossless",
+      "orientation": "south_polar_stereographic_x_right_y_up",
+      "source": "data/fixtures/maps/hillshade_4k.webp",
+      "operation": "Not copied. Fixture polar-map hillshade.",
+      "credit": "Synthetic fixture. Not a scientific image.",
+      "optional": false
+    },
+    {
+      "file": "scene/hillshade_core_2048.webp",
+      "width_px": 16,
+      "height_px": 16,
+      "encoding": "webp_q85_m6",
+      "orientation": "south_polar_stereographic_x_right_y_up",
+      "source": "synthetic fixture",
+      "operation": "Asymmetric pattern, not a NASA image.",
+      "credit": "Synthetic fixture. Not a scientific image.",
+      "optional": false
+    },
+    {
+      "file": "scene/sunlight_2k.webp",
+      "width_px": 16,
+      "height_px": 16,
+      "encoding": "webp_q85_m6",
+      "orientation": "south_polar_stereographic_x_right_y_up",
+      "source": "synthetic fixture",
+      "operation": "Asymmetric pattern, not a NASA image.",
+      "credit": "Synthetic fixture. Not a scientific image.",
+      "optional": false
+    },
+    {
+      "file": "scene/earthvis_2k.webp",
+      "width_px": 16,
+      "height_px": 16,
+      "encoding": "webp_q85_m6",
+      "orientation": "south_polar_stereographic_x_right_y_up",
+      "source": "synthetic fixture",
+      "operation": "Asymmetric pattern, not a NASA image.",
+      "credit": "Synthetic fixture. Not a scientific image.",
+      "optional": false
+    },
+    {
+      "file": "scene/cap_slope.webp",
+      "width_px": 8,
+      "height_px": 8,
+      "encoding": "webp_q92_m6",
+      "orientation": "south_polar_stereographic_x_right_y_up",
+      "source": "synthetic fixture",
+      "operation": "Asymmetric pattern, not a NASA image.",
+      "credit": "Synthetic fixture. Not a scientific image.",
+      "optional": false
+    },
+    {
+      "file": "scene/cap_slope_core.webp",
+      "width_px": 8,
+      "height_px": 8,
+      "encoding": "webp_lossless_m6",
+      "orientation": "south_polar_stereographic_x_right_y_up",
+      "source": "synthetic fixture",
+      "operation": "Asymmetric pattern, not a NASA image.",
+      "credit": "Synthetic fixture. Not a scientific image.",
+      "optional": false
+    }
+  ],
+  "aprons": [
+    {
+      "site_id": "fixture_ridge",
+      "file": "scene/aprons/fixture_ridge.bin",
+      "rows": 5,
+      "columns": 5,
+      "window_m": 8000.0
+    },
+    {
+      "site_id": "fixture_crater",
+      "file": "scene/aprons/fixture_crater.bin",
+      "rows": 5,
+      "columns": 5,
+      "window_m": 8000.0
+    },
+    {
+      "site_id": "fixture_edge",
+      "file": "scene/aprons/fixture_edge.bin",
+      "rows": 5,
+      "columns": 5,
+      "window_m": 8000.0
+    },
+    {
+      "site_id": "fixture_wide",
+      "file": "scene/aprons/fixture_wide.bin",
+      "rows": 5,
+      "columns": 5,
+      "window_m": 8000.0
+    }
+  ],
+  "apron": {
+    "dtype": "uint16",
+    "byte_order": "little",
+    "offset_m": 12000.0,
+    "scale": 2.0,
+    "missing": 65535,
+    "row_order": "north_to_south",
+    "column_order": "west_to_east"
+  },
+  "inputs": []
+}
