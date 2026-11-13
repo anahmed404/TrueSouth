@@ -275,7 +275,7 @@ describe("goal steps", () => {
         azTo: 1,
       },
     ]);
-    const state = submit(initialRunnerState(), { kind: "draw-skyline", sketch: [] }, sketchLesson, no);
+    const state = submit(initialRunnerState(), { kind: "draw-skyline", sketch: [], gapDeg: 0.1 }, sketchLesson, no);
     expect(state.phase).toBe("correct");
     expect(state.xp).toBe(10);
   });
