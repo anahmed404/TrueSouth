@@ -21,6 +21,8 @@ import {
   type FetchLike,
 } from "../data/load.ts";
 import { isRecord } from "../data/parse.ts";
+import { isCustomSiteId } from "../data/paths.ts";
+import { customSitesStore } from "./custom-sites.ts";
 
 export type ResourceStatus = "loading" | "ready" | "error";
 
@@ -105,7 +107,13 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export function createDataStore(fetchImpl: FetchLike = defaultFetch): DataStore {
+/**
+ * Waits until a custom site's files exist on the server. Without it, a custom id's files are
+ * asked for at once (and a site still computing would read as missing).
+ */
+export type CustomSiteGate = (siteId: string) => Promise<void>;
+
+export function createDataStore(fetchImpl: FetchLike = defaultFetch, customGate?: CustomSiteGate): DataStore {
   const inflight = new Map<string, Promise<unknown>>();
   const generations = new Map<string, number>();
 
@@ -196,6 +204,8 @@ export function createDataStore(fetchImpl: FetchLike = defaultFetch): DataStore 
     }
 
     async function resolveSite(kind: string, siteId: string): Promise<unknown> {
+      // A custom site's files exist only once its job is ready: wait for it, never 404.
+      if (customGate && isCustomSiteId(siteId)) await customGate(siteId);
       if (kind === "meta") return loadSiteMeta(siteId, fetchImpl);
       if (kind === "terrain") {
         const meta = asSiteMeta(await ensure(metaKey(siteId)));
@@ -236,4 +246,4 @@ export function createDataStore(fetchImpl: FetchLike = defaultFetch): DataStore 
   });
 }
 
-export const dataStore = createDataStore();
+export const dataStore = createDataStore(defaultFetch, (siteId) => customSitesStore.getState().whenReady(siteId));
