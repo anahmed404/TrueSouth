@@ -767,6 +767,60 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## 3D and Map
 
+#### 2026-11-14 · T3 · The ground's look in Local terrain and Lander's eye
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (question
+  round skipped, as briefed) — wrote the ground's material (`ground-material.ts`), its pure
+  parts and quality levels (`ground-relief.ts`, `ground-quality.ts`) with vitest tests, the
+  height grids and the local-position attribute in `ground.ts`, the decoration plate, and
+  the docs; captured the before and after screenshots and the frame-time measurements in a
+  headless Chrome with hardware WebGL (RTX 2060, ANGLE D3D11) and with SwiftShader; no
+  AI-generated imagery; a human has not reviewed it yet
+- **State:** built, not verified (TESTCOUNTS; checked by eye on hardware WebGL; a weak laptop
+  is not measured, and orbiting by hand was not possible in the headless browser: the views
+  were checked at the camera's arrival poses and while stepping the timeline hour by hour)
+- **Changed:** `web/src/features/three/scene/ground-material.ts`, `ground-relief.ts`,
+  `ground-quality.ts` and their tests (new); `ground.ts` (an `aL` attribute, `patchUpGrid`,
+  `apronUpGrid`) and its test; `world.ts` (the ground uses `GroundLook`: the constructor,
+  `setGround`, `clearGround`, `setInputs` and one line in `layout`; `world.groundLook` is
+  public for the quality stages); `plates.ts` and its test (the decoration plate);
+  `overlay.tsx` (plates may sit at the foot); `scene.css` (the two-line plate, and stacked
+  plates centred once); `scene-root.tsx` (passes the series' Sun answer to the plates: one
+  line and a dependency); `docs/features/local-terrain.md` ("What is drawn", the plate,
+  Performance); `docs/features/panorama.md` (one sentence);
+  `docs/decisions/0014-drawn-ground-shadows.md`; `docs/design/c2/built-ground-*.png`; this
+  entry. `materials.ts` is untouched: its old `groundMaterial` is no longer used and can be
+  deleted by whoever merges second.
+- **Notes:**
+  - Why it looked low quality (before shots): the ground was lit per vertex normal, so the
+    300 km terrain had one light value every 1.9 km and the patch every 78 m, with no cast
+    shadows at all; a milky fill (`alb * 0.19`) and the soft roll-off washed out contrast;
+    the near ground at 2 m was the smooth 80 m ramp; the albedo was the Moon's 4K colour map,
+    about 2.7 km a pixel.
+  - Now: relief at 160 m (core) or 320 m (cap) in every pixel out to the horizon, cast
+    shadows with a Sun-disc edge, illustrative regolith close up, lunar photometry. Each
+    effect is full, reduced or off; costs are in local-terrain.md, "Performance" (all full
+    about 1.8 ms a frame on the RTX 2060 at 1440 × 900; zero frames at rest).
+  - Drawn shadows can differ from the series at the lander (Connecting Ridge, 2028-03-06
+    18:00 UTC: series dark, drawing shows a sunlit patch beside Pip). The plate gives the
+    series' answer and says the series is right. The browser never judges the drawing.
+  - First build hung Chrome for minutes: ANGLE's D3D compiler unrolled the 64-step march and
+    the crater loops. The loop counts are uniforms now; compiling takes well under a second.
+  - Found and fixed: `shell.css` makes every `.scene-plate` absolute with
+    `translateX(-50%)`, so plates in the top stack were centred twice (shifted left by half
+    their width) and stacked plates would overlap.
+  - Seen, not changed: at a sphere-tier site (Apollo 11) Lander's eye looks up at Earth or
+    the Sun, which are 20° to 60° up there, so almost no ground is in view; the frame was
+    nearly black in the headless browser.
+  - What a later pipeline package should ship so the drawing can match the series more
+    often and show more relief: (1) a wider, finer apron, 1,201 × 1,201 points over 300 km
+    (250 m), 2.9 MB as uint16, or 601 × 601 (500 m), 0.7 MB; (2) a 60 km mid patch at 80 m,
+    751 × 751, 1.1 MB as uint16 heights, between the patch and the apron; (3) slope maps at the map's own 80 m
+    for the ±76 km core, 1,900 × 1,900 lossless WebP, a few MB; (4) close-up DEMs (5 m,
+    2 km) for the Lander's eye near ground, already in the contracts as `closeup.bin`; (5) an
+    albedo map of the cap in the same projection (the LROC colour map is 2.7 km a pixel at
+    the pole).
+
 #### 2026-11-13 · T1, T2 · The 3D scene behind Mission Control
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (question

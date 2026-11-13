@@ -50,7 +50,7 @@ Layout and the view bar: [`mission-control.md`](mission-control.md). Prototype:
 - **The lander marker** at the centre, with the plate "The lander, 2 m above the ground"
   when the camera is close.
 - **Sunlight** from the Sun's direction at the scrubber's time, with shadows. The shadows
-  come from a horizon march over the real heights.
+  come from a march over the heights already loaded for drawing. See "What is drawn".
 - **Sight-lines** from the lander toward the Sun and toward Earth, solid GO Green or dashed
   NO-GO Red by the series, with the same plates as the System view.
 - **The blocker marker:** when the Sun is blocked, a ring on the terrain point that blocks
@@ -95,10 +95,20 @@ lit comes from the series. When the two disagree, the series is right.** A plate
 shows the series' answer:
 
 > The series says: lit. 62 % of the Sun's disc is above the skyline.
-> Shading and shadows here are drawn for understanding only. The series decides lit or dark.
+> Shading, shadows and the fine ground texture are drawn for understanding only. Where the
+> drawing differs, the series is right.
 
 When the series says dark, the first line reads "The series says: dark. Sun disc fraction
-0.12 above the skyline."
+0.12 above the skyline." Without the series, the plate shows the second line only. The
+plate sits at the foot of the free space, above the view's controls, in Local terrain and
+in Lander's eye; at the top it covered Earth, which Lander's eye centres.
+
+The drawn shadow at the lander can differ from the series, and that is expected: the
+drawing marches over the 20 km patch and the 300 km terrain around it, at 80 m and 1.9 km,
+while the series used the full 300 km skyline from the 80 m map at 2 m above the ground.
+The browser never compares the two or judges the drawing; the plate says in every case
+which one is right. Example: Connecting Ridge, 2028-03-06 18:00 UTC. The series says dark,
+and the drawing shows a sunlit patch beside the lander.
 
 Two things keep the picture close to the truth:
 
@@ -109,12 +119,57 @@ Two things keep the picture close to the truth:
 With exaggeration above ×1, shadows are no longer true and the plate adds "shadows not to
 scale".
 
+## What is drawn
+
+Everything in this section is drawing, like the polar map's hillshade
+([`../science.md`](../science.md) §2.4). None of it decides lit or dark, link or no link,
+or any number, and nothing reads it back. The code is `ground-material.ts`; its pure parts
+are in `ground-relief.ts` and tested.
+
+1. **Relief beyond the patch.** The terrain around the patch has a vertex every 1.9 km, too
+   coarse to light. Each pixel there is lit with a surface normal from the polar cap's slope
+   maps (`scene/cap_slope_core.webp`, 160 m, within ±76 km of the pole;
+   `scene/cap_slope.webp`, 320 m, out to 80° S), read through the projection of
+   [`../science.md`](../science.md) §2.3 at the pixel's true position and scaled by its
+   factor k. Inside the patch the patch's own mesh normals (78 m grid) are used; they hand
+   over to the maps across the patch's last 1.6 km, and the core hands over to the cap at
+   its edge, so there is no seam. Outside the cap (a sphere-tier site), or before the maps
+   load, the mesh normals are used.
+2. **Shadows.** From each lit pixel, a march toward the light over the patch's heights
+   (terrain.bin's `up_km`) and the terrain around it (as drawn), with the Moon's curvature
+   in them (§13): 64 steps that grow from 40 m to the terrain's edge, reading coarser mip
+   levels as the steps grow, so shadows do not crawl as the Sun moves. The shadow's edge is
+   as soft as the Sun's disc (0.27° radius). Toward the terrain's outer edge the drawn
+   shadow fades out, because the globe beyond draws none. Pip does not cast a shadow: it is
+   drawn 300 times larger than life, so its shadow would be a false stripe kilometres long.
+3. **Near-ground texture.** Close up, small craters (with the shadow of their own rim, as at
+   a low Sun), rocks and grain, made up in the shader. It is generic ground, not real
+   topography: the largest craters are about 10 m across, far below the 80 m data, it is a bump on the
+   lighting and a slight change of albedo only, it never moves the ground or the skyline,
+   and each size fades out as it shrinks to a few pixels, so it shows only close to the
+   camera and never at map scale.
+4. **Tone.** A grey albedo from the Moon's colour map, its range narrowed; a lunar
+   photometric function (Lommel–Seeliger and Lambert mixed by phase angle, with the
+   brightening when looking down-Sun); and a faint fill from sunlit ground nearby and from
+   earthshine (by Earth's phase, when Earth is up), so shadows are dark but not black.
+
+Each of 1 to 3 can be set to full, reduced or off (`GroundQuality`, `ground-quality.ts`),
+for the quality stages that measure frame time. For checking, the address takes
+`ground=reduced` (or `off`), or one effect, such as `ground-shadows=off`.
+
 ## Performance
 
 - 66,049 vertices in the patch and 25,921 in the terrain around it. Target 60 frames a
   second on a laptop's built-in graphics; if it drops below 30, shadows turn off
   automatically. Measured so far on a desktop GPU: under 4 ms a frame while orbiting.
 - Shadow settings are tuned for very low Sun angles, to avoid speckled artefacts.
+- Measured cost of "What is drawn", per frame at 1440 × 900 (canvas 1424 × 805, pixel
+  ratio 1), Connecting Ridge, 2026-11-14. RTX 2060, ANGLE D3D11: the ground with every
+  effect off 0.5 ms; relief +0.1 ms; shadows +1.6 ms full, +0.3 ms reduced; texture
+  within the noise (Lander's eye: +0.2 ms); all full 1.8 ms, all reduced 1.3 ms. With 4× CPU
+  throttling: all full 1.75 ms, all reduced 1.06 ms. Software rendering (SwiftShader):
+  1.67 s a frame with every effect off, 2.05 s reduced, 2.37 s full; the app shows its
+  still picture there anyway. At rest the scene draws no frames.
 - The terrain files are 0.18 MB per site and load for the focused site only.
 - Geometry and textures are released when the site changes or the view closes.
 
