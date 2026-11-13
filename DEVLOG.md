@@ -602,6 +602,9 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   comment, three tests), `web/src/app/mission-screen.tsx`, `web/src/components/StatusLamp.tsx`
   (exports `GLYPH`), `web/src/app/mission/landing-control.ts` and its two tests (the
   no-GO wording), `web/src/features/three/scene/world.ts` (a comment for the ground look),
+  `web/src/app/mission/scene-slot.tsx` and its new test, `web/src/app/scene.ts`
+  (`FlatLayerProps`), `web/src/features/polar-map/map.tsx` (the `readouts` prop),
+  `web/src/lib/explain.ts` (the Slip Planner's controls hint),
   `web/vite.config.ts` (the worker build input is gone), `docs/features/site-detail.md`,
   `docs/features/slip-planner.md`, `docs/design/c2/built-slip-*.png`, this entry
 - **Notes:**
@@ -663,6 +666,20 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     views brings back the real Sun (uSun equals the Sun's direction) and coming back the
     fixed light; the System view still turns freely over the pole; stars stay above the
     limb, dimmed, never over the ground.
+  - After #89: one flat-layer mechanism. The Slip Planner is a flat layer of the scene slot
+    (`SLIP_PLANNER_LAYER`, beside `POLAR_MAP_LAYER`); the slot takes one layer or a list and
+    gives each `canTryAgain` and `onTryAgain` (two additive `FlatLayerProps` fields); the
+    slot's render-prop child and the `scene-status.ts` exception are gone. With 3D off the
+    view mounts the Polar map's `MapCore` (no pins of its own, no crater names, its
+    "sunlight" overlay following the shading switch, its projector placing the spots); the
+    dimmed-relief stand-in and `flat.ts` are gone. One additive prop in
+    `features/polar-map/map.tsx`: `readouts` (false: no point readout on click or Enter, no
+    nudge on N, no hover readout). Our foot plates sit above the map's control plate, whose
+    legend carries the "not for your date" label. Variant labels use the map's words
+    ("Best-lit map pixel, 149 m from …", from `offset_m`). Checked by eye: `view=map` opens
+    the flat map; `view=slip` with 3D off shows the map, the placed spots, the panel and the
+    note; Polar map and Slip Planner in both orders, in 3D and with 3D off, leave exactly one
+    layer mounted; a click on the map in the Slip Planner opens no readout.
 
 #### 2026-11-14 · MC shell feedback · No view sentence; the landing date joins the timeline; "Next GO"
 - **Who:** Claude Code agent, for the orchestrator
