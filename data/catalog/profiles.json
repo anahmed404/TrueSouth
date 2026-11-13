@@ -1,0 +1,371 @@
+[
+  {
+    "id": "viper",
+    "name": "VIPER",
+    "based_on": "NASA polar rover",
+    "provenance": {
+      "duration_days": {
+        "kind": "sourced",
+        "source_url": "https://science.nasa.gov/mission/viper/lunar-operations/",
+        "quote": "until the end of its approximately 100-day mission"
+      },
+      "min_sun_fraction": {
+        "kind": "assumed",
+        "reason": "0.5 (half the disc) is assumed for all."
+      },
+      "ops_sun_el_min_deg": {
+        "kind": "assumed",
+        "reason": "No operational Sun elevation limit is specified for this preset."
+      },
+      "max_dark_h": {
+        "kind": "sourced",
+        "source_url": "https://science.nasa.gov/mission/viper/lunar-operations/",
+        "quote": "the rover cannot endure more than 50 hours of continuous darkness"
+      },
+      "relay_available": {
+        "kind": "sourced",
+        "source_url": "https://science.nasa.gov/mission/viper/lunar-operations/",
+        "quote": "As there are no satellites currently orbiting the Moon that could be used to relay communications, VIPER relies on NASA's Deep Space Network"
+      },
+      "antenna_mask_deg": {
+        "kind": "assumed",
+        "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+      },
+      "max_blackout_h": {
+        "kind": "sourced",
+        "source_url": "https://science.nasa.gov/wp-content/uploads/2024/08/viper-pip-final.pdf",
+        "quote": "Loss of Signal (LOS) period, for up to 18 days"
+      },
+      "max_slope_deg": {
+        "kind": "sourced",
+        "source_url": "https://ntrs.nasa.gov/api/citations/20220008301/downloads/2022-06-02-spaceops-viper-planning.pdf",
+        "quote": "15 deg slope limit"
+      },
+      "slope_ideal_deg": {
+        "kind": "assumed",
+        "reason": "Team settings."
+      },
+      "landing_sun_el_min_deg": {
+        "kind": "assumed",
+        "reason": "No landing Sun elevation limit is specified for this preset."
+      },
+      "landing_sun_el_max_deg": {
+        "kind": "assumed",
+        "reason": "No landing Sun elevation limit is specified for this preset."
+      },
+      "weights": {
+        "kind": "assumed",
+        "reason": "Team settings."
+      }
+    },
+    "duration_days": 100.0,
+    "min_sun_fraction": 0.5,
+    "ops_sun_el_min_deg": null,
+    "max_dark_h": 50.0,
+    "relay_available": false,
+    "antenna_mask_deg": 1.0,
+    "max_blackout_h": 432.0,
+    "max_slope_deg": 15.0,
+    "slope_ideal_deg": 5.0,
+    "landing_sun_el_min_deg": null,
+    "landing_sun_el_max_deg": null,
+    "weights": {
+      "slope": 0.4,
+      "power": 0.35,
+      "comms": 0.25
+    }
+  },
+  {
+    "id": "im2_athena",
+    "name": "IM-2 Athena",
+    "based_on": "Intuitive Machines IM-2 Athena",
+    "provenance": {
+      "duration_days": {
+        "kind": "sourced",
+        "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf",
+        "quote": "Surface Operations: Approximately 10 days"
+      },
+      "min_sun_fraction": {
+        "kind": "assumed",
+        "reason": "0.5 (half the disc) is assumed for all."
+      },
+      "ops_sun_el_min_deg": {
+        "kind": "assumed",
+        "reason": "No operational Sun elevation limit is specified for this preset."
+      },
+      "max_dark_h": {
+        "kind": "assumed",
+        "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+      },
+      "relay_available": {
+        "kind": "assumed",
+        "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+      },
+      "antenna_mask_deg": {
+        "kind": "assumed",
+        "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+      },
+      "max_blackout_h": {
+        "kind": "assumed",
+        "reason": "No figures are published."
+      },
+      "max_slope_deg": {
+        "kind": "assumed",
+        "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+      },
+      "slope_ideal_deg": {
+        "kind": "assumed",
+        "reason": "Team settings."
+      },
+      "landing_sun_el_min_deg": {
+        "kind": "assumed",
+        "reason": "No landing Sun elevation limit is specified for this preset."
+      },
+      "landing_sun_el_max_deg": {
+        "kind": "assumed",
+        "reason": "No landing Sun elevation limit is specified for this preset."
+      },
+      "weights": {
+        "kind": "assumed",
+        "reason": "Team settings."
+      }
+    },
+    "duration_days": 10.0,
+    "min_sun_fraction": 0.5,
+    "ops_sun_el_min_deg": null,
+    "max_dark_h": 6.0,
+    "relay_available": false,
+    "antenna_mask_deg": 1.0,
+    "max_blackout_h": 12.0,
+    "max_slope_deg": 10.0,
+    "slope_ideal_deg": 5.0,
+    "landing_sun_el_min_deg": null,
+    "landing_sun_el_max_deg": null,
+    "weights": {
+      "slope": 0.4,
+      "power": 0.35,
+      "comms": 0.25
+    }
+  },
+  {
+    "id": "chandrayaan3",
+    "name": "Chandrayaan-3",
+    "based_on": "ISRO Chandrayaan-3",
+    "provenance": {
+      "duration_days": {
+        "kind": "sourced",
+        "source_url": "https://www.isro.gov.in/Chandrayaan3_Details.html",
+        "quote": "Mission Life (Lander & Rover) One lunar day (~14 Earth days)"
+      },
+      "min_sun_fraction": {
+        "kind": "assumed",
+        "reason": "0.5 (half the disc) is assumed for all."
+      },
+      "ops_sun_el_min_deg": {
+        "kind": "assumed",
+        "reason": "\"For landing, the angle requirement was 6-9° elevation and we managed to land when elevation was 8.75°. For operations, we need a minimum of 6° elevation angle\" (project director, Times of India interview). We have the quotation but no link to the interview, so these three values are tagged assumed until a link is found."
+      },
+      "max_dark_h": {
+        "kind": "assumed",
+        "reason": "Not published."
+      },
+      "relay_available": {
+        "kind": "assumed",
+        "reason": "Direct to Earth, with the Chandrayaan-2 orbiter as a contingency link. The preset models the direct link, so relay_available is false. We have no document to cite for this, so the value is tagged assumed."
+      },
+      "antenna_mask_deg": {
+        "kind": "assumed",
+        "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+      },
+      "max_blackout_h": {
+        "kind": "assumed",
+        "reason": "Not published."
+      },
+      "max_slope_deg": {
+        "kind": "sourced",
+        "source_url": "https://www.hou.usra.edu/meetings/lpsc2023/pdf/1037.pdf",
+        "quote": "Slope less than 10 deg."
+      },
+      "slope_ideal_deg": {
+        "kind": "assumed",
+        "reason": "Team settings."
+      },
+      "landing_sun_el_min_deg": {
+        "kind": "assumed",
+        "reason": "\"For landing, the angle requirement was 6-9° elevation and we managed to land when elevation was 8.75°. For operations, we need a minimum of 6° elevation angle\" (project director, Times of India interview). We have the quotation but no link to the interview, so these three values are tagged assumed until a link is found."
+      },
+      "landing_sun_el_max_deg": {
+        "kind": "assumed",
+        "reason": "\"For landing, the angle requirement was 6-9° elevation and we managed to land when elevation was 8.75°. For operations, we need a minimum of 6° elevation angle\" (project director, Times of India interview). We have the quotation but no link to the interview, so these three values are tagged assumed until a link is found."
+      },
+      "weights": {
+        "kind": "assumed",
+        "reason": "Team settings."
+      }
+    },
+    "duration_days": 14.0,
+    "min_sun_fraction": 0.5,
+    "ops_sun_el_min_deg": 6.0,
+    "max_dark_h": 6.0,
+    "relay_available": false,
+    "antenna_mask_deg": 1.0,
+    "max_blackout_h": 12.0,
+    "max_slope_deg": 10.0,
+    "slope_ideal_deg": 5.0,
+    "landing_sun_el_min_deg": 6.0,
+    "landing_sun_el_max_deg": 9.0,
+    "weights": {
+      "slope": 0.4,
+      "power": 0.35,
+      "comms": 0.25
+    }
+  },
+  {
+    "id": "artemis_crewed",
+    "name": "Artemis crewed landing",
+    "based_on": "NASA Artemis crewed landing",
+    "provenance": {
+      "duration_days": {
+        "kind": "sourced",
+        "source_url": "https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-Moon/",
+        "quote": "continuous access to sunlight throughout a 6.5-day period – the planned duration of the Artemis III surface mission"
+      },
+      "min_sun_fraction": {
+        "kind": "assumed",
+        "reason": "0.5 (half the disc) is assumed for all."
+      },
+      "ops_sun_el_min_deg": {
+        "kind": "assumed",
+        "reason": "No operational Sun elevation limit is specified for this preset."
+      },
+      "max_dark_h": {
+        "kind": "sourced",
+        "source_url": "https://ntrs.nasa.gov/api/citations/20240009596/downloads/ArtemisHLSUpdate_2024.pdf",
+        "quote": "Artemis III will require the surface to be lit for the duration of the surface stay"
+      },
+      "relay_available": {
+        "kind": "sourced",
+        "source_url": "https://ntrs.nasa.gov/api/citations/20240009596/downloads/ArtemisHLSUpdate_2024.pdf",
+        "quote": "Direct with Earth (DWE) communication; assume no comm relay is available"
+      },
+      "antenna_mask_deg": {
+        "kind": "assumed",
+        "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+      },
+      "max_blackout_h": {
+        "kind": "sourced",
+        "source_url": "https://ntrs.nasa.gov/api/citations/20240009596/downloads/ArtemisHLSUpdate_2024.pdf",
+        "quote": "Artemis III will require Earth to be visible for communications"
+      },
+      "max_slope_deg": {
+        "kind": "sourced",
+        "source_url": "https://ntrs.nasa.gov/api/citations/20240009596/downloads/ArtemisHLSUpdate_2024.pdf",
+        "quote": "Surface slope for landing (100m): <10 deg"
+      },
+      "slope_ideal_deg": {
+        "kind": "assumed",
+        "reason": "Team settings."
+      },
+      "landing_sun_el_min_deg": {
+        "kind": "assumed",
+        "reason": "No landing Sun elevation limit is specified for this preset."
+      },
+      "landing_sun_el_max_deg": {
+        "kind": "assumed",
+        "reason": "No landing Sun elevation limit is specified for this preset."
+      },
+      "weights": {
+        "kind": "assumed",
+        "reason": "Team settings."
+      }
+    },
+    "duration_days": 6.5,
+    "min_sun_fraction": 0.5,
+    "ops_sun_el_min_deg": null,
+    "max_dark_h": 0.0,
+    "relay_available": false,
+    "antenna_mask_deg": 1.0,
+    "max_blackout_h": 0.0,
+    "max_slope_deg": 10.0,
+    "slope_ideal_deg": 5.0,
+    "landing_sun_el_min_deg": null,
+    "landing_sun_el_max_deg": null,
+    "weights": {
+      "slope": 0.4,
+      "power": 0.35,
+      "comms": 0.25
+    }
+  },
+  {
+    "id": "blue_ghost1",
+    "name": "Blue Ghost 1",
+    "based_on": "Firefly Blue Ghost Mission 1",
+    "provenance": {
+      "duration_days": {
+        "kind": "sourced",
+        "source_url": "https://www.nasa.gov/wp-content/uploads/2025/01/np-2025-01-001-jsc-clps-firefly-press-kit-screen-508-1-10-25-final.pdf",
+        "quote": "operate on the Moon's surface for a lunar day (about 14 Earth days) and for several hours into the lunar night"
+      },
+      "min_sun_fraction": {
+        "kind": "assumed",
+        "reason": "0.5 (half the disc) is assumed for all."
+      },
+      "ops_sun_el_min_deg": {
+        "kind": "assumed",
+        "reason": "No operational Sun elevation limit is specified for this preset."
+      },
+      "max_dark_h": {
+        "kind": "assumed",
+        "reason": "The lander actually ran \"just over 5 hours into the lunar night\". We use that as its limit; the design figure is not published."
+      },
+      "relay_available": {
+        "kind": "assumed",
+        "reason": "Firefly describes only the lander's own antennas; no relay is mentioned."
+      },
+      "antenna_mask_deg": {
+        "kind": "assumed",
+        "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+      },
+      "max_blackout_h": {
+        "kind": "assumed",
+        "reason": "Not published."
+      },
+      "max_slope_deg": {
+        "kind": "assumed",
+        "reason": "Not published."
+      },
+      "slope_ideal_deg": {
+        "kind": "assumed",
+        "reason": "Team settings."
+      },
+      "landing_sun_el_min_deg": {
+        "kind": "assumed",
+        "reason": "No landing Sun elevation limit is specified for this preset."
+      },
+      "landing_sun_el_max_deg": {
+        "kind": "assumed",
+        "reason": "No landing Sun elevation limit is specified for this preset."
+      },
+      "weights": {
+        "kind": "assumed",
+        "reason": "Team settings."
+      }
+    },
+    "duration_days": 14.0,
+    "min_sun_fraction": 0.5,
+    "ops_sun_el_min_deg": null,
+    "max_dark_h": 5.0,
+    "relay_available": false,
+    "antenna_mask_deg": 1.0,
+    "max_blackout_h": 12.0,
+    "max_slope_deg": 10.0,
+    "slope_ideal_deg": 5.0,
+    "landing_sun_el_min_deg": null,
+    "landing_sun_el_max_deg": null,
+    "weights": {
+      "slope": 0.4,
+      "power": 0.35,
+      "comms": 0.25
+    }
+  }
+]

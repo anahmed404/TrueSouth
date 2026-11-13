@@ -13,7 +13,7 @@ Run with `uv run pytest` and `pnpm --dir web test`.
 | # | Check | Pass mark | Section of [`science.md`](science.md) |
 | :--- | :--- | :--- | :--- |
 | G1 | Horizons parser reads a saved response and returns its exact values. Longitudes are confirmed east-positive from the header. | exact | §3.1 |
-| G2 | Our Sun and Earth azimuth and elevation match Horizons' own site table at every catalog site and every hour of the time grid. | max difference ≤ 0.02° | §3.2–3.3 |
+| G2 | Our Sun and Earth directions match Horizons' own site table at every catalog site and every hour of the time grid: azimuth compared as an angle on the sky, and elevation. | each ≤ 0.02° | §3.2–3.3 |
 | G3 | `pyproj` and the closed-form projection agree, forward and inverse. | ≤ 0.01 m | §2.3 |
 | G4 | Flat terrain at height 0 gives a skyline of $-\arccos(R/(R+h))$ in every bin. | ≤ 0.001° | §4–5 |
 | G5 | A synthetic wall of height $H$ at distance $D$ gives the exact elevation angle, in the near field and in the far field. | ≤ 0.001° | §4–5 |
@@ -27,6 +27,14 @@ Run with `uv run pytest` and `pnpm --dir web test`.
 G2 is the strongest evidence in the project: about two million comparisons against NASA's
 own ephemeris service. If it cannot be met, follow the fallback in
 [`decisions/0004-one-global-ephemeris.md`](decisions/0004-one-global-ephemeris.md).
+
+G2 compares directions on the sky, not raw compass bearings
+([`decisions/0011`](decisions/0011-g2-compares-directions-on-the-sky.md)). A compass
+bearing has no meaning for a body that is almost straight overhead or underfoot, so the
+raw azimuth difference is reported beside the gate as a stated limit and is not gated.
+Measured on 2026-11-13: directions agree within 0.0060° everywhere; the raw azimuth
+difference exceeds 0.02° at 28 hours in six years, all for the Sun at Apollo 11 within
+0.52° of the zenith or nadir, and reaches 0.082°.
 
 The shared fixture for G10 is `web/src/lib/scoring/__fixtures__/scoring_cases.json`,
 written by `uv run truesouth build-fixtures`. It holds at least 40 cases, covering every
@@ -54,16 +62,39 @@ shows, which is why R2 uses `earth_frac > 0`.
 
 ```json
 {
-  "generated_utc": "…",
-  "gates": [ { "id": "G2", "name": "…", "passed": true, "measured": 0.011, "limit": 0.02, "unit": "deg", "samples": 2103360 } ],
+  "generated_utc": "2026-11-14T09:00:00Z",
+  "gates": [
+    { "id": "G2", "name": "Sun and Earth directions match JPL Horizons", "passed": true,
+      "measured": 0.011, "limit": 0.02, "unit": "deg", "samples": 2103360, "detail": null }
+  ],
   "comparisons": [
     { "id": "R1", "site_id": "connecting_ridge", "ours": 0.83, "reference": 0.86, "unit": "fraction",
-      "reference_source": "https://pgda.gsfc.nasa.gov/products/69" }
+      "reference_source": "https://pgda.gsfc.nasa.gov/products/69",
+      "investigate_above": 0.1, "outside_mark": false, "explanation": null }
+  ],
+  "g2_over_time": [
+    { "site_id": "connecting_ridge", "body": "earth", "start_utc": "2026-01-01T00:00:00Z",
+      "step_h": 24, "max_difference_deg": [0.0051, 0.0049, 0.0052] }
+  ],
+  "sources": [
+    { "name": "JPL Horizons", "url": "https://ssd.jpl.nasa.gov/horizons/",
+      "used_for": "Sun and Earth positions" }
   ]
 }
 ```
 
 Numbers above are placeholders showing the shape.
+
+- A gate's optional `detail` is a plain sentence the pipeline writes from its own numbers,
+  for example the expected and measured value of a synthetic test.
+- A comparison carries its "investigate when" mark as `investigate_above`, in the same
+  unit as its values, and `outside_mark` says whether the difference is above it. A
+  comparison outside its mark must carry an `explanation`.
+- `g2_over_time` holds, per site and body, the largest difference in each step of the time
+  grid. It feeds the chart on the validation page.
+- `sources` lists every NASA product used, with its link.
+
+The format is defined by the `Validation` model in `science/src/truesouth/contracts.py`.
 
 ## The validation page
 

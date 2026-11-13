@@ -49,6 +49,65 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-13 · S2 part 2 · Synthetic fixtures and scoring cases
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-terra — built fixture pipeline and tests — automated checks run; human review pending
+- **State:** verified (the orchestrator, Claude Fable 5.2, rebuilt the fixtures and confirmed they equal the committed files, recomputed clearance from elevation and skyline, swept every site with the scoring reference and sent the first version back for lack of variety; Antigravity, gemini-4-hydrogen checked every file against its contract, recomputed all scoring cases and found a weights case that proved nothing, fixed by the agent; 5 sites, 58 scoring cases, 5.9 MB)
+- **Changed:** Science fixture encoding, binary I/O, pipeline, tests, `data/fixtures/`, shared scoring cases and data-contract notes.
+- **Notes:** G9 sampled maximum errors 0.004999907384558355° and 0.00004999858055221296. Fixtures total 5,873,738 bytes; 58 scoring cases total 683,740 bytes. Daily IM-2 windows: ridge 1,732 GO / 450 NO-GO; crater 103 GO / 18 CAUTION / 2,061 NO-GO; wide 504 CAUTION / 1,678 NO-GO; edge 2,182 NO-GO; sphere 365 GO / 11 CAUTION / 1,806 NO-GO. Values are synthetic, not validation measurements.
+
+#### 2026-11-13 · S4 · Global ephemeris: G1 passes; G2 measured on the full grid
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — wrote `horizons.py`, `ephemeris.py`, the `fetch-ephemeris`
+  step and their tests, and ran the comparison with JPL Horizons — the orchestrator (Claude
+  Fable 5.2) reran the full comparison offline from the saved responses and checked the
+  result against known facts; Cursor, grok-4.7 recomputed it with its own vector code and
+  checked the conventions against the Horizons headers and manual
+- **State:** verified (gates G1 and G2; the team lead decided on 2026-11-13 that G2
+  compares directions on the sky, see `docs/decisions/0011`)
+- **Changed:** `science/src/truesouth/horizons.py`, `ephemeris.py`,
+  `commands/fetch_ephemeris.py`, `science/tests/`, `data/derived/system.bin`,
+  `docs/science.md` section 3
+- **Notes:**
+  - 20 catalog sites × 2 bodies × 52,584 hours = 2,103,360 comparisons, with no correction
+    or fitted offset. Largest direction difference on the sky: 0.0060° (Earth at
+    Apollo 11, 2027-01-07T22:00Z). Sun: at most 0.0002°. Limit: 0.02°.
+  - Raw compass azimuth is above 0.02° at 28 hours, all the Sun at Apollo 11 within 0.52°
+    of straight overhead or underfoot; the largest is 0.082° at elevation −89.88°
+    (2031-10-14T01:00Z), where the direction on the sky differs by 0.00017°. Everywhere
+    else raw azimuth differs by at most 0.0093°. So G2 is met as a direction on the sky
+    and not met, at those 28 hours, as raw compass azimuth. docs/science.md section 3.3
+    states both.
+  - Horizons headers: longitudes east-positive; `MOON_ME` for the global table and
+    `MEAN_ME (high precision)` at the sites, the DE421 mean-Earth frame. No sign change or
+    frame rotation was needed.
+  - Both sides use ground height 0 plus the 2 m observer. A 5 km height error moves Earth's
+    direction by at most 0.0008° and the Sun's by 0.000002°.
+  - `system.bin` is 1,262,016 bytes and rebuilds byte for byte from the saved response.
+    The full comparison takes 27 s offline; 306 s with 38 fresh requests.
+
+#### 2026-11-13 · S5 · Prepared terrain maps and downloads
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-terra — wrote terrain preparation, sampling, downloads and synthetic tests — agent ran pytest; orchestrator review pending
+- **State:** verified (the orchestrator, Claude Fable 5.2, ran the tests and then the real 80 m map: 7,600 by 7,600 pixels, no missing data, heights from -7,296 m to 7,026 m, Shackleton's floor at -2,788 m with its rim near +1,200 m ten kilometres out in all four directions, Connecting Ridge at 1,950 m, one million samples in 0.44 s; Cursor, grok-4.7 reviewed the geometry with its own synthetic rasters and found a download path that could save a corrupt file, fixed by the orchestrator)
+- **Changed:** `science/src/truesouth/dem.py`, `science/src/truesouth/commands/`, `science/tests/`, this entry
+- **Notes:** All 28 raw URLs passed size checks. NASA product 90 confirms the 240 m filename. Both terrain maps total 408,119,431 bytes; measured download speed about 154,000 B/s, exceeding the 40-minute budget. The 80 m partial reached 20,971,520 bytes; resume with `uv run truesouth fetch-raw --group terrain` after setting `TRUESOUTH_DATA_ROOT`. Its TIFF header reports 7,600 × 7,600, 80 m pixels, lunar south polar stereographic (radius 1,737,400 m, central meridian 0°, true scale at the pole), NaN nodata, scale 1 and offset 0. Full-map statistics and sampling timings await completion.
+
+#### 2026-11-13 · S2 part 1 · Python scoring reference
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-terra — wrote the reference and hand-worked tests — automated tests run; human review pending
+- **State:** verified (the orchestrator, Claude Fable 5.2, read the module against docs/science.md sections 9 to 11 and ran the tests; Cursor, grok-4.7 reviewed it with hand cases and found the window-length rounding would differ between Python and JavaScript; the orchestrator decided the rounding rule and the countdown definition, the agent applied them to the doc and the code)
+- **Changed:** `science/src/truesouth/scoring.py`, `science/tests/test_scoring.py`
+- **Notes:** Spec interpretation questions are recorded in the pull request; G10 awaits the shared fixtures and TypeScript port.
+- **Review changes:** Specified half-up windows, flag-based countdowns, veto and slope rules, and added boundary tests.
+
+#### 2026-11-13 · S1 · Catalog inputs and validated loaders
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-terra — built catalog inputs, contracts, loaders and document comparison tests — automated checks run; human review pending
+- **State:** verified (the orchestrator, Claude Fable 5.2, counted the sourced and assumed values against the presets table and ran the tests; Antigravity, gemini-4-hydrogen compared every value, link, quotation and coordinate with the two documents and tried to break the tests; its findings, one wrong reason and three weak tests, were fixed by the orchestrator; 20 sites, 5 presets, 15 features, 9 regions; 14 values sourced, 46 assumed)
+- **Changed:** data/catalog, science catalog and tests, contracts, schema, data-contract documentation
+- **Notes:** 20 sites, 5 presets, 15 named features and 9 Artemis regions; 14 sourced and 46 assumed profile values. Region centres and sizes are null where unpublished; representative DEM points are sites.
+
 #### 2026-11-13 · S3 · Site-centred frames and polar projection
 - **Who:** Codex agent, for the orchestrator
 - **AI use:** Codex, gpt-6.1-terra — wrote geometry tests and `frames.py` — agent ran pytest; the orchestrator has not checked it yet

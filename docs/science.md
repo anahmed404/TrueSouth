@@ -111,8 +111,20 @@ Horizons request (observer table):
 
 The time grid has 52,584 rows. Horizons allows 90,000 per request.
 
-The parser must confirm from the response header that longitudes are east-positive, and
-convert if they are not.
+The saved real response confirms `Target pole/equ : MOON_ME` and
+`{East-longitude positive}`. Both sub-point column descriptions independently say
+longitude is positive east. The site tables say `Center pole/equ : MEAN_ME (high
+precision)`, also east-positive. These are the high-precision lunar **DE421 mean-Earth**
+frame, not the principal-axes frame; the latter is not available in Horizons. See JPL's
+[lunar frame definition](https://ssd.jpl.nasa.gov/horizons/manual.html#lunar-mean-earth-frame-of-de421).
+The parser checks those words on every response, rejects an unknown frame or an
+inconsistent sign, and converts west-positive sub-points to east longitude if encountered.
+No rotation between lunar frames is applied.
+
+The response gives `r` and `delta` in AU and prints its AU-to-kilometre conversion.
+The parser applies that conversion once; `system.bin` stores kilometres. `STOP_TIME`
+is the last included hour, 2031-12-31T23:00:00Z. The step requests `TIME_TYPE='UT'`
+(UTC after 1962), `APPARENT='AIRLESS'` and `EXTRA_PREC='YES'` explicitly.
 
 `horizons.py`, `ephemeris.py::load_global`
 
@@ -130,7 +142,13 @@ $$\rho_b = \arcsin\left(\frac{R_b}{|\vec b - \vec r|}\right)$$
 
 The Sun's disc is about 0.53° wide. Earth's is about 1.9° wide.
 
-This is exact geometry. It needs no per-site Horizons call, so custom sites work without
+The vector subtraction is exact for the supplied body positions. The observer-table
+sub-points are **apparent**, not simultaneous geometric positions: quantity 14 includes
+Moon-to-Earth down-leg light-time; quantity 15 includes Sun-to-Moon and Moon-to-Earth
+light-time. Quantities 19 and 20 are light-time-aberrated ranges. Thus agreement with
+a lunar observer's apparent direction must be measured by §3.3; it is not a claim of
+identical light-time or aberration conventions. No fitted offset or extra light-time
+correction is applied. It needs no per-site Horizons call, so custom sites work without
 network access. See
 [`decisions/0004-one-global-ephemeris.md`](decisions/0004-one-global-ephemeris.md).
 
@@ -140,9 +158,58 @@ network access. See
 
 For every catalog site we also pull Horizons' own site table (`CENTER='coord@301'`,
 `COORD_TYPE='GEODETIC'`, `SITE_COORD='lonE,lat,alt_km'`, `QUANTITIES='4'`, targets `'10'`
-and `'399'`). Quantity 4 is azimuth and elevation with no atmosphere. Section 3.2 must
+and `'399'`). Quantity 4 is **airless apparent** azimuth and elevation, not geometric
+elevation: its column description includes light-time, gravitational light deflection,
+stellar aberration, precession and nutation. Its azimuth is clockwise from north through
+east and elevation is relative to the plane perpendicular to the local surface zenith.
+Section 3.2 must
 match it within 0.02° at every hour. This is a hard test; see
 [`validation.md`](validation.md).
+
+For G2 before terrain is available, use ground height $z_0=0$ plus the 2 m observer
+height in both methods: `SITE_COORD='lonE,lat,0.002'` and $R_0=1{,}737{,}402$ m.
+The site response confirms a spherical lunar reference surface of radius 1737.4 km.
+Compare directions calculated from the **Float32 values read back from `system.bin`**,
+including its quantisation error, against all 52,584 site-table hours.
+
+Let $\Delta A$ be the azimuth difference wrapped into $[-180°,180°)$ and $e_H$ the
+Horizons elevation. Compare azimuth as the angular separation of the two azimuths at
+that same elevation on the sky:
+
+$$\delta_A = 2\arcsin\left(\left|\cos e_H\sin\tfrac{\Delta A}{2}\right|\right)
+\qquad \delta_e = |e-e_H|$$
+
+This approaches $|\Delta A\cos e_H|$ for small differences and tends to zero when the
+body is straight overhead or straight underfoot, where a compass direction has no
+meaning; neither a 360° wrap nor that undefined azimuth causes a false failure.
+
+**What this comparison is, and is not.** $\delta_A$ is an angle on the sky, not the raw
+difference between two compass bearings. The two agree for a body near the horizon,
+which is the only case at the polar sites. They part when a body is nearly overhead or
+underfoot. Measured over all 20 catalog sites and 52,584 hours (2026-11-13):
+
+| Quantity | Largest value | Where |
+| :--- | :--- | :--- |
+| Full direction separation on the sky | 0.0060° | Earth at Apollo 11, 2027-01-07T22:00Z |
+| $\delta_A$, azimuth as an angle on the sky | 0.0060° | Earth at IM-1, same hour |
+| $\delta_e$, elevation | 0.0060° | Earth at Apollo 11 |
+| Raw compass azimuth $|\Delta A|$ | 0.082° | Sun at Apollo 11, 2031-10-14T01:00Z, at elevation −89.88° |
+
+The raw compass azimuth is above 0.02° at 28 hours in six years, all of them the Sun at
+Apollo 11 while it is within 0.52° of straight overhead or straight underfoot. At the
+worst of those hours the direction on the sky differs by 0.00017°. At every other site
+and hour the raw compass azimuth differs by at most 0.0093°, and at the polar sites by at
+most 0.0060°.
+
+Gate G2 in [`validation.md`](validation.md) compares $\delta_A$ and $\delta_e$, each
+against 0.02°: directions on the sky, not raw compass bearings. The team lead decided
+this on 2026-11-13
+([`decisions/0011`](decisions/0011-g2-compares-directions-on-the-sky.md)). The raw
+compass azimuth is still measured and reported beside the gate.
+For each component, report the maximum, its UTC hour, and
+$\operatorname{RMS}(\delta)=\sqrt{\operatorname{mean}(\delta^2)}$. Also report the full
+direction separation, computed from local east/north/up unit vectors $\hat d$ and
+$\hat d_H$ as $2\arcsin(\min(1,|\hat d-\hat d_H|/2))$, as an additional diagnostic.
 
 A first check from real data: at Connecting Ridge (longitude 222.6°E, 0.54° from the
 pole), Earth's azimuth in December 2026 ranged from 129.5° to 144.9°. Earth sits near
@@ -265,8 +332,9 @@ A site reports `slope: { deg, baseline_m, source }` as defined in
 ## 9. Mission metrics
 
 Inputs: a site's series, a mission profile, and a landing date at index $i_0$ on the time
-grid. The mission window is the $N = \text{round}(24 \times \text{duration\_days})$ hours
-from $i_0$.
+grid. The mission window is the $N = \lfloor 24 \times \text{duration\_days} + 0.5 \rfloor$
+hours from $i_0$; halves round up, and $N$ must be at least 1. A window that would run
+past the end of the time grid has no result; this is not a NO-GO.
 
 Per hour:
 
@@ -286,16 +354,26 @@ Over the window:
 | `landing_sun_el_deg` | `sun_el` at $i_0$ |
 | `landing_lit` | lit at $i_0$ |
 
-**Countdowns** are measured from the scrubber's current time. Sunset is the next moment
-`sun_frac` falls through `min_sun_fraction`; sunrise is the next moment it rises through
-it. Earthset and Earthrise use `earth_clear` and `antenna_mask_deg`. The crossing time is
-linearly interpolated between the two hourly samples around it.
+**Countdowns** are measured from the scrubber's current time to the next change of the
+same lit or link flag drawn on the timeline. Sunset is when the site stops being lit;
+sunrise is when it becomes lit. Earthset is when the link ends; Earthrise is when it
+starts. With a relay the link never ends, so both Earth countdowns are none. A change
+occurs between neighbouring hourly samples whose flags differ. The crossing time is
+linearly interpolated between the two hourly samples around it, for each condition that
+changes there. Each condition passes when its value is greater than or equal to its
+threshold. For sunset, use the earliest crossing among conditions changing from passing to
+failing; for sunrise, use the latest crossing among conditions changing from failing to
+passing, because all conditions must pass. The Sun conditions are disc fraction against
+`min_sun_fraction` and, if set, Sun elevation against `ops_sun_el_min_deg`. The link
+condition is Earth clearance against `antenna_mask_deg`. The next change is the first at
+or after the current hour; if none occurs before the end of the time grid, the result is
+none.
 
 `web/src/lib/scoring/metrics.ts` (reference copy: `scoring.py`)
 
 ## 10. Vetoes, utilities, score, status
 
-**Vetoes.** Each is checked only if the profile sets its limit.
+**Vetoes.** Each is checked only if the profile sets its limit. `landing_dark` always applies.
 
 | Veto | Triggers when |
 | :--- | :--- |
@@ -307,7 +385,9 @@ linearly interpolated between the two hourly samples around it.
 | `landing_sun_high` | `landing_sun_el_deg > landing_sun_el_max_deg` |
 
 **Utilities**, each from 0 to 1. Let $g(x, m) = \max(0,\ 1 - x/m)$ when $m > 0$, and 1 when
-$m = 0$.
+$m = 0$. So a limit of 0 does not reduce the utility; a limit of 0 is enforced by the veto.
+
+A profile must have `slope_ideal_deg` less than `max_slope_deg`.
 
 $$U_{slope} = \operatorname{clamp}\left(\frac{\text{max\_slope} - \text{slope}}{\text{max\_slope} - \text{slope\_ideal}},\ 0,\ 1\right)$$
 
@@ -336,7 +416,8 @@ Vetoes decide whether a mission can work. The score ranks the ones that can. The
 
 The Slip Planner evaluates section 10 for a landing at 00:00 UTC on every day of the time
 grid, for every selected site. Means use prefix sums. Longest runs are scanned directly.
-It runs in a Web Worker.
+It runs in a Web Worker. The reference in `scoring.py` evaluates every landing hour; the
+Slip Planner reads the 00:00 UTC rows.
 
 `web/src/lib/scoring/sweep.worker.ts`
 

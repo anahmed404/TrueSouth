@@ -9,6 +9,13 @@ generated into `web/src/contracts/generated.ts`.
 All angles are degrees. All timestamps are UTC ISO-8601 ending in `Z`. Binary files are
 little-endian.
 
+## Catalog input
+
+`data/catalog/sites.json` is an array of `CatalogSite` entries: `id`, `name`, `group`,
+`lat_deg`, `lon_deg`, `description`, `source_url`, and `outcome`. The pipeline adds the
+terrain tier, close-up availability, elevation, slope, Quickmap URL and Moon Trek URL
+when it produces the derived `Site`; those fields are not catalog input guesses.
+
 ## Derived files
 
 Served under `/data/`. The same tree exists in `data/fixtures/` with synthetic content.
@@ -273,3 +280,32 @@ into individual dotted keys. Candidates and vetoes are arrays of identifiers; ov
 uses `site_id`, `region_name` and `overlaps`.
 The JSON Schema includes `BinaryLayouts`, describing the binary files' array order,
 data types and series scaling for decoders.
+
+### S2 fixture choices
+
+Fixture map images and lookup grids are 64 × 64 pixels, despite their production file
+names; map metadata gives the actual lookup size. The scoring cases refer to a fixture
+`series.bin` and a half-open range of global hour indices. Landing and current hours are
+global indices; subtract the range start before scoring the referenced slice. The cases
+file has `format`, `generated_by`, and `cases` keys; a case's `expected` is null when
+its window does not fit. Each run of `build-fixtures` rewrites the files. Fixture
+validation results and worked examples are synthetic demonstrations, not measurements
+from NASA data.
+
+### Shared scoring cases
+
+`web/src/lib/scoring/__fixtures__/scoring_cases.json` is an object with `format` (a
+reader description), `generated_by` (the build command), and `cases` (an array).
+Each case has:
+
+- `labels`: coverage labels; `site_id`: the fixture site; `profile`: the full mission profile.
+- `series_file`: path relative to `data/fixtures/`; `hour_range`: `[start, end)` on the
+  full time grid. Read that slice of every decoded column from the file.
+- `landing_hour` and `current_hour`: full-grid indices. Subtract `start` to index the
+  slice. `landing_utc` is the landing timestamp; `slope_deg` is the slope or null.
+- `countdowns`: all four countdowns at `current_hour`, including null values when no
+  transition remains in the slice.
+- `expected`: null when the mission window does not fit. Otherwise it contains
+  `window_length`, `lit`, `link`, `evaluation`, and `countdowns`. Both flag arrays
+  contain exactly `window_length` booleans starting at the landing hour; `evaluation`
+  contains metrics, vetoes, utilities, score, status and slope assessment.
