@@ -419,7 +419,8 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 - **Notes:**
   - The scene is a placeholder: a near-black background and one line in the free space. T1
     plugs in by passing its component to `<SceneSlot Scene={…}>` in `mission-screen.tsx`;
-    the props are `SceneProps` in `web/src/app/scene.ts`.
+    the props are `SceneProps` in `web/src/app/scene.ts`. The scene is never unmounted for a
+    slow or missing WebGL: it is told `mode: "flat"`.
   - The link keeps one `view`: a camera view, or the open window (`slip`, `compare`). A
     window in a link or on reload opens over the System view; the camera view under a
     window opened in the page is kept in the page only.
@@ -431,6 +432,19 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - The "why is it dark" card floats at the foot of the free space only on a dark or
     blackout hour, with "See it from Lander's eye"; it is hidden while a window is open and
     on the phone.
+  - Review fixes were made (still built, not verified): "UTC" once on the phone strip; every
+    provenance tag a 44 px target on the phone; "Try 3D anyway" announced in the status
+    region with focus on the current view, and the still note names the current view;
+    `[` and `]` do nothing inside a window, popover, menu or listbox; `SceneProps` gained
+    `onAddSite`, `mode` ("3d" or "flat") and an optional `SceneReport` on `onStatus`, so the
+    scene stays mounted when WebGL is slow or missing (additive only); the "why" card is one
+    plate with "Why?" opening the full card above it (free space on a dark hour: 792 × 392 px
+    at 1440 × 900, 376 × 249 px at 1024 × 768, up from 376 × 83 px); windows sit between the
+    open side panels when there are 720 px or more; the view bar no longer re-renders on a
+    scrub (render-count test); `freeSpaceInput` turns the shell's layout state into the
+    free space and is tested (a mutation that ignores the left fold fails it); the unused
+    `--shell-top` and `--shell-foot` tokens are gone; the folded sites rail has a 44 px
+    "Add site".
 
 #### 2026-11-13 · specs · Mission Control specs rewritten for the space-first layout
 - **Who:** Claude Code agent, for the orchestrator
@@ -616,7 +630,8 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 - **Changed:** `web/src/features/three/scene/` (new), `web/src/lib/geo/placement.ts` and
   its test (new), `web/src/lib/geo/index.ts`, `web/src/app/scene.ts` (adds
   `SceneArrival`, the optional `onArrive` and `STILL_PICTURE_URL`), one line in
-  `web/src/app/mission-screen.tsx`, the still picture in `web/src/app/mission/scene-slot.tsx`,
+  `web/src/app/mission-screen.tsx`, the still picture in `web/src/app/mission/scene-slot.tsx`
+  and its label in `web/src/app/mission/scene-status.ts`,
   `web/public/still/system-view.webp` (new), `docs/design/c2/built-scene-*.png`, this entry
 - **Notes:**
   - By the numbers at Connecting Ridge (hours 18,960, 18,997 and 19,091): the Sun's
@@ -641,6 +656,8 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     `web/public/still/system-view.webp`. It is 27 kB, over the spec's 0.01 MB guess.
   - Dev only: `window.__truesouthScene` exposes the world, rig, camera and renderer for
     checks like the ones above.
+  - Flat mode (the shell's `mode: "flat"`): the scene draws nothing, unmounts its Canvas and
+    reports `flatViews: []`, so the shell's still picture stands for every view.
   - three.js r187 prints a `THREE.Clock` deprecation warning from inside React Three Fiber.
 
 #### 2026-11-13 · T0 · Coordinate helpers and a shared Canvas mount

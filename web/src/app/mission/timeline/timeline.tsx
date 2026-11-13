@@ -27,6 +27,7 @@ import { formatLimit, settingsProvenance } from "../rules";
 import { SettingsTag } from "../settings-tag";
 import { NO_RESULT_TEXT } from "../site-status";
 import {
+  compactRowText,
   dayTicks,
   hourScale,
   hourToX,
@@ -160,25 +161,19 @@ function SiteTimeline({ scenario, siteId, grid, hours, folded = false, compact =
   const foldButton = onToggleFold ? <FoldButton folded={folded} onToggle={onToggleFold} /> : null;
 
   if (compact) {
+    const compactRow = compactRowText(
+      range,
+      current,
+      gridStartMs,
+      cards ? { sun: cards.sun.sentence, earth: cards.earth.sentence } : null,
+    );
     return (
       <div className="tl tl-compact">
         <h2 className="sr-only">Timeline</h2>
         {playButton}
         <p className="tl-compact-now">
-          <span className="tl-compact-time tabular">{pillText(range, current, gridStartMs)} UTC</span>
-          <span className="tl-compact-counts tabular">
-            {cards ? (
-              <>
-                <span className="sr-only">Sun: </span>
-                {cards.sun.sentence}
-                <span aria-hidden="true"> · </span>
-                <span className="sr-only">Earth: </span>
-                {cards.earth.sentence}
-              </>
-            ) : (
-              "Countdowns load with the site's data…"
-            )}
-          </span>
+          <span className="tl-compact-time tabular">{compactRow.time}</span>
+          <span className="tl-compact-counts tabular">{compactRow.counts}</span>
         </p>
         {flags.status === "ready" && series.status === "ready" ? (
           <CompactScrubber

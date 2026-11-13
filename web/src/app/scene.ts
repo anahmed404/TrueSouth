@@ -13,8 +13,8 @@ export type { CameraViewId } from "./mission/views";
  *   docs/features/system-view.md ("When 3D does not run").
  * - "no-webgl": WebGL could not start.
  *
- * On "slow" or "no-webgl" the shell puts the still picture behind the interface, with the
- * note and "Try 3D anyway".
+ * On "no-webgl", or "slow" before "Try 3D anyway", the shell sets `mode` to "flat" and, for
+ * a view the scene cannot draw flat, puts the still picture over it with the note.
  */
 export type SceneStatus = "ready" | "slow" | "no-webgl";
 
@@ -38,6 +38,20 @@ export type SceneArrival = {
 };
 
 /**
+ * What the scene can draw without WebGL, sent with its status. `flatViews` lists the camera
+ * views it draws in flat mode (for example the Polar map, a 2D canvas). For any other view
+ * in flat mode the shell puts its still picture over the scene. Omitted, it means none.
+ */
+export type SceneReport = { flatViews: readonly CameraViewId[] };
+
+/**
+ * How the scene must draw: "3d" with WebGL, or "flat" without it, when WebGL is missing or
+ * slow and the user has not pressed "Try 3D anyway". In flat mode the scene stays mounted
+ * and draws only what it can without WebGL (its 2D parts), or nothing.
+ */
+export type SceneMode = "3d" | "flat";
+
+/**
  * Everything the shell gives the 3D scene (work package T1). The scene fills the window
  * behind the floating interface. It draws no text straight on itself: labels sit on plates
  * (DESIGN.md, "The scene").
@@ -59,8 +73,11 @@ export type SceneProps = {
    * do not report "slow" again.
    */
   ignoreSlow: boolean;
-  /** Reports the scene's status. Call it once per mount, or again if it changes. */
-  onStatus: (status: SceneStatus) => void;
+  /**
+   * Reports the scene's status, and what it can draw in flat mode. Call it once per mount, or
+   * again if either changes.
+   */
+  onStatus: (status: SceneStatus, report?: SceneReport) => void;
   /** A click on a pin focuses its site. */
   onFocusSite: (siteId: string) => void;
   /**
@@ -70,4 +87,11 @@ export type SceneProps = {
   onViewChange: (view: CameraViewId) => void;
   /** Optional: a camera flight has landed (see `SceneArrival`). */
   onArrive?: (arrival: SceneArrival) => void;
+  /** Adds a catalog site to the selected sites, for example from a pin on the Polar map. */
+  onAddSite: (siteId: string) => void;
+  /**
+   * "3d", or "flat" when WebGL is missing or slow (see `SceneMode`). The scene is never
+   * unmounted for this: it is told, and draws its 2D parts or nothing.
+   */
+  mode: SceneMode;
 };

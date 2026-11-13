@@ -1,17 +1,20 @@
 import { Eye } from "lucide-react";
-import { memo, useCallback, useEffect, useRef, useState, type Ref } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type Ref } from "react";
 import { Button } from "../components/Button";
 import { firstSentence } from "../components/format";
 import { Panel } from "../components/Panel";
 import { explanations } from "../lib/explain";
-import { selectScenario, selectView } from "../state/scenario";
-import { Countdowns, Timeline, WhyDarkCard, type TimeWrite } from "./mission/timeline";
+import { selectScenario } from "../state/scenario";
+import { Countdowns, Timeline, WhyDarkLine, type TimeWrite } from "./mission/timeline";
 import { FloatingWindow } from "./mission/floating-window";
 import { FocusedSitePanel } from "./mission/focused-site-panel";
 import { ScenarioProvider, useScenario, useScenarioStore } from "./mission/scenario-context";
+import { windowPlacement, type Rect, type ShellState } from "./mission/free-space";
 import { SceneSlot } from "./mission/scene-slot";
 import { SpaceScene } from "../features/three/scene";
+import { TRY_AGAIN_ANNOUNCEMENT } from "./mission/scene-status";
 import {
+  OVERLAY_SELECTOR,
   foldAnnouncement,
   loadShellLayout,
   saveShellLayout,
@@ -21,22 +24,12 @@ import {
   type ShellLayout,
   type SidePanel,
 } from "./mission/shell-layout";
-import { useFreeSpace, usePhone, useReducedMotion, useViewportWidth } from "./mission/shell-hooks";
+import { rectOf, useFreeSpace, usePhone, useReducedMotion, useViewportWidth } from "./mission/shell-hooks";
 import { SitesRail } from "./mission/sites-rail";
 import { TopBar } from "./mission/top-bar";
 import { ViewBar, ViewSentence, windowElementId, type WindowButtons } from "./mission/view-bar";
-import {
-  HOME_CAMERA_VIEW,
-  closeWindow,
-  isCameraView,
-  pickView,
-  viewState,
-  windowView,
-  type CameraViewId,
-  type ViewId,
-  type ViewState,
-  type WindowViewId,
-} from "./mission/views";
+import { windowView, type CameraViewId, type WindowViewId } from "./mission/views";
+import { useViewCommands, useViewState } from "./mission/view-state";
 import { escapeCloses } from "./mission/window-focus";
 
 const FOOTER_LINE = "Planning aid, not flight certification. Limits marked assumed are our estimates.";
@@ -59,18 +52,6 @@ function useShellLayout() {
   const [layout, setLayout] = useState<ShellLayout>(() => loadShellLayout(browserStorage()));
   useEffect(() => saveShellLayout(browserStorage(), layout), [layout]);
   return [layout, setLayout] as const;
-}
-
-/**
- * The camera view and the open window, from the scenario's `view` (see `viewState`). The
- * camera view under a window is remembered here, in the page, not in the link.
- */
-function useViewState(): ViewState {
-  const view = useScenario(selectView);
-  const [camera, setCamera] = useState<CameraViewId>(() => (isCameraView(view) ? view : HOME_CAMERA_VIEW));
-  // Follow the scenario: a pick, Back and Forward, or a new link.
-  if (isCameraView(view) && view !== camera) setCamera(view);
-  return viewState(view, isCameraView(view) ? view : camera);
 }
 
 export function MissionScreen() {
@@ -106,7 +87,9 @@ function MissionShell() {
   const reduceMotion = useReducedMotion();
   const viewportWidth = useViewportWidth();
   const state = useViewState();
+  const commands = useViewCommands(state);
   const windowOpen = state.window !== null;
+  const shellRef = useRef<HTMLDivElement>(null);
 
   // ── Folding ──────────────────────────────────────────────────────────────
   const [announcement, setAnnouncement] = useState("");
@@ -155,30 +138,45 @@ function MissionShell() {
     setFocusSheet((open) => !open);
     setSitesSheet(false);
   }, []);
+  const sheet = useMemo(
+    () =>
+      phone
+        ? {
+            actions: (
+              <Button className="sheet-sites" aria-expanded={sitesSheet} aria-controls="sites-rail" onClick={toggleSitesSheet}>
+                Sites
+              </Button>
+            ),
+          }
+        : undefined,
+    [phone, sitesSheet, toggleSitesSheet],
+  );
 
-  // ── Views and windows ────────────────────────────────────────────────────
+  // ── Views, windows and the scene's requests ──────────────────────────────
   const windowButtons: WindowButtons = useRef({});
   const closedByUser = useRef(false);
-  const pick = useCallback(
-    (picked: ViewId) => {
-      closedByUser.current = false;
-      store.getState().setView(pickView(state, picked));
-    },
-    [store, state],
-  );
+  const { pick } = commands;
   const closeOpenWindow = useCallback(() => {
     closedByUser.current = true;
-    store.getState().setView(closeWindow(state));
-  }, [store, state]);
+    commands.close();
+  }, [commands]);
+  const showLandersEye = useCallback(() => pick("panorama"), [pick]);
   const setCameraView = useCallback((view: CameraViewId) => pick(view), [pick]);
   const focusSite = useCallback((siteId: string) => store.getState().focusSite(siteId), [store]);
+  const addSite = useCallback((siteId: string) => store.getState().addSite(siteId), [store]);
+  // "Try 3D anyway" removes its own button: say so, and put focus on the current view.
+  const tryAgain = useCallback(() => {
+    setAnnouncement(TRY_AGAIN_ANNOUNCEMENT);
+    requestAnimationFrame(() => shellRef.current?.querySelector<HTMLElement>('.view-bar-item[aria-current="true"]')?.focus());
+  }, []);
 
   // ── Keys: [ and ] fold the side panels; Escape closes a window ───────────
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      const popoverOpen = document.querySelector(".popover:popover-open") !== null;
       if (event.key === "Escape") {
         const what = escapeCloses({
-          popoverOpen: document.querySelector(".popover:popover-open") !== null,
+          popoverOpen,
           tipOpen: document.querySelector(".tip-bubble:not([hidden])") !== null,
           windowOpen,
           inEditableField: isEditable(event.target),
@@ -196,6 +194,7 @@ function MissionShell() {
         metaKey: event.metaKey,
         altKey: event.altKey,
         inEditableField: isEditable(event.target),
+        inOverlay: popoverOpen || (event.target instanceof Element && event.target.closest(OVERLAY_SELECTOR) !== null),
       });
       if (!panel) return;
       event.preventDefault();
@@ -206,25 +205,61 @@ function MissionShell() {
   }, [toggle, windowOpen, closeOpenWindow, phone]);
 
   // ── The free space ───────────────────────────────────────────────────────
-  const gapRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
+  const footRef = useRef<HTMLDivElement>(null);
   const windowRef = useRef<HTMLElement>(null);
   const railCollapsed = phone ? false : layout.sitesRail.collapsed;
   const focusCollapsed = phone ? !focusSheet : layout.focusPanel.collapsed;
-  // What floats over the gap: the open window, and on a phone an open sheet.
-  const covers = [
-    ...(windowOpen ? [windowRef] : []),
-    ...(phone && sitesSheet ? [regions.sitesRail] : []),
-    ...(phone && focusSheet ? [regions.focusPanel] : []),
-  ];
-  const coverKey = `${state.window ?? ""}|${phone && sitesSheet ? "sites" : ""}|${phone && focusSheet ? "focus" : ""}`;
-  const freeSpace = useFreeSpace(gapRef, covers, windowOpen, coverKey);
-
-  const scenario = useScenario(selectScenario);
   const timelineFolded = phone ? false : layout.timeline.collapsed;
   const topSpans = !phone && !viewBarFitsBetween(viewportWidth, layout);
+  const placement = windowPlacement(viewportWidth, layout, phone);
+
+  // The layout state, read when the free space is measured.
+  const shell = useRef({ phone, layout, windowOpen, sitesSheet, focusSheet });
+  shell.current = { phone, layout, windowOpen, sitesSheet, focusSheet };
+  const readShell = useCallback((): ShellState | null => {
+    const { phone: onPhone, layout: now, windowOpen: open, sitesSheet: sitesOpen, focusSheet: focusOpen } = shell.current;
+    const top = topRef.current;
+    const timeline = strip.current;
+    if (!top || !timeline) return null;
+    const focusNode = regions.focusPanel.current;
+    const railNode = regions.sitesRail.current;
+    const plate = footRef.current?.querySelector(".why-line");
+    const covers: Rect[] = [];
+    if (open && windowRef.current) covers.push(rectOf(windowRef.current));
+    if (plate) covers.push(rectOf(plate));
+    if (onPhone && sitesOpen && railNode) covers.push(rectOf(railNode));
+    if (onPhone && focusOpen && focusNode) covers.push(rectOf(focusNode));
+    const belowTops = [rectOf(timeline).y];
+    if (onPhone && !focusOpen && focusNode) belowTops.push(rectOf(focusNode).y);
+    return {
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      phone: onPhone,
+      folded: { sitesRail: now.sitesRail.collapsed, focusPanel: now.focusPanel.collapsed },
+      windowOpen: open,
+      topBottom: rectOf(top).y + rectOf(top).height,
+      belowTops,
+      covers,
+    };
+    // The refs inside `regions` are stable across renders.
+  }, []);
+  const watched = [topRef, strip, footRef, windowRef, regions.focusPanel, regions.sitesRail];
+  const measureKey = [
+    phone,
+    layout.sitesRail.collapsed,
+    layout.focusPanel.collapsed,
+    layout.timeline.collapsed,
+    state.window ?? "",
+    sitesSheet,
+    focusSheet,
+  ].join("|");
+  const freeSpace = useFreeSpace(readShell, watched, measureKey);
+
+  const scenario = useScenario(selectScenario);
 
   return (
     <div
+      ref={shellRef}
       className="mc"
       data-top={topSpans ? "span" : "between"}
       data-rail={railCollapsed ? "collapsed" : "open"}
@@ -232,12 +267,13 @@ function MissionShell() {
       data-timeline={timelineFolded ? "folded" : "open"}
       data-sites-sheet={sitesSheet ? "open" : "closed"}
       data-window={state.window ?? "none"}
+      data-window-place={placement}
     >
       <h1 className="sr-only">Mission Control</h1>
       <TopBar />
 
       <ViewBar state={state} onPick={pick} windowButtons={windowButtons} />
-      <ViewSentence camera={state.camera} />
+      <ViewSentence ref={topRef} camera={state.camera} />
 
       <SitesRail
         collapsed={railCollapsed}
@@ -254,28 +290,18 @@ function MissionShell() {
         reduceMotion={reduceMotion}
         onFocusSite={focusSite}
         onViewChange={setCameraView}
+        onAddSite={addSite}
+        onTryAgain={tryAgain}
       />
 
-      <div ref={gapRef} className="mc-gap" aria-hidden="true" />
-
-      <FootStack camera={state.camera} hidden={windowOpen} onShowLandersEye={() => pick("panorama")} />
+      <FootStack ref={footRef} camera={state.camera} hidden={windowOpen} onShowLandersEye={showLandersEye} />
 
       <FocusedSitePanel
         collapsed={focusCollapsed}
         onToggle={phone ? toggleFocusSheet : toggleFocus}
         regionRef={regions.focusPanel}
         toggleRef={toggles.focusPanel}
-        sheet={
-          phone
-            ? {
-                actions: (
-                  <Button className="sheet-sites" aria-expanded={sitesSheet} aria-controls="sites-rail" onClick={toggleSitesSheet}>
-                    Sites
-                  </Button>
-                ),
-              }
-            : undefined
-        }
+        sheet={sheet}
       />
 
       {state.window ? (
@@ -332,31 +358,46 @@ const OpenWindow = memo(function OpenWindow({ id, windowRef, onClose, windowButt
 });
 
 /**
- * The foot of the free space: on a dark or blackout hour, the "Why is it dark?" card on a
- * solid panel, with a way to see it from Lander's eye (docs/features/site-detail.md, "Where
- * the card sits"). Each camera view's own controls will sit here too, when their packages
- * build them. Hidden while a window is open: the card is never in a window.
+ * The foot of the free space: on a dark or blackout hour, one plate with the short reason for
+ * the Sun and for Earth, and "Why?" opening the full "Why is it dark?" card above it
+ * (docs/features/site-detail.md, "Where the card sits"). Each camera view's own controls will
+ * sit here too, when their packages build them. Hidden while a window is open (the card is
+ * never in a window) and on the phone, as in the prototype.
  */
 const FootStack = memo(function FootStack({
   camera,
   hidden,
   onShowLandersEye,
+  ref,
 }: {
   camera: CameraViewId;
   hidden: boolean;
   onShowLandersEye: () => void;
+  ref?: Ref<HTMLDivElement>;
 }) {
   const scenario = useScenario(selectScenario);
   return (
-    <div className="mc-foot-stack" hidden={hidden}>
-      <div className="panel why-float">
-        <WhyDarkCard scenario={scenario} mode="mission" hideWhenLit />
-        {camera === "panorama" ? null : (
-          <Button className="why-float-go" icon={<Eye size={14} strokeWidth={1.8} aria-hidden="true" />} onClick={onShowLandersEye}>
-            See it from Lander's eye
-          </Button>
-        )}
-      </div>
+    <div ref={ref} className="mc-foot-stack" hidden={hidden}>
+      <WhyDarkLine
+        scenario={scenario}
+        mode="mission"
+        extra={
+          camera === "panorama"
+            ? undefined
+            : (close) => (
+                <Button
+                  className="why-pop-go"
+                  icon={<Eye size={14} strokeWidth={1.8} aria-hidden="true" />}
+                  onClick={() => {
+                    close();
+                    onShowLandersEye();
+                  }}
+                >
+                  See it from Lander's eye
+                </Button>
+              )
+        }
+      />
     </div>
   );
 });

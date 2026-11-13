@@ -3,42 +3,52 @@ import { Button } from "../../components/Button";
 import { Explain } from "../../components/Explain";
 import { formatUtc } from "../../components/format";
 import type { FreeSpace } from "./free-space";
-import { STILL_PICTURE_URL, type SceneProps, type SceneStatus } from "../scene";
-import { sceneDisplay, stillNote } from "./scene-status";
+import { STILL_PICTURE_URL, type SceneProps, type SceneReport, type SceneStatus } from "../scene";
+import { sceneMode, showStill, stillLabel, stillNote } from "./scene-status";
 import { cameraView } from "./views";
 
-type SceneSlotProps = Omit<SceneProps, "onStatus" | "ignoreSlow"> & {
+type SceneSlotProps = Omit<SceneProps, "onStatus" | "ignoreSlow" | "mode"> & {
   /**
    * The 3D scene (work package T1). Until it exists, a placeholder stands in. To plug the
    * scene in, pass it here from mission-screen.tsx; nothing else in the shell changes.
    */
   Scene?: ComponentType<SceneProps>;
+  /** Called after "Try 3D anyway", so the shell can announce it and place focus. */
+  onTryAgain?: () => void;
 };
 
 /**
- * The slot the 3D scene fills: the whole window, behind the floating interface. It keeps the
- * scene's status, and when the scene reports "slow" or "no-webgl" it puts the still picture
- * in its place, with the note and "Try 3D anyway" (docs/features/system-view.md, "When 3D
+ * The slot the 3D scene fills: the whole window, behind the floating interface.
+ *
+ * It keeps the scene's status and tells the scene how to draw (`mode`). The scene stays
+ * mounted in every state: when WebGL is missing or slow it is told "flat" and draws its 2D
+ * parts, or nothing. For a view the scene has not said it draws flat, the slot puts the still
+ * picture over it with the note and "Try 3D anyway" (docs/features/system-view.md, "When 3D
  * does not run"). The rest of the interface does not depend on it.
  */
-export const SceneSlot = memo(function SceneSlot({ Scene = ScenePlaceholder, ...props }: SceneSlotProps) {
+export const SceneSlot = memo(function SceneSlot({ Scene = ScenePlaceholder, onTryAgain, ...props }: SceneSlotProps) {
   const [status, setStatus] = useState<SceneStatus | null>(null);
-  const [attempt, setAttempt] = useState(0);
-  const ignoreSlow = attempt > 0;
-  const display = sceneDisplay(status, ignoreSlow);
+  const [report, setReport] = useState<SceneReport | null>(null);
+  const [ignoreSlow, setIgnoreSlow] = useState(false);
+  const mode = sceneMode(status, ignoreSlow);
+  const still = showStill(mode, report, props.view);
 
-  const tryAnyway = useCallback(() => {
-    setStatus(null);
-    setAttempt((n) => n + 1);
+  const onStatus = useCallback((next: SceneStatus, nextReport?: SceneReport) => {
+    setStatus(next);
+    setReport(nextReport ?? null);
   }, []);
 
+  const tryAnyway = useCallback(() => {
+    setIgnoreSlow(true);
+    onTryAgain?.();
+  }, [onTryAgain]);
+
   return (
-    <div className="scene-slot" data-display={display}>
-      {display === "still" ? (
-        <StillPicture status={status ?? "slow"} freeSpace={props.freeSpace} onTryAnyway={tryAnyway} />
-      ) : (
-        <Scene key={attempt} {...props} ignoreSlow={ignoreSlow} onStatus={setStatus} />
-      )}
+    <div className="scene-slot" data-mode={mode} data-still={still}>
+      <Scene {...props} mode={mode} ignoreSlow={ignoreSlow} onStatus={onStatus} />
+      {still ? (
+        <StillPicture status={status ?? "slow"} view={props.view} freeSpace={props.freeSpace} onTryAnyway={tryAnyway} />
+      ) : null}
     </div>
   );
 });
@@ -57,24 +67,28 @@ function tooSmall(space: FreeSpace): boolean {
   return space.width < 220 || space.height < 48;
 }
 
-type StillProps = { status: SceneStatus; freeSpace: FreeSpace; onTryAnyway: () => void };
+type StillProps = { status: SceneStatus; view: SceneProps["view"]; freeSpace: FreeSpace; onTryAnyway: () => void };
 
-/** The still picture behind the interface, with its note. */
-function StillPicture({ status, freeSpace, onTryAnyway }: StillProps) {
+/**
+ * The still picture over the scene, with its note: a render of the System view
+ * (STILL_PICTURE_URL in ../scene.ts). "Try 3D anyway" is offered only
+ * when 3D is slow: without WebGL, trying again cannot help.
+ */
+function StillPicture({ status, view, freeSpace, onTryAnyway }: StillProps) {
   return (
     <>
       <img
         className="scene-still"
         src={STILL_PICTURE_URL}
-        alt="Still picture of the System view: the Moon half lit, with the Sun and Earth on either side."
+        alt={stillLabel(view)}
         style={{ width: "100%", height: "100%", objectFit: "cover" }}
       />
       {tooSmall(freeSpace) ? null : (
-        <div className="plate scene-plate scene-note" style={plateStyle(freeSpace, 12)} role="status">
+        <div className="plate scene-plate scene-note" style={plateStyle(freeSpace, 12)}>
           <p>
-            {stillNote(status)} <Explain term="still_picture" label="Still picture" />
+            {stillNote(status, view)} <Explain term="still_picture" label="Still picture" />
           </p>
-          <Button onClick={onTryAnyway}>Try 3D anyway</Button>
+          {status === "slow" ? <Button onClick={onTryAnyway}>Try 3D anyway</Button> : null}
         </div>
       )}
     </>
@@ -82,19 +96,20 @@ function StillPicture({ status, freeSpace, onTryAnyway }: StillProps) {
 }
 
 /**
- * Stands in for the 3D scene until work package T1 lands. A plain near-black background
- * and one quiet line saying so, in the free space. It reports "no-webgl" when the browser
- * cannot start WebGL, so the still-picture path can be seen working today.
+ * Stands in for the 3D scene until work package T1 lands. In 3D mode, a plain near-black
+ * background and one quiet line saying so, in the free space; in flat mode, nothing (it has
+ * no 2D parts, so it reports no flat views and the shell shows its still picture). It reports
+ * "no-webgl" when the browser cannot start WebGL, so the still-picture path works today.
  *
  * In development, `sessionStorage["truesouth.scene.status"] = "slow"` (or "no-webgl")
  * makes it report that status, to check the still picture by eye.
  */
-function ScenePlaceholder({ view, scenario, freeSpace, ignoreSlow, onStatus }: SceneProps) {
+function ScenePlaceholder({ view, scenario, freeSpace, ignoreSlow, mode, onStatus }: SceneProps) {
   useEffect(() => {
-    onStatus(probeStatus(ignoreSlow));
+    onStatus(probeStatus(ignoreSlow), { flatViews: [] });
   }, [onStatus, ignoreSlow]);
 
-  if (tooSmall(freeSpace)) return null;
+  if (mode === "flat" || tooSmall(freeSpace)) return null;
   return (
     <p className="plate scene-plate scene-placeholder" style={plateStyle(freeSpace, "middle")}>
       The 3D scene is not built yet. Here it will show the {cameraView(view).name} at{" "}

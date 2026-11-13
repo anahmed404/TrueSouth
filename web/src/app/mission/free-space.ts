@@ -2,13 +2,17 @@
  * The free space: the part of the window that no floating panel covers (CONTEXT.md). The
  * scene keeps its subject centred in it (docs/features/system-view.md, "Camera").
  *
- * The shell lays its panels out with CSS. It measures one empty box, the gap the layout
- * leaves between the panels (under the view bar and its sentence, between the side panels,
- * above the controls at the foot and the timeline). Anything that floats over that gap,
- * such as an open floating window, is then cut out of it here.
+ * `freeSpaceInput` turns the shell's layout state into the gap between the panels: its sides
+ * from which side panels are folded (the width each panel is moving to, so the camera's
+ * centre slides with a fold rather than after it), its top and bottom from the measured view
+ * bar and sentence and the measured panels below. Anything that floats over that gap (an open
+ * floating window, an open phone sheet, the "why is it dark" plate) is then cut out of it by
+ * `freeSpace`.
  *
  * Every value is in CSS pixels from the top left of the browser window.
  */
+
+import { FLOAT_SIZES, type ShellLayout } from "./shell-layout";
 
 export type Rect = { x: number; y: number; width: number; height: number };
 
@@ -112,4 +116,66 @@ export function insetsOf(space: FreeSpace): { top: number; right: number; bottom
     right: space.viewport.width - (space.x + space.width),
     bottom: space.viewport.height - (space.y + space.height),
   };
+}
+
+/** The shell's layout state, as `freeSpaceInput` reads it. */
+export type ShellState = {
+  viewport: { width: number; height: number };
+  /** The one-column phone layout: no side panels beside the scene. */
+  phone: boolean;
+  /** Which side panels are folded (ignored on a phone). */
+  folded: { sitesRail: boolean; focusPanel: boolean };
+  windowOpen: boolean;
+  /** The bottom edge of the view bar and its sentence. */
+  topBottom: number;
+  /** The top edges of the panels below the free space: the timeline, and the phone's one-line sheet. */
+  belowTops: readonly number[];
+  /** What floats over the gap: the open window, an open phone sheet, the "why" plate. */
+  covers: readonly Rect[];
+};
+
+/** The margin around every floating panel: 16 px, 8 px on a phone (DESIGN.md, "Layout"). */
+export function floatGap(phone: boolean): number {
+  return phone ? 8 : FLOAT_SIZES.gap;
+}
+
+/** The free space's input from the shell's layout state. */
+export function freeSpaceInput(state: ShellState): FreeSpaceInput {
+  const { viewport, phone, folded } = state;
+  const gap = floatGap(phone);
+  const railWidth = folded.sitesRail ? FLOAT_SIZES.slim : FLOAT_SIZES.rail;
+  const focusWidth = folded.focusPanel ? FLOAT_SIZES.slim : FLOAT_SIZES.focus;
+  const left = phone ? gap : gap + railWidth + gap;
+  const right = phone ? viewport.width - gap : viewport.width - (gap + focusWidth + gap);
+  const top = state.topBottom;
+  const bottom = Math.min(viewport.height, ...state.belowTops) - gap;
+  return {
+    viewport,
+    gap: { x: left, y: top, width: right - left, height: bottom - top },
+    covers: state.covers,
+    windowOpen: state.windowOpen,
+  };
+}
+
+/** The narrowest a floating window may be and still sit between the side panels. */
+export const WINDOW_MIN_BETWEEN = 720;
+/** The widest a floating window grows (docs/features/mission-control.md, "Floating windows"). */
+export const WINDOW_MAX = 1120;
+
+/**
+ * Where a floating window goes:
+ *
+ * - "between": inside the free space, between the open side panels, under the view's
+ *   sentence; it grows when panels fold, up to 1,120 px.
+ * - "over": when the room between the panels is under 720 px (a 1,024 px window with both
+ *   open), it covers the side panels, up to 1,120 px, centred in the window.
+ * - "full": on a phone it fills the screen.
+ */
+export function windowPlacement(viewportWidth: number, layout: ShellLayout, phone: boolean): "between" | "over" | "full" {
+  if (phone) return "full";
+  const { gap, rail, focus, slim } = FLOAT_SIZES;
+  const left = layout.sitesRail.collapsed ? slim : rail;
+  const right = layout.focusPanel.collapsed ? slim : focus;
+  const between = viewportWidth - 4 * gap - left - right;
+  return between >= WINDOW_MIN_BETWEEN ? "between" : "over";
 }

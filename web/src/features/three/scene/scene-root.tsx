@@ -1,7 +1,7 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
 import * as THREE from "three";
-import type { CameraViewId, FreeSpace, SceneProps, SceneStatus } from "../../../app/scene";
+import type { CameraViewId, FreeSpace, SceneProps } from "../../../app/scene";
 import type { Site } from "../../../contracts/generated";
 import { useApron, useManifest, useSceneMeta, useSeries, useSite, useSites, useSystem, useTerrain } from "../../../data";
 import type { DecodedApron, DecodedSeries, DecodedSystem, DecodedTerrain } from "../../../data";
@@ -88,13 +88,18 @@ function probeWebgl(): "ready" | "no-webgl" {
   }
 }
 
+/** This package draws nothing without WebGL yet: no camera view has a flat form. */
+const NO_FLAT_VIEWS = { flatViews: [] } as const;
+
 export default function SceneRoot(props: SceneProps) {
   const [webgl] = useState(probeWebgl);
   const { onStatus } = props;
   useEffect(() => {
-    if (webgl === "no-webgl") onStatus("no-webgl");
+    if (webgl === "no-webgl") onStatus("no-webgl", NO_FLAT_VIEWS);
   }, [webgl, onStatus]);
-  if (webgl === "no-webgl") return null;
+  // Flat mode (WebGL missing, or slow before "Try 3D anyway"): draw nothing in WebGL and let
+  // the shell's still picture stand. The Canvas unmounts, which releases the GPU.
+  if (webgl === "no-webgl" || props.mode === "flat") return null;
   return <Scene3D {...props} />;
 }
 
@@ -462,7 +467,7 @@ type DirectorProps = {
   dip: (ms: number, cut: () => void) => void;
   capture: boolean;
   dataReady: boolean;
-  onStatus: (status: SceneStatus) => void;
+  onStatus: SceneProps["onStatus"];
   onArrive?: SceneProps["onArrive"];
 };
 
@@ -567,7 +572,7 @@ function Director(props: DirectorProps) {
     const p = latest.current;
     const forced = devForcedStatus();
     const slow = forced === "slow" || median(m?.frames ?? []) > SLOW_MEDIAN_MS;
-    p.onStatus(slow && !p.ignoreSlow ? "slow" : "ready");
+    p.onStatus(slow && !p.ignoreSlow ? "slow" : "ready", NO_FLAT_VIEWS);
   }, []);
 
   // ── Flights ──

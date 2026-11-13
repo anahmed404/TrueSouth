@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { escapeCloses, focusAfterClose, focusOnOpen, type Focusable } from "./window-focus";
-import { sceneDisplay, stillNote } from "./scene-status";
+import { sceneMode, showStill, stillLabel, stillNote } from "./scene-status";
 
 function element(isConnected = true): Focusable & { focused: number } {
   return {
@@ -64,25 +64,36 @@ describe("focusAfterClose", () => {
   });
 });
 
-describe("the scene slot's still picture", () => {
-  it("shows the scene until it reports, and while it is ready", () => {
-    expect(sceneDisplay(null, false)).toBe("scene");
-    expect(sceneDisplay("ready", false)).toBe("scene");
+describe("the scene's mode and the shell's still picture", () => {
+  it("draws in 3D until the scene reports, and while it is ready", () => {
+    expect(sceneMode(null, false)).toBe("3d");
+    expect(sceneMode("ready", false)).toBe("3d");
   });
 
-  it("shows the still picture when the scene is slow or has no WebGL", () => {
-    expect(sceneDisplay("slow", false)).toBe("still");
-    expect(sceneDisplay("no-webgl", false)).toBe("still");
+  it("tells the scene to draw flat when it is slow or has no WebGL", () => {
+    expect(sceneMode("slow", false)).toBe("flat");
+    expect(sceneMode("no-webgl", false)).toBe("flat");
   });
 
-  it("draws a slow scene anyway after 'Try 3D anyway', but not one without WebGL", () => {
-    expect(sceneDisplay("slow", true)).toBe("scene");
-    expect(sceneDisplay("no-webgl", true)).toBe("still");
+  it("goes back to 3D for a slow scene after 'Try 3D anyway', but not without WebGL", () => {
+    expect(sceneMode("slow", true)).toBe("3d");
+    expect(sceneMode("no-webgl", true)).toBe("flat");
   });
 
-  it("says why, and that the rest still works", () => {
-    expect(stillNote("slow")).toMatch(/^3D is slow on this device/);
-    expect(stillNote("no-webgl")).toMatch(/^This device could not start 3D/);
-    expect(stillNote("slow")).toMatch(/panels, timeline and windows still work\.$/);
+  it("shows the still picture in flat mode only for views the scene does not draw flat", () => {
+    expect(showStill("3d", null, "system")).toBe(false);
+    expect(showStill("flat", null, "system")).toBe(true);
+    expect(showStill("flat", { flatViews: [] }, "map")).toBe(true);
+    expect(showStill("flat", { flatViews: ["map"] }, "map")).toBe(false);
+    expect(showStill("flat", { flatViews: ["map"] }, "terrain")).toBe(true);
+  });
+
+  it("says why, names the current view, and says the rest still works", () => {
+    expect(stillNote("slow", "system")).toBe(
+      "3D is slow on this device, so the System view shows a still picture instead of the 3D scene. The panels, timeline and windows still work.",
+    );
+    expect(stillNote("no-webgl", "terrain")).toMatch(/^This device could not start 3D, so Local terrain shows a still picture/);
+    expect(stillNote("slow", "panorama")).toMatch(/so Lander's eye shows/);
+    expect(stillLabel("map")).toMatch(/for the Polar map/);
   });
 });

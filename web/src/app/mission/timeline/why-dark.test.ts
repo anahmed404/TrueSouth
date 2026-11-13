@@ -15,8 +15,10 @@ import {
   formatDistance,
   formatHeight,
   namedFeatureAt,
+  shortReason,
   surfaceDistanceKm,
   wordExplanation,
+  type Explanation,
   type SkylineArrays,
 } from "./why-dark";
 
@@ -221,5 +223,42 @@ describe("on the real Connecting Ridge data", () => {
     expect(wordExplanation(e, { minFraction: 0.5, minElDeg: null, antennaMaskDeg: 1 }).text).toBe(
       "The Sun is 1.64° below level. The skyline toward 184.74° (south) is at −0.67°, set by ground 560 m away.",
     );
+  });
+});
+
+describe("shortReason", () => {
+  const rule = { minFraction: 0.5, minElDeg: null, antennaMaskDeg: 1 };
+  const blocker = { bin: 739, bearingDeg: 184.75, distKm: 0.56, heightM: 1946, latDeg: -89.4, lonDeg: 222 };
+  const base: Explanation = {
+    body: "sun",
+    ok: false,
+    cause: "below_horizon",
+    now: { azDeg: 184.74, elDeg: -1.64, frac: 0, clearDeg: -0.97 },
+    skylineDeg: -0.67,
+    blocker,
+    feature: null,
+  };
+
+  it("says what hides the Sun in one line, with the ground that sets the skyline", () => {
+    expect(shortReason(base, rule)).toBe("Sun hidden: skyline 0.97° above it, set by ground 560 m away");
+  });
+
+  it("leaves the ground out when no blocker is stored", () => {
+    expect(shortReason({ ...base, blocker: null }, rule)).toBe("Sun hidden: skyline 0.97° above it");
+  });
+
+  it("says how far Earth is under the antenna's limit", () => {
+    const earth: Explanation = { ...base, body: "earth", cause: "under_mask", now: { azDeg: 131.82, elDeg: 0.2, frac: 1, clearDeg: 0.93 } };
+    expect(shortReason(earth, rule)).toBe("No link: Earth 0.07° under the antenna's limit");
+  });
+
+  it("says when terrain hides Earth", () => {
+    const earth: Explanation = { ...base, body: "earth", cause: "terrain", now: { azDeg: 131.8, elDeg: 0.3, frac: 0, clearDeg: -0.4 } };
+    expect(shortReason(earth, rule)).toBe("No link: skyline 0.40° above Earth, set by ground 560 m away");
+  });
+
+  it("says when the Sun is clear but under the operations rule", () => {
+    const low: Explanation = { ...base, cause: "too_low", now: { azDeg: 90, elDeg: 0.5, frac: 1, clearDeg: 0.6 } };
+    expect(shortReason(low, { ...rule, minElDeg: 2 })).toBe("Sun too low: 0.50° up, the rule needs 2°");
   });
 });

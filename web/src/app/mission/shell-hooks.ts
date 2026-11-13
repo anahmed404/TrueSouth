@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
-import { freeSpace, sameFreeSpace, type FreeSpace, type Rect } from "./free-space";
+import { freeSpace, freeSpaceInput, sameFreeSpace, type FreeSpace, type Rect, type ShellState } from "./free-space";
 
 /** The phone layout's breakpoint, the same as every other phone rule in the CSS. */
 export const PHONE_QUERY = "(max-width: 760px)";
@@ -38,7 +38,8 @@ export function useViewportWidth(): number {
   return width;
 }
 
-function rectOf(element: Element): Rect {
+/** An element's rectangle in window coordinates. */
+export function rectOf(element: Element): Rect {
   const box = element.getBoundingClientRect();
   return { x: box.left, y: box.top, width: box.width, height: box.height };
 }
@@ -46,35 +47,25 @@ function rectOf(element: Element): Rect {
 const NO_SPACE: FreeSpace = { x: 0, y: 0, width: 0, height: 0, viewport: { width: 0, height: 0 }, windowOpen: false };
 
 /**
- * The free space, kept up to date. `gap` is the empty box the layout leaves between the
- * panels; `covers` are the panels open over it (the floating window, an open phone sheet).
- * It is measured again when any of them changes size (a panel folding resizes the gap frame
- * by frame), when the browser window resizes, and when `coverKey` changes (a window or a
- * sheet opening or closing).
+ * The free space, kept up to date. `read` gathers the shell's layout state (measuring its
+ * panels); `watch` are the elements whose size changes it. It is measured again when any of
+ * them resizes, when the browser window resizes, after a transition, and when `key` changes
+ * (a panel folding, a window or a sheet opening or closing).
  */
-export function useFreeSpace(
-  gap: RefObject<HTMLElement | null>,
-  covers: readonly RefObject<HTMLElement | null>[],
-  windowOpen: boolean,
-  coverKey: string,
-): FreeSpace {
+export function useFreeSpace(read: () => ShellState | null, watch: readonly RefObject<HTMLElement | null>[], key: string): FreeSpace {
   const [space, setSpace] = useState<FreeSpace>(NO_SPACE);
-  const coversRef = useRef(covers);
-  coversRef.current = covers;
+  const readRef = useRef(read);
+  readRef.current = read;
+  const watchRef = useRef(watch);
+  watchRef.current = watch;
 
   useLayoutEffect(() => {
     let frame = 0;
-    const nodes = () => coversRef.current.map((ref) => ref.current).filter((node): node is HTMLElement => node !== null);
     const measure = () => {
       frame = 0;
-      const gapNode = gap.current;
-      if (!gapNode) return;
-      const next = freeSpace({
-        viewport: { width: window.innerWidth, height: window.innerHeight },
-        gap: rectOf(gapNode),
-        covers: nodes().map(rectOf),
-        windowOpen,
-      });
+      const state = readRef.current();
+      if (!state) return;
+      const next = freeSpace(freeSpaceInput(state));
       setSpace((current) => (sameFreeSpace(current, next) ? current : next));
     };
     const schedule = () => {
@@ -83,10 +74,8 @@ export function useFreeSpace(
 
     measure();
     const observer = new ResizeObserver(schedule);
-    if (gap.current) observer.observe(gap.current);
-    for (const node of nodes()) observer.observe(node);
+    for (const ref of watchRef.current) if (ref.current) observer.observe(ref.current);
     window.addEventListener("resize", schedule);
-    // A panel that slides without changing the gap's size still moves it.
     document.addEventListener("transitionend", schedule, true);
     return () => {
       if (frame !== 0) cancelAnimationFrame(frame);
@@ -94,7 +83,7 @@ export function useFreeSpace(
       window.removeEventListener("resize", schedule);
       document.removeEventListener("transitionend", schedule, true);
     };
-  }, [gap, windowOpen, coverKey]);
+  }, [key]);
 
   return space;
 }
