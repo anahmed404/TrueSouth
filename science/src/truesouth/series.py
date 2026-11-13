@@ -6,6 +6,59 @@ import numpy as np
 from collections.abc import Mapping
 from numpy.typing import ArrayLike, NDArray
 from truesouth.contracts import SeriesLayout
+from dataclasses import dataclass
+
+from truesouth.constants import SUN_RADIUS_KM, EARTH_RADIUS_KM
+from truesouth.discs import visible_fraction
+from truesouth.ephemeris import topocentric
+from truesouth.skyline import interpolate_skyline
+
+
+@dataclass(frozen=True)
+class Series:
+    """Eight unquantised hourly columns and mean angular radii for SiteMeta."""
+
+    columns: dict[str, NDArray[np.float64]]
+    sun_radius_deg: float
+    earth_radius_deg: float
+
+
+def build_series(latitude, longitude, ground_height_m, skyline_el_deg, global_ephemeris):
+    """Compute one site's series (science.md §§3.2, 5–7), without file I/O.
+
+    ``skyline_el_deg`` contains equally spaced azimuth bins. The global
+    ephemeris is the named-array mapping returned by load_global; synthetic
+    grids of any length are supported. Ground is metres above the reference
+    sphere; topocentric adds the fixed two-metre observer height exactly once.
+    Each body's entire grid is vectorised, with at most hours × 33 strips
+    live at once; bodies run sequentially to bound temporary memory.
+
+    Elevation is in [-90, 90] and clearance, the difference of two elevations,
+    in [-180, 180]. Both fit Int16 at 0.01°/count without clipping. The existing
+    encoder rejects out-of-range values rather than silently clipping them.
+    """
+    skyline = np.asarray(skyline_el_deg, dtype=float)
+    if (skyline.ndim != 1 or skyline.size < 2 or not np.isfinite(skyline).all()
+            or np.any(np.abs(skyline) > 90) or not np.isfinite(ground_height_m)):
+        raise ValueError('finite ground and skyline elevations within ±90° required')
+    columns, radii = {}, {}
+    for body, prefix, radius in [('sun', 'subsolar', SUN_RADIUS_KM),
+                                  ('earth', 'subearth', EARTH_RADIUS_KM)]:
+        position = topocentric(latitude, longitude, global_ephemeris[prefix+'_lat'],
+                               global_ephemeris[prefix+'_lon'],
+                               global_ephemeris[body+'_dist_km'], radius,
+                               ground_height_m=ground_height_m)
+        if position.az_deg.ndim != 1 or not position.az_deg.size:
+            raise ValueError('ephemeris must contain nonempty hourly vectors')
+        columns[body+'_az'] = position.az_deg
+        columns[body+'_el'] = position.el_deg
+        columns[body+'_frac'] = visible_fraction(position.az_deg, position.el_deg,
+                                                position.radius_deg, skyline)
+        columns[body+'_clear'] = position.el_deg - interpolate_skyline(skyline, position.az_deg)
+        radii[body] = float(np.mean(position.radius_deg))
+    if columns['sun_az'].shape != columns['earth_az'].shape:
+        raise ValueError('Sun and Earth must share the same hourly grid')
+    return Series(columns, radii['sun'], radii['earth'])
 
 
 def encode_series(columns: Mapping[str, ArrayLike], layout: SeriesLayout | None = None) -> bytes:

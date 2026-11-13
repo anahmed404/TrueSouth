@@ -49,6 +49,28 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-13 · S7 · Real Connecting Ridge disc fractions, series and dataset
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — wrote synthetic tests first, then disc integration, series computation and build-sites; ran pytest, both real-map builds and the diagnostics below — human and orchestrator review pending.
+- **State:** verified (the orchestrator, Claude Fable 5.2, ran the tests on the merge with main and compared the real series with NASA's average maps; Antigravity, gemini-4-argon derived the disc fraction independently (largest error 0.0013 against the 0.005 limit), ran eight mutations, rebuilt the real site byte for byte in 31 s and reproduced the NASA comparison; the one surviving mutation, nearest-bin clearance, now fails a test added by the orchestrator)
+- **Changed:** `science/src/truesouth/discs.py`, `series.py`, `commands/build_sites.py`, `science/tests/`, `data/derived/` (system.bin unchanged), this entry.
+- **Checks:** `uv run pytest`: 177 passed in 34.77 s. G7 maximum error 0.0013027560869 (limit 0.005), across 2,001 offsets including d = -1, -0.5, 0, 0.5, 1, four Sun/Earth radii and three skyline heights. G9 on the real grid: 0.00499999734121204°, 4.9998632326409e-05 fraction. Synthetic pipeline checks validate contracts, repeat and forced byte identity, retaining earlier sites, input changes, sphere tier, and write/rename failure recovery. Tests need no real maps or network.
+- **Repeatability:** Forced real rebuild 40.827071 s (42.186142 s including process startup); all nine derived files byte-identical, including unchanged system.bin. A fresh incremental invocation skips the site and preserves identical bytes.
+- **Real build:** Connecting Ridge (-89.4555°, 222.6192°E), both prepared NASA maps read only; 40.859410 s (target <120 s), ground 1950.256444244 m; 52,584 hourly samples, 2026-2031. Mean angular radii Sun 0.266450575713°, Earth 0.950672581493°; skyline -2.639793653° to 1.681117796°, blockers 0.080000 to 89.251431821 km, missing samples 0. Site files 871,160 bytes; all `data/derived/` 2,151,529 bytes including the existing 1,262,016-byte system.bin.
+- **Sun (decoded files, as read by the web):** mean sun_frac 0.598582287388 (59.858229%); hours sun_frac ≥ 0.5: 60.004944%; any Sun: 65.746235%. Longest sun_frac < 0.5 stretch 521 h, [2029-03-23T15:00:00Z, 2029-04-14T08:00:00Z). The supplied published CR1 figure is 92.27% at 2 m over 19 years (Gläser et al. 2014); ours is lower by 32.411771 percentage points over six years. These are different averaging spans; the measured gap is large and is not treated as agreement. No tuning or production terrain exclusion.
+- **Measured diagnosis:** reran the unchanged skyline while reducing every candidate at distance ≥ each cutoff (retaining the next-highest candidate, not deleting only the winning blocker). Ignoring terrain closer than 100 / 250 / 500 m gives mean sun_frac 0.632551109063 / 0.782445085982 / 0.828245892582 (63.255111 / 78.244509 / 82.824589%). Corresponding lit shares 63.332953 / 78.299483 / 83.068994%; any-Sun shares 68.914499 / 83.510193 / 87.260383%. These diagnostic series are unquantised and not committed; production unquantised mean 0.598582298387. Of 20,939 centre-hidden hours (decoded sun_clear < 0), nearest-bin blockers are <1 km for 19,925, >10 km for 612, and 1-10 km for 402. Attribution uses the nearest bin's stored blocker; clearance itself interpolates adjacent bins. This supports local terrain as a major contributor, not a complete explanation of the published discrepancy. Diagnostic pass 36.030117 s.
+- **Earth (decoded files):** clearance ≥ 1° link share 45.607029%; any Earth 54.914042%. Longest blackout 382 h, [2026-05-23T00:00:00Z, 2026-06-07T22:00:00Z), using the 1° antenna mask.
+- **IM-2 Athena daily sweep:** `scoring.slip_sweep`, midnight UTC, slope=None; 2,182 complete landing dates: 95 GO, 17 CAUTION, 2,070 NO-GO; final 9 dates have no full window. Veto counts (overlap): darkness 1,411, blackout 1,905, landing_dark 872; slope, landing_sun_low and landing_sun_high 0. Slope is unassessed.
+- **Spot checks:** unquantised geometry; H is interpolated, while blocker data comes from the nearest bin (listed below). All positions are latitude and east longitude; heights are metres above the reference sphere.
+
+| Hour UTC | Sun az / el (°) | H / clearance (°) | sun_frac | Blocker bin (°) / distance (km) / height (m) | Blocker lat / east lon (°) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 2026-11-12T15:00:00Z (lit) | 280.747816064 / 1.656637536 | -2.631571027 / 4.288208563 | 1.000000000000 | 280.75 / 0.160000000 / 1944.901886206 | -89.454491183 / 222.074713162 |
+| 2028-04-15T07:00:00Z (dark) | 69.215248385 / -1.359343212 | 1.404283449 / -2.763626661 | 0.000000000000 | 69.25 / 0.080000000 / 1954.221468841 | -89.454559719 / 222.878361615 |
+| 2027-03-14T13:00:00Z (partly_hidden) | 237.723497796 / -1.130757823 | -1.127949503 / -0.002808319 | 0.500003573729 | 237.75 / 42.079555840 / 1635.240722656 | -88.809143867 / 123.250016428 |
+
+- **Spec questions / choices:** (1) Equal-width strip midpoints strictly inside (-rho,rho); skyline extrema handle fully clear/hidden discs before any cosine division, with machine-epsilon protection only for artificial partial discs at the zenith. (2) `build_series` accepts ground metres, a skyline elevation vector and global arrays, and returns columns plus grid-mean body radii; all hours vectorised, bodies sequential for bounded memory. Elevations are within +/-90 degrees and clearance within +/-180, so neither can exceed the Int16 angular range; invalid encoder input raises instead of clipping. (3) Site tier uses the documented latitude helper; map coverage chooses each terrain sample. Missing required polar terrain raises, while sphere uses ground 0 for ephemeris, null elevation in Site and NaN blockers. (4) Incremental checks conservatively include both available maps/sidecars, system.bin, catalog sites and pipeline Python sources, plus valid existing metadata/file sizes; changed input invalidates the site. (5) On Windows publication renames the previous complete directory to a backup, then renames the staged complete directory into place; errors restore the backup and the next invocation recovers interrupted publication. There is a brief directory-unavailable interval, never a partly populated published site. JSON files replace atomically; sites.json merges existing entries in sorted-id order. (6) `--generated-utc` is the only file clock time; committed value 2026-11-13T00:00:00Z, otherwise current UTC. Slope and meshes await S8 (slope/terrain/closeup null, has_closeup false); tool links use the documented home pages pending MC9. (7) Whole-grid statistics and daily scoring use decoded bytes; spots and cutoff diagnostics use unquantised geometry. Longest stretches are half-open UTC intervals, daily dates are midnight UTC, incomplete final mission windows have no result. R1/R2, validation.json, maps and Academy worked examples remain their later work packages; no synthetic validation claims are inserted.
+
 #### 2026-11-13 · S9 · Polar map images and lookup grids
 - **Who:** Codex (gpt-6.1-terra), for the orchestrator
 - **AI use:** Codex — implemented the map pipeline and synthetic tests — automated tests and real-data checks run by the agent; human review pending.
@@ -256,6 +278,33 @@ each integration checkpoint.
   - `|latitude| > 89.999°` throws for the local frame and for walking. The sphere point and the Sun-elevation formula still accept the poles.
 
 ## Academy
+
+#### 2026-11-13 · A2 · Academy screens in the picked form and the five step kinds
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the path (variant b), the lesson
+  screen (variant b, split stage), lesson complete (variant a), the five step kinds
+  (`choice`, `predict`, `fill-formula`, `spot-bug`, `tune-slider`), the widened lesson
+  types, the draw-skyline closeness rule, the Academy tokens and their vitest tests —
+  checked by the agent with the tests, typecheck and build, the impeccable detector
+  (0 findings), and by eye in a browser at 1440 × 900 and 390 × 844 with reduce motion
+  on and off. A human has not played it yet.
+- **State:** verified (orchestrator ran typecheck, 1,145 tests and build on the merge with main and looked at the screens; Antigravity, gemini-4-hydrogen reviewed the rules, ran eight mutations and measured the screens in a browser; its three must-fix findings were fixed by the orchestrator)
+- **Changed:** `web/src/features/academy/`, `web/src/components/luna/` (no-bounce mood
+  change; proud, cheering and worried extras recoloured to the C2 rules),
+  `docs/academy/overview.md`, the Academy block in `web/src/app/theme.css`, `DESIGN.md`,
+  screenshots `docs/design/c2/built-academy-*.png`
+- **Notes:**
+  - New rules in `docs/academy/overview.md`: predict gets one guess (10 or 2 XP);
+    draw-skyline XP by closeness, `round(10 − 8 × clamp((gap − 0.25) / 1.75, 0, 1))`;
+    leaving part-way drops the lesson's progress; the ninth patch is "True South".
+  - The Academy's motion curve is `--ease-ac`, not `--ease-out`, because `--ease-out`
+    already exists for Mission Control.
+  - The three panel step kinds (A3) show a placeholder that says the step is coming,
+    and offer "Skip this step" (no XP, left out of the stars). A3 removes the skip.
+  - Panels at the end of a lesson and in a predict reveal are grey boxes until Mission
+    Control's panels have a `"lesson"` mode.
+  - `UnderTheHoodCard` in `card/index.tsx` renders plain text; A4 replaces its inside.
+  - The sound toggle is not shown: there are no sounds yet, so a toggle would do nothing.
 
 #### 2026-11-13 · A7 · `explain.ts`: a plain-language entry for every term a user meets
 - **Who:** Claude Code agent, for the orchestrator
