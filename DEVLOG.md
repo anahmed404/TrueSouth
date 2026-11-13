@@ -918,7 +918,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   agent with the tests, typecheck, build and pytest, by playing lessons 1 to 4 in a
   browser at 1440 × 900 and 390 × 844 (and once with `VITE_DATA=fixtures`, and once by
   keyboard only), and with the Impeccable detector. A human has not played the lessons.
-- **State:** built, not verified (1,837 web tests, typecheck, build and 322 Python tests pass on the merge with main, after the review fixes)
+- **State:** verified (333 Python tests, 1,849 web tests and the typecheck pass on the merge with main; reviewed by Codex, which recomputed every answer of lessons 1 to 4 from the real data; five findings fixed (the highest-Sun formula uses the distance from the pole and is called an estimate; the ridge is said to be toward the Sun; the 20 km slider goal is exact; story-month numbers say this month; the wording test covers every visible string); played by the builder by keyboard at two sizes; not yet played by the team lead)
 - **Changed:** `web/src/features/academy/` (`lessons/l1.ts`–`l4.ts`, `lessons/index.ts`,
   `lessons/story.ts`, `lessons/COVERAGE.md`, `cards/`, `index.tsx`, `path-map.tsx`,
   `complete-screen.tsx`, `lesson-screen.tsx`, `lesson/stage.tsx`, `lesson/scenes.tsx`,
