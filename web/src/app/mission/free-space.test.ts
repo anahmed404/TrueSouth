@@ -88,19 +88,38 @@ describe("freeSpace", () => {
 });
 
 describe("freeSpaceInput: the shell's layout state to the gap between the panels", () => {
-  /** 1440 × 900, both side panels open, the sentence ending at 182.5 px, the timeline at 668 px. */
+  /**
+   * 1440 × 900, both side panels open, the timeline at 668 px. The view bar ends at 116 px and
+   * its empty notices stack 8 px below it: no sentence plate sits under the bar any more.
+   */
   const open: ShellState = {
     viewport,
     phone: false,
     folded: { sitesRail: false, focusPanel: false },
     windowOpen: false,
-    topBottom: 182.5,
+    topBottom: 124,
     belowTops: [668],
     covers: [],
   };
 
-  it("puts the gap between the open side panels, under the sentence and above the timeline", () => {
-    expect(freeSpaceInput(open).gap).toEqual({ x: 288, y: 182.5, width: 792, height: 469.5 });
+  it("puts the gap between the open side panels, just under the view bar and above the timeline", () => {
+    expect(freeSpaceInput(open).gap).toEqual({ x: 288, y: 124, width: 792, height: 528 });
+  });
+
+  it("gives the scene the room the view's sentence took, and keeps the subject centred in it", () => {
+    // The sentence plate used to end at 182.5 px at this size (two lines of 15 px text).
+    const withSentence = freeSpace(freeSpaceInput({ ...open, topBottom: 182.5 }));
+    const without = freeSpace(freeSpaceInput(open));
+    expect(without.height - withSentence.height).toBe(59);
+    expect(without.y).toBe(124);
+    expect(without.y + without.height).toBe(withSentence.y + withSentence.height);
+    // The camera centres on the middle of the free space, so the centre rises by half the gain.
+    const centre = (space: Rect) => space.y + space.height / 2;
+    expect(centre(withSentence) - centre(without)).toBeCloseTo(29.5, 5);
+  });
+
+  it("starts below a notice under the view bar, when there is one", () => {
+    expect(freeSpaceInput({ ...open, topBottom: 160 }).gap.y).toBe(160);
   });
 
   it("moves the left edge in when the sites rail folds", () => {

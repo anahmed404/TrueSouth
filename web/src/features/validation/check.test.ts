@@ -136,8 +136,11 @@ describe("checkReport", () => {
     for (const name of ["a row missing ours", "a row missing its NASA value"]) {
       const checked = checkReport(CASES[name]!())!;
       const id = name === "a row missing ours" ? "R1" : "R2";
-      expect(tableRows(checked.comparisons, id)).toHaveLength(14);
-      expect(comparisonRows(checked.comparisons, id)).toHaveLength(13);
+      // The published file includes the five best-lit variants. One damaged
+      // row stays in the table and leaves the chart.
+      const published = real.comparisons.filter((row) => row.id === id).length;
+      expect(tableRows(checked.comparisons, id)).toHaveLength(published);
+      expect(comparisonRows(checked.comparisons, id)).toHaveLength(published - 1);
       expect(summariseComparisons(checked.comparisons).incomplete).toBe(1);
       const markup = render(CASES[name]!());
       expect(markup).toContain(INCOMPLETE_MESSAGE.replace("'", "&#x27;"));

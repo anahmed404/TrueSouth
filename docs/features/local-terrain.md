@@ -33,8 +33,8 @@ Layout and the view bar: [`mission-control.md`](mission-control.md). Prototype:
 - **Behind the interface:** the Moon's real ground around the site, out to a curved
   horizon, with the Moon's curvature included. It is the same scene as the System view, so
   the globe is still there beyond the ground.
-- **Floating above it:** the app bar, the view bar and its one-sentence plate, the sites
-  rail, the focused-site panel and the timeline. The view's controls float at the foot of
+- **Floating above it:** the app bar, the view bar, the sites rail, the focused-site panel
+  and the timeline. The view's controls float at the foot of
   the free space. Labels in the scene sit on plates.
 
 ## What it shows
@@ -176,7 +176,7 @@ for the quality stages that measure frame time. For checking, the address takes
 
 ## States
 
-- **Sphere-tier site (Apollo 11):** no ground. The view sentence reads "No terrain data for
+- **Sphere-tier site (Apollo 11):** no ground. A plate at the top of the free space reads "No terrain data for
   Apollo 11. It is far from the pole, so TrueSouth treats the ground there as a smooth
   sphere." A button offers "Show Apollo 11 in the System view", and the camera follows the
   site on the globe instead of descending.

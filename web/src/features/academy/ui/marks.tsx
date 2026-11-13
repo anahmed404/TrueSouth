@@ -4,7 +4,23 @@ import { Check, Eye, RotateCcw } from "lucide-react";
  * The Academy's "right" mark: a bare GO-green check with a word. It is a mark, not a
  * status lamp, so it is never a filled disc.
  */
-export function CorrectMark({ label = "Correct", showLabel = true }: { label?: string; showLabel?: boolean }) {
+export function CorrectMark({
+  label = "Correct",
+  showLabel = true,
+  silent = false,
+}: {
+  label?: string;
+  showLabel?: boolean;
+  /** Next to text that already says it, the check is drawn only, not read out again. */
+  silent?: boolean;
+}) {
+  if (silent) {
+    return (
+      <span className="ac-correct" aria-hidden="true">
+        <Check />
+      </span>
+    );
+  }
   return (
     <span className="ac-correct">
       <Check aria-hidden="true" />
