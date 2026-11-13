@@ -34,7 +34,7 @@ export function stillNote(status: SceneStatus, view: CameraViewId): string {
 
 /** The still picture's accessible name. */
 export function stillLabel(view: CameraViewId): string {
-  return `Still picture in place of the 3D scene, for ${viewPhrase(view)}. The image is not made yet.`;
+  return `Still picture of the System view in place of the 3D scene, for ${viewPhrase(view)}: the Moon half lit, with the Sun and Earth on either side.`;
 }
 
 /** What the status region says after "Try 3D anyway". */
