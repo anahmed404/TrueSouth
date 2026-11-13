@@ -34,6 +34,7 @@ import {
   pillText,
   sliderValueText,
   timelineRange,
+  windowEndText,
   windowText,
   xToHour,
   type HourScale,
@@ -44,6 +45,7 @@ import {
   NARROW_PLOT,
   PLOT,
   bandLayers,
+  coveredLabels,
   clearanceSummary,
   plotLayout,
   rectsPath,
@@ -67,6 +69,12 @@ export type TimelineProps = PanelProps & {
    */
   compact?: boolean;
   onToggleFold?: () => void;
+  /**
+   * The landing-date control, drawn at the left end of the head, where the mission window
+   * begins: the landing date sets where the window starts, the scrubber moves inside it.
+   * With it, the head's "Timeline" title is for screen readers only.
+   */
+  landing?: ReactNode;
   /**
    * Sets the scenario's current time. "push" adds one history entry; "replace" does not, for
    * the steps of a drag or of play after the first. Without it, `onScenarioChange` is used.
@@ -111,7 +119,7 @@ export function Timeline(props: TimelineProps) {
 
 type SiteTimelineProps = TimelineProps & { siteId: string; grid: TimeGrid; hours: NonNullable<Hours> };
 
-function SiteTimeline({ scenario, siteId, grid, hours, folded = false, compact = false, onToggleFold, onTimeChange, onScenarioChange }: SiteTimelineProps) {
+function SiteTimeline({ scenario, siteId, grid, hours, folded = false, compact = false, onToggleFold, onTimeChange, onScenarioChange, landing }: SiteTimelineProps) {
   const profile = scenario.profile;
   const range = useMemo(() => timelineRange(grid.count, hours.landing, profile.duration_days), [grid.count, hours.landing, profile.duration_days]);
   const gridStartMs = useMemo(() => Date.parse(grid.start_utc), [grid.start_utc]);
@@ -170,6 +178,7 @@ function SiteTimeline({ scenario, siteId, grid, hours, folded = false, compact =
     return (
       <div className="tl tl-compact">
         <h2 className="sr-only">Timeline</h2>
+        {landing ? <div className="tl-landing tl-compact-landing">{landing}</div> : null}
         {playButton}
         <p className="tl-compact-now">
           <span className="tl-compact-time tabular">{compactRow.time}</span>
@@ -199,8 +208,9 @@ function SiteTimeline({ scenario, siteId, grid, hours, folded = false, compact =
   if (folded) {
     return (
       <div className="tl tl-folded">
-        <h2 className="tl-title">Timeline</h2>
+        <h2 className={landing ? "sr-only" : "tl-title"}>Timeline</h2>
         {foldButton}
+        {landing ? <div className="tl-landing">{landing}</div> : null}
         <span className="tl-folded-time tabular">{pillText(range, current, gridStartMs)}</span>
         {playButton}
         <span className="tl-folded-counts">
@@ -222,19 +232,36 @@ function SiteTimeline({ scenario, siteId, grid, hours, folded = false, compact =
   return (
     <div className="tl">
       <div className="tl-head">
-        <h2 className="tl-title">
-          <Explain term="timeline">Timeline</Explain>
-        </h2>
+        {landing ? (
+          <h2 className="sr-only">Timeline</h2>
+        ) : (
+          <h2 className="tl-title">
+            <Explain term="timeline">Timeline</Explain>
+          </h2>
+        )}
         {foldButton}
-        <p className="tl-window">
-          <span className="tl-window-dates tabular">
-            <Explain term="mission_window">Mission window</Explain> {windowText(range, gridStartMs)}
-            {range.fits ? "" : " (past the end of the data)"},
-          </span>{" "}
-          <span className="whitespace-nowrap">
-            {formatLimit(profile.duration_days, "d")} <SettingsTag settings={durationTag} />
-          </span>
-        </p>
+        {landing ? (
+          <>
+            <div className="tl-landing">{landing}</div>
+            {/* The landing-date control shows the window's end and length with its tag; the
+                head adds only a warning when the window runs past the data. */}
+            {range.fits ? null : (
+              <p className="tl-window tl-muted">
+                Mission window {windowEndText(range, gridStartMs)}, past the end of the data.
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="tl-window">
+            <span className="tl-window-dates tabular">
+              <Explain term="mission_window">Mission window</Explain> {windowText(range, gridStartMs)}
+              {range.fits ? "" : " (past the end of the data)"},
+            </span>{" "}
+            <span className="whitespace-nowrap">
+              {formatLimit(profile.duration_days, "d")} <SettingsTag settings={durationTag} />
+            </span>
+          </p>
+        )}
         <div className="tl-controls">
           {playButton}
           <Button onClick={playback.changeSpeed} aria-label={`Play speed: ${speedLabel(playback.speed)}. Change speed`}>
@@ -285,11 +312,14 @@ function FoldedCount({ view }: { view: CountdownView }) {
   );
 }
 
-function TimelineMessage({ children, folded, onToggleFold }: TimelineProps & { children: ReactNode }) {
+function TimelineMessage({ children, folded, onToggleFold, landing }: TimelineProps & { children: ReactNode }) {
   return (
     <div className={cx("tl", folded && "tl-folded")}>
-      <h2 className="tl-title">Timeline</h2>
-      {onToggleFold ? <FoldButton folded={folded ?? false} onToggle={onToggleFold} /> : null}
+      <div className={folded ? "tl-message-head" : "tl-head"}>
+        <h2 className={landing ? "sr-only" : "tl-title"}>Timeline</h2>
+        {onToggleFold ? <FoldButton folded={folded ?? false} onToggle={onToggleFold} /> : null}
+        {landing ? <div className="tl-landing">{landing}</div> : null}
+      </div>
       <p className="tl-message">{children}</p>
     </div>
   );
@@ -578,6 +608,20 @@ function ScrubPill({ x, top, width, text }: { x: number; top: number; width: num
     if (w > 0 && Math.abs(w - pillWidth) > 0.5) setPillWidth(w);
   }, [text, pillWidth]);
   const left = Math.min(Math.max(0, x - pillWidth / 2), Math.max(0, width - pillWidth));
+
+  // The pill shares the day labels' row: hide the labels it would cover, rather than draw
+  // over half of them. The band layer is memoised and does not re-render on a scrub, so this
+  // marks its labels directly; it runs after every render, since the labels can change too.
+  useLayoutEffect(() => {
+    const labels = ref.current?.parentElement?.querySelectorAll<SVGTextElement>("text.tl-day");
+    if (!labels || labels.length === 0) return;
+    const boxes = Array.from(labels, (label) => {
+      const box = label.getBBox();
+      return { left: box.x, right: box.x + box.width };
+    });
+    const covered = coveredLabels(boxes, { left, right: left + pillWidth });
+    labels.forEach((label, index) => label.toggleAttribute("data-covered", covered[index] ?? false));
+  });
   return (
     <span ref={ref} className="tl-pill tabular" style={{ transform: `translate(${left}px, ${top}px)` }} aria-hidden="true">
       {text}

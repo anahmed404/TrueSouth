@@ -22,7 +22,7 @@ Polar map and Local terrain.
 - **Opening.** Pick it in the view bar. The camera flies to a stop above the south pole,
   tilted so the Moon curves away at the top. The flight takes 1.4 s, with ease-in-out.
 - **The address** in the shareable link is `view=slip`. It restores this view.
-- **The view's sentence:** "Your sites at the south pole, each showing whether a landing on
+- **The view's sentence** (in the tab's "About" tip and its accessible description, not on screen): "Your sites at the south pole, each showing whether a landing on
   the date below would be GO, CAUTION or NO-GO."
 - **The camera fit.** The camera centres on the middle of the polar sites' bounding box,
   stands on the pole's side 30° up, and aims a little above the sites so the curve shows.
@@ -243,8 +243,8 @@ date never animates in any case.
 
 At 390 × 844:
 
-- The view bar scrolls sideways, and the view's sentence sits under it.
-- The Moon gets about 210 px between the sentence and the controls. Spots are 44 px touch
+- The view bar scrolls sideways; nothing sits under it.
+- The Moon gets the room between the view bar and the controls. Spots are 44 px touch
   targets. Labels are measured while shown and kept inside the screen.
 - The controls row wraps to two lines and keeps the "not for your date" wording.
 - The focused site is the one-line sheet.

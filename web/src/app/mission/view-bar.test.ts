@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { act, createElement, useRef } from "react";
 import type { Root } from "react-dom/client";
+import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Manifest, MissionProfile } from "../../contracts/generated";
 import { hourIndexToUtc, utcToHourIndex } from "../../lib/time";
@@ -154,7 +155,8 @@ describe("the view bar's renders", () => {
     const { createRoot } = await import("react-dom/client");
     root = createRoot(document.createElement("div") as unknown as Element);
     await act(async () => {
-      root?.render(createElement(ScenarioStoreProvider, { store, children: createElement(Shell) }));
+      // The view's "About" button links to its Academy lesson, so the bar needs a router.
+      root?.render(createElement(MemoryRouter, null, createElement(ScenarioStoreProvider, { store, children: createElement(Shell) })));
     });
     const afterMount = renders();
     expect(afterMount).toBeGreaterThan(0);
