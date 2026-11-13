@@ -720,6 +720,32 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Academy
 
+#### 2026-11-13 · A5b · Lessons 1 to 4 reworded to the real numbers
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-sonnet-5-5 — rewrote the text of lessons 1 to 4 in
+  `lessons.md` and in `l1.ts`–`l4.ts` against `worked_examples.json`, and read the
+  existing tests that tie the code strings to the document — checked by the agent with
+  pytest, vitest and typecheck. A human has not read or played the lessons.
+- **State:** built, not verified
+- **Changed:** `docs/academy/lessons.md` (lessons 1 to 4, the intro note, and the
+  "Lesson text that must change to match" list marked done), `web/src/features/academy/lessons/l1.ts`–`l4.ts`
+  (string literals only)
+- **Notes:**
+  - Every value that has a worked-example key is now a `{{key}}` placeholder. Lesson 1
+    says the 2.08° tilt figure is the best-season maximum and this month only reaches the
+    real value. Lesson 2 names `{{l2.site_name}}` and says why Pip moved. Lesson 3 uses the
+    real drops and a Sun that is never above the lesson 1 maximum. Lesson 4 uses 60%, a
+    goal of `{{l4.mask_for_15pct_deg}}` and the 5° rule that can never be met.
+  - Options changed: lesson 1 step 1 "Under 2°" is now "Under 3°"; lesson 3 step 5's right
+    answer no longer says "1–2° up"; lesson 4 step 3 "About two-thirds" is now "Almost
+    never". Lesson 3 step 4's line 4 says the Sun is 0.5° up (was 0.8°, above the month's
+    highest).
+  - Left alone because it needs more than wording: lesson 4 step 4's goal tolerance
+    (±1°) also accepts 5.5° and 6° (21% and 16% link time, not under 15%);
+    `lessons/COVERAGE.md` still lists the old settings and design values;
+    `docs/science.md` section 4 and `docs/academy/luna.md` still say "1–2°" and "2°" for
+    the polar Sun.
+
 #### 2026-11-13 · A5a · Lesson types for lessons 1 to 8, skeletons for 1 to 4
 - **Who:** Cursor agent, for the orchestrator
 - **AI use:** Cursor, grok-4.7 — widened the lesson types, the runner and the evaluator,
