@@ -11,6 +11,7 @@ import { FocusedSitePanel } from "./mission/focused-site-panel";
 import { ScenarioProvider, useScenario, useScenarioStore } from "./mission/scenario-context";
 import { windowPlacement, type Rect, type ShellState } from "./mission/free-space";
 import { SceneSlot } from "./mission/scene-slot";
+import { SpaceScene } from "../features/three/scene";
 import { TRY_AGAIN_ANNOUNCEMENT } from "./mission/scene-status";
 import {
   OVERLAY_SELECTOR,
@@ -282,6 +283,7 @@ function MissionShell() {
       />
 
       <SceneSlot
+        Scene={SpaceScene}
         view={state.camera}
         scenario={scenario}
         freeSpace={freeSpace}
