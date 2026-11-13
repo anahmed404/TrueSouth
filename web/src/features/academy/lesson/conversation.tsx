@@ -175,7 +175,7 @@ function ResultRow({ result, examples }: { result: ResultView; examples: WorkedE
   const reduced = useLunaReducedMotion();
   return (
     <div className="ac-result" role="status">
-      {result.tone === "correct" ? <CorrectMark showLabel={false} label={headline} /> : <ShownMark />}
+      {result.tone === "correct" ? <CorrectMark silent /> : <ShownMark />}
       <span className="ac-result-text">{result.tone === "shown" ? <span className="ac-visually-hidden">The answer: </span> : null}
         {headline}
       </span>
@@ -192,7 +192,13 @@ function ResultRow({ result, examples }: { result: ResultView; examples: WorkedE
 }
 
 function KeyHint({ step, primary }: { step: Step; primary: PrimaryAction }) {
-  if (primary.kind === "skip") return <span className="ac-keys ac-keys-desk" />;
+  if (primary.kind === "skip") {
+    return (
+      <span className="ac-keys ac-keys-desk">
+        <span className="ac-kbd">Enter</span> continue
+      </span>
+    );
+  }
   const verb = primary.kind === "check" && primary.label === "Show me" ? "show me" : "check";
   if (step.kind === "choice" || step.kind === "predict") {
     return (
