@@ -742,6 +742,55 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## 3D and Map
 
+#### 2026-11-14 · Scene polish · Controls, real stars, and speed on weak machines
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill — wrote the
+  System view's pivot, pan, zoom to the pointer and double-click (`navigate.ts`), the drag
+  fixes in `rig.ts`, the star renderer (`stars.ts`) and the script that makes
+  `web/public/stars.bin` (`web/dev/build-stars.mjs`), the quality stages and the Moon's
+  level of detail (`perf.ts`), vitest tests for all of them, and the doc changes; no
+  AI-generated imagery (the stars are a NASA/ADC catalogue) — checked by the agent with the
+  vitest suite, typecheck, build, pytest, pixel diffs of before and after screenshots, and
+  by eye and by the numbers in Chrome with hardware WebGL (RTX 2060), SwiftShader with 1×,
+  4× and 6× CPU throttling, and real touch events at 390 × 844; a human has not reviewed it
+- **State:** built, not verified
+- **Changed:** `web/src/features/three/scene/` (`navigate.ts`, `stars.ts`, `perf.ts` and
+  their tests are new; `rig.ts`, `scene-root.tsx`, `overlay.tsx`, and one additive method in
+  `world.ts`, `setMoonSegments`), `web/public/stars.bin` and `web/dev/build-stars.mjs` (new),
+  `web/src/lib/explain.ts` (an optional `controls` line for the System view and Local
+  terrain) and `web/src/components/Explain.tsx` (shows it), `docs/features/system-view.md`,
+  `DESIGN.md` (stars), `docs/decisions/0014-the-scene-steps-quality-down.md`,
+  `docs/design/c2/built-scene-polish-*.png`, this entry
+- **Notes:**
+  - **Controls.** Every drag follows "grab the globe": the surface under the pointer moves
+    with it. The sideways drag was inverted in Local terrain, and in the System view
+    whenever the south was at the top of the screen. Close in, drags turn about the point of
+    interest (the pole, the followed site, a double-clicked spot, or the centre of the
+    view); far out, about the Moon's centre; the pivot slides between 1.6 and 4 Moon radii
+    with no jump. Pan: right-drag, Shift-drag, two fingers. Wheel and pinch zoom toward the
+    pointer. "South pole" frames the whole cap poleward of about 80°S; clicking it again
+    brings the cap back. Keys: arrows move the camera (the picture moves the other way),
+    Shift and an arrow pans, plus and minus zoom. The first load still lands on home.
+  - **Stars.** The Yale Bright Star Catalogue, 5th revised edition (Hoffleit and Warren
+    1991, CDS V/50), from HEASARC's public `bsc5p` table, reduced to 8,404 stars to
+    magnitude 6.5 in 67 kB. Placed by one fixed rotation: the Moon's pole points where the
+    IAU model says, turned about it as on 2000-01-01, not for the scrubber's time (that
+    would be ephemeris work in the frontend). Nothing on screen claims otherwise.
+  - **Speed.** Before and after, median ms between drawn frames, 1440 × 900:
+    RTX 2060 4.2 → 4.2 (all scenarios, display-capped); SwiftShader orbit 196 → 33, flight
+    to the Polar map 229 → 37; SwiftShader with 6× CPU orbit 213 → 36, flight 225 → 41.
+    The cost was the Moon's 147,000 triangles, not pixels or the main thread (2.5 ms). On a
+    fast machine the still picture is pixel-identical to before in the Moon. Not measured: a
+    real laptop's built-in graphics. Still slow on SwiftShader: Local terrain (about 240 ms
+    a frame at 6× CPU) because of the ground's mesh, left for the ground package; and the
+    first flight into Local terrain has a one-off upload stall (about 375 ms).
+  - The timeline's play button advances one hour per drawn frame at 6 h a second, so its
+    frame gap (about 167 ms) is the play rate, not a cost.
+  - **Dev only:** `?perf` shows frame times over the scene; `window.__truesouthPerf` reads
+    them; `window.__truesouthScene` now also exposes `invalidate`.
+  - During this work the machine's disk filled up twice and the dev server crashed once;
+    every commit was re-checked afterwards.
+
 #### 2026-11-13 · T1, T2 · The 3D scene behind Mission Control
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (question
