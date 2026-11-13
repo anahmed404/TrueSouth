@@ -67,7 +67,7 @@ The lesson doc and `docs/academy/overview.md` do not say which of these to pick.
 
 1. Lesson 1 step 2, lesson 1 step 3, and lesson 4 step 2 say "a whole month" or "plays one month" and do not name the month's UTC endpoints. The story says "in 2028". The only UTC keys are `l1.example_utc` and `l4.example_utc`. Quote: "Drag the Sun through a whole month." Quote: "Reveal: the System view plays one month." The skeletons use `{ kind: "span", span: "one-month", aroundUtc }` with that lesson's example hour.
 
-2. Lesson 1 step 4 writes numbers that have no worked-example keys. Quote: "**1.54°, my tilt** / 23.4° / 5.1°. At 89.46°S that gives 2.08°." `l1.site_lat_deg` exists; 1.54, 23.4, 5.1, 89.46 and 2.08 do not. The skeleton copies the doc.
+2. Lesson 1 step 4 writes numbers that have no worked-example keys. Quote: "**1.54°, my tilt** / 23.4° / 5.1°. At 89.46°S that gives 2.08°." `l1.site_lat_deg` exists; 1.54, 23.4, 5.1, 89.46 and 2.08 do not. The skeleton copies the doc. Resolved in A5: the 1.54° tilt and the rule are quoted from `docs/science.md` §3.4, and Luna says the rule gives "about 2°", an estimate for the best season, with no 2.08 typed.
 
 3. Decided. Lesson 2 step 3 is a 60° window centred on `l2.sun_az_deg`. See **Exact settings** in the lesson doc.
 

@@ -28,14 +28,14 @@ export const l1Card: UnderTheHoodCard = {
     },
     {
       id: "highest",
-      lead: "A rule of thumb for the most the Sun's centre can rise, in the best season, on a smooth sphere. It ignores the terrain, the observer's height and the Sun's disc:",
+      lead: "A rule of thumb that estimates how high the Sun's centre rises in the best season, on a smooth sphere. It is an estimate, not a limit: it ignores the terrain, the observer's height and the Sun's disc:",
       tex: String.raw`E_{max} \approx 90° - |\varphi| + 1.54°`,
       display: "block",
       reading:
-        "The highest the Sun gets is about 90 degrees, minus how far the site is from the equator, plus the tilt of my equator to my path around the Sun.",
+        "In the best season the Sun's highest point is roughly 90 degrees, minus how far the site is from the equator, plus the tilt of my equator to my path around the Sun.",
       section: { number: "3.4", title: "Two rules of thumb the Academy quotes" },
       symbols: [
-        { tex: "E_{max}", meaning: "The most the Sun's centre can rise above level, in the best season", unit: "°" },
+        { tex: "E_{max}", meaning: "An estimate of how high the Sun's centre rises above level, in the best season", unit: "°" },
         { tex: String.raw`\varphi`, meaning: "The site's [[latitude]]", unit: "°" },
       ],
     },
@@ -65,7 +65,7 @@ export const l1Card: UnderTheHoodCard = {
         tex: String.raw`\sin e = \sin({{example.l1.site_lat_deg}}^\circ)\sin({{example.l1.example_subsolar_lat}}^\circ) + \cos({{example.l1.site_lat_deg}}^\circ)\cos({{example.l1.example_subsolar_lat}}^\circ)\cos(\lambda - {{example.l1.example_subsolar_lon}}^\circ)`,
       },
       {
-        label: "The rule of thumb at Pip's latitude, for the best season",
+        label: "The rule of thumb's estimate at Pip's latitude, for the best season",
         tex: String.raw`E_{max} \approx 90° - |{{example.l1.site_lat_deg}}°| + 1.54°`,
       },
       { label: "The Sun's [[azimuth]], as stored", value: "{{example.l1.example_sun_az}}°" },

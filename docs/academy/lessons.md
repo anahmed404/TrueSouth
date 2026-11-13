@@ -30,7 +30,7 @@ Ridge, in 2028. Lesson 2 states its exception: Pip looks from `{{l2.site_name}}`
 | 1 | `choice` | "At my equator the midday Sun is almost overhead. How high does it get at my south pole?" | Overhead / About 45° / **Under 3°** |
 | 2 | `drag-body` (Sun) | "Drag the Sun through a whole month. Find its highest moment." | Lander's eye view with a flat skyline. The best the learner can find is {{l1.sun_el_max_deg}}°. Luna: "This month the Sun climbs only to {{l1.sun_el_max_deg}}°, and sinks to {{l1.sun_el_min_deg}}°. It skims my horizon." |
 | 3 | `predict` | "Over that month, which directions does the Sun visit?" | Only east and west / **All the way round** / Only north. Reveal: the System view plays one month. |
-| 4 | `fill-formula` | "Highest Sun ≈ (90° − how far south you are) + ( ? )" | **1.54°, my tilt** / 23.4° / 5.1°. The rule is science.md §3.4's highest Sun: 90°, minus how far south the site is, plus 1.54°. At Pip's latitude it gives 2.08°, computed from `l1.site_lat_deg` and checked by a test. Luna: "My tilt is about 1.54°; 23.4° is Earth's tilt, and 5.1° is the tilt of my orbit. At Pip's latitude that gives 2.08°, the most my Sun can reach here in the best season; this month it only gets to {{l1.sun_el_max_deg}}°." |
+| 4 | `fill-formula` | "Highest Sun ≈ (90° − how far south you are) + ( ? )" | **1.54°, my tilt** / 23.4° / 5.1°. The rule is science.md §3.4's highest Sun: 90°, minus how far south the site is, plus 1.54°. It is an estimate, not a limit: at Pip's latitude it says about 2°, and the Sun's real highest point can be a little higher. Luna: "My tilt is about 1.54°; 23.4° is Earth's tilt, and 5.1° is the tilt of my orbit. That rule of thumb says about 2° at Pip's latitude in the best season. This month the Sun only gets to {{l1.sun_el_max_deg}}°. Both are true: one is an estimate for the best season, the other is this month." |
 | 5 | `choice` | "If you stood exactly on my south pole, which way is north?" | East / Up / **Every direction**. Luna: "That is why this tool is called TrueSouth." |
 
 **Words.** The lines the table does not quote, as the app shows them. A hint follows a
@@ -334,9 +334,10 @@ mission profile do not. The team lead agreed these on 2026-11-13.
 **Lesson text that must change to match** (wording is the lesson writer's job):
 
 - Lesson 1: the design value "2.0°" for the highest Sun is replaced by
-  `{{l1.sun_el_max_deg}}` wherever it appears. *Done.* Step 4 also says the 2.08° rule of
-  thumb is the best-season maximum and this month is lower; step 1's right answer is now
-  "Under 3°", because "Under 2°" is false for the best season (2.08°).
+  `{{l1.sun_el_max_deg}}` wherever it appears. *Done.* Step 4 also says the rule of thumb
+  estimates about 2° for the best season and this month is lower; it is an estimate, not a
+  limit. Step 1's right answer is "Under 3°", because "Under 2°" is false for the best
+  season (the rule gives 2.08°, and the stored six years reach a little higher).
 - Lesson 2, steps 1 and 3: Luna says which site Pip is looking from. *Done.* Step 1 also
   says why the lesson moved there.
 - Lesson 4, step 2: the readouts' design values (6.0°, −7.3°) are examples only; the

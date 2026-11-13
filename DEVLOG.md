@@ -824,7 +824,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   agent with the tests, typecheck, build and pytest, by playing lessons 1 to 4 in a
   browser at 1440 × 900 and 390 × 844 (and once with `VITE_DATA=fixtures`, and once by
   keyboard only), and with the Impeccable detector. A human has not played the lessons.
-- **State:** built, not verified (1,836 web tests, typecheck, build and 322 Python tests pass on the merge with main, after the review fixes)
+- **State:** built, not verified (1,837 web tests, typecheck, build and 322 Python tests pass on the merge with main, after the review fixes)
 - **Changed:** `web/src/features/academy/` (`lessons/l1.ts`–`l4.ts`, `lessons/index.ts`,
   `lessons/story.ts`, `lessons/COVERAGE.md`, `cards/`, `index.tsx`, `path-map.tsx`,
   `complete-screen.tsx`, `lesson-screen.tsx`, `lesson/stage.tsx`, `lesson/scenes.tsx`,
@@ -848,9 +848,12 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - On the fixture the lessons validate and play, but its synthetic numbers do not fit
     the story (lesson 2's Sun is above the ridge; lesson 1's maximum is 4.4°).
   - Review fixes (Codex review of PR #81), each its own commit:
-    1. Lesson 1 step 4 asks "Highest Sun ≈ (90° − how far south you are) + ( ? )". A test
-       checks the printed 2.08° against 90 − |`l1.site_lat_deg`| + 1.54 from the real
-       worked examples. The miss explanation says what 23.4° and 5.1° really are. The
+    1. Lesson 1 step 4 asks "Highest Sun ≈ (90° − how far south you are) + ( ? )". After a
+       math review, the rule is worded as an estimate, not a limit (the stored six years
+       reach a little higher than its 2.08°): Luna says "about 2° at Pip's latitude in the
+       best season ... one is an estimate for the best season, the other is this month",
+       no 2.08 is typed, and a test fails if any lesson or card source words it as a limit.
+       A test checks that 90 − |`l1.site_lat_deg`| + 1.54 rounds to 2. The miss explanation says what 23.4° and 5.1° really are. The
        lesson 1 card quotes `docs/science.md` §3.4's highest-Sun rule with |φ|, the lesson 4
        card its 0.26° off-centre shift.
     2. Lesson 2 step 1 says the ridge lies in the Sun's direction; step 3 sketches the
