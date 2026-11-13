@@ -13,7 +13,13 @@ from truesouth_api.settings import cache_limit_bytes as configured_cache_limit
 
 from truesouth.contracts import CatalogSite, CustomSiteRequest, Site
 
-ID = re.compile(r'^c_-?(?:0|[1-9][0-9]*)\.[0-9]{4}_(?:0|[1-9][0-9]*)\.[0-9]{4}$', re.ASCII)
+ID = re.compile(
+    r'\Ac_(?:-?90\.0000_0\.0000|'
+    r'(?:[0-9]\.[0-9]{4}|[1-8][0-9]\.[0-9]{4}|'
+    r'-(?:[1-9]|[1-8][0-9])\.[0-9]{4}|-0\.(?!0000_)[0-9]{4})_'
+    r'(?:0|[1-9][0-9]?|[12][0-9]{2}|3[0-5][0-9])\.[0-9]{4})\Z',
+    re.ASCII,
+)
 NEED_MAPS = 'Custom sites need the terrain maps, which are not installed on this server.'
 START = 'Custom site is not ready. Start it with POST /api/sites/custom.'
 MAPS = ('LDEM_80S_80MPP_ADJ.npy', 'LDEM_60S_240MPP_ADJ.npy')

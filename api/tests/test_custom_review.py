@@ -211,6 +211,8 @@ def test_storage_publication_does_not_evict(tmp_path):
     'c_00.0000_0.0000', 'c_0.0000_360.0000', 'c_91.0000_0.0000', 'c_90.0000_1.0000',
     'c_+0.0000_0.0000', 'c_1e0_0.0000', 'c_\u0660.0000_0.0000'])
 def test_noncanonical_cache_folders_are_never_served(empty_tree, identity):
+    from truesouth_api.jobs import ID
+    assert ID.fullmatch(identity) is None
     derived, prepared, cache = empty_tree
     folder = cache/identity; folder.mkdir(parents=True)
     site = entry(request(0, 0)).model_dump(); site['id'] = identity
@@ -356,3 +358,10 @@ def test_health_size_tolerates_staging_rename():
     class Root:
         def rglob(self, pattern): return iter([Vanished()])
     assert CacheBudget(Root(), 100).size() == 0
+
+
+@pytest.mark.parametrize('identity', ['c_0.0000_0.0000', 'c_-0.0001_359.9999',
+    'c_89.9999_100.0000', 'c_-89.9999_9.0000', 'c_90.0000_0.0000', 'c_-90.0000_0.0000'])
+def test_canonical_regex_boundaries(identity):
+    from truesouth_api.jobs import ID
+    assert ID.fullmatch(identity)
