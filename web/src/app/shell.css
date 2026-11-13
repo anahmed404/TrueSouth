@@ -2000,6 +2000,11 @@
       display: none;
     }
 
+    /* Lander's eye keeps its horizon chart on the phone: the chart carries the answer. */
+    .mc-foot-stack[data-view="panorama"]:not([hidden]) {
+      display: flex;
+    }
+
     /* The sites rail is a sheet, opened by "Sites"; the focused site is a one-line sheet. */
     .shell-rail,
     .shell-focus,

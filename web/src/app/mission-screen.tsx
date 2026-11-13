@@ -3,6 +3,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type Ref } fro
 import { Button } from "../components/Button";
 import { firstSentence } from "../components/format";
 import { Panel } from "../components/Panel";
+import LandersEye from "../features/panorama";
 import { explanations } from "../lib/explain";
 import { selectScenario } from "../state/scenario";
 import { Countdowns, Timeline, WhyDarkLine, type TimeWrite } from "./mission/timeline";
@@ -161,6 +162,7 @@ function MissionShell() {
     commands.close();
   }, [commands]);
   const showLandersEye = useCallback(() => pick("panorama"), [pick]);
+  const showSystemView = useCallback(() => pick("system"), [pick]);
   const setCameraView = useCallback((view: CameraViewId) => pick(view), [pick]);
   const focusSite = useCallback((siteId: string) => store.getState().focusSite(siteId), [store]);
   const addSite = useCallback((siteId: string) => store.getState().addSite(siteId), [store]);
@@ -224,13 +226,17 @@ function MissionShell() {
     if (!top || !timeline) return null;
     const focusNode = regions.focusPanel.current;
     const railNode = regions.sitesRail.current;
-    const plate = footRef.current?.querySelector(".why-line");
+    // The foot stack's own plate, not the one inside Lander's eye's panel.
+    const plate = footRef.current?.querySelector(":scope > .why-line");
     const covers: Rect[] = [];
     if (open && windowRef.current) covers.push(rectOf(windowRef.current));
     if (plate) covers.push(rectOf(plate));
     if (onPhone && sitesOpen && railNode) covers.push(rectOf(railNode));
     if (onPhone && focusOpen && focusNode) covers.push(rectOf(focusNode));
     const belowTops = [rectOf(timeline).y];
+    // In Lander's eye the horizon chart's panel ends the free space above it.
+    const chart = footRef.current?.querySelector(".pano-panel");
+    if (chart) belowTops.push(rectOf(chart).y);
     if (onPhone && !focusOpen && focusNode) belowTops.push(rectOf(focusNode).y);
     return {
       viewport: { width: window.innerWidth, height: window.innerHeight },
@@ -249,6 +255,7 @@ function MissionShell() {
     layout.sitesRail.collapsed,
     layout.focusPanel.collapsed,
     layout.timeline.collapsed,
+    state.camera,
     state.window ?? "",
     sitesSheet,
     focusSheet,
@@ -294,7 +301,13 @@ function MissionShell() {
         onTryAgain={tryAgain}
       />
 
-      <FootStack ref={footRef} camera={state.camera} hidden={windowOpen} onShowLandersEye={showLandersEye} />
+      <FootStack
+        ref={footRef}
+        camera={state.camera}
+        hidden={windowOpen}
+        onShowLandersEye={showLandersEye}
+        onShowSystemView={showSystemView}
+      />
 
       <FocusedSitePanel
         collapsed={focusCollapsed}
@@ -368,36 +381,38 @@ const FootStack = memo(function FootStack({
   camera,
   hidden,
   onShowLandersEye,
+  onShowSystemView,
   ref,
 }: {
   camera: CameraViewId;
   hidden: boolean;
   onShowLandersEye: () => void;
+  onShowSystemView: () => void;
   ref?: Ref<HTMLDivElement>;
 }) {
   const scenario = useScenario(selectScenario);
   return (
-    <div ref={ref} className="mc-foot-stack" hidden={hidden}>
-      <WhyDarkLine
-        scenario={scenario}
-        mode="mission"
-        extra={
-          camera === "panorama"
-            ? undefined
-            : (close) => (
-                <Button
-                  className="why-pop-go"
-                  icon={<Eye size={14} strokeWidth={1.8} aria-hidden="true" />}
-                  onClick={() => {
-                    close();
-                    onShowLandersEye();
-                  }}
-                >
-                  See it from Lander's eye
-                </Button>
-              )
-        }
-      />
+    <div ref={ref} className="mc-foot-stack" data-view={camera} hidden={hidden}>
+      {camera === "panorama" ? (
+        <LandersEye scenario={scenario} mode="mission" onShowSystemView={onShowSystemView} />
+      ) : (
+        <WhyDarkLine
+          scenario={scenario}
+          mode="mission"
+          extra={(close) => (
+            <Button
+              className="why-pop-go"
+              icon={<Eye size={14} strokeWidth={1.8} aria-hidden="true" />}
+              onClick={() => {
+                close();
+                onShowLandersEye();
+              }}
+            >
+              See it from Lander's eye
+            </Button>
+          )}
+        />
+      )}
     </div>
   );
 });

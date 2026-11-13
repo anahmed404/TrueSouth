@@ -238,6 +238,33 @@ pole), Earth's azimuth in December 2026 ranged from 129.5° to 144.9°. Earth si
 longitude 0°, so the predicted azimuth is $360° - 222.6° = 137.4°$, plus or minus
 libration. The data agrees.
 
+### 3.4 Two rules of thumb the Academy quotes
+
+These are approximations for teaching. No result in TrueSouth is computed from them:
+every direction comes from sections 3.1 and 3.2.
+
+**The highest Sun.** The Moon's equator is tilted about 1.54° to the plane of its path
+around the Sun, so the sub-solar latitude stays close to the equator. In the stored
+ephemeris (2026 to 2031) it stays within ±1.59°. On a smooth sphere, seen from the
+surface at latitude $\varphi$, the centre of the Sun's disc can rise to about
+
+$$E_{max} \approx 90° - |\varphi| + 1.54°$$
+
+above the local level. The rule ignores the terrain, the observer's height (which lowers
+the horizon, section 4) and the Sun's disc, whose radius is about 0.27°. It gives the most
+the Sun can reach in the best season, not what it reaches in a given month. At Connecting
+Ridge ($\varphi = -89.4555°$) it gives 2.08°.
+
+**Earth's off-centre shift.** Section 3.2 subtracts the site's position from the body's.
+For Earth this moves its direction, compared with the direction from the Moon's centre,
+by at most about
+
+$$\arcsin\left(\frac{R}{D}\right) \approx 0.26°$$
+
+with $R$ the Moon's radius and $D$ Earth's distance. Over the stored ephemeris the bound
+runs from 0.24° at Earth's farthest to 0.28° at its nearest. The shift is largest for a
+site that sees Earth at its horizon, which is where the polar sites are.
+
 ## 4. How high a piece of terrain looks
 
 An observer at radius $R_0$ looks at a terrain point at radius $R_1 = R + z$, a ground
@@ -426,7 +453,7 @@ condition is Earth clearance against `antenna_mask_deg`. The next change is the 
 or after the current hour; if none occurs before the end of the time grid, the result is
 none.
 
-`web/src/lib/scoring/metrics.ts` (reference copy: `scoring.py`)
+`web/src/lib/scoring/scoring.ts` (reference copy: `scoring.py`)
 
 ## 10. Vetoes, utilities, score, status
 
@@ -468,7 +495,7 @@ So that a score always exists, a profile's power and comms weights must not both
 Vetoes decide whether a mission can work. The score ranks the ones that can. The threshold
 70 is a team setting, to be tuned once real data exists.
 
-`web/src/lib/scoring/score.ts` (reference copy: `scoring.py`)
+`web/src/lib/scoring/scoring.ts` (reference copy: `scoring.py`)
 
 ## 11. The slip sweep
 
