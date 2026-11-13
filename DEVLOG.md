@@ -49,6 +49,75 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-13 · S15b · Nearby range and best-lit variants in build-sites
+- **Who:** implementation sub-agent
+- **AI use:** Cursor, grok-4.7 — wired placement into `build-sites`, added the candidate cache, wrote the synthetic tests, built the five variants and their aprons, and reran validation — exit codes below were read from the logs; human review pending.
+- **State:** verified (333 Python tests, 1,756 web tests and the typecheck pass on the merge with main; reviewed by Codex (the five variants match decision 0012; a real-data recomputation of one winning pixel matched; three mutations caught); review fixes: the cache key covers every science module, comparison R5 keeps its catalog sites, two build-level tests, a byte-identical rebuild recorded; only the five new site folders differ from main)
+- **Changed:** `commands/build_sites.py`, `placement_cache.py`, `commands/validate.py` (G2 skips a variant), build-sites and G2 tests, `data/derived/sites.json`, five new `sites/*_best_lit/` folders, five new aprons, `scene/meta.json`, `validation.json`, the generated-variants section of `docs/site-catalog.md`, this entry.
+- **Checks:** `uv run pytest`: 300 passed in 168.67 s, exit 0, before the merge. `uv run truesouth export-schema` exit 0, then `pnpm --dir web gen:types` exit 0, and `git status --short` showed no contract or generated-type change. `pnpm --dir web typecheck` exit 0. `pnpm --dir web test`: 1,504 passed, exit 0. `pnpm --dir web build` exit 0. Real `build-sites`: first run 2370.6 s, exit 0; up-to-date rerun 1.8 s, exit 0; `--force` rerun 181.2 s (parents recomputed, candidates from cache), exit 0. `build-scene-assets` 31.6 s, exit 0. `validate` 228.9 s, exit 0. All new and edited source files are UTF-8 without a BOM and use LF. NASA data was read only.
+- **After merging origin/main:** `uv run pytest -q`: 328 passed in 210.32 s, exit 0. `pnpm --dir web install --frozen-lockfile` exit 0. `pnpm --dir web test`: 1,581 passed, exit 0. `pnpm --dir web typecheck` exit 0. `pnpm --dir web build` exit 0. Schema export and `gen:types` again left no diff. `data/derived/academy/worked_examples.json` matches `origin/main`. Nothing in `web/src` assumes 20 sites, so no web file was changed.
+- **Notes:** Decision 0012's table agrees to three decimals. Listed mean `sun_frac`, the range within 160 m, the best-lit mean, the offset rounded to the nearest metre, and the variant latitude and east longitude:
+
+| Site | Listed mean | Range within 160 m | Best-lit mean | Offset (m) | Variant latitude, east longitude |
+| :--- | ---: | :--- | ---: | ---: | :--- |
+| `connecting_ridge` | 0.599 | 0.397 to 0.870 | 0.870 | 149 | −89.45116, 222.85728 |
+| `shackleton_rim` | 0.747 | 0.429 to 0.810 | 0.810 | 94 | −89.77725, 203.37680 |
+| `de_gerlache_rim` | 0.607 | 0.276 to 0.696 | 0.696 | 144 | −88.69910, 291.59644 |
+| `peak_near_shackleton` | 0.602 | 0.498 to 0.638 | 0.638 | 71 | −88.73810, 124.43758 |
+| `malapert_peak` | 0.728 | 0.377 to 0.767 | 0.767 | 72 | −85.97437, 357.91641 |
+
+Each variant, from its own published record and series. Ground height is metres. Slope is degrees. "Any Sun" is the share of hours with `sun_frac` above zero. "Earth ≥ 1°" is the share of hours with Earth clearance at or above 1°.
+
+| Variant | Ground height | Slope | Any Sun | Earth ≥ 1° |
+| :--- | ---: | ---: | ---: | ---: |
+| `connecting_ridge_best_lit` | 1956.826 | 0.582 | 0.915 | 0.488 |
+| `shackleton_rim_best_lit` | 1735.207 | 5.800 | 0.866 | 0.458 |
+| `de_gerlache_rim_best_lit` | 1780.174 | 2.694 | 0.745 | 0.515 |
+| `peak_near_shackleton_best_lit` | 1455.077 | 2.666 | 0.653 | 0.343 |
+| `malapert_peak_best_lit` | 4972.435 | 2.449 | 0.809 | 0.653 |
+
+New R1 rows (mean Sun disc fraction). Difference is ours minus NASA. Existing R1, R2 and R3 rows are unchanged.
+
+| Site | Ours | NASA | Difference | Outside mark |
+| :--- | ---: | ---: | ---: | :--- |
+| `connecting_ridge_best_lit` | 0.869614909 | 0.864200000 | +0.005414909 | no |
+| `de_gerlache_rim_best_lit` | 0.695897674 | 0.464160000 | +0.231737674 | yes |
+| `malapert_peak_best_lit` | 0.767453454 | 0.507600000 | +0.259853454 | yes |
+| `peak_near_shackleton_best_lit` | 0.637824196 | 0.585400000 | +0.052424196 | no |
+| `shackleton_rim_best_lit` | 0.810021349 | 0.728480000 | +0.081541349 | no |
+
+`de_gerlache_rim_best_lit`: NASA's 60 m pixel is 0.464. Neighbours run from 0.056 to 0.669. NASA's 120 m map is 0.529. Ours is 0.696. NASA models an observer on the surface, 18.6 years and its own terrain grid; ours uses an observer 2 m above the ground, six years and the 80 m map. `malapert_peak_best_lit`: NASA's 60 m pixel is 0.508. Neighbours run from 0.487 to 0.748. NASA's 120 m map is 0.665. Ours is 0.767. Same method sentence. The three inside-mark rows quote the NASA pixel, scale, offset and no-data value.
+
+New R2 rows (share of hours with any Earth). `de_gerlache_rim_best_lit` is outside the mark: NASA's 60 m pixel is 0.500, neighbours 0.112 to 0.610, the 120 m map is 0.530, ours is 0.610, and the same method sentence. The other four are inside.
+
+| Site | Ours | NASA | Difference | Outside mark |
+| :--- | ---: | ---: | ---: | :--- |
+| `connecting_ridge_best_lit` | 0.581888027 | 0.579400000 | +0.002488027 | no |
+| `de_gerlache_rim_best_lit` | 0.610223642 | 0.500440000 | +0.109783642 | yes |
+| `malapert_peak_best_lit` | 0.771356306 | 0.678480000 | +0.092876306 | no |
+| `peak_near_shackleton_best_lit` | 0.442929408 | 0.434640000 | +0.008289408 | no |
+| `shackleton_rim_best_lit` | 0.551251331 | 0.478640000 | +0.072611331 | no |
+
+New R3 rows (slope, degrees). All five are inside the 2° mark. Explanations are the in-mark slope provenance: the unit tag is absent, NASA product 90 says degrees, and the file does not give the baseline, so it is not assumed equal to our 160 m central difference.
+
+| Site | Ours | NASA | Difference | Outside mark |
+| :--- | ---: | ---: | ---: | :--- |
+| `connecting_ridge_best_lit` | 0.581659092 | 0.525682867 | +0.055976225 | no |
+| `de_gerlache_rim_best_lit` | 2.693887354 | 1.791804075 | +0.902083278 | no |
+| `malapert_peak_best_lit` | 2.448834609 | 2.670941591 | −0.222106983 | no |
+| `peak_near_shackleton_best_lit` | 2.666082544 | 2.723110676 | −0.057028132 | no |
+| `shackleton_rim_best_lit` | 5.799812470 | 5.988375187 | −0.188562717 | no |
+
+R5 selects the first three catalog `sunlit_peak` ids, sorted by id, and never a variant. The rows are back to `connecting_ridge` (outside, 0.120816809), `de_gerlache_rim` (inside, 0.014725153) and `malapert_peak` (inside, 0.038990643). `connecting_ridge_best_lit` is not in R5. Against `origin/main`, every comparison that already existed is unchanged, including those three R5 rows, and `generated_utc` stays `2026-11-13T00:00:00Z`. The only added rows are R1, R2 and R3 for the five variants. G2 skips variants because they have no saved Horizons response; its measured value and sample count (2,103,360) are unchanged, and G1–G9 passed.
+
+The candidate cache now hashes every `truesouth` module, the contract version and the rule parameters, plus the maps, the ephemeris, the site coordinates and the pixel. `git diff --stat 4608cac HEAD -- science/src/truesouth` is not empty (`contracts.py` and the worked-example modules arrived from main), so the published sites were recomputed under the new key with zero cache hits: 2469 s, exit 0. `git status` afterwards showed no change to the site files, so the new calculation reproduced the same bytes. Each of the five variants was then published twice from that cache (0 candidates computed). The five `*_best_lit` folders and `sites.json` hashed identical between the two runs, 21 files. A second attempt that recomputed the parent skylines ran out of memory and was not used.
+
+The 20 existing sites' `series.bin`, `skyline.bin` and `terrain.bin` are byte-identical to the commit this branch started from. `sites.json` differs only by `variant_of`, `offset_m` and `nearby_sun` (null except on the five peaks and their variants) and the five new records. Scene files other than `meta.json` are byte-identical; five aprons were added. `data/derived/` was 62,193,036 bytes before and 72,108,557 bytes after.
+
+IM-2 Athena, landing at 00:00 UTC, from `scoring.py`. Both points are GO on 2028-01-01 (score 100, fully lit). On 2028-03-01 both are NO-GO (score 40, darkness and blackout); the listed point has mean Sun 0.417 and a 130 h dark stretch, the variant 0.551 and 78 h, and both land in light. On 2028-03-08 both are NO-GO (score 40, darkness, blackout and a dark landing hour). The listed point is dark for the whole window (240 h). The variant still has mean Sun 0.714 and a longest dark stretch of 26 h, but the landing hour itself is dark.
+
+`--only connecting_ridge` builds the listed site and `connecting_ridge_best_lit`. `--only connecting_ridge_best_lit` does the same, by selecting the catalog parent. `--only apollo11_best_lit` raises before any write, because Apollo 11 is not a core80 sunlit peak. The site picker lists each variant as an ordinary site in Sunlit peaks. The default selection for a new visitor is still Connecting Ridge plus three Artemis sites, and does not include a variant. Showing the nearby range and a variant label in the panels is another package.
+
 #### 2026-11-13 · S12b · Worked examples from the stored series
 - **Who:** Cursor implementation agent
 - **AI use:** Cursor, grok-4.7 — wrote the selection tests first, then the worked-example command, the contract keys and the smallest Academy wiring — human and orchestrator review pending.
@@ -488,7 +557,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
-#### 2026-11-13 · MC shell feedback · No view sentence; the landing date joins the timeline; "Next GO"
+#### 2026-11-14 · MC shell feedback · No view sentence; the landing date joins the timeline; "Next GO"
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (a rearrangement
   of the approved C2 shell, no redesign) — removed the view's sentence plate (its text now in
@@ -501,9 +570,14 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   with typecheck, the vitest suite, the build, `uv run pytest`, impeccable's detector (no
   findings), and by eye on the real data at 1440 × 900, 1024 × 768 and 390 × 844 in the four
   camera views and with Compare open, folded, by keyboard and in an accessibility snapshot;
-  a human has not reviewed it yet
-- **State:** built, not verified (1,725 web tests, 322 Python tests, typecheck and build pass
-  on the merge with main; the team lead has not judged the layout)
+  then fixed the review of PR #83 (Cursor, approve with fixes): the window's end and the
+  duration's tag at every width, the note cleared on a site or profile change, a clamping
+  Undo test (fails without the restore), focusable reasons at the ends of the grid, the
+  scrubber's pill hiding the day labels under it, and a fake DOM that honours `disabled` —
+  checked again by eye at 1440 × 900, 1024 × 768 (open and folded) and 390 × 844, keyboard
+  only on the control and the picker sheet; a human has not reviewed it yet
+- **State:** built, not verified (1,807 web tests, 333 Python tests, typecheck and
+  build pass on the merge with main; the team lead has not judged the layout)
 - **Changed:** `web/src/app/mission/` (new `landing-date-control.tsx`, `next-go-button.tsx`,
   `landing-control.ts`, `fake-dom.ts` and their tests; `view-bar.tsx`, `top-bar.tsx`,
   `free-space.ts`, `timeline/timeline.tsx`, `timeline/axis.ts`, `timeline/timeline.css`),
@@ -522,8 +596,39 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     it says "No GO date before 2032".
   - The Slip Planner can mount `LandingDateControl` in its panel's header as it is; it
     reads and writes only the scenario store.
+  - The header shows, after the date, "→ 11 Mar · 10 d [sourced]": where the window ends,
+    its length and the duration's tag, in the open, folded and phone strips; screen readers
+    hear "Mission window ends 11 Mar 2028 00:00 UTC, 10 d after landing." To keep the open
+    header at one row at 1440, "Slip +7 d" and "+14 d" live in the date's picker.
+  - At the ends of the grid the day and slip buttons stay focusable, do nothing, and give
+    the reason with the real dates ("The data starts at 2026-01-01 00:00 UTC …").
   - Not done: a draggable start of the window on the timeline (the timeline's range follows
     the landing, so a handle would drag its own axis), and a "Previous GO" twin.
+
+#### 2026-11-14 · MC6b · Lander's eye: the horizon chart folds away, closed by default
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (keeping the
+  approved look) — wrote the fold (one arrow button in the panel's foot row, the session
+  memory, the rise), the shell's measurement of the foot stack, and 12 vitest tests — checked
+  by the agent with typecheck, the vitest suite, the build and `uv run pytest`, and by eye
+  with hardware WebGL at 1440 × 900, 1024 × 768 and 390 × 844, folded and open, lit and dark
+  hours, Apollo 11, keyboard only and reduced motion; a human has not reviewed it yet
+- **State:** verified (322 Python tests, 1,756 web tests, typecheck and build pass on the merge with main; reviewed by Gemini (approve with fixes; two mutations caught); the orchestrator made the two small fixes: no aria-controls while the chart is unmounted, and the foot stack is left out of the free space while a window is open; asked for by the team lead, not yet seen by them)
+- **Changed:** `web/src/features/panorama/` (new `fold.ts`, `fold.test.ts`,
+  `collapse.test.ts`; `index.tsx`, `panorama.css`), `web/src/app/mission-screen.tsx` (the
+  free space ends at the foot stack's top), `docs/features/panorama.md`,
+  `docs/design/c2/built-landers-eye-collapsed-*.png`, this entry
+- **Notes:**
+  - In Mission Control the chart starts folded: one 46 px row with the arrow ("Horizon
+    chart", named "Show the horizon chart") and the panel's one-line answer. In a lesson it
+    is always open, with no arrow.
+  - The arrow sits at the start of the foot row in both states and does not move (measured
+    0 px at 1440 × 900); the chart rises above the row.
+  - Kept in sessionStorage (`truesouth.landers-eye-chart.v1`), with the shell's load and save
+    pattern. The shell's side panels use localStorage, which would carry the choice into a
+    new visit; the brief asked for a fresh visit to start folded.
+  - The free space reads the foot stack, which is already where the panel ends up, so the
+    camera reframes once with no jump at the end of the rise.
 
 #### 2026-11-13 · MC6 · Lander's eye: the horizon chart
 - **Who:** Claude Code agent, for the orchestrator
@@ -849,6 +954,77 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Academy
 
+#### 2026-11-13 · A9 · Math review of all fifteen science sections
+- **Who:** Codex review agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — read the science document against Python and
+  TypeScript, wrote independent numerical probes, checked saved Horizons responses
+  and read-only prepared terrain, and wrote the review report. No human or owning
+  track has checked the report yet.
+- **State:** built, not verified
+- **Changed:** `docs/reviews/a9-math-review.md`, the short reproducer in
+  `docs/reviews/a9-scripts/boundaries.py`, and two wrong TypeScript file paths in
+  `docs/science.md`. No formulas, code or derived data changed.
+- **Notes:**
+  - Reviewed all 15 numbered sections and inventoried 40 formula groups. Recorded
+    128 case-level numerical checks, including 36 additional Python/TypeScript
+    scoring scenarios. Found 1 A, 11 B and 5 C findings. The A finding is a shared
+    prefix-sum rounding error that can turn an exact score of 70 into CAUTION.
+  - Full saved-response G2 passes at all 20 sites over 52,584 hours. Rebuilt one
+    real skyline and checked four bins independently. The report states the
+    unimplemented paths and every material verification limit.
+  - Required checks pass: pytest 322 tests (exit 0), frozen-lockfile install
+    (exit 0), and, after bringing in A8 from main, web 1,744 tests and typecheck
+    (both exit 0). The report and retained script were rechecked after the disk-full
+    interval; a PowerShell text-encoding issue was repaired. State remains built,
+    not verified pending independent review.
+
+#### 2026-11-13 · A8 · Validation page, "How we know it's right"
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the page at `/validation`, its model,
+  number formatting, the two hand-built SVG charts and the vitest tests — checked by the
+  agent with tests, typecheck and build, the impeccable detector (0 findings), and by eye
+  at 1440 × 900, 1024 × 768 and 390 × 844 on the real data and on `VITE_DATA=fixtures`
+  (no console errors, no sideways page scroll, every control at least 44 px, keyboard
+  focus visible). A human has not read the page yet.
+- **State:** verified (322 Python tests, 1,744 web tests, typecheck and build pass on the merge with main; reviewed by Codex (every recorded miss shown, counts match both data files, three mutations caught; six findings, all fixed with tests: largest differences round up, a damaged file never prints NaN, the compass-bearing note is in the open); not yet read by the team lead)
+- **Changed:** `web/src/features/validation/` (all new except `index.tsx`), screenshots
+  `docs/design/c2/built-validation*.png`
+- **Notes:**
+  - Every number on the page comes from `validation.json`. Derived display values (a
+    difference of the file's two numbers, row counts, the largest daily value) are marked
+    in code comments. A gate with `passed: null` reads "Checked in the web tests". A
+    failed gate is a NO-GO cross with "Failed"; a comparison outside its mark is a CAUTION
+    "!" with "Outside the mark", its explanation in a card above its table.
+  - Missing or unreadable file: "Validation has not been run on this build", no numbers.
+  - Sections 3 and 5 also show every gate and comparison the brief did not place: G1, G3,
+    G9, G10 and G11 under "Other checks"; R5 (and R6 on the fixture) under Slope.
+  - Gaps in the real file: no R4 (the page says so), the raw compass-azimuth difference
+    of decision 0011 exists only inside G2's `detail` text, and in-mark R1 to R3
+    `explanation` fields hold pixel notes, not explanations (shown behind "Notes from the
+    pipeline").
+  - The fixture already has a failing comparison (R1) and a failing gate (G6). The test
+    for an outside self-comparison is built from the fixture's R5 row.
+  - Review fixes (Codex review of PR #79), each its own commit:
+    1. A largest difference, an upper bound or a "within X" is rounded up, a lower bound
+       down, a reading to nearest (`format.ts`), and a shown value keeps its side of its
+       limit or mark. The real headline now reads "within 0.0061°", not "0.006°". A test
+       checks every gate and comparison in both data files against its printed result.
+    2. `check.ts` checks every field the page reads. An incomplete gate or row reads
+       "This check's record is incomplete in this build" in its place and is never
+       counted as passed; no NaN, undefined, null or Infinity in any tested case.
+       `parseValidation` in `web/src/data/` still rejects a whole file whose gate has a
+       result but no measurement, so that case reads "not run" in the app.
+    3. G2's raw-bearing sentences are quoted from `detail` in the open under the headline.
+       The pipeline could supply them as fields: `raw_azimuth_max_deg`,
+       `raw_azimuth_max_at` (site, body, UTC), `raw_azimuth_hours_over_limit`,
+       `sky_max_deg` and `elevation_max_deg`.
+    4. Method boxes link to lessons 1 to 4 by catalog title; lessons 5 to 8 get no link.
+       The feature imports only `academy/catalog.ts`. No link points into the private repo.
+    5. Every data table has a caption; every header cell a scope.
+    6. Contrast: CAUTION amber text 8.83:1 on the card, 8.25:1 on the highlighted row;
+       the diagonal 5.78:1 on the plot. The mark's shaded band was 1.12:1, so its edges
+       are now dashed Ink 3 lines (5.78:1 on the plot, 5.15:1 over the band).
+
 #### 2026-11-13 · A5b · Lessons 1 to 4 reworded to the real numbers
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-sonnet-5-5 — rewrote the text of lessons 1 to 4 in
@@ -1023,6 +1199,29 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   live, or a `reduceMotion` prop.
 
 ## Planning
+
+#### 2026-11-13 · A11 · Submission materials (drafts)
+- **Who:** team lead
+- **AI use:** Claude Code, claude-sonnet-5-5 — wrote the project description (three
+  lengths), the objective-to-feature map, the three-minute demo script with its
+  one-minute version and judge questions, the AI-use disclosure, the links checklist and a
+  proposed README, from the repository's own documents and `data/derived/validation.json`;
+  ran the Python scoring reference on the stored series to check the demo's dates — not yet
+  read by the team lead; every number is footnoted to a file and every unsure point is
+  marked "CHECK:"
+- **State:** built, not verified
+- **Changed:** `docs/submission/` (new), this entry
+- **Notes:**
+  - States in the objective map were checked against `origin/main` and the open pull
+    requests, and must be checked again on the day (the validation page, #79, had merged): #81 (Academy lessons 1 to 4), #83 (landing date in the timeline and "Next GO"),
+    #77 (sunlit-peak variants) and #80 (custom-site server) were open. The Slip Planner, the
+    Compare window, the flat Polar map and the custom-coordinates form are not built and
+    have no pull request, so the demo script reaches the slip story with the landing-date
+    buttons instead.
+  - Two gaps are written down plainly: sunlight at Connecting Ridge is well below the
+    published 92.27% (different point spans; not closed), and `docs/orchestration/status.md`
+    totals do not match its own ledger table.
+  - The README is not changed. A proposed version is `docs/submission/README-proposed.md`.
 
 #### 2026-11-13 · MC7 (spec) · The Slip Planner spec rewritten as a view on the Moon
 - **Who:** team lead

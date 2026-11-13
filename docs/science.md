@@ -453,7 +453,7 @@ condition is Earth clearance against `antenna_mask_deg`. The next change is the 
 or after the current hour; if none occurs before the end of the time grid, the result is
 none.
 
-`web/src/lib/scoring/metrics.ts` (reference copy: `scoring.py`)
+`web/src/lib/scoring/scoring.ts` (reference copy: `scoring.py`)
 
 ## 10. Vetoes, utilities, score, status
 
@@ -495,7 +495,7 @@ So that a score always exists, a profile's power and comms weights must not both
 Vetoes decide whether a mission can work. The score ranks the ones that can. The threshold
 70 is a team setting, to be tuned once real data exists.
 
-`web/src/lib/scoring/score.ts` (reference copy: `scoring.py`)
+`web/src/lib/scoring/scoring.ts` (reference copy: `scoring.py`)
 
 ## 11. The slip sweep
 
