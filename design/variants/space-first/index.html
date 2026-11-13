@@ -73,10 +73,11 @@
     <nav class="viewbar panel" aria-label="Views" id="viewbar">
       <button class="vt" data-view="system" aria-current="true">System view</button>
       <button class="vt" data-view="polar">Polar map</button>
+      <button class="vt" data-view="slip">Slip Planner</button>
       <button class="vt" data-view="terrain">Local terrain</button>
       <button class="vt" data-view="eye">Lander's eye</button>
       <span class="vr" aria-hidden="true"></span>
-      <button class="vt" data-win="slip" aria-expanded="false" aria-controls="win-slip">Slip Planner <svg class="i wi"><use href="#i-window"/></svg></button>
+      <button class="vt" data-win="slip" aria-expanded="false" aria-controls="win-slip" hidden>Slip Planner <svg class="i wi"><use href="#i-window"/></svg></button>
       <button class="vt" data-win="compare" aria-expanded="false" aria-controls="win-compare">Compare <svg class="i wi"><use href="#i-window"/></svg></button>
     </nav>
     <p class="what" id="what" aria-live="polite"></p>
@@ -98,6 +99,7 @@
 
   <div class="bot-c" id="bot-c">
     <div id="pcard-slot"></div>
+    <div class="slipsum plate" id="slipsum" aria-live="polite" hidden></div>
     <div class="vctl panel" id="vctl"></div>
   </div>
 
@@ -124,6 +126,9 @@
     </div>
     <div class="cards" id="cards"></div>
   </section>
+
+  <!-- the Slip Planner's landing dates: the timeline's slot, at the scale of days over six years -->
+  <section class="panel dates" id="dates" aria-label="Landing dates" hidden></section>
 
   <!-- floating windows -->
   <section class="panel win" id="win-slip" role="dialog" aria-modal="false" aria-labelledby="slip-t" hidden>
@@ -153,6 +158,14 @@
 
   <section class="panel dopt" id="dopt" hidden aria-label="Design options, prototype only">
     <h2>Design options<small>Prototype only. Not part of the product.</small></h2>
+    <div class="q">Slip Planner spots
+      <span class="mseg" data-opt="slip"><button data-v="a" aria-pressed="true">a. Lamp and ring</button><button data-v="b">b. Lit patch</button><button data-v="grid">Earlier design</button></span>
+      <span class="rec">Recommended: a. "Earlier design" is the floating window of squares.</span></div>
+    <div class="q">Hours timeline in the Slip Planner
+      <span class="mseg" data-opt="tl"><button data-v="replace" aria-pressed="true">Swapped out</button><button data-v="stack">Folded below</button></span>
+      <span class="rec">Recommended: swapped out.</span></div>
+    <div class="q">Selected sites
+      <span class="mseg" data-opt="sites"><button data-v="default" aria-pressed="true">5, the default</button><button data-v="eight">8</button><button data-v="one">1</button></span></div>
     <div class="q">Panel surface
       <span class="mseg" data-opt="surface"><button data-v="solid" aria-pressed="true">Solid</button><button data-v="see">See-through</button></span>
       <span class="rec">Recommended: solid.</span></div>

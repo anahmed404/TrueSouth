@@ -65,7 +65,10 @@ shows, which is why R2 uses `earth_frac > 0`.
   "generated_utc": "2026-11-14T09:00:00Z",
   "gates": [
     { "id": "G2", "name": "Sun and Earth directions match JPL Horizons", "passed": true,
-      "measured": 0.011, "limit": 0.02, "unit": "deg", "samples": 2103360, "detail": null }
+      "measured": 0.011, "limit": 0.02, "unit": "deg", "samples": 2103360, "detail": null },
+    { "id": "G10", "name": "TypeScript scoring matches the Python reference", "passed": null,
+      "measured": null, "limit": 1e-9, "unit": "difference", "samples": 0,
+      "detail": "Not measured by this command. It is checked by the web tests against the shared scoring fixture." }
   ],
   "comparisons": [
     { "id": "R1", "site_id": "connecting_ridge", "ours": 0.83, "reference": 0.86, "unit": "fraction",
@@ -87,6 +90,10 @@ Numbers above are placeholders showing the shape.
 
 - A gate's optional `detail` is a plain sentence the pipeline writes from its own numbers,
   for example the expected and measured value of a synthetic test.
+- `passed` and `measured` are both null when `truesouth validate` did not measure that gate.
+  `samples` is then 0, and `detail` is a sentence saying where it is checked. G10 and G11
+  are written that way: the web tests check them. A null gate is not a failure. A gate this
+  command measured always has a boolean `passed` and a numeric `measured`, together.
 - A comparison carries its "investigate when" mark as `investigate_above`, in the same
   unit as its values, and `outside_mark` says whether the difference is above it. A
   comparison outside its mark must carry an `explanation`.

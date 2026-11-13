@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "zustand";
 import type {
   ArtemisRegions,
@@ -6,13 +6,16 @@ import type {
   Manifest,
   MapMeta,
   Profiles,
+  SceneMeta,
   Site,
   SiteMeta,
   Sites,
   Validation,
   WorkedExamples,
 } from "../contracts/generated.ts";
+import type { DecodedApron } from "./decode/apron.ts";
 import type { DecodedSeries, DecodedSkyline, DecodedSystem, DecodedTerrain } from "./decode/layouts.ts";
+import { loadApron, loadSceneMeta } from "./load.ts";
 import { isCustomSiteId } from "./paths.ts";
 import {
   closeupKey,
@@ -127,4 +130,49 @@ export function useTerrain(siteId: string): HookResult<DecodedTerrain | null> {
 
 export function useCloseup(siteId: string): HookResult<DecodedTerrain | null> {
   return useResource(closeupKey(siteId));
+}
+
+export function useSceneMeta(): HookResult<SceneMeta> {
+  const [state, setState] = useState<HookResult<SceneMeta>>({ status: "loading", data: null, error: null });
+  useEffect(() => {
+    let live = true;
+    loadSceneMeta().then(
+      (data) => {
+        if (live) setState({ status: "ready", data, error: null });
+      },
+      (error: unknown) => {
+        if (!live) return;
+        setState({ status: "error", data: null, error: error instanceof Error ? error.message : String(error) });
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
+  return state;
+}
+
+export function useApron(siteId: string): HookResult<DecodedApron | "not available"> {
+  const [state, setState] = useState<HookResult<DecodedApron | "not available">>({
+    status: "loading",
+    data: null,
+    error: null,
+  });
+  useEffect(() => {
+    let live = true;
+    setState({ status: "loading", data: null, error: null });
+    loadApron(siteId).then(
+      (data) => {
+        if (live) setState({ status: "ready", data, error: null });
+      },
+      (error: unknown) => {
+        if (!live) return;
+        setState({ status: "error", data: null, error: error instanceof Error ? error.message : String(error) });
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [siteId]);
+  return state;
 }

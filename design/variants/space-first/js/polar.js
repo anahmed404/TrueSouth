@@ -52,6 +52,7 @@ export function createMap(canvas, opt) {
     g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
     g.drawImage(img.hs, a.x, a.y, size, size);
     if (img.core && v.s * 2 * HALF > 4096 * .9) { const b = toScr(-CORE, CORE); g.drawImage(img.core, b.x, b.y, 2 * CORE * v.s, 2 * CORE * v.s); }
+    if (S.dim) { g.fillStyle = `rgba(11,11,12,${S.dim})`; g.fillRect(a.x, a.y, size, size); } // the Slip Planner's flat fallback: dark ground, bright where the Sun often is
     if (S.overlay !== 'none' && tinted[S.overlay]) { g.globalAlpha = S.opacity; g.drawImage(tinted[S.overlay], a.x, a.y, size, size); g.globalAlpha = 1; }
     // latitude circles every degree, longitude lines every 30°
     const p0 = toScr(0, 0);
@@ -110,7 +111,7 @@ export function createMap(canvas, opt) {
     draw, resize, toScr, toMap, lookup, zoom, fit, v, S,
     setInsets(ins) { S.inset = { ...ins }; draw(); },
     setView(cx, cy, s) { v.cx = cx; v.cy = cy; v.s = s; draw(); },
-    setOverlay(k) { S.overlay = k; draw(); }, setOpacity(o) { S.opacity = o; draw(); }, setNames(b) { S.names = b; draw(); },
+    setOverlay(k) { S.overlay = k; draw(); }, setDim(d) { S.dim = d; draw(); }, setOpacity(o) { S.opacity = o; draw(); }, setNames(b) { S.names = b; draw(); },
     get ready() { return ready; }, metresPerDeg: R_MOON_M * D2R, polarLatLon,
   };
 }

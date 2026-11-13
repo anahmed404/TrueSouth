@@ -133,6 +133,7 @@ whose output is already up to date.
 | `fetch-ephemeris` | Pulls the global ephemeris from Horizons. | network | `data/derived/system.bin` |
 | `build-sites` | For each catalog site: skyline, series, slope, terrain meshes. | prepared, catalog | `data/derived/sites/` |
 | `build-maps` | Renders hillshade and overlay images and the lookup grids for the polar map. | prepared, raw | `data/derived/maps/` |
+| `build-scene-assets` | Makes the scene's Moon, Earth and polar-cap images, the two slope maps, and one apron grid per non-sphere site. | raw textures, prepared DEMs, `maps/`, `sites.json` | `data/derived/scene/` |
 | `validate` | Runs the comparisons in [`validation.md`](validation.md). | everything | `data/derived/validation.json` |
 | `build-worked-examples` | Computes the numbers shown in Under-the-hood cards. | derived | `data/derived/academy/worked_examples.json` |
 | `build-fixtures` | Writes a small synthetic dataset in the same formats. Needs no downloads. | nothing | `data/fixtures/` |
@@ -150,15 +151,25 @@ whose output is already up to date.
 | `<Site>_final_adj_5mpp_slp.tif` | similar | NASA's close-up slope. Validation only. |
 | `AVGVISIB_85S_060M_201608.TIF`, `…_EARTH.TIF` | 34 MB, 25 MB | NASA's average sunlight and Earth visibility, 60 m |
 | `AVGVISIB_75S_120M_201608.TIF`, `…_EARTH.TIF` | 83 MB, 43 MB | The same, wider area, 120 m |
-| Moon colour map from NASA SVS 4720 | a few MB | Global Moon texture |
+| `lroc_color_poles_4k.tif` | 13 MB | Moon colour, 4,096 × 2,048. SVS 4720 |
+| `lroc_color_poles_8k.tif` | 51 MB | Moon colour, 8,192 × 4,096. SVS 4720. Split into west and east halves |
+| `ldem_4.tif` | 4 MB | Global LOLA heights, 1,440 × 720, kilometres. SVS 4720 |
+| `world.topo.bathy.200403.3x5400x2700.jpg` | 2.5 MB | Blue Marble Next Generation, March 2004, 5,400 × 2,700 |
 
 Base URLs:
 
 - Polar maps: `https://pgda.gsfc.nasa.gov/data/LOLA_20mpp/`
 - Close-up DEMs: `https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/<Site>/`
 - Sunlight maps: `https://pgda.gsfc.nasa.gov/data/MoonIllumination/`
-- Moon texture: `https://svs.gsfc.nasa.gov/4720`; the file fetched is
-  `https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_poles_2k.tif`
+- Moon textures and the global height map:
+  `https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/`
+  (`lroc_color_poles_4k.tif`, `lroc_color_poles_8k.tif`, `ldem_4.tif`). The page is
+  `https://svs.gsfc.nasa.gov/4720`. The 2K Moon image is a resize of the 4K file, so the
+  2K TIFF is not downloaded.
+- Earth texture:
+  `https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography-bathymetry/march/world.topo.bathy.200403.3x5400x2700.jpg`
+  NASA's `eoimages.gsfc.nasa.gov` host times out from the development machine; this asset
+  host is the same Blue Marble file.
 
 The first, third and all five `AVGVISIB` and close-up sizes were confirmed by direct
 request. The wide map's exact file name follows the catalogue's naming pattern and has not

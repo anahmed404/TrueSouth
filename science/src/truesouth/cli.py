@@ -21,6 +21,7 @@ COMMANDS = {
     'fetch-ephemeris': 'S4',
     'build-sites': 'S7 and S8',
     'build-maps': 'S9',
+    'build-scene-assets': 'S16',
     'validate': 'S12',
     'build-worked-examples': 'S12',
     'build-fixtures': 'S2',
