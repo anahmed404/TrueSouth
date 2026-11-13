@@ -17,7 +17,7 @@ import type { Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import type { Manifest, MissionProfile, Sites } from "../../../contracts/generated";
+import type { Manifest, MissionProfile, Site, Sites } from "../../../contracts/generated";
 import { SERIES_COLUMNS, decodeSeries } from "../../../data/decode/index";
 import { describeEvaluation, describeMetrics, formatValue, scoreText } from "../../../app/mission/rules";
 import { FocusedSitePanel } from "../../../app/mission/focused-site-panel";
@@ -28,7 +28,10 @@ import { dataStore, seriesKey } from "../../../state/data";
 import { createScenarioStore, type ScenarioCatalog } from "../../../state/scenario";
 import { allNodes, installDocument, propsOf, type FakeNode } from "../../../app/mission/fake-dom";
 import Compare, { CompareTable, compareRenders } from "./index";
+import { parseCsv } from "../../../lib/export";
+import { compareCsv } from "./export";
 import { compareColumn, metricRows, statusCells, summarySentence, type ColumnView } from "./model";
+import { NOT_RANKED_NOTE } from "./site-wording";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../../..");
 const fixtures = path.join(repoRoot, "data", "fixtures");
@@ -332,5 +335,98 @@ describe("the rendered Compare table shows what the rendered focused-site panel 
       checked.add(panel.status);
     }
     expect(checked.size).toBeGreaterThan(0);
+  });
+});
+
+describe("custom sites (made up here; the sites package, #92, adds them to useSites)", () => {
+  const LONG = `<img src=x onerror=alert(1)> "Rim", =CMD() ${"very long typed name ".repeat(6)}`.trim();
+  const base = sites[0] as Site;
+  const custom: Site = {
+    ...base,
+    id: "c_-89.4500_222.7000",
+    name: LONG,
+    group: "custom" as Site["group"],
+    elevation_m: null,
+    slope: null,
+    quickmap_url: "",
+    moontrek_url: "",
+    variant_of: null,
+    offset_m: null,
+    nearby_sun: null,
+  };
+  const computing: Site = { ...custom, id: "c_-85.0000_30.0000", name: "Still computing" };
+  const broken: Site = { ...custom, id: "c_-80.0000_10.0000", name: "Server failed" };
+  const variant: Site = { ...base, id: `${base.id}_best_lit`, name: `${base.name}, best-lit point`, variant_of: base.id, offset_m: 120, nearby_sun: { radius_m: 160, points: 9, min: 0.31, max: 0.92 } };
+  const all = [...sites, custom, computing, broken, variant];
+
+  it("draws each as a column: user text as text, no slope, coordinate links, loading and failed lines", async () => {
+    const profile = profiles.find((p) => p.id === "im2_athena") as MissionProfile;
+    const landingUtc = hourIndexToUtc(grid, 4700);
+    const statuses = await panelStatuses(profile, landingUtc);
+    const ready = statuses[base.id] as SiteStatus;
+    const columns = [
+      compareColumn(base.id, all, ready, profile),
+      compareColumn(custom.id, all, ready, profile),
+      compareColumn(computing.id, all, { kind: "loading" }, profile),
+      compareColumn(broken.id, all, { kind: "error", message: "502 from the site server" }, profile),
+      compareColumn(variant.id, all, ready, profile),
+    ];
+    const rows = metricRows(columns, profile);
+    const html = renderToStaticMarkup(
+      routed(
+        createElement(CompareTable, {
+          columns,
+          rows,
+          statuses: statusCells(columns),
+          profile,
+          landingUtc,
+          focusedSiteId: base.id,
+          onFocusSite: () => undefined,
+        }),
+      ),
+    );
+
+    // The typed name is text: escaped, never markup; its full text is the button's title.
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
+    expect(html).toContain(`title="${LONG.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")}"`);
+    // No slope, no elevation: "Slope not assessed", and nothing breaks.
+    const slope = rows.find((r) => r.id === "slope")!;
+    expect(slope.cells[1]?.text).toBe("Slope not assessed");
+    expect(slope.cells[1]?.value).toBeNull();
+    // Empty NASA URLs in the site record: the links are built from its coordinates.
+    expect(html).toContain("quickmap.lroc.im-ldi.com/layers?extent=");
+    expect(html.match(/trek\.nasa\.gov\/moon\/#v=0\.1/g)?.length).toBe(columns.length);
+    // Still computing, and failed.
+    expect(html).toContain("skeleton");
+    expect(html).toContain("Could not load this site’s data");
+    // The best-lit point's note, and why it is not ranked for sunlight.
+    expect(html).toContain(NOT_RANKED_NOTE);
+    expect(columns[4]?.chosenBy?.replace(/\u202f/g, " ")).toBe(`Best-lit map pixel, 120 m from ${base.name}`);
+
+    // The summary waits while one is computing, and names the failed one when it is done.
+    expect(summarySentence(columns, profile, landingUtc)).toContain("loading the sites' data");
+    const settled = columns.filter((c) => c.siteId !== computing.id);
+    expect(summarySentence(settled, profile, landingUtc)).toContain("Server failed could not be loaded.");
+  });
+
+  it("writes the typed name into the CSV as text, never as a formula", () => {
+    const profile = profiles.find((p) => p.id === "im2_athena") as MissionProfile;
+    const evil: Site = { ...custom, name: "=HYPERLINK(\"http://x\",\"click\")" };
+    const columns = [compareColumn(evil.id, [evil], { kind: "error", message: "502" }, profile)];
+    const csv = compareCsv(columns, metricRows(columns, profile), {
+      profile,
+      basePresetId: profile.id,
+      changedFields: [],
+      siteIds: [evil.id],
+      focusedSiteId: evil.id,
+      landingUtc: hourIndexToUtc(grid, 4700),
+      currentUtc: hourIndexToUtc(grid, 4700),
+      view: "compare",
+      grid,
+      link: "https://example.test/mission",
+    }, new Date("2026-11-14T00:00:00Z"));
+    const parsed = parseCsv(csv);
+    expect(parsed.rows[0]?.[1]).toBe(`'=HYPERLINK("http://x","click")`);
   });
 });

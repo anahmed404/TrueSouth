@@ -139,9 +139,16 @@
   display: block;
 }
 
+/* A site name, which a user may have typed: at most two lines, the full name in its title. */
 .cmp-site-name {
-  display: inline-block;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
   max-width: 100%;
+  text-align: start;
   margin: -2px 0 2px -4px;
   padding: 2px 4px;
   border: 0;

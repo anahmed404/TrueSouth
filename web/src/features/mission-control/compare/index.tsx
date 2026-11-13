@@ -269,7 +269,7 @@ function SiteHeader({ column, focused, onFocusSite }: { column: ColumnView; focu
         type="button"
         className="cmp-site-name"
         aria-current={focused ? "true" : undefined}
-        title={focused ? "The focused site" : "Focus this site in the other views"}
+        title={column.name}
         onClick={() => onFocusSite(column.siteId)}
       >
         {column.name}
