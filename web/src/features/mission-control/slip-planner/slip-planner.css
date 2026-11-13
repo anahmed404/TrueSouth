@@ -128,6 +128,12 @@
   }
 
 
+  /* The message row is flex, which drops the space before "Open the Polar map". */
+  .ldp .tl-message {
+    flex-wrap: wrap;
+    column-gap: 0.3em;
+  }
+
   .ldp-link {
     padding: 0;
     border: 0;
@@ -493,6 +499,22 @@
 
   .ldp[data-compact="true"] .ldp-label {
     pointer-events: none;
+  }
+
+  /* Tags and info icons keep their look; their touch target grows to 44 px, as in the timeline. */
+  .ldp[data-compact="true"] .tag,
+  .ldp[data-compact="true"] .explain-button {
+    position: relative;
+  }
+
+  .ldp[data-compact="true"] .tag::after,
+  .ldp[data-compact="true"] .explain-button::after {
+    content: "";
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
   }
 
   .ldp[data-compact="true"] .ldp-tip {

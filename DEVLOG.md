@@ -501,7 +501,8 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   the real data at 1440 × 900, 1024 × 768 and 390 × 844; a human has not reviewed it yet
 - **State:** built, not verified
 - **Changed:** `web/src/features/mission-control/slip-planner/` (new), `web/src/lib/scoring/`
-  (`slip-days.ts`, `next-go.ts`, index exports), `web/src/features/three/scene/` (`slip.ts`
+  (`slip-days.ts` new; `next-go.ts`, `next-go.test.ts` and `index.ts` byte-for-byte as in
+  #83), `web/src/features/three/scene/` (`slip.ts`
   and its test new; small additions to `rig.ts`, `world.ts`, `materials.ts`,
   `scene-root.tsx`), `web/src/app/scene.ts` (optional `onProjector`, `slipShading`),
   `web/src/app/mission/` (`views.ts`, `scene-slot.tsx`, `scene-status.ts`, `view-bar.tsx`
@@ -510,8 +511,9 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   `docs/features/slip-planner.md`, `docs/design/c2/built-slip-*.png`, this entry
 - **Notes:**
   - Every status, score and veto is the sweep's (`useSweeps`), packed per 00:00 UTC day by
-    `lib/scoring/slip-days.ts` from `evaluationAt`. No new scoring code. `nextGoDay(result,
-    fromDay)` is in `lib/scoring/next-go.ts` for the shell's "Next GO" button.
+    `lib/scoring/slip-days.ts` from `evaluationAt`. No new scoring code. "next GO" is #83's
+    shared `nextGoDay` (`lib/scoring/next-go.ts`, copied unchanged so that merge is a
+    no-op), read over the packed day table by `slip-planner/next-go-words.ts`.
   - The landing date is read and written only through the scenario store. The panel header
     has an empty `data-slot="landing-date-control"` for `LandingDateControl`.
   - 3D off: the scene still reports no flat views; the shell's still picture is skipped for
@@ -522,6 +524,15 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - A view opened from a link refits when its first (locked) flight lands, since the sites
     and the free space can arrive during it.
   - The build emits the sweep worker once (`dist/assets/sweep.worker-*.js`).
+  - Checks on 2026-11-14 after merging `origin/main` (#78, #79, #82): `pnpm --dir web test`
+    (1,811 passed), `typecheck`, `build` and `uv run pytest -q` (322 passed), each exit 0.
+    Eight sites with VIPER's 100-day profile recompute (sweep and day table, in turn, on
+    the full 2,191-day grid) in 113 to 188 ms on a Ryzen 7 3700X. By eye in headless Chrome:
+    no site, every date NO-GO, a 06:00 landing (the "00:00 UTC" note), the 1.4 s flight
+    (0.12 s with reduced motion, nothing pulsing), every control named, no horizontal scroll,
+    and 44 px touch targets on the phone.
+  - On the phone the strip rows are 12 px tall: the spec makes the whole strip area one
+    touch target, so they leave the tab order and the slider knob is the keyboard path.
 
 #### 2026-11-13 · MC6 · Lander's eye: the horizon chart
 - **Who:** Claude Code agent, for the orchestrator
