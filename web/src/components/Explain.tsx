@@ -49,6 +49,7 @@ export function Explain({ term, children, label }: ExplainProps) {
       content={
         <>
           <span>{entry.text}</span>
+          {entry.controls ? <span className="tip-meta">{entry.controls}</span> : null}
           {lesson ? (
             <Link to={`/academy/${lesson}`} className="tip-link">
               Learn it in Academy lesson {lessonNumber(lesson)}

@@ -3,6 +3,8 @@
 See docs/science.md §3. Requests are serial, TLS-verified, cached unchanged,
 and separated by at least two seconds. Parsing never needs the network.
 """
+from truesouth.constants import MAX_SITE_LATITUDE_DEG
+
 
 import csv
 from dataclasses import dataclass
@@ -60,7 +62,7 @@ def global_request(start=None, stop=None):
 def site_request(body, lat_deg, lon_deg, *, ground_height_m=0, start=None, stop=None):
     """Use the same reference sphere and observer height as topocentric (§3.3)."""
     target = {'sun': '10', 'earth': '399'}[body]
-    if not np.isfinite([lat_deg, lon_deg, ground_height_m]).all() or abs(lat_deg) > 89.999:
+    if not np.isfinite([lat_deg, lon_deg, ground_height_m]).all() or abs(lat_deg) > MAX_SITE_LATITUDE_DEG:
         raise ValueError('site coordinates must be finite and away from the exact poles')
     params = global_request(start, stop)
     altitude_km = (ground_height_m + OBSERVER_HEIGHT_M) / 1000
