@@ -41,8 +41,8 @@ each integration checkpoint.
 
 | Milestone | State |
 | :--- | :--- |
-| M0 Foundations | not started |
-| M1 Thin slice | not started |
+| M0 Foundations | complete, 2026-11-13: S0 to S2, MC0 to MC2, T0, A0 and A1 verified; 151 Python and 1,058 web tests pass; the app loads all five fixture sites |
+| M1 Thin slice | in progress: S3 to S6, MC4a and A7 verified; S7 and MC3 in review; A2 and S9 being built |
 | M2 Mission Control complete on catalog data | not started |
 | M3 Everything | not started |
 | M4 Tuned and submitted | not started |
@@ -70,6 +70,13 @@ each integration checkpoint.
 | 2027-03-14T13:00:00Z (partly_hidden) | 237.723497796 / -1.130757823 | -1.127949503 / -0.002808319 | 0.500003573729 | 237.75 / 42.079555840 / 1635.240722656 | -88.809143867 / 123.250016428 |
 
 - **Spec questions / choices:** (1) Equal-width strip midpoints strictly inside (-rho,rho); skyline extrema handle fully clear/hidden discs before any cosine division, with machine-epsilon protection only for artificial partial discs at the zenith. (2) `build_series` accepts ground metres, a skyline elevation vector and global arrays, and returns columns plus grid-mean body radii; all hours vectorised, bodies sequential for bounded memory. Elevations are within +/-90 degrees and clearance within +/-180, so neither can exceed the Int16 angular range; invalid encoder input raises instead of clipping. (3) Site tier uses the documented latitude helper; map coverage chooses each terrain sample. Missing required polar terrain raises, while sphere uses ground 0 for ephemeris, null elevation in Site and NaN blockers. (4) Incremental checks conservatively include both available maps/sidecars, system.bin, catalog sites and pipeline Python sources, plus valid existing metadata/file sizes; changed input invalidates the site. (5) On Windows publication renames the previous complete directory to a backup, then renames the staged complete directory into place; errors restore the backup and the next invocation recovers interrupted publication. There is a brief directory-unavailable interval, never a partly populated published site. JSON files replace atomically; sites.json merges existing entries in sorted-id order. (6) `--generated-utc` is the only file clock time; committed value 2026-11-13T00:00:00Z, otherwise current UTC. Slope and meshes await S8 (slope/terrain/closeup null, has_closeup false); tool links use the documented home pages pending MC9. (7) Whole-grid statistics and daily scoring use decoded bytes; spots and cutoff diagnostics use unquantised geometry. Longest stretches are half-open UTC intervals, daily dates are midnight UTC, incomplete final mission windows have no result. R1/R2, validation.json, maps and Academy worked examples remain their later work packages; no synthetic validation claims are inserted.
+
+#### 2026-11-13 · S9 · Polar map images and lookup grids
+- **Who:** Codex (gpt-6.1-terra), for the orchestrator
+- **AI use:** Codex — implemented the map pipeline and synthetic tests — automated tests and real-data checks run by the agent; human review pending.
+- **State:** verified (the orchestrator, Claude Fable 5.2, read the code, ran the 156 tests on the merge with main, shaded the 80 m map independently (correlation 0.987 with the stored hillshade; near 0 when flipped or transposed), recomputed five lookup cells from NASA's 60 m maps (agree within 0.002), and looked at the images with catalog pins drawn on them)
+- **Changed:** science map functions, build-maps command, tests, and data/derived/maps/.
+- **Notes:** The initial encoding and light-direction questions were settled in #47. Real build 98.3 s; output 16,217,806 bytes; 8K relief 3,897,152 bytes. Connecting Ridge sunlight 0.541 and Earth visibility 0.490; Shackleton floor sunlight 0.000. Missing lookup cells 0% in both layers. Twelve near-seam samples differ by up to 0.01316 sunlight and 0.12388 Earth visibility between source resolutions. Synthetic orientation mutations and repeatability checks passed; full pytest: 156 passed, exit 0.
 
 #### 2026-11-13 · S6 · Terrain skylines and blocker geometry
 - **Who:** Codex agent, for the orchestrator
@@ -160,12 +167,34 @@ each integration checkpoint.
 
 ## Mission Control
 
+#### 2026-11-13 · MC3 · Scenario store, shareable link and evaluation hooks
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote the scenario store, the share-link reader and writer, the scoring cache and the evaluation hooks, with vitest tests — agent ran `pnpm --dir web typecheck`, `pnpm --dir web test` and `pnpm --dir web build`; a human has not reviewed it yet
+- **State:** verified (orchestrator ran typecheck, 1,089 tests and build on the merge with main; Codex review, seven fixes confirmed)
+- **Changed:** `web/src/state/scenario.ts`, `web/src/lib/scoring/` (cache, hooks and exports only), `docs/data-contracts.md` (shareable link), this entry
+- **Notes:** The link carries `focus` only when the focused site is not the first selected site; otherwise opening one focuses the first selected site. A dragged landing date or current time replaces the history entry; other changes push. Custom fields are `custom:<preset>;field=value`, and a changed field is assumed with reason "Changed by you." The slip sweep hook still runs on the main thread and returns a `SlipSweep` a worker can fill later (MC7 moves it to a Web Worker). Default sites are Connecting Ridge, Malapert Massif, Mons Mouton and de Gerlache Rim 2, or the first four ids in `sites.json` when none of those are listed. Review fixes were made.
+
+#### 2026-11-13 · MC1 · Loaders, decoders and the data hooks
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote the decoders, loaders, data store, hooks, time helpers and tests — agent ran typecheck, vitest and the production build, and opened DataCheck on the fixture server; the orchestrator has not checked it yet
+- **State:** built, not verified
+- **Changed:** `web/src/data/`, `web/src/state/data.ts`, `web/src/lib/time/`, this entry
+- **Notes:** Decoded series are Float64Array so they match Python's float64 decode. A missing terrain.bin, closeup.bin or validation.json is ready with null data. Custom site ids load from `/api/custom/<id>/`.
+
 #### 2026-11-13 · MC2 · Browser port of the mission scoring reference
 - **Who:** Cursor agent, for the orchestrator
 - **AI use:** Cursor, grok-4.7 — ported `scoring.py` into `web/src/lib/scoring/` and wrote the gate G10 test plus hand-worked unit tests — agent ran `pnpm --dir web typecheck`, `pnpm --dir web test` and `pnpm --dir web build`; a human has not reviewed it yet
 - **State:** verified (the orchestrator, Claude Fable 5.2, ran gate G10 on the final 58 shared cases, largest difference 0 against a limit of 1e-9, and the sweep timing, 56 ms for 8 sites over the full grid; Codex, gpt-6.1-terra compared it line by line with scoring.py, ran 350 random series and profiles through both with no mismatch, and broke it eight ways to see which G10 catches)
 - **Changed:** `web/src/lib/scoring/`, this entry
 - **Notes:** 58 regenerated cases, largest absolute difference from the reference 0 (limit 1e-9). Slip sweep, 8 sites, 52,584 hours, 100-day window: 56.4 ms. The sweep stores typed arrays; one landing is rebuilt on read. Evaluation hooks are a follow-up. No disagreement with `docs/science.md` §9–11.
+
+#### 2026-11-13 · MC1 · Loaders, decoders and the data hooks
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote the decoders, loaders, data store, hooks, time helpers and tests — agent ran typecheck, vitest and the production build, and opened DataCheck on the fixture server; the orchestrator has not checked it yet
+- **State:** verified (orchestrator ran typecheck, 1,058 tests and build on the merge with main; Codex review, six fixes confirmed)
+- **Changed:** `web/src/data/`, `web/src/state/data.ts`, `web/src/lib/time/`, `docs/tracks/README.md`, this entry
+- **Notes:** Decoded series are Float64Array so they match Python's float64 decode. A missing terrain.bin, closeup.bin or validation.json is ready with null data. Custom site ids load from `/api/custom/<id>/`.
+  Review fixes were made: series scale and offset are checked against the contract, a mounted hook reloads after dropSite, mesh tests pin cell order, an absent mesh is not fetched, and profiles must include every required field.
 
 #### 2026-11-13 · MC4a · C2 theme, shared components, start screen and Mission Control shell
 - **Who:** Claude Code agent, for the orchestrator
