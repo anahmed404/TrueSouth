@@ -54,7 +54,7 @@ each integration checkpoint.
 - **AI use:** Codex, gpt-6.1-sol — wrote contract fields, placement module and tests;
   checked synthetic geometry, real skyline/series integration, full automated suites
   and the read-only Connecting Ridge run; human review pending
-- **State:** built, not verified
+- **State:** verified (orchestrator ran 251 Python and 1,494 web tests, typecheck and type generation on the merge with main; Cursor, grok-4.7 checked the candidate geometry independently to a millimetre, reproduced Connecting Ridge and de Gerlache rim on real data and ran ten mutations; its two findings were fixed by the orchestrator)
 - **Changed:** `contracts.py`, pure `placement.py`, new Science tests, generated schema
   and TypeScript types, `parseSites` and its tests; fixture sites gained only three null fields.
 - **Checks:** `uv run pytest`: 250 passed; web tests: 1,334 passed in 42 files;
