@@ -1,7 +1,7 @@
-# Catalog-only TrueSouth.
+# TrueSouth catalog and custom sites.
 # Node builds the web app. uv installs truesouth-api from uv.lock.
 # The final image serves that app, the API, and data/derived on port 8080.
-# The science package is not installed: this server does not run the pipeline.
+# Prepared-map runtime needs no rasterio; only the prepare extra installs it.
 
 FROM node:22-bookworm-slim AS web
 WORKDIR /src/web
@@ -31,11 +31,13 @@ COPY pyproject.toml uv.lock ./
 COPY api/pyproject.toml api/pyproject.toml
 COPY api/src api/src
 COPY science/pyproject.toml science/pyproject.toml
+COPY science/src science/src
 ENV UV_LINK_MODE=copy \
     UV_NO_MANAGED_PYTHON=1 \
     UV_PYTHON_DOWNLOADS=never \
-    UV_HTTP_TIMEOUT=600
-RUN uv sync --frozen --no-dev --no-editable --package truesouth-api \
+    UV_HTTP_TIMEOUT=60 \
+    UV_CONCURRENT_DOWNLOADS=2
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-editable --package truesouth-api \
     --no-managed-python --python /usr/local/bin/python3
 
 FROM python:3.12-slim-bookworm
@@ -46,13 +48,15 @@ COPY --from=web --chown=truesouth:truesouth /src/web/dist /app/web/dist
 COPY --chown=truesouth:truesouth data/derived /app/data/derived
 ENV PATH="/app/.venv/bin:$PATH" \
     VIRTUAL_ENV=/app/.venv \
+    TRUESOUTH_DATA_ROOT=/app/data \
     TRUESOUTH_DERIVED=/app/data/derived \
     TRUESOUTH_PREPARED=/app/data/prepared \
     TRUESOUTH_WEB_DIST=/app/web/dist \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
+RUN mkdir -p /app/data/cache && chown truesouth:truesouth /app/data/cache
 USER truesouth
 EXPOSE 8080
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=6 \
     CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health')"]
-CMD ["uvicorn", "truesouth_api.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "truesouth_api.main:app", "--host", "0.0.0.0", "--port", "8080", "--no-proxy-headers"]

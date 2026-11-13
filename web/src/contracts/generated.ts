@@ -40,6 +40,38 @@ export interface TrueSouthContracts {
   [k: string]: unknown;
 }
 /**
+ * HTTP 422 body, without client values or internal validator details.
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "APIValidationError".
+ */
+export interface APIValidationError {
+  /**
+   * Safe field identifiers and validation advice.
+   */
+  fields: ValidationField[];
+  /**
+   * Plain request validation summary.
+   */
+  message: string;
+}
+/**
+ * A safe field identifier and plain validation advice; never the submitted value.
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "ValidationField".
+ */
+export interface ValidationField {
+  /**
+   * Safe field identifier; body covers malformed JSON and unknown fields.
+   */
+  field: "lat_deg" | "lon_deg" | "name" | "body";
+  /**
+   * Plain validation advice without submitted values.
+   */
+  message: string;
+}
+/**
  * Surrounding-terrain apron: one little-endian uint16 grid.
  *
  * A finite value decodes as ``raw / scale - offset_m`` (step 0.5 m). The value
@@ -592,13 +624,13 @@ export interface CustomSiteRequest {
    */
   lat_deg: number;
   /**
-   * East longitude in degrees.
+   * Finite east longitude; normalised to [0, 360).
    */
   lon_deg: number;
   /**
-   * Custom site display name.
+   * Optional display name, trimmed and length limited.
    */
-  name: string;
+  name?: string;
 }
 /**
  * Custom site job status.
@@ -640,7 +672,9 @@ export interface ErrorDetail {
     | "rate_limited"
     | "queue_full"
     | "terrain_unavailable"
-    | "not_found";
+    | "not_found"
+    | "computation_failed"
+    | "storage_full";
   /**
    * Plain-language error message.
    */
@@ -836,7 +870,9 @@ export interface ErrorDetail1 {
     | "rate_limited"
     | "queue_full"
     | "terrain_unavailable"
-    | "not_found";
+    | "not_found"
+    | "computation_failed"
+    | "storage_full";
   /**
    * Plain-language error message.
    */

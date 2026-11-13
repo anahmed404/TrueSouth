@@ -3,6 +3,8 @@
 No file writer lives here: ``Skyline.arrays`` follows SkylineLayout order for the
 derived-data writer. Calculations retain float64; that writer can encode Float32.
 """
+from truesouth.constants import MAX_SITE_LATITUDE_DEG
+
 
 from dataclasses import dataclass
 
@@ -129,7 +131,7 @@ def compute_skyline(store, latitude, longitude, *, bins=SKYLINE_BINS,
         raise ValueError('step_scale must be positive and at most one')
     if not isinstance(chunk_size, (int, np.integer)) or chunk_size < 1:
         raise ValueError('chunk_size must be a positive integer')
-    if not np.isfinite(latitude) or not np.isfinite(longitude) or abs(latitude) > 89.999:
+    if not np.isfinite(latitude) or not np.isfinite(longitude) or abs(latitude) > MAX_SITE_LATITUDE_DEG:
         raise ValueError('finite site coordinates and absolute latitude <= 89.999 required')
     local_basis(latitude, longitude)
     flat = -np.rad2deg(np.arccos(MOON_RADIUS_M / (MOON_RADIUS_M + OBSERVER_HEIGHT_M)))

@@ -1,3 +1,6 @@
+# docs/science.md section 2.1: the site-centred local frame excludes the poles.
+MAX_SITE_LATITUDE_DEG = 89.999
+
 # docs/science.md §1
 MOON_RADIUS_M = 1_737_400
 SUN_RADIUS_KM = 695_700
