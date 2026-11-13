@@ -12,6 +12,8 @@ function lesson2Scene(skyline: SkylineKind, timeRange: TimeRange | null): SceneS
       ...storyScenario,
       siteIds: ["{{example.l2.site_id}}"],
       focusedSiteId: "{{example.l2.site_id}}",
+      // The moment the lesson looks at: the step-1 hour. The sketch draws the Sun there.
+      currentUtc: "{{example.l2.example_utc}}",
     },
     skyline,
     timeRange,
@@ -72,7 +74,6 @@ export const lesson2 = {
       scene: terrain,
       window: { kind: "centred", centre: "{{example.l2.sun_az_deg}}", halfWidthDeg: 30 },
       preview: {
-        says: "Soon you'll sketch the skyline you think Pip sees here, then see the real one laid over it. For now, here's the real one, towards the Sun.",
         reveal:
           "Towards the Sun, at azimuth {{example.l2.sun_az_deg}}°, the skyline stands {{example.l2.ridge_el_deg}}° high. That is the ridge from the first step.",
       },
@@ -87,10 +88,8 @@ export const lesson2 = {
       panel: "LandersEye",
       scene: sunDrag,
       goal: { metric: "sun_frac", op: "<", value: 0.5 },
-      readout: ["{{example.l2.site_name}}"],
       follow: { power: "sun-fraction" },
       preview: {
-        says: "Soon you'll drag the Sun here and watch Pip's power follow the share of its disc that shows. For now, here's the hour from the first step.",
         reveal:
           "At that hour, the share of the Sun's disc above the skyline is {{example.l2.sun_frac}}, where 0 is fully hidden and 1 is fully clear.",
       },

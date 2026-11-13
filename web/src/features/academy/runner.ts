@@ -10,11 +10,19 @@ export const XP_SECOND = 5;
 export const XP_REVEALED = 2;
 
 /**
- * Step kinds that embed a Mission Control panel. Their components are work package A3.
- * Until then the lesson screen shows a placeholder for them, and the learner may skip
- * the step for no XP. A skipped step does not count for or against the stars.
+ * Step kinds that embed a Mission Control panel. When the panel cannot be shown (its site's
+ * data failed to load, or the step is still pending) the lesson screen shows the step's
+ * holding form, and the learner may skip it for no XP. A skipped step does not count for or
+ * against the stars.
  */
 export const PANEL_STEP_KINDS: readonly StepKind[] = ["drag-body", "draw-skyline", "drop-pin"];
+
+/**
+ * Panel step kinds whose step component is not built yet. They always show the holding
+ * form. `drop-pin` waits for its wiring to the Polar map; `drag-body` and `draw-skyline`
+ * were built in work package A3.
+ */
+export const PENDING_STEP_KINDS: readonly StepKind[] = ["drop-pin"];
 
 export type RunnerPhase = "prompt" | "hint" | "correct" | "revealed" | "unavailable" | "complete";
 
@@ -23,7 +31,7 @@ export type RunnerPhase = "prompt" | "hint" | "correct" | "revealed" | "unavaila
  * - first, second: right on the first or second try;
  * - revealed: the answer was shown (two misses, or a wrong prediction);
  * - sketched: a skyline sketch further than 1.0° from the real one;
- * - skipped: a panel step skipped until A3 builds it;
+ * - skipped: a panel step passed in its holding form (pending, or its data did not load);
  * - unavailable: the goal's worked-example key is missing, so it cannot be checked yet;
  * - unreachable: no stop on the slider can meet the goal.
  * `skipped`, `unavailable` and `unreachable` are not scored.

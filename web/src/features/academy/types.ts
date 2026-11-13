@@ -260,14 +260,18 @@ export type SketchPoint = { azDeg: number; elDeg: number };
 export type PinAttempt = { siteId: string } | { latDeg: number; lonEastDeg: number };
 
 /**
- * What a panel step shows until its panel is built (work package A3): Luna says what the
- * learner will do there once it is ready, and the stage shows the real answer, so the
- * lesson's story still reads end to end. Both are lesson text and may hold placeholders.
- * The step then earns no XP and does not count for the stars.
+ * What a panel step shows when it cannot be played: the stage shows the real answer, so the
+ * lesson's story still reads end to end, and "Continue" moves on. The step then earns no XP
+ * and does not count for the stars. Both lines are lesson text and may hold placeholders.
+ * - A step whose panel is not built (`drop-pin`, `PENDING_STEP_KINDS`) always shows it, and
+ *   Luna says `says` in place of her question.
+ * - A `drag-body` or `draw-skyline` step shows it only when its site's data fails to load;
+ *   Luna keeps her question, so it has no `says`. A `draw-skyline` step also uses `reveal`
+ *   as the caption under the real skyline once the sketch is done.
  */
 export type PanelPreview = {
-  /** Luna's line in place of her question, which asks for an interaction that is not there yet. */
-  says: string;
+  /** Luna's line in place of her question, for a step whose panel is not built yet. */
+  says?: string;
   /** The answer the learner would find, as a short reveal. */
   reveal: string;
 };
@@ -458,7 +462,13 @@ export type UnderTheHoodCard = {
 
 export type Submission =
   | { kind: "choice" | "predict" | "fill-formula" | "spot-bug"; selected: number }
-  | { kind: "drag-body"; value: number | string }
+  | {
+      kind: "drag-body";
+      /** The goal metric's stored value at the chosen hour. */
+      value: number | string;
+      /** The chosen hour, UTC, ISO-8601 ending in `Z`. */
+      utc?: string;
+    }
   | { kind: "tune-slider"; variant: "number"; value: number }
   | { kind: "tune-slider"; variant: "date"; utc: string }
   | { kind: "drop-pin"; pin: PinAttempt }

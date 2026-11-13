@@ -27,16 +27,28 @@ import {
   type Draft,
 } from "./step-view";
 import { useAcademyStore } from "./store";
-import type { Lesson, Submission } from "./types";
+import type { Lesson, Step, Submission } from "./types";
 import { ConfirmDialog } from "./ui/dialog";
 
 function submissionFrom(draft: Draft): Submission | null {
   if (!draft) return null;
+  if (draft.kind === "drag-body") return { kind: "drag-body", value: draft.value, utc: draft.utc };
+  if (draft.kind === "draw-skyline") return { kind: "draw-skyline", sketch: draft.sketch, gapDeg: draft.gapDeg };
   if (draft.kind === "tune-slider") {
     if (draft.variant === "date") return { kind: "tune-slider", variant: "date", utc: draft.utc };
     return { kind: "tune-slider", variant: "number", value: draft.value };
   }
   return { kind: draft.kind, selected: draft.selected };
+}
+
+/**
+ * Pip's meters, with the power meter following the dragged Sun's disc fraction on a step
+ * whose `follow` asks for it. The fraction is the series' value at the dragged hour.
+ */
+function livePip(step: Step | undefined, draft: Draft, pip: { power?: number; link?: boolean } | null) {
+  if (step?.kind !== "drag-body" || step.follow?.power !== "sun-fraction") return pip;
+  if (draft?.kind !== "drag-body" || draft.sunFrac === null) return pip;
+  return { ...pip, power: draft.sunFrac * 100 };
 }
 
 /** True when a key press belongs to a control that handles Enter itself. */
@@ -66,6 +78,8 @@ export function LessonScreen({
   const [tab, setTab] = useState<TalkTab>("luna");
   const [celebrate, setCelebrate] = useState(0);
   const [leaveTo, setLeaveTo] = useState<string | null>(null);
+  // Whether the current step's site data failed to load, by step id, so a new step starts clean.
+  const [failedStep, setFailedStep] = useState<string | null>(null);
   const recorded = useRef(false);
   const primaryRef = useRef<HTMLButtonElement>(null);
   const stepRef = useRef<HTMLDivElement>(null);
@@ -73,7 +87,22 @@ export function LessonScreen({
   const step = lesson.steps[runner.stepIndex];
   const views = useMemo(() => (step ? optionViews(step, runner, draft) : []), [step, runner, draft]);
   const isLast = runner.stepIndex === lesson.steps.length - 1;
-  const primary = step ? primaryAction(step, runner, draft, isLast) : null;
+  const sceneFailed = step !== undefined && failedStep === step.id;
+  const primary = step ? primaryAction(step, runner, draft, isLast, sceneFailed) : null;
+  const stepId = step?.id;
+  const onSceneStatus = useCallback(
+    (status: "loading" | "ready" | "error") => {
+      if (stepId === undefined) return;
+      setFailedStep((current) => (status === "error" ? stepId : current === stepId ? null : current));
+    },
+    [stepId],
+  );
+  const onStageDraft = useCallback(
+    (next: Draft) => {
+      if (!isAnswered(runner)) setDraft(next);
+    },
+    [runner],
+  );
 
   // Save once, when the lesson is complete. Leaving part-way saves nothing.
   useEffect(() => {
@@ -179,7 +208,7 @@ export function LessonScreen({
         stepIndex={runner.stepIndex}
         stepCount={lesson.steps.length}
         answered={isAnswered(runner)}
-        pip={pipAt(lesson.steps, runner.stepIndex)}
+        pip={livePip(step, draft, pipAt(lesson.steps, runner.stepIndex))}
         onClose={() => requestLeave("/academy")}
         onSkip={(event: MouseEvent<HTMLAnchorElement>) => {
           event.preventDefault();
@@ -194,9 +223,9 @@ export function LessonScreen({
           views={views}
           examples={examples}
           celebrate={celebrate}
-          onDraft={(next) => {
-            if (!isAnswered(runner)) setDraft(next);
-          }}
+          onDraft={onStageDraft}
+          sceneFailed={sceneFailed}
+          onSceneStatus={onSceneStatus}
         />
         <Conversation
           step={step}
