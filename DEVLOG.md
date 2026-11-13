@@ -820,7 +820,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   at 1440 × 900, 1024 × 768 and 390 × 844 on the real data and on `VITE_DATA=fixtures`
   (no console errors, no sideways page scroll, every control at least 44 px, keyboard
   focus visible). A human has not read the page yet.
-- **State:** built, not verified
+- **State:** verified (322 Python tests, 1,744 web tests, typecheck and build pass on the merge with main; reviewed by Codex (every recorded miss shown, counts match both data files, three mutations caught; six findings, all fixed with tests: largest differences round up, a damaged file never prints NaN, the compass-bearing note is in the open); not yet read by the team lead)
 - **Changed:** `web/src/features/validation/` (all new except `index.tsx`), screenshots
   `docs/design/c2/built-validation*.png`
 - **Notes:**
