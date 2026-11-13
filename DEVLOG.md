@@ -342,7 +342,7 @@ each integration checkpoint.
 - **AI use:** Cursor, grok-4.7 — widened the lesson types, the runner and the evaluator,
   wrote the coverage table, the lessons 1 to 4 skeletons and the vitest checks — checked
   by the agent with typecheck, tests and build. A human has not played a lesson.
-- **State:** built, not verified
+- **State:** verified (orchestrator ran typecheck, 1,350 tests and build on the merge with main and played the sample lesson through all eight steps in a browser; Codex, gpt-6.1-terra reviewed the types and skeletons against the lesson document and ran nine mutations; its findings were fixed and the ambiguous settings decided and written into lessons.md)
 - **Changed:** `web/src/features/academy/` (`types.ts`, `runner.ts`, `evaluator.ts`,
   `step-view.ts`, `skyline-score.ts`, `store.ts`, `lessons/l1.ts`–`l4.ts`, `lessons/story.ts`,
   `lessons/COVERAGE.md`, and the smallest screen edits the new types needed),
