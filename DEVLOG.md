@@ -107,6 +107,26 @@ each integration checkpoint.
 
 ## Academy
 
+#### 2026-11-13 · A7 · `explain.ts`: a plain-language entry for every term a user meets
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-sonnet-5-5 — wrote the 113 entries in
+  `web/src/lib/explain.ts` and the vitest checks in `explain.test.ts` — checked by the
+  agent with the tests, typecheck and build, and by two read-throughs of every entry: once
+  as a reader with no background, once against `docs/science.md`. A human has not read
+  the text yet.
+- **State:** verified (the orchestrator, Claude Fable 5.2, ran the tests, typecheck and build and applied the review's corrections; Antigravity, gemini-4-hydrogen checked every entry against CONTEXT.md and docs/science.md and asked for seven wording fixes and five lesson-link fixes, all made)
+- **Changed:** `web/src/lib/explain.ts`, `web/src/lib/explain.test.ts`, this entry
+- **Notes:**
+  - Every glossary term in CONTEXT.md (except the developer-only ones), every profile
+    field, and every metric, veto, utility and status has an entry. Each entry can link
+    to the lesson that teaches it (`lesson`).
+  - Callers can now type a term with `ExplainTerm`; `explanations` is still a plain
+    record, so `Explain.tsx` needs no change.
+  - The test reads `CONTEXT.md` and `docs/mission-profiles.md`, so a new glossary term
+    or profile field fails the tests until it is explained.
+  - Vetoes and utilities are keyed `veto_slope`, `utility_slope` and so on, because
+    `blackout` is already a glossary term. First draft; a polish pass is due.
+
 #### 2026-11-13 · A0 · Lesson types, step runner, feedback flow, academy store, path map
 - **Who:** Cursor agent, for the orchestrator
 - **AI use:** Cursor, grok-4.7 — wrote the lesson types, pure step runner, placeholder
