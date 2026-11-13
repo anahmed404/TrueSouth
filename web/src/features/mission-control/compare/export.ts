@@ -164,7 +164,11 @@ export function compareCsvRows(columns: readonly ColumnView[], rows: readonly Me
 
 export function compareCsv(columns: readonly ColumnView[], rows: readonly MetricRow[], scenario: ExportScenario, made: Date): string {
   return toCsv(
-    headerComments("TrueSouth comparison: one row per selected site, values as the Compare table shows them", scenario, made),
+    headerComments(
+      "TrueSouth comparison: one row per selected site. Values are as printed on screen (rounded); the JSON export holds full precision",
+      scenario,
+      made,
+    ),
     COMPARE_CSV_HEADER,
     compareCsvRows(columns, rows),
   );

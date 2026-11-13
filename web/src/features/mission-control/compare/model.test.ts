@@ -303,7 +303,7 @@ describe("the exports", () => {
   const parsed = parseCsv(csv);
 
   it("starts with the profile, landing date, time made, source, caveat and grid range", () => {
-    expect(parsed.comments[0]).toMatch(/^TrueSouth comparison/);
+    expect(parsed.comments[0]).toBe("TrueSouth comparison: one row per selected site. Values are as printed on screen (rounded); the JSON export holds full precision");
     expect(parsed.comments).toContain("Profile: IM-2 Athena (im2_athena)");
     expect(parsed.comments).toContain(`Landing date: ${LANDING}`);
     expect(parsed.comments).toContain("Made: 2026-11-13T09:41:05Z");

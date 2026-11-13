@@ -25,10 +25,10 @@ Owner: Mission Control track. Folder: `web/src/features/mission-control/share/`.
 
 | Export | Format | Content |
 | :--- | :--- | :--- |
-| Comparison table | CSV | One row per site: status, score, every metric, vetoes, slope and its baseline, best marks and notes (built in MC9) |
+| Comparison table | CSV | One row per site: status, score, every metric, broken rules (`broken_rules`), slope and its baseline, best marks and notes, each value as the table prints it; the JSON export holds full precision (built in MC9) |
 | Scenario | JSON | The scenario, every profile value with its provenance, the time grid and each site's full-precision results (built in MC9) |
 | Timeline | CSV | One row per hour of the focused site's mission window: UTC time and the eight series values, plus lit and link |
-| Slip Planner | CSV | One row per site and day in the visible range: status, score, vetoes |
+| Slip Planner | CSV | One row per site and day in the visible range: status, score, broken rules |
 | Current view | PNG | The main view as shown |
 
 The Timeline CSV, the Slip Planner CSV and the PNG export are not built yet (not in MC9).
