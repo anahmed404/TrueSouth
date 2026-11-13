@@ -49,9 +49,9 @@ each integration checkpoint.
 
 ## Science
 
-#### 2026-11-13 ? S3 ? Site-centred frames and polar projection
+#### 2026-11-13 · S3 · Site-centred frames and polar projection
 - **Who:** Codex agent, for the orchestrator
-- **AI use:** Codex, gpt-6.1-terra ? wrote geometry tests and `frames.py` ? agent ran pytest; the orchestrator has not checked it yet
+- **AI use:** Codex, gpt-6.1-terra — wrote geometry tests and `frames.py` — agent ran pytest; the orchestrator has not checked it yet
 - **State:** built, not verified
 - **Changed:** `science/src/truesouth/frames.py`, `science/tests/test_frames.py`, this entry
 - **Notes:** G3 largest error: 3.0886440072208643e-9 m (inverse); forward: 1.1524528889697587e-9 m.

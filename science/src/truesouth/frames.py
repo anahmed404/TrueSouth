@@ -6,13 +6,13 @@ from truesouth.constants import MOON_RADIUS_M
 
 
 def _wrap_degrees(angle):
-    """Wrap angles to [0, 360), including floating-point rounding (science.md ?1)."""
+    """Wrap angles to [0, 360), including floating-point rounding (science.md §1)."""
     wrapped = np.mod(angle, 360.0)
     return np.where(wrapped >= 360.0, 0.0, wrapped)
 
 
 def _site_latitude(latitude):
-    """Reject sites where the local frame is undefined (science.md ?2.1)."""
+    """Reject sites where the local frame is undefined (science.md §2.1)."""
     latitude = np.asarray(latitude, dtype=float)
     if np.any(np.abs(latitude) > 89.999):
         raise ValueError("site latitude must have absolute value at most 89.999 degrees")
@@ -20,13 +20,13 @@ def _site_latitude(latitude):
 
 
 def unit_vector(latitude, longitude):
-    """Return Moon-fixed unit vectors with components on the last axis (science.md ?2.1)."""
+    """Return Moon-fixed unit vectors with components on the last axis (science.md §2.1)."""
     lat, lon = np.broadcast_arrays(np.deg2rad(latitude), np.deg2rad(longitude))
     return np.stack((np.cos(lat) * np.cos(lon), np.cos(lat) * np.sin(lon), np.sin(lat)), axis=-1)
 
 
 def local_basis(latitude, longitude):
-    """Return east, north and up unit vectors at each site (science.md ?2.1)."""
+    """Return east, north and up unit vectors at each site (science.md §2.1)."""
     lat, lon = np.broadcast_arrays(np.deg2rad(_site_latitude(latitude)), np.deg2rad(longitude))
     east = np.stack((-np.sin(lon), np.cos(lon), np.zeros_like(lon)), axis=-1)
     north = np.stack((-np.sin(lat) * np.cos(lon), -np.sin(lat) * np.sin(lon), np.cos(lat)), axis=-1)
@@ -35,7 +35,7 @@ def local_basis(latitude, longitude):
 
 
 def az_el(latitude, longitude, direction):
-    """Return azimuth and elevation of unit directions in degrees (science.md ?2.1)."""
+    """Return azimuth and elevation of unit directions in degrees (science.md §2.1)."""
     east, north, up = local_basis(latitude, longitude)
     direction = np.asarray(direction, dtype=float)
     east_component = np.sum(direction * east, axis=-1)
@@ -47,7 +47,7 @@ def az_el(latitude, longitude, direction):
 
 
 def destination(latitude, longitude, azimuth, distance_m):
-    """Walk a great-circle distance from a site (science.md ??2.1?2.2)."""
+    """Walk a great-circle distance from a site (science.md §2.1–2.2)."""
     lat = np.deg2rad(_site_latitude(latitude))
     lon = np.deg2rad(longitude)
     az = np.deg2rad(azimuth)
@@ -60,14 +60,14 @@ def destination(latitude, longitude, azimuth, distance_m):
 
 
 def polar_stereo_forward(latitude, longitude):
-    """Project latitude and east longitude to metres (science.md ?2.3)."""
+    """Project latitude and east longitude to metres (science.md §2.3)."""
     lat, lon = np.broadcast_arrays(np.deg2rad(latitude), np.deg2rad(longitude))
     rho = 2 * MOON_RADIUS_M * np.tan(np.pi / 4 + lat / 2)
     return rho * np.sin(lon), rho * np.cos(lon)
 
 
 def polar_stereo_inverse(x, y):
-    """Return latitude and east longitude from map metres (science.md ?2.3)."""
+    """Return latitude and east longitude from map metres (science.md §2.3)."""
     x, y = np.broadcast_arrays(x, y)
     rho = np.hypot(x, y)
     latitude = np.rad2deg(2 * np.arctan(rho / (2 * MOON_RADIUS_M)) - np.pi / 2)
@@ -76,5 +76,5 @@ def polar_stereo_inverse(x, y):
 
 
 def map_scale_factor(latitude):
-    """Return the south-polar map distance scale factor (science.md ?2.3)."""
+    """Return the south-polar map distance scale factor (science.md §2.3)."""
     return 2 / (1 + np.sin(np.abs(np.deg2rad(latitude))))
