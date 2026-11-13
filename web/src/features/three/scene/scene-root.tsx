@@ -40,6 +40,7 @@ import { sceneContent, type LoadState } from "./plates";
 import { southPolePose } from "./navigate";
 import { Rig } from "./rig";
 import { sightState, type SightState } from "./sight";
+import { FrameMeter, STEP_DOWN_MS, WINDOW_FRAMES, drawDpr, judgeWindow, median, qualityStages } from "./perf";
 import { Stars, starExposure } from "./stars";
 import { mul, type V3 } from "./vec";
 import { World, type WorldInputs, type WorldSite } from "./world";
@@ -51,8 +52,6 @@ import "./scene.css";
  * lib/geo; lit, dark, link and no link come from the series through the scoring hooks.
  */
 
-/** A first flight whose median frame is over this is "slow" (system-view.md, "When 3D does not run"). */
-const SLOW_MEDIAN_MS = 55;
 /** A double-click's move onto a spot. */
 const FOCUS_MS = 700;
 /** The space our own plates take at the top and foot of the free space, so the subject clears them. */
@@ -75,6 +74,16 @@ function captureMode(): boolean {
   if (!import.meta.env.DEV) return false;
   try {
     return window.sessionStorage.getItem("truesouth.scene.capture") === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Dev only: `?perf` in the address shows frame times over the scene (never shipped). */
+function perfHud(): boolean {
+  if (!import.meta.env.DEV) return false;
+  try {
+    return new URLSearchParams(window.location.search).has("perf");
   } catch {
     return false;
   }
@@ -628,14 +637,9 @@ type DirectorProps = {
   onArrive?: SceneProps["onArrive"];
 };
 
-function median(values: number[]): number {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  return sorted[Math.floor(sorted.length / 2)] as number;
-}
-
 function Director(props: DirectorProps) {
   const { gl, camera, scene, invalidate } = useThree();
+  const setDpr = useThree((state) => state.setDpr);
   const perspective = camera as THREE.PerspectiveCamera;
   const world = useMemo(() => new World(invalidate, gl.capabilities.getMaxAnisotropy()), [invalidate, gl]);
   const rig = useMemo(() => new Rig(perspective), [perspective]);
@@ -749,6 +753,42 @@ function Director(props: DirectorProps) {
     return null;
   }, []);
 
+  // ── Quality: step down on a slow machine, in stages (perf.ts) ──
+  // Stage 0 is the full picture. Frames measured while something moves can step it down; the
+  // scene says "slow" (and the shell offers the still picture) only when the last stage is
+  // still slow. Stages 1 and up draw fewer pixels while moving and the full stage resolution
+  // as soon as the scene rests.
+  const quality = useMemo(
+    () => ({
+      stages: qualityStages(typeof window === "undefined" ? 1 : window.devicePixelRatio || 1),
+      stage: 0,
+      meter: new FrameMeter(WINDOW_FRAMES),
+      restTimer: 0,
+      lastFrame: 0,
+      resting: false,
+      slowSent: false,
+    }),
+    [],
+  );
+  const applyStage = useCallback(
+    (stage: number) => {
+      if (stage === quality.stage) return;
+      quality.stage = stage;
+      quality.meter.reset();
+      const rest = drawDpr(quality.stages[stage]!, false);
+      setDpr(rest);
+      gl.setPixelRatio(rest);
+      invalidate();
+    },
+    [quality, setDpr, gl, invalidate],
+  );
+  useEffect(
+    () => () => {
+      window.clearTimeout(quality.restTimer);
+    },
+    [quality],
+  );
+
   // ── Status: measure the first flight, then report ──
   const measuring = useRef<{ frames: number[]; last: number } | null>(null);
   const reported = useRef(false);
@@ -758,10 +798,15 @@ function Director(props: DirectorProps) {
     if (reported.current) return;
     reported.current = true;
     const p = latest.current;
-    const forced = devForcedStatus();
-    const slow = forced === "slow" || median(m?.frames ?? []) > SLOW_MEDIAN_MS;
-    p.onStatus(slow && !p.ignoreSlow ? "slow" : "ready", NO_FLAT_VIEWS);
-  }, []);
+    if (devForcedStatus() === "slow") {
+      p.onStatus(p.ignoreSlow ? "ready" : "slow", NO_FLAT_VIEWS);
+      return;
+    }
+    // A slow first flight steps the quality down; it no longer swaps in the still picture.
+    const frames = m?.frames ?? [];
+    if (frames.length > 0 && !p.capture) applyStage(judgeWindow(quality.stage, quality.stages.length - 1, median(frames)).stage);
+    p.onStatus("ready", NO_FLAT_VIEWS);
+  }, [applyStage, quality]);
 
   // ── Flights ──
   const arrive = useCallback((view: CameraViewId) => {
@@ -872,6 +917,45 @@ function Director(props: DirectorProps) {
   // Render on demand: a frame is drawn only when something changed, and only while visible.
   useFrame(({ camera: frameCamera, size }) => {
     const now = performance.now();
+    if (!latest.current.capture && !measuring.current) {
+      // A frame within 250 ms of the one before is a moving frame; the one frame drawn to
+      // restore full resolution after a rest is not.
+      const resting = quality.resting;
+      quality.resting = false;
+      const sinceLast = now - quality.lastFrame;
+      quality.lastFrame = now;
+      const gap = !resting && sinceLast > 0 && sinceLast <= 250 ? sinceLast : 0;
+      // Only flight frames judge the stage: they are drawn back to back, so the time between
+      // them is the frame's cost. A drag's frames follow the pointer, and a pause in a drag
+      // must not look like a slow frame.
+      // The meter keeps its frames from one flight to the next (a gap over 250 ms is dropped).
+      if (rig.flying) quality.meter.tick(now);
+      const enough = quality.meter.count >= WINDOW_FRAMES || (quality.meter.count >= 6 && quality.meter.median() > 3 * STEP_DOWN_MS);
+      if (enough) {
+        const verdict = judgeWindow(quality.stage, quality.stages.length - 1, quality.meter.median());
+        quality.meter.reset();
+        if (verdict.stage !== quality.stage) applyStage(verdict.stage);
+        else if (verdict.slow && !quality.slowSent && !latest.current.ignoreSlow) {
+          quality.slowSent = true;
+          latest.current.onStatus("slow", NO_FLAT_VIEWS);
+        }
+      }
+      // Dynamic resolution: fewer pixels while moving, the full stage resolution at rest.
+      const stage = quality.stages[quality.stage]!;
+      if (stage.movingScale < 1) {
+        const want = drawDpr(stage, gap > 0);
+        if (Math.abs(gl.getPixelRatio() - want) > 1e-3) gl.setPixelRatio(want);
+        window.clearTimeout(quality.restTimer);
+        if (gap > 0) {
+          // When nothing has moved for 160 ms, draw one frame at the full resolution. The
+          // canvas is resized inside that frame, so a cleared canvas is never shown.
+          quality.restTimer = window.setTimeout(() => {
+            quality.resting = true;
+            invalidate();
+          }, 160);
+        }
+      }
+    }
     const moving = rig.update(now);
     world.draw = rig.draw;
     // three updates the camera's matrices during render; the overlay projects before that.
@@ -887,11 +971,22 @@ function Director(props: DirectorProps) {
       exposure = starExposure((Math.PI * moonRadius * moonRadius) / (fovY * fovY * cam.aspect));
     }
     stars.update(gl.getPixelRatio(), exposure, inputs.bodies ? inputs.sunDir : null);
+    const overlayStart = devMeter ? performance.now() : 0;
     latest.current.bus.current.overlay?.(anchors, frameCamera as THREE.PerspectiveCamera, size);
+    if (devMeter) devMeter.parts.overlay += performance.now() - overlayStart;
     const m = measuring.current;
     if (m) {
       if (m.last > 0) m.frames.push(now - m.last);
       m.last = now;
+    }
+    if (devMeter) {
+      devMeter.meter.tick(now);
+      devMeter.frames += 1;
+      if (devMeter.hud && devMeter.frames % 15 === 0) {
+        const m = devMeter.meter;
+        const info = gl.info.render;
+        devMeter.hud.textContent = `${m.median().toFixed(1)} ms median · ${m.p95().toFixed(1)} p95 · ${m.count} frames · dpr ${gl.getPixelRatio().toFixed(2)} · ${size.width}×${size.height} · ${info.calls} calls · ${Math.round(info.triangles / 1000)}k tris`;
+      }
     }
     if (moving) invalidate();
   });
@@ -908,11 +1003,57 @@ function Director(props: DirectorProps) {
     return () => window.clearInterval(timer);
   }, [props.capture, gl, scene, camera, rig, world]);
 
+  // Dev only: frame times for measuring (window.__truesouthPerf), and the `?perf` readout.
+  const devMeter = useMemo(() => {
+    if (!import.meta.env.DEV) return null;
+    const meter = new FrameMeter(2_000);
+    let hud: HTMLDivElement | null = null;
+    if (perfHud()) {
+      hud = document.createElement("div");
+      hud.style.cssText =
+        "position:fixed;left:8px;bottom:8px;z-index:9999;padding:4px 8px;font:12px/1.4 monospace;color:#f4f4f5;background:rgba(20,20,21,.92);border-radius:4px;pointer-events:none";
+      document.body.appendChild(hud);
+    }
+    return { meter, hud, frames: 0, parts: { overlay: 0, render: 0 } };
+  }, []);
+  // Dev only: time the renderer's own work on the main thread.
+  useEffect(() => {
+    if (!devMeter) return;
+    const original = gl.render.bind(gl);
+    gl.render = (s: THREE.Object3D, c: THREE.Camera) => {
+      const t = performance.now();
+      original(s, c);
+      devMeter.parts.render += performance.now() - t;
+    };
+    return () => {
+      gl.render = original;
+    };
+  }, [devMeter, gl]);
+  useEffect(() => {
+    if (!devMeter) return;
+    (window as unknown as { __truesouthPerf?: unknown }).__truesouthPerf = {
+      reset: () => {
+        devMeter.meter.reset();
+        devMeter.parts = { overlay: 0, render: 0 };
+        devMeter.frames = 0;
+      },
+      read: () => ({
+        median: devMeter.meter.median(),
+        p95: devMeter.meter.p95(),
+        frames: devMeter.meter.count,
+        dpr: gl.getPixelRatio(),
+        overlayMs: devMeter.parts.overlay / Math.max(1, devMeter.frames),
+        renderMs: devMeter.parts.render / Math.max(1, devMeter.frames),
+      }),
+    };
+    return () => devMeter.hud?.remove();
+  }, [devMeter, gl]);
+
   // Exposed for checking by the numbers in the browser (dev only).
   useEffect(() => {
     if (!import.meta.env.DEV) return;
-    (window as unknown as { __truesouthScene?: unknown }).__truesouthScene = { world, rig, camera, gl, inputs: () => latest.current.inputs };
-  }, [world, rig, camera, gl]);
+    (window as unknown as { __truesouthScene?: unknown }).__truesouthScene = { world, rig, camera, gl, invalidate, inputs: () => latest.current.inputs };
+  }, [world, rig, camera, gl, invalidate]);
 
   // Pause when the tab is hidden: draw one fresh frame on return.
   useEffect(() => {
