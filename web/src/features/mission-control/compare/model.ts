@@ -418,7 +418,8 @@ function landingDate(landingUtc: string): string {
  * than the numbers show (docs/features/compare.md, "A sentence that sums it up").
  */
 export function summarySentence(columns: readonly ColumnView[], profile: MissionProfile, landingUtc: string): string {
-  const lead = `For ${profile.name} landing ${landingDate(landingUtc)}`;
+  const who = profile.id === "custom" ? "a custom profile" : profile.name;
+  const lead = `For ${who} landing ${landingDate(landingUtc)}`;
   if (columns.length === 0) return "No sites are selected. Add sites from the sites rail to compare them.";
   if (columns.some((c) => c.status.kind === "loading")) return `${lead}: loading the sites' data…`;
 

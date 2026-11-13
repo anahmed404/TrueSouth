@@ -264,13 +264,21 @@ function SiteHeader({ column, focused, onFocusSite }: { column: ColumnView; focu
   const site = column.site;
   return (
     <th scope="col" className={cx("cmp-site", focused && "cmp-site-focused")}>
-      <button type="button" className="cmp-site-name" aria-current={focused ? "true" : undefined} onClick={() => onFocusSite(column.siteId)}>
+      <button
+        type="button"
+        className="cmp-site-name"
+        aria-current={focused ? "true" : undefined}
+        title={focused ? "The focused site" : "Focus this site in the other views"}
+        onClick={() => onFocusSite(column.siteId)}
+      >
         {column.name}
-        <span className="sr-only">{focused ? ", the focused site" : ", focus this site"}</span>
       </button>
       {site ? (
         <span className="cmp-meta tabular" title={column.coords ?? undefined}>
-          <span aria-hidden="true">{shortCoordinates(site.lat_deg, site.lon_deg)}</span>
+          <span aria-hidden="true">
+            <span className="whitespace-nowrap">{formatNumber(site.lat_deg, 2)}°,</span>{" "}
+            <span className="whitespace-nowrap">{formatNumber(site.lon_deg, 2)}° E</span>
+          </span>
           <span className="sr-only">{column.coords}</span>
         </span>
       ) : null}
@@ -291,11 +299,6 @@ function SiteHeader({ column, focused, onFocusSite }: { column: ColumnView; focu
       ) : null}
     </th>
   );
-}
-
-/** "−89.46°, 222.62° E": short enough for a column; the full coordinates are in its title. */
-function shortCoordinates(latDeg: number, lonDeg: number): string {
-  return `${formatNumber(latDeg, 2)}°, ${formatNumber(lonDeg, 2)}° E`;
 }
 
 /** A quiet tag whose tip, and screen-reader text, is the whole note. */

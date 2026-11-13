@@ -44,7 +44,10 @@
 /* ── The table, scrolling inside the window with its first column fixed ───── */
 .cmp-scroll {
   flex: 1 1 auto;
-  min-height: 0;
+  /* Never smaller than a few rows: in a short window the window's body scrolls instead. */
+  min-height: min(280px, 60vh);
+  /* The table's width never sizes the window (a window that fits its content on the phone). */
+  contain: inline-size;
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
