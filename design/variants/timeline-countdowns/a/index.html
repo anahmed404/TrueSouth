@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrueSouth · Timeline and countdowns · Direction A</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/*<base>*/
+/* Direction A · Flight console — tokens (see design/variants/direction-a.md) */
+:root {
+  --bg-0: #0a0e13; --bg-1: #0e1319; --bg-2: #131a22; --bg-3: #18212b; --bg-4: #1f2934;
+  --rule: #1c252f; --rule-2: #27323d; --rule-3: #384553;
+  --ink-0: #e2e8ee; --ink-1: #aab5c0; --ink-2: #77838f; --ink-3: #4f5a66;
+  --accent: #5cb8d6; --accent-2: #93d4ea; --accent-bg: rgba(92, 184, 214, .12); --accent-ink: #061218;
+  --status-go: #45c07e; --status-go-bg: rgba(69, 192, 126, .10);
+  --status-caution: #e8a73a; --status-caution-bg: rgba(232, 167, 58, .11);
+  --status-nogo: #ef5d55; --status-nogo-bg: rgba(239, 93, 85, .11);
+  --sun: #ebdfb2; --earth: #86a9e6; --terrain-edge: #93a0ad;
+  --font-ui: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "Cascadia Mono", "SF Mono", Consolas, Menlo, monospace;
+  --fs-micro: 10px; --fs-xs: 11px; --fs-s: 12px; --fs-m: 13px; --fs-l: 15px; --fs-xl: 18px; --fs-2xl: 24px; --fs-3xl: 44px;
+  --sp-1: 2px; --sp-2: 4px; --sp-3: 6px; --sp-4: 8px; --sp-5: 12px; --sp-6: 16px; --sp-7: 24px; --sp-8: 32px; --sp-9: 48px;
+  --row-h: 22px; --bar-h: 40px; --hair: 1px solid var(--rule); --hair-2: 1px solid var(--rule-2);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg-0); color: var(--ink-0); }
+body { font: 400 var(--fs-s)/1.4 var(--font-ui); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+.num, .mono { font-family: var(--font-num); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.dim { color: var(--ink-2); }
+.cap { font: 500 var(--fs-micro)/1 var(--font-ui); letter-spacing: .11em; text-transform: uppercase; color: var(--ink-2); }
+a { color: var(--accent); text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+.ic { width: 12px; height: 12px; flex: none; display: inline-block; vertical-align: -2px; }
+.proto-tag { font: 500 9.5px/1 var(--font-num); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); border: 1px dashed var(--rule-3); padding: 4px 6px; background: var(--bg-0); }
+/* status chips — colour + icon + word */
+.st { display: inline-flex; align-items: center; gap: 5px; height: 18px; padding: 0 6px; border: 1px solid currentColor; font: 600 10.5px/1 var(--font-num); letter-spacing: .06em; white-space: nowrap; }
+.st .ic { width: 11px; height: 11px; }
+.st.go { color: var(--status-go); background: var(--status-go-bg); }
+.st.caution { color: var(--status-caution); background: var(--status-caution-bg); }
+.st.nogo { color: var(--status-nogo); background: var(--status-nogo-bg); }
+.st.lg { height: 26px; padding: 0 10px; font-size: 13px; gap: 7px; }
+.st.lg .ic { width: 14px; height: 14px; }
+/* provenance tags — word + border style */
+.prov { display: inline-block; font: 500 9px/1 var(--font-num); letter-spacing: .06em; text-transform: uppercase; padding: 2px 4px 2px; border: 1px solid var(--rule-3); color: var(--ink-1); white-space: nowrap; vertical-align: 1px; }
+.prov.src::after { content: " ↗"; color: var(--accent); }
+.prov.asm { border-style: dashed; color: var(--ink-2); }
+.prov.team { border-style: dotted; color: var(--ink-2); }
+.info { display: inline-flex; color: var(--ink-3); margin-left: 4px; font-style: normal; cursor: help; }
+.info .ic { width: 11px; height: 11px; }
+.tier { font: 500 9.5px/1 var(--font-num); color: var(--ink-1); border: 1px solid var(--rule-2); padding: 2px 4px; background: var(--bg-2); }
+.tier.sphere { color: var(--ink-1); border-style: dashed; border-color: var(--ink-3); background: transparent; }
+/* timeline svg text */
+.tl-day { font: 500 9.5px var(--font-num); fill: var(--ink-1); letter-spacing: .04em; }
+.tl-day.ctx, .tl-date.ctx { fill: var(--ink-3); }
+.tl-date { font: 400 9.5px var(--font-num); fill: var(--ink-2); }
+.tl-ax { font: 400 9.5px var(--font-num); fill: var(--ink-2); }
+.tl-ax.earth { fill: var(--earth); }
+.tl-lab { font: 600 9.5px var(--font-ui); fill: var(--ink-1); letter-spacing: .1em; }
+.tl-mark { font: 500 9.5px var(--font-ui); fill: var(--ink-1); }
+.tl-mark .num { font-family: var(--font-num); font-weight: 600; fill: var(--ink-0); }
+.tl-mark .tag { font-family: var(--font-num); font-size: 8.5px; fill: var(--ink-2); }
+.tl-mark.veto, .tl-mark.veto .num { fill: var(--status-nogo); }
+.tl-mark .vw { font-weight: 700; letter-spacing: .08em; }
+.tl-scrub { font: 600 9.5px var(--font-num); fill: var(--accent-ink); }
+/* panorama svg text */
+.pn-ax { font: 400 9.5px var(--font-num); fill: var(--ink-2); }
+.pn-ax.strong { fill: var(--ink-1); }
+.pn-ax.earth { fill: var(--earth); }
+.pn-comp { font: 600 10px var(--font-ui); fill: var(--ink-1); letter-spacing: .08em; }
+.pn-comp.card { fill: var(--ink-0); }
+.pn-tick { font: 500 9px var(--font-num); }
+.pn-disc { font: 600 10px var(--font-ui); letter-spacing: .08em; }
+.pn-disc .d { font: 400 9.5px var(--font-num); letter-spacing: 0; fill: var(--ink-1); }
+.pn-hh { font: 600 9.5px var(--font-ui); fill: var(--accent-2); letter-spacing: .1em; }
+.pn-hk { font: 400 9px var(--font-ui); fill: var(--ink-2); }
+.pn-hl { font: 400 10.5px var(--font-ui); fill: var(--ink-1); }
+.pn-hv { font: 500 10.5px var(--font-num); fill: var(--ink-0); }
+/* countdown cards */
+.cd-group + .cd-group { margin-top: 8px; }
+.cd-head { display: flex; align-items: center; gap: 10px; height: 20px; font-size: var(--fs-xs); color: var(--ink-1); }
+.cd-head .num { font-size: 10.5px; }
+.cd-body { font: 600 var(--fs-micro)/1 var(--font-ui); letter-spacing: .11em; width: 40px; }
+.cd-body.sun { color: var(--sun); } .cd-body.earth { color: var(--earth); }
+.bstate { display: inline-flex; align-items: center; gap: 4px; font: 600 9.5px/1 var(--font-num); letter-spacing: .06em; padding: 2px 5px; border: 1px solid var(--rule-3); color: var(--ink-1); }
+.bstate.dark, .bstate.off { border-style: dashed; color: var(--ink-2); }
+.bstate .ic { width: 10px; height: 10px; }
+.cd-row { display: grid; grid-template-columns: 1.15fr 1fr; gap: 0; border: var(--hair-2); }
+.cd { padding: 6px 8px 6px; background: var(--bg-1); min-width: 0; }
+.cd + .cd { border-left: var(--hair-2); }
+.cd-l { display: flex; align-items: center; gap: 4px; font: 500 var(--fs-micro)/1 var(--font-ui); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+.cd-v { font-size: 15px; font-weight: 500; color: var(--ink-1); margin-top: 5px; line-height: 1.1; white-space: nowrap; }
+.cd.pri .cd-v { color: var(--ink-0); font-size: 17px; }
+.cd-at { font-size: 9.5px; color: var(--ink-3); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cd.warn { background: var(--status-caution-bg); box-shadow: inset 0 0 0 1px var(--status-caution); }
+.cd.warn .cd-l, .cd.warn .cd-v, .cd.warn .cd-at { color: var(--status-caution); }
+/* why-is-it-dark card */
+.why { border: 1px solid var(--rule-3); border-left: 2px solid var(--accent); background: var(--bg-2); padding: 8px 10px; font-size: var(--fs-s); color: var(--ink-1); line-height: 1.45; }
+.why-h { display: flex; align-items: center; gap: 6px; font: 600 var(--fs-micro)/1 var(--font-ui); letter-spacing: .1em; text-transform: uppercase; color: var(--accent-2); margin-bottom: 6px; }
+.why-h .num { margin-left: auto; letter-spacing: 0; text-transform: none; font-weight: 400; }
+.why b { color: var(--ink-0); font-weight: 600; }
+.why hr { border: 0; border-top: 1px solid var(--rule-2); margin: 7px 0; }
+.why .lk { display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; font-size: var(--fs-xs); }
+/*</base>*/
+body { overflow-x: hidden; }
+.page { width: 100%; max-width: 1440px; margin: 0 auto; padding: 0 0 40px; }
+.phead { display: flex; align-items: center; gap: 16px; height: 48px; padding: 0 24px; border-bottom: var(--hair-2); background: var(--bg-1); }
+.phead h1 { font: 500 var(--fs-m)/1 var(--font-ui); }
+.phead .d { color: var(--ink-2); font-size: var(--fs-xs); }
+.phead .proto-tag { margin-left: auto; }
+.ctx { display: flex; gap: 22px; padding: 10px 24px; border-bottom: var(--hair); font-size: var(--fs-xs); color: var(--ink-2); }
+.ctx .num { color: var(--ink-1); }
+.state { padding: 0; }
+.cap-row { display: flex; align-items: baseline; gap: 12px; padding: 22px 24px 10px; }
+.cap-row .n { font: 500 11px/1 var(--font-num); color: var(--accent); }
+.cap-row .t { font-size: var(--fs-m); font-weight: 500; color: var(--ink-0); }
+.cap-row .s { font-size: var(--fs-xs); color: var(--ink-2); }
+.ghost { height: 40px; margin: 0; border-top: var(--hair); background: repeating-linear-gradient(90deg, transparent 0 7px, rgba(255,255,255,.012) 7px 8px), var(--bg-0); display: flex; align-items: flex-end; padding: 0 12px 6px; font: 400 9.5px/1 var(--font-num); color: var(--ink-3); position: relative; }
+.ghost.tall { height: 130px; }
+.strip { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 424px; border-top: var(--hair-2); border-bottom: var(--hair-2); background: var(--bg-1); }
+.tl { min-width: 0; display: flex; flex-direction: column; padding-bottom: 8px; }
+.tlbar { height: 32px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-bottom: var(--hair); white-space: nowrap; }
+.tlbar .t { font-size: var(--fs-xs); color: var(--ink-1); }
+.tlbar .t .num { color: var(--ink-0); }
+.tlbar .r { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.tlbar .now { font: 500 11px/1 var(--font-num); color: var(--accent-2); border: 1px solid var(--accent); padding: 6px 8px; background: var(--accent-bg); }
+.ibtn { height: 26px; min-width: 26px; padding: 0 7px; border: var(--hair-2); display: inline-flex; align-items: center; justify-content: center; gap: 5px; color: var(--ink-1); font: 500 10.5px/1 var(--font-num); white-space: nowrap; }
+.ibtn.on { border-color: var(--accent); color: var(--ink-0); background: var(--accent-bg); }
+.grp { display: inline-flex; } .grp .ibtn + .ibtn { border-left: 0; }
+.tl svg.tlsvg { display: block; margin-top: 8px; }
+.cds { border-left: var(--hair-2); padding: 8px 12px; }
+.pop { position: absolute; width: 400px; font-family: var(--font-ui); z-index: 2; box-shadow: 0 10px 30px rgba(0,0,0,.55); }
+.pop::after { content: ""; position: absolute; left: var(--px, 40px); bottom: -7px; width: 12px; height: 12px; background: var(--bg-2); border-right: 1px solid var(--rule-3); border-bottom: 1px solid var(--rule-3); transform: rotate(45deg); }
+.notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin: 28px 24px 0; border: var(--hair-2); }
+.notes div { padding: 12px 14px; font-size: var(--fs-xs); color: var(--ink-1); line-height: 1.5; }
+.notes div + div { border-left: var(--hair-2); }
+.notes b { display: block; font: 600 var(--fs-micro)/1 var(--font-ui); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 7px; }
+</style>
+</head>
+<body>
+<!--<icons>-->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-go" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 6.1l1.7 1.7 3.3-3.5" fill="none" stroke="currentColor" stroke-width="1.4"/></symbol>
+<symbol id="i-caution" viewBox="0 0 12 12"><path d="M6 1.3l5 9.2H1z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M6 4.6v2.9M6 8.4v1" stroke="currentColor" stroke-width="1.4"/></symbol>
+<symbol id="i-nogo" viewBox="0 0 12 12"><path d="M3.9 1h4.2L11 3.9v4.2L8.1 11H3.9L1 8.1V3.9z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M4.3 4.3l3.4 3.4M7.7 4.3L4.3 7.7" stroke="currentColor" stroke-width="1.4"/></symbol>
+<symbol id="i-pass" viewBox="0 0 12 12"><path d="M2.5 6.2l2.3 2.3 4.8-5" fill="none" stroke="currentColor" stroke-width="1.4"/></symbol>
+<symbol id="i-info" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M6 5.2v3.6M6 3.2v1" stroke="currentColor" stroke-width="1.3"/></symbol>
+<symbol id="i-help" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M4.4 4.6c0-.9.7-1.5 1.6-1.5s1.6.6 1.6 1.4c0 1.2-1.6 1.2-1.6 2.4M6 8.4v1" fill="none" stroke="currentColor" stroke-width="1.2"/></symbol>
+<symbol id="i-ext" viewBox="0 0 12 12"><path d="M5 2H2v8h8V7M7 2h3v3M10 2L5.5 6.5" fill="none" stroke="currentColor" stroke-width="1.2"/></symbol>
+<symbol id="i-copy" viewBox="0 0 12 12"><path d="M4 4h6v6H4zM2 8V2h6" fill="none" stroke="currentColor" stroke-width="1.1"/></symbol>
+<symbol id="i-sun" viewBox="0 0 12 12"><circle cx="6" cy="6" r="2.6" fill="currentColor"/><path d="M6 .8v1.6M6 9.6v1.6M.8 6h1.6M9.6 6h1.6M2.3 2.3l1.1 1.1M8.6 8.6l1.1 1.1M2.3 9.7l1.1-1.1M8.6 3.4l1.1-1.1" stroke="currentColor" stroke-width="1"/></symbol>
+<symbol id="i-sun-off" viewBox="0 0 12 12"><circle cx="6" cy="6" r="3" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M1.5 10.5l9-9" stroke="currentColor" stroke-width="1.1"/></symbol>
+<symbol id="i-link" viewBox="0 0 12 12"><path d="M6 6.5v4.5M3.2 3.6a4 4 0 0 1 5.6 0M1.6 2a6.2 6.2 0 0 1 8.8 0" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="6" cy="6" r="1.1" fill="currentColor"/></symbol>
+<symbol id="i-link-off" viewBox="0 0 12 12"><path d="M6 6.5v4.5M3.2 3.6a4 4 0 0 1 5.6 0" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 1.5l9 9" stroke="currentColor" stroke-width="1.1"/></symbol>
+<symbol id="i-eye" viewBox="0 0 12 12"><path d="M.8 9.5L3.5 5l2 2.4L8 3.5l3.2 6z" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></symbol>
+<symbol id="i-caret" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.3"/></symbol>
+<symbol id="i-left" viewBox="0 0 12 12"><path d="M7.5 3l-3 3 3 3" fill="none" stroke="currentColor" stroke-width="1.3"/></symbol>
+<symbol id="i-right" viewBox="0 0 12 12"><path d="M4.5 3l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.3"/></symbol>
+<symbol id="i-play" viewBox="0 0 12 12"><path d="M3.5 2.2v7.6L10 6z" fill="currentColor"/></symbol>
+<symbol id="i-plus" viewBox="0 0 12 12"><path d="M6 2v8M2 6h8" stroke="currentColor" stroke-width="1.3"/></symbol>
+<symbol id="i-share" viewBox="0 0 12 12"><path d="M6 1.5v6.5M3.5 4L6 1.5 8.5 4M2 7v3.5h8V7" fill="none" stroke="currentColor" stroke-width="1.2"/></symbol>
+<symbol id="i-split" viewBox="0 0 12 12"><path d="M1.5 2h9v8h-9zM6 2v8" fill="none" stroke="currentColor" stroke-width="1.1"/></symbol>
+<symbol id="i-target" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M6 0v3M6 9v3M0 6h3M9 6h3" stroke="currentColor" stroke-width="1.1"/></symbol>
+<symbol id="i-sort" viewBox="0 0 12 12"><path d="M3.5 2v8M1.5 8l2 2 2-2M8.5 10V2M6.5 4l2-2 2 2" fill="none" stroke="currentColor" stroke-width="1.1"/></symbol>
+<symbol id="i-chart" viewBox="0 0 12 12"><path d="M1 9.5l3-4 2.5 2L11 2" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M1 11h10" stroke="currentColor" stroke-width="1"/></symbol>
+</defs></svg>
+<!--</icons>-->
+<div class="page">
+  <header class="phead">
+    <h1>Bottom strip · timeline and countdowns</h1>
+    <span class="d">Close study at full width · Connecting Ridge · IM-2 Athena · landing date 2028-03-01 00:00 UTC</span>
+    <span class="proto-tag">prototype · mock data · direction A</span>
+  </header>
+  <div class="ctx">
+    <span>Mission window <span class="num">2028-03-01 00:00 → 2028-03-11 00:00 UTC · 240 h</span></span>
+    <span>Faint bands: <span class="num">3 d</span> before landing and after the window</span>
+    <span>Lit: disc fraction ≥ <span class="num">0.50</span> <span class="prov asm">assumed</span></span>
+    <span>Link: Earth clearance ≥ <span class="num">1.00°</span> <span class="prov asm">assumed</span></span>
+    <span>Limits: dark <span class="num">6 h</span> <span class="prov asm">assumed</span> · blackout <span class="num">12 h</span> <span class="prov asm">assumed</span></span>
+  </div>
+
+  <section class="state">
+    <div class="cap-row"><span class="n">01</span><span class="t">Scrubber on a lit, linked hour</span><span class="s">Day 3, 2028-03-03 14:00 UTC. Countdowns are all over 6 h, so no card is amber. The two longest stretches are always outlined; only the blackout breaks its limit.</span></div>
+    <div class="ghost">main view above</div>
+    <div class="strip" id="s1"></div>
+  </section>
+
+  <section class="state">
+    <div class="cap-row"><span class="n">02</span><span class="t">Scrubber on a dark hour</span><span class="s">Day 3, 2028-03-03 10:00 UTC, inside the longest dark stretch. The "Why is it dark?" card opens above the scrubber and names the blocker. Sunrise is under 6 h, so its card turns amber.</span></div>
+    <div class="ghost tall" id="g2">main view above</div>
+    <div class="strip" id="s2"></div>
+  </section>
+
+  <section class="state">
+    <div class="cap-row"><span class="n">03</span><span class="t">Clearance chart open</span><span class="s">Day 6, 2028-03-06 10:00 UTC. sun_clear and earth_clear in degrees, with the 0° line and the antenna mask. The outlines run through the chart: longest dark stretch 4 h (dashed, within limit), longest blackout 31 h (solid red, breaks the 12 h veto).</span></div>
+    <div class="ghost">main view above (shorter while the chart is open)</div>
+    <div class="strip" id="s3"></div>
+  </section>
+
+  <div class="notes">
+    <div><b>Reading the bands</b>The Sun band's height follows the disc fraction, so a half-hidden Sun reads as a half-height bar. Dark and blackout hours are empty track. Colour is never alone: the bands are labelled SUN and EARTH, and every state carries a word (LIT, DARK, LINK, BLACKOUT).</div>
+    <div><b>Countdown cards</b>Two per body: the next event first, the one after it second. Each group shows the current value: Sun elevation and disc fraction; Earth elevation and clearance. Under 6 h a card turns amber and gains the caution icon and "under 6 h".</div>
+    <div><b>Scrubber</b>Drag it, click a band, or use ← → for 1 h and Shift for 1 d. Play animates at the chosen speed. The accent box at the top states day and UTC time; the frame shows the hour in both bands.</div>
+  </div>
+</div>
+<script>
+/*<lib>*/
+/* Direction A shared mock library. The same block is pasted into every
+   direction-A prototype so all screens show one consistent mock scenario:
+   Connecting Ridge, im2_athena, landing date 2028-03-01 00:00 UTC.
+   Everything here is MOCK geometry for design review, not science. */
+const M = (() => {
+  const rad = d => d * Math.PI / 180;
+  const wrap = a => ((a % 360) + 360) % 360;
+  const dAz = (a, b) => { let d = wrap(a - b); return d > 180 ? d - 360 : d; };
+  const PEAKS = [
+    { az: 140.65, h: 1.05, w: 0.75 },  // spur near Haworth, 52.4 km (Earth blocker)
+    { az: 241.2, h: 1.3, w: 0.6 },
+    { az: 218.6, h: 1.9, w: 1.0 },     // Shackleton rim spur, 9.8 km (Sun blocker, longest dark)
+    { az: 216.2, h: 1.18, w: 0.45 },
+    { az: 168.2, h: 1.45, w: 1.5 },    // ridge near Shackleton, 14.2 km
+    { az: 199.0, h: 1.85, w: 0.8 },
+    { az: 150.5, h: 1.45, w: 0.6 },
+    { az: 68.5, h: 0.55, w: 6 },       // de Gerlache rim
+    { az: 336.6, h: 0.4, w: 5 },       // toward Sverdrup
+    { az: 20, h: 0.35, w: 9 },
+    { az: 95, h: 0.3, w: 4 },
+    { az: 300, h: 0.45, w: 3 },
+  ];
+  function sky(a) {
+    let v = -0.12 + 0.22 * Math.sin(rad(a * 2 + 30)) + 0.16 * Math.sin(rad(a * 5 + 70))
+      + 0.09 * Math.sin(rad(a * 11 + 10)) + 0.055 * Math.sin(rad(a * 23 + 50))
+      + 0.03 * Math.sin(rad(a * 47)) + 0.018 * Math.sin(rad(a * 97 + 20)) + 0.01 * Math.sin(rad(a * 211 + 5));
+    for (const p of PEAKS) { const d = dAz(a, p.az); v += p.h * Math.exp(-d * d / (2 * p.w * p.w)); }
+    return v;
+  }
+  const SUN_R = 0.2665, EARTH_R = 0.95;
+  const sunAz = t => wrap(248 - 0.508 * t);
+  const sunEl = t => 1.15 + 0.32 * Math.sin(2 * Math.PI * (t - 20) / 300);
+  const earthAz = t => 140.6 + 6.5 * Math.sin(2 * Math.PI * (t - 170) / 661);
+  const earthEl = t => 4.6 - 3.2 * Math.cos(2 * Math.PI * (t - 170) / 655);
+  function frac(c, R) { const h = c / R; if (h >= 1) return 1; if (h <= -1) return 0; return 1 - (Math.acos(h) - h * Math.sqrt(1 - h * h)) / Math.PI; }
+  function at(t) {
+    const sa = sunAz(t), se = sunEl(t), ea = earthAz(t), ee = earthEl(t);
+    const sc = se - sky(sa), ec = ee - sky(ea);
+    const sf = frac(sc, SUN_R), ef = frac(ec, EARTH_R);
+    return { t, sunAz: sa, sunEl: se, sunClear: sc, sunFrac: sf, earthAz: ea, earthEl: ee, earthClear: ec, earthFrac: ef, lit: sf >= 0.5, link: ec >= 1 };
+  }
+  return { sky, at, sunAz, sunEl, earthAz, earthEl, SUN_R, EARTH_R, wrap, dAz, rad };
+})();
+
+/* Profile im2_athena (docs/mission-profiles.md). */
+const PROFILE = { id: 'im2_athena', name: 'IM-2 Athena', duration_days: 10, min_sun_fraction: 0.5, max_dark_h: 6, antenna_mask_deg: 1, max_blackout_h: 12, max_slope_deg: 10 };
+const T0 = Date.UTC(2028, 2, 1, 0, 0, 0);          // landing date
+const NW = 240;                                    // mission window, hours
+const CTX = 72;                                    // context either side, hours
+const pad2 = n => String(n).padStart(2, '0');
+function iso(t, withUTC = true) { const d = new Date(T0 + Math.round(t * 60) * 60000); return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())} ${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}${withUTC ? ' UTC' : ''}`; }
+function mmdd(t) { const d = new Date(T0 + t * 3600e3); return `${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`; }
+function dur(h) { const m = Math.round(h * 60); const d = Math.floor(m / 1440), hh = Math.floor((m % 1440) / 60), mm = m % 60; return d ? `${d} d ${hh} h ${pad2(mm)} m` : `${hh} h ${pad2(mm)} m`; }
+const fx = (v, n = 2) => (v < 0 ? '−' : '') + Math.abs(v).toFixed(n);
+const fxs = (v, n = 2) => (v < 0 ? '−' : '+') + Math.abs(v).toFixed(n);
+const HRS = Array.from({ length: NW + 2 * CTX }, (_, i) => M.at(i - CTX));
+const H = t => HRS[t + CTX];
+function runs(flag) { const out = []; let s = null; for (let t = 0; t < NW; t++) { if (!H(t)[flag]) { if (s === null) s = t; } else if (s !== null) { out.push({ s, n: t - s }); s = null; } } if (s !== null) out.push({ s, n: NW - s }); return out; }
+const longest = flag => runs(flag).reduce((a, b) => (b.n > a.n ? b : a), { s: 0, n: 0 });
+/* science.md §9: crossing interpolated linearly between the two hourly samples around it */
+function crossing(t0, key, thr, dir) { let p = M.at(t0)[key]; for (let t = t0 + 1; t < t0 + 24 * 60; t++) { const v = M.at(t)[key]; if ((dir < 0 && p >= thr && v < thr) || (dir > 0 && p < thr && v >= thr)) return t - 1 + (p - thr) / (p - v) - t0; p = v; } return null; }
+const BLOCKERS = [
+  { az: 140.65, dist_km: 52.4, height_m: 3290, near: 'Haworth' },
+  { az: 168.2, dist_km: 14.2, height_m: 1975, near: 'Shackleton' },
+  { az: 218.6, dist_km: 9.8, height_m: 1965, near: 'Shackleton' },
+];
+const blockerAt = az => BLOCKERS.reduce((a, b) => (Math.abs(M.dAz(b.az, az)) < Math.abs(M.dAz(a.az, az)) ? b : a));
+const NS = 'http://www.w3.org/2000/svg';
+function S(tag, attrs, parent, text) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; if (parent) parent.appendChild(e); return e; }
+const ICON = n => `<svg class="ic" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+
+/* ---------- Timeline (bottom strip) ---------- */
+function renderTimeline(svg, o) {
+  const W = o.W, padL = o.padL ?? 78, padR = 10, tMin = -CTX, tMax = NW + CTX;
+  const x = t => padL + (t - tMin) / (tMax - tMin) * (W - padL - padR);
+  const bandH = o.bandH ?? 22, rowL = o.compact ? 13 : 16;
+  let y = 0;
+  const dayY = 12; y = 18;
+  let cTop = null; const cH = o.chartH ?? 132;
+  if (o.chart) { cTop = y + 6; y = cTop + cH + 4; }
+  const l1 = y; y += rowL;
+  const sTop = y; y += bandH + 5;
+  const eTop = y; y += bandH;
+  const l2 = y; y += rowL;
+  const dateY = y + 9; y += 14;
+  svg.setAttribute('viewBox', `0 0 ${W} ${y}`); svg.setAttribute('width', W); svg.setAttribute('height', y);
+  const defs = S('defs', {}, svg);
+  const pat = S('pattern', { id: o.id + '-hatch', width: 5, height: 5, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, defs);
+  S('line', { x1: 0, y1: 0, x2: 0, y2: 5, stroke: 'var(--rule-2)', 'stroke-width': 1 }, pat);
+  const bottom = eTop + bandH;
+  const top = o.chart ? cTop : sTop;
+  // context shading
+  for (const [a, b] of [[tMin, 0], [NW, tMax]]) S('rect', { x: x(a), y: top, width: x(b) - x(a), height: bottom - top, fill: `url(#${o.id}-hatch)`, opacity: 0.55 }, svg);
+  // tracks
+  S('rect', { x: x(0), y: sTop, width: x(NW) - x(0), height: bandH, fill: 'var(--bg-3)' }, svg);
+  S('rect', { x: x(0), y: eTop, width: x(NW) - x(0), height: bandH, fill: 'var(--bg-3)' }, svg);
+  // day grid + labels
+  for (let d = -3; d <= 13; d++) {
+    const tx = x(d * 24);
+    if (d > -3) S('line', { x1: tx, x2: tx, y1: dayY + 4, y2: bottom, stroke: d === 0 || d === 10 ? 'var(--ink-2)' : 'var(--rule-2)', 'stroke-width': 1, 'shape-rendering': 'crispEdges' }, svg);
+    if (d < 13) {
+      const cx = x(d * 24 + 12), inW = d >= 0 && d < 10;
+      S('text', { x: cx, y: dayY, class: 'tl-day' + (inW ? '' : ' ctx'), 'text-anchor': 'middle' }, svg, inW ? (d === 0 ? 'DAY 1' : String(d + 1)) : (d < 0 ? `L${d}` : `+${d - 9}`));
+      S('text', { x: cx, y: dateY, class: 'tl-date' + (inW ? '' : ' ctx'), 'text-anchor': 'middle' }, svg, d === -3 ? '2028-' + mmdd(d * 24) : mmdd(d * 24));
+    }
+  }
+  // chart
+  if (o.chart) {
+    let lo = -1, hi = 8;
+    const cy = v => cTop + (hi - v) / (hi - lo) * cH;
+    S('rect', { x: x(tMin), y: cTop, width: x(tMax) - x(tMin), height: cH, fill: 'none', stroke: 'var(--rule)', 'shape-rendering': 'crispEdges' }, svg);
+    for (let v = lo; v <= hi; v++) {
+      S('line', { x1: x(tMin), x2: x(tMax), y1: cy(v), y2: cy(v), stroke: v === 0 ? 'var(--ink-2)' : 'var(--rule)', 'shape-rendering': 'crispEdges' }, svg);
+      if (v % 2 === 0) S('text', { x: padL - 6, y: cy(v) + 3, class: 'tl-ax', 'text-anchor': 'end' }, svg, (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v) + '°');
+    }
+    S('line', { x1: x(tMin), x2: x(tMax), y1: cy(PROFILE.antenna_mask_deg), y2: cy(PROFILE.antenna_mask_deg), stroke: 'var(--earth)', 'stroke-dasharray': '5 3', 'stroke-width': 1, opacity: 0.9 }, svg);
+    S('text', { x: x(tMax) - 4, y: cy(PROFILE.antenna_mask_deg) - 4, class: 'tl-ax earth', 'text-anchor': 'end' }, svg, 'antenna mask 1.00° · assumed');
+    S('text', { x: x(tMax) - 4, y: cy(0) + 11, class: 'tl-ax', 'text-anchor': 'end' }, svg, '0° = body centre on the skyline');
+    for (const [key, col] of [['sunClear', 'var(--sun)'], ['earthClear', 'var(--earth)']]) {
+      for (const [a, b, op] of [[tMin, 0, 0.4], [0, NW, 1], [NW, tMax - 1, 0.4]]) {
+        let d = ''; for (let t = a; t <= b; t++) { const v = Math.max(lo, Math.min(hi, H(Math.min(t, tMax - 1))[key])); d += (t === a ? 'M' : 'L') + (x(t + 0.5)).toFixed(1) + ',' + cy(v).toFixed(1); }
+        S('path', { d, fill: 'none', stroke: col, 'stroke-width': 1.4, opacity: op, 'stroke-linejoin': 'round' }, svg);
+      }
+    }
+    S('text', { x: padL - 30, y: cTop + cH / 2 + 4, class: 'tl-lab', 'text-anchor': 'end' }, svg, 'CLEAR');
+    const lg = S('g', { transform: `translate(${x(tMin) + 8},${cTop + 13})` }, svg);
+    S('line', { x1: 0, x2: 14, y1: -3, y2: -3, stroke: 'var(--sun)', 'stroke-width': 1.6 }, lg);
+    S('text', { x: 18, y: 0, class: 'tl-ax' }, lg, 'sun_clear');
+    S('line', { x1: 78, x2: 92, y1: -3, y2: -3, stroke: 'var(--earth)', 'stroke-width': 1.6 }, lg);
+    S('text', { x: 96, y: 0, class: 'tl-ax' }, lg, 'earth_clear  · degrees above the skyline, hourly');
+  }
+  // bands
+  for (let t = tMin; t < tMax; t++) {
+    const h = H(t), inW = t >= 0 && t < NW, x0 = x(t), w = x(t + 1) - x0 + 0.3;
+    if (h.lit) { const bh = Math.max(1, h.sunFrac * bandH); S('rect', { x: x0, y: sTop + bandH - bh, width: w, height: bh, fill: 'var(--sun)', opacity: inW ? 0.92 : 0.22 }, svg); }
+    if (h.link) S('rect', { x: x0, y: eTop, width: w, height: bandH, fill: 'var(--earth)', opacity: inW ? 0.9 : 0.22 }, svg);
+  }
+  S('text', { x: padL - 6, y: sTop + bandH / 2 + 4, class: 'tl-lab', 'text-anchor': 'end' }, svg, 'SUN');
+  S('text', { x: padL - 6, y: eTop + bandH / 2 + 4, class: 'tl-lab', 'text-anchor': 'end' }, svg, 'EARTH');
+  // longest stretches
+  const ld = longest('lit'), lb = longest('link');
+  const mark = (run, limit, bandTop, labY, name, above) => {
+    const veto = run.n > limit;
+    const col = veto ? 'var(--status-nogo)' : 'var(--ink-1)';
+    const yT = (o.chart ? cTop : bandTop) - 2, yB = bandTop + bandH + 2;
+    const x0 = x(run.s) - 1.5, x1 = x(run.s + run.n) + 1.5;
+    S('rect', { x: x0, y: o.chart ? yT : bandTop - 2, width: x1 - x0, height: (o.chart ? yB - yT : bandH + 4), fill: veto ? 'rgba(238,90,82,.07)' : 'none', stroke: col, 'stroke-width': veto ? 1.5 : 1, 'stroke-dasharray': veto ? 'none' : '3 2' }, svg);
+    const g = S('g', {}, svg);
+    S('line', { x1: x0, x2: x0, y1: above ? labY + 2 : bandTop + bandH, y2: above ? bandTop : labY + 2, stroke: col }, g);
+    const t = S('text', { x: x0 + 4, y: labY + (above ? 9 : 10), class: 'tl-mark' + (veto ? ' veto' : '') }, g);
+    o.after = o.after || []; o.after.push(t);
+    t.innerHTML = `${veto ? '✕&#160;' : ''}${name}<tspan class="num" dx="5">${run.n}&#160;h</tspan>&#160;·&#160;limit&#160;${limit}&#160;h&#160;<tspan class="tag">assumed</tspan>${veto ? '&#160;·&#160;<tspan class="vw">VETO</tspan>' : '&#160;·&#160;within limit'}`;
+  };
+  mark(ld, PROFILE.max_dark_h, sTop, l1, 'Longest dark stretch', true);
+  mark(lb, PROFILE.max_blackout_h, eTop, l2, 'Longest blackout', false);
+  // scrubber
+  const labs = o.after || [];
+  if (o.t != null) {
+    const sx = x(o.t + 0.5);
+    S('line', { x1: sx, x2: sx, y1: 2, y2: bottom + 3, stroke: 'var(--accent)', 'stroke-width': 1.5 }, svg);
+    S('rect', { x: sx - 4, y: sTop - 3, width: 8, height: bottom - sTop + 6, fill: 'none', stroke: 'var(--accent)', 'stroke-width': 1, opacity: 0.6 }, svg);
+    const lab = `D${Math.floor(o.t / 24) + 1} · ${iso(o.t).slice(11)}`;
+    const lw = lab.length * 6.3 + 12;
+    const lx = Math.min(sx - lw / 2, W - padR - lw);
+    S('rect', { x: lx, y: 1, width: lw, height: 15, fill: 'var(--accent)' }, svg);
+    S('text', { x: lx + lw / 2, y: 12, class: 'tl-scrub', 'text-anchor': 'middle' }, svg, lab);
+    S('path', { d: `M${sx - 4},${bottom + 3} h8 l-4,5z`, fill: 'var(--accent)' }, svg);
+  }
+  // keep stretch labels readable above the scrubber line
+  for (const t of labs) { const bb = t.getBBox(); const bg = S('rect', { x: bb.x - 2, y: bb.y - 1, width: bb.width + 4, height: bb.height + 2, fill: 'var(--bg-1)', opacity: 0.92 }); svg.appendChild(bg); svg.appendChild(t); }
+  return { x, sTop, eTop, bottom };
+}
+
+/* ---------- Countdown cards ---------- */
+function countdownHTML(t) {
+  const h = H(t);
+  const ev = { sunset: crossing(t, 'sunFrac', PROFILE.min_sun_fraction, -1), sunrise: crossing(t, 'sunFrac', PROFILE.min_sun_fraction, 1), earthset: crossing(t, 'earthClear', PROFILE.antenna_mask_deg, -1), earthrise: crossing(t, 'earthClear', PROFILE.antenna_mask_deg, 1) };
+  const card = (label, v, pri) => {
+    const warn = v != null && v < 6;
+    return `<div class="cd${pri ? ' pri' : ''}${warn ? ' warn' : ''}"><div class="cd-l">${warn ? ICON('caution') : ''}${label} in<i class="info" title="Defined by the profile's rule, not the geometric horizon.">${ICON('info')}</i></div><div class="cd-v num">${v == null ? 'none before 2032' : dur(v)}</div><div class="cd-at num">${v == null ? '' : 'at ' + iso(t + v)}${warn ? ' · under 6 h' : ''}</div></div>`;
+  };
+  const sunState = h.lit ? `<span class="bstate lit">${ICON('sun')}LIT</span>` : `<span class="bstate dark">${ICON('sun-off')}DARK</span>`;
+  const earthState = h.link ? `<span class="bstate link">${ICON('link')}LINK</span>` : `<span class="bstate off">${ICON('link-off')}BLACKOUT</span>`;
+  const sunCards = h.lit ? card('Sunset', ev.sunset, 1) + card('Sunrise', ev.sunrise, 0) : card('Sunrise', ev.sunrise, 1) + card('Sunset', ev.sunset, 0);
+  const earthCards = h.link ? card('Earthset', ev.earthset, 1) + card('Earthrise', ev.earthrise, 0) : card('Earthrise', ev.earthrise, 1) + card('Earthset', ev.earthset, 0);
+  return `<div class="cd-group"><div class="cd-head"><span class="cd-body sun">SUN</span>${sunState}<span class="num">el ${fx(h.sunEl)}°</span><span class="num">disc ${h.sunFrac.toFixed(2)}</span></div><div class="cd-row">${sunCards}</div></div>
+  <div class="cd-group"><div class="cd-head"><span class="cd-body earth">EARTH</span>${earthState}<span class="num">el ${fx(h.earthEl)}°</span><span class="num">clearance ${fxs(h.earthClear)}°</span></div><div class="cd-row">${earthCards}</div></div>`;
+}
+
+/* ---------- "Why is it dark?" ---------- */
+function whyDarkHTML(t) {
+  const h = H(t); const rows = [];
+  if (!h.lit) { const b = blockerAt(h.sunAz); rows.push(`<p><b>Sun</b> is <span class="num">${fx(h.sunEl)}°</span> up. The ridge in that direction rises to <span class="num">${fx(h.sunEl - h.sunClear)}°</span>, <span class="num">${b.dist_km} km</span> away, near ${b.near}. <b>Blocked by terrain.</b></p><a class="lk" href="#">${ICON('eye')}Open Lander's eye at az <span class="num">${h.sunAz.toFixed(2)}°</span> →</a>`); }
+  if (!h.link) { const b = blockerAt(h.earthAz); rows.push(`<p><b>Earth</b> is <span class="num">${fx(h.earthEl)}°</span> up. The ridge in that direction rises to <span class="num">${fx(h.earthEl - h.earthClear)}°</span>, <span class="num">${b.dist_km} km</span> away, near ${b.near}. Clearance <span class="num">${fx(h.earthClear)}°</span> is under the <span class="num">1.00°</span> antenna mask <span class="prov asm">assumed</span>. <b>Blackout.</b></p><a class="lk" href="#">${ICON('eye')}Open Lander's eye at az <span class="num">${h.earthAz.toFixed(2)}°</span> →</a>`); }
+  return `<div class="why"><div class="why-h">${ICON('help')}Why is it dark? <span class="num dim">${iso(t)}</span></div>${rows.join('<hr>')}</div>`;
+}
+
+/* ---------- Lander's eye ---------- */
+function renderPanorama(svg, o) {
+  const W = o.W, Hh = o.H, mL = 44, mR = 12, mT = o.mT ?? 14, mB = 34;
+  const pw = W - mL - mR, ph = Hh - mT - mB;
+  const c = o.centre, lo = o.elMin, hi = o.elMax;
+  const x = az => mL + (M.dAz(az, c) + 180) / 360 * pw;
+  const y = el => mT + (hi - el) / (hi - lo) * ph;
+  const kx = pw / 360, ky = ph / (hi - lo);
+  const skyF = o.sky || M.sky;
+  svg.setAttribute('viewBox', `0 0 ${W} ${Hh}`); svg.setAttribute('width', W); svg.setAttribute('height', Hh);
+  const id = o.id;
+  const defs = S('defs', {}, svg);
+  const cp = S('clipPath', { id: id + '-plot' }, defs); S('rect', { x: mL, y: mT, width: pw, height: ph }, cp);
+  const gr = S('linearGradient', { id: id + '-terr', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+  S('stop', { offset: 0, 'stop-color': '#1e2833' }, gr); S('stop', { offset: 1, 'stop-color': '#0f141a' }, gr);
+  // skyline polyline
+  let pts = [];
+  for (let i = 0; i <= 1440; i++) { const az = c - 180 + i * 0.25; pts.push([mL + i / 1440 * pw, y(skyF(az))]); }
+  const skyD = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ',' + p[1].toFixed(2)).join('');
+  const above = S('clipPath', { id: id + '-above' }, defs);
+  S('path', { d: `M${mL},${mT}` + pts.map(p => 'L' + p[0].toFixed(1) + ',' + p[1].toFixed(2)).join('') + `L${mL + pw},${mT}Z` }, above);
+  const P = S('g', { 'clip-path': `url(#${id}-plot)` }, svg);
+  S('rect', { x: mL, y: mT, width: pw, height: ph, fill: 'var(--bg-0)' }, P);
+  // grid
+  for (let e = Math.ceil(lo); e <= hi; e += (o.elStep || 1)) S('line', { x1: mL, x2: mL + pw, y1: y(e), y2: y(e), stroke: 'var(--rule)', 'shape-rendering': 'crispEdges' }, P);
+  for (let a = 0; a < 360; a += 10) S('line', { x1: x(a), x2: x(a), y1: mT, y2: mT + ph, stroke: a % 45 === 0 ? 'var(--rule-2)' : 'var(--rule)', 'shape-rendering': 'crispEdges', opacity: a % 45 === 0 ? 1 : 0.6 }, P);
+  // terrain
+  S('path', { d: skyD + `L${mL + pw},${mT + ph}L${mL},${mT + ph}Z`, fill: `url(#${id}-terr)` }, P);
+  S('path', { d: skyD, fill: 'none', stroke: 'var(--terrain-edge)', 'stroke-width': 1.1, 'stroke-linejoin': 'round' }, P);
+  // 0° local horizontal
+  S('line', { x1: mL, x2: mL + pw, y1: y(0), y2: y(0), stroke: 'var(--ink-1)', 'stroke-width': 1, 'stroke-dasharray': '1 3', 'shape-rendering': 'crispEdges' }, P);
+  S('text', { x: mL + 6, y: y(0) - 4, class: 'pn-ax strong' }, P, '0° local horizontal');
+  // antenna mask, around Earth's path
+  if (o.mask !== false) {
+    let d = ''; for (let a = -14; a <= 14; a += 0.25) { const az = o.maskCentre + a; d += (a === -14 ? 'M' : 'L') + x(az).toFixed(1) + ',' + y(skyF(az) + PROFILE.antenna_mask_deg).toFixed(2); }
+    S('path', { d, fill: 'none', stroke: 'var(--earth)', 'stroke-width': 1, 'stroke-dasharray': '4 3', opacity: 0.85 }, P);
+    S('text', { x: x(o.maskCentre - 14) - 5, y: y(skyF(o.maskCentre - 14) + PROFILE.antenna_mask_deg) + 3, class: 'pn-ax earth', 'text-anchor': 'end' }, P, 'antenna mask +1.00° · assumed');
+  }
+  // paths
+  const track = (azF, elF, col, ticks, labelSide) => {
+    for (const [a, b, op, dash] of [[-CTX, 0, 0.45, '2 3'], [0, NW, 1, ''], [NW, NW + CTX, 0.45, '2 3']]) {
+      let d = '', px = null;
+      for (let t = a; t <= b; t += 1) { const X = x(azF(t)), Y = y(elF(t)); d += (px === null || Math.abs(X - px) > pw / 2 ? 'M' : 'L') + X.toFixed(1) + ',' + Y.toFixed(1); px = X; }
+      S('path', { d, fill: 'none', stroke: col, 'stroke-width': dash ? 1 : 1.3, 'stroke-dasharray': dash, opacity: op }, P);
+    }
+    if (ticks) { const done = []; for (let k = 0; k <= 10; k++) {
+      const t = k * 24, X = x(azF(t)), Y = y(elF(t));
+      S('line', { x1: X, x2: X, y1: Y - 4, y2: Y + 4, stroke: col, 'stroke-width': 1.3 }, P);
+      const lab = k === 0 ? 'L' : k === 10 ? 'end' : 'd' + (k + 1);
+      if (labelSide === 'side') {
+        if (o.earthLabels && !o.earthLabels.includes(k)) continue;
+        if (done.some(d => Math.hypot(X - d[0], Y - d[1]) < 14)) continue;
+        S('text', { x: X - 7, y: Y + 3, class: 'pn-tick', 'text-anchor': 'end', fill: col }, P, lab); done.push([X, Y]);
+      } else S('text', { x: X, y: Y - 7, class: 'pn-tick', 'text-anchor': 'middle', fill: col }, P, lab);
+    } }
+  };
+  track(o.sunAz || M.sunAz, o.sunEl || M.sunEl, 'var(--sun)', true, 'above');
+  track(o.earthAz || M.earthAz, o.earthEl || M.earthEl, 'var(--earth)', true, 'side');
+  // discs
+  const disc = (az, el, R, col, name, frac, side, info, below) => {
+    const X = x(az), Y = y(el), rx = Math.max(1.1, R * kx), ry = Math.max(1.1, R * ky);
+    S('ellipse', { cx: X, cy: Y, rx, ry, fill: col, opacity: 0.22 }, P);
+    S('ellipse', { cx: X, cy: Y, rx, ry, fill: 'none', stroke: col, 'stroke-width': 0.8, opacity: 0.55, 'stroke-dasharray': '2 2' }, P);
+    const gA = S('g', { 'clip-path': `url(#${id}-above)` }, P);
+    S('ellipse', { cx: X, cy: Y, rx, ry, fill: col }, gA);
+    // target brackets: an annotation, so the thin true-angle disc is easy to find
+    const bx = Math.max(rx + 5, 6), by = ry + 5, L = 4;
+    S('path', { d: `M${X - bx},${Y - by + L}v${-L}h${L}M${X + bx - L},${Y - by}h${L}v${L}M${X + bx},${Y + by - L}v${L}h${-L}M${X - bx + L},${Y + by}h${-L}v${-L}`, fill: 'none', stroke: col, 'stroke-width': 1 }, svg);
+    if (o.discLabels !== false) {
+      const lx = X + side * (bx + 6), ly = below ? Y + by + 11 : Y - by - 2;
+      const t = S('text', { x: lx, y: ly, class: 'pn-disc', 'text-anchor': side > 0 ? 'start' : 'end', fill: col }, svg);
+      t.innerHTML = `${name}&#160;&#160;<tspan class="d">${info}</tspan>`;
+      const bb = t.getBBox(); const bg = S('rect', { x: bb.x - 3, y: bb.y - 1, width: bb.width + 6, height: bb.height + 2, fill: 'var(--bg-0)', opacity: 0.85 }); svg.insertBefore(bg, t);
+    }
+  };
+  if (o.t != null) {
+    const sa = (o.sunAz || M.sunAz)(o.t), se = (o.sunEl || M.sunEl)(o.t), ea = (o.earthAz || M.earthAz)(o.t), ee = (o.earthEl || M.earthEl)(o.t);
+    const sh = o.at ? o.at(o.t) : M.at(o.t);
+    disc(ea, ee, M.EARTH_R, 'var(--earth)', 'EARTH', sh.earthFrac, o.earthSide ?? 1, `${o.compactDiscs ? '' : `az ${ea.toFixed(2)}° · `}el ${fx(ee)}° · disc ${sh.earthFrac.toFixed(2)}`);
+    disc(sa, se, M.SUN_R, 'var(--sun)', 'SUN', sh.sunFrac, o.sunSide ?? 1, `${o.compactDiscs ? '' : `az ${sa.toFixed(2)}° · `}el ${fx(se)}° · disc ${sh.sunFrac.toFixed(2)}`, o.sunBelow !== false);
+  }
+  // hover readout on a blocker
+  if (o.hover) {
+    const az = o.hover.az, X = x(az), se = skyF(az), Y = y(se), b = blockerAt(az);
+    S('line', { x1: X, x2: X, y1: mT, y2: mT + ph, stroke: 'var(--accent)', 'stroke-width': 1, 'stroke-dasharray': '3 2' }, P);
+    S('line', { x1: X - 7, x2: X + 7, y1: Y, y2: Y, stroke: 'var(--accent)', 'stroke-width': 1 }, P);
+    S('rect', { x: X - 3.5, y: Y - 3.5, width: 7, height: 7, fill: 'var(--bg-0)', stroke: 'var(--accent)', 'stroke-width': 1.5 }, P);
+    const bw = 218, bh = 118, bx = o.hover.side < 0 ? X - bw - 14 : X + 14, by = Math.max(mT + 6, Y + (o.hover.dy ?? 22));
+    const g = S('g', { transform: `translate(${bx},${by})` }, svg);
+    S('rect', { width: bw, height: bh, fill: 'var(--bg-2)', stroke: 'var(--accent)', 'stroke-width': 1 }, g);
+    S('rect', { width: bw, height: 18, fill: 'var(--accent-bg)' }, g);
+    S('text', { x: 8, y: 12.5, class: 'pn-hh' }, g, 'SKYLINE · BLOCKER');
+    S('text', { x: bw - 8, y: 12.5, class: 'pn-hk', 'text-anchor': 'end' }, g, 'click to mark');
+    const rows = [['Azimuth', az.toFixed(2) + '°'], ['Skyline elevation', fx(se) + '°'], ['Distance to blocker', b.dist_km.toFixed(1) + ' km'], ['Blocker height', '+' + b.height_m.toLocaleString('en-US') + ' m'], ['Nearest named feature', b.near]];
+    rows.forEach((r, i) => { S('text', { x: 8, y: 34 + i * 17, class: 'pn-hl' }, g, r[0]); S('text', { x: bw - 8, y: 34 + i * 17, class: 'pn-hv', 'text-anchor': 'end' }, g, r[1]); if (i) S('line', { x1: 8, x2: bw - 8, y1: 21 + i * 17 + 1, y2: 21 + i * 17 + 1, stroke: 'var(--rule-2)' }, g); });
+  }
+  // frame + axes
+  S('rect', { x: mL, y: mT, width: pw, height: ph, fill: 'none', stroke: 'var(--rule-2)', 'shape-rendering': 'crispEdges' }, svg);
+  const step = o.elLabelStep || 2;
+  for (let e = Math.ceil(lo / step) * step; e <= hi; e += step) S('text', { x: mL - 6, y: y(e) + 3.5, class: 'pn-ax' + (e === 0 ? ' strong' : ''), 'text-anchor': 'end' }, svg, (e > 0 ? '+' : e < 0 ? '−' : '') + Math.abs(e) + '°');
+  const names = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 180: 'S', 225: 'SW', 270: 'W', 315: 'NW' };
+  for (let a = 0; a < 360; a += 5) {
+    const X = x(a); const major = a % 45 === 0;
+    S('line', { x1: X, x2: X, y1: mT + ph, y2: mT + ph + (major ? 6 : 3), stroke: major ? 'var(--ink-2)' : 'var(--rule-3)', 'shape-rendering': 'crispEdges' }, svg);
+    if (major) { S('text', { x: X, y: mT + ph + 18, class: 'pn-comp' + (a % 90 === 0 ? ' card' : ''), 'text-anchor': 'middle' }, svg, names[a]); S('text', { x: X, y: mT + ph + 29, class: 'pn-ax', 'text-anchor': 'middle' }, svg, a + '°'); }
+  }
+  return { vx: ky / kx, x, y };
+}
+/*</lib>*/
+function strip(id, t, opt = {}) {
+  const el = document.getElementById(id);
+  const day = Math.floor(t / 24) + 1;
+  el.innerHTML = `<div class="tl"><div class="tlbar"><span class="cap">Timeline</span><span class="t">Connecting Ridge · window <span class="num">2028-03-01 00:00 → 03-11 00:00 UTC</span></span>
+    <div class="r"><span class="grp"><button class="ibtn">−1 d</button><button class="ibtn">${ICON('left')}</button><button class="ibtn" style="color:var(--accent)">${ICON('play')}</button><button class="ibtn">${ICON('right')}</button><button class="ibtn">+1 d</button></span>
+    <button class="ibtn">6 h/s</button><button class="ibtn${opt.chart ? ' on' : ''}">${ICON('chart')} Clearance${opt.chart ? ' ✓' : ''}</button>
+    <span class="now">DAY ${day} · ${iso(t)}</span></div></div><svg class="tlsvg" role="img"></svg></div><div class="cds">${countdownHTML(t)}</div>`;
+  const svg = el.querySelector('svg.tlsvg');
+  return renderTimeline(svg, { id, W: Math.floor(el.querySelector('.tl').getBoundingClientRect().width), t, bandH: 26, chart: !!opt.chart });
+}
+strip('s1', 62);
+const r2 = strip('s2', 58);
+// "Why is it dark?" card anchored to the scrubber, opening upward over the main view
+(function () {
+  const g = document.getElementById('g2');
+  const pop = document.createElement('div');
+  pop.className = 'pop'; pop.innerHTML = whyDarkHTML(58);
+  const sx = r2.x(58.5);
+  const left = Math.max(12, Math.min(sx - 60, g.clientWidth - 424 - 412));
+  pop.style.left = left + 'px'; pop.style.bottom = '10px';
+  pop.style.setProperty('--px', (sx - left - 6) + 'px');
+  pop.querySelector('.why').style.background = 'var(--bg-2)';
+  g.appendChild(pop);
+})();
+strip('s3', 130, { chart: true });
+</script>
+</body>
+</html>
