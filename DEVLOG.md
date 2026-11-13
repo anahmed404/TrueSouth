@@ -569,7 +569,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   1024 × 768 and 390 × 844 with four, eight, one and best-lit sites, keyboard only, real
   downloads read back with Python's csv module, and a copied link opened in a fresh browser
   context; a human has not reviewed it yet
-- **State:** verified (333 Python tests, 1,896 web tests, typecheck and build pass on the
+- **State:** verified (333 Python tests, 1,947 web tests, typecheck and build pass on the
   merge with main; not yet seen by the team lead)
 - **Changed:** `web/src/features/mission-control/compare/` (model, table, exports, tests),
   `web/src/features/mission-control/share/` (new: Share button, link, NASA links, tests),
