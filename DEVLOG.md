@@ -576,7 +576,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   scrubber's pill hiding the day labels under it, and a fake DOM that honours `disabled` —
   checked again by eye at 1440 × 900, 1024 × 768 (open and folded) and 390 × 844, keyboard
   only on the control and the picker sheet; a human has not reviewed it yet
-- **State:** built, not verified (1,807 web tests, 333 Python tests, typecheck and
+- **State:** verified (333 Python tests, 1,900 web tests, typecheck and build pass on the merge with main; reviewed by Cursor (Next GO equals the ordinary evaluation on three fixture sites and two profiles; time zones; two mutations caught); six findings fixed: the window's end and the duration's tag show at every width, the note clears on a site or profile change, Undo is tested where the time clamps, disabled buttons give a reason, the pill no longer covers day labels; the layout is not yet judged by the team lead)
   build pass on the merge with main; the team lead has not judged the layout)
 - **Changed:** `web/src/app/mission/` (new `landing-date-control.tsx`, `next-go-button.tsx`,
   `landing-control.ts`, `fake-dom.ts` and their tests; `view-bar.tsx`, `top-bar.tsx`,
