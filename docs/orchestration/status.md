@@ -86,10 +86,11 @@ CR1).
 5. **C2 design, Mission Control views:** when it arrives, merge, take screenshots into
    `docs/design/c2/` (serve `design/` with `python -m http.server`; the browser tool
    refuses `file:`), and show the team lead the variants for their pick.
-6. **Academy:** the two variants are on `main` with screenshots (#37, #39) and the team
-   lead has been asked to pick. With no answer, the recommendation stands: variant a,
-   with b's spiral path, scene strip and "the panel you built" on the lesson-complete
-   screen. Then Opus builds A2 to A5.
+6. **Academy:** the team lead picked on 2026-11-13 (see "Design choices"). Opus builds
+   the Academy screens in that form with the impeccable skill: first the lesson path,
+   the split lesson screen, the lesson-complete screen and the step components that
+   need no Mission Control panel (A2), with the card renderer (A4); then A3 and the
+   lessons (A5) once MC6 and T7 exist.
 7. **Update the status board in `DEVLOG.md`** at each checkpoint.
 
 ## How to brief and check agents: lessons so far
@@ -223,8 +224,6 @@ An unanswered question takes the orchestrator's recommendation.
 
 | Question | Asked at | Blocks | Running meanwhile |
 | :--- | :--- | :--- | :--- |
-| Academy: variant a or b? Recommended: a, with b's spiral path, scene strip and "the panel you built" on the lesson-complete screen; a white tick for a correct answer. | 2026-11-13, with the screenshots | the Academy screens (A2 to A5) | all Mission Control and science work |
-| Should the skyline sketch earn XP by how close it is? Recommended: yes. | 2026-11-13 | lesson 3 only | — |
 | Where is a catalog site evaluated? Provisional recommendation: the highest point within one map pixel, with the offset shown. | 2026-11-13; firm recommendation owed once S7's numbers are in | real derived data for the catalog sites | S7 on Connecting Ridge at its catalog coordinates |
 | Scope: submit at M2 plus the validation page, Docker and the submission text, and drop custom sites, the sensitivity grid and lessons 5 to 8? | first asked with the time estimate on 2026-11-13; not answered | nothing yet; it decides the order of work after M1 | everything |
 | Links for the five retagged profile values | 2026-11-13 | nothing; they show as assumed until a link arrives | — |
@@ -239,6 +238,11 @@ An unanswered question takes the orchestrator's recommendation.
 | C1 | Every view | One plain sentence saying what it shows; the tabs mark the 3D views. | The team lead did not understand the Lander's eye from the mock-up and asked where the 3D view was. |
 | C1 | Start screen, timeline and countdowns, Lander's eye | As in the C2 prototypes. | Approved with the rest. |
 | C1 | Process | Design work uses the `impeccable` skill (4.9.0). Tell the team lead before a design pass. | Asked for directly. |
+| C2 | Academy lesson path | **Variant b:** the eight lessons spiral in across a flat map of the south pole, with a docked panel for the selected lesson. Picked 2026-11-13. | The team lead's pick. |
+| C2 | Academy lesson step | **Variant b, the split stage:** the scene on the left, Luna's conversation and the answers on the right. Picked 2026-11-13. | The team lead: in variant a "I can't see the split screen view". |
+| C2 | Academy lesson complete | **Variant a:** the patch as the hero in one column, then stars, XP, the recap and the panel the learner built. Picked 2026-11-13. | The team lead's pick. |
+| C2 | A correct answer | **A green check.** It replaces the designer's moonlight-white mark: GO green with the check glyph and the word "Correct", kept off status lamps. A miss is still never red. | The team lead: "we can do a green check its fine". |
+| C2 | Skyline sketch XP | **Scored on closeness:** a closer sketch earns more XP. docs/academy/overview.md needs the rule written down beside the 10/5/2 rule for answers. | The team lead took the recommendation on 2026-11-13. |
 
 The shell, start screen and shared components are built in this look (MC4a, #34).
 
