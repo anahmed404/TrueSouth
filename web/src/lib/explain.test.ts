@@ -282,7 +282,7 @@ describe("the six views", () => {
     expect(text).toMatch(/unrolled/);
     expect(text).toMatch(/strip/);
     expect(text).toMatch(/Sun and Earth/);
-    expect(text).toMatch(/real height/);
+    expect(text).toMatch(/true angles above the skyline/);
   });
 });
 

@@ -75,7 +75,8 @@ const entries = {
     text: "The sharpest terrain tier. Its map has squares 80 metres across and covers everything from 80 degrees south to the south pole, which is enough for the skyline, the slope and the Local terrain.",
   },
   wide240: {
-    text: "A coarser terrain tier, with squares 240 metres across, covering everything from 60 degrees south to the south pole. It supplies far-away terrain, and it is the only data for sites outside the sharper map.",
+    text:
+      "A coarser terrain tier, with squares 240 metres across, covering everything from 60 degrees south to the south pole. It supplies far-away terrain, and it is the only terrain data for sites between 60 and 80 degrees south.",
   },
   sphere: {
     text: "The terrain tier for a site with no terrain data. TrueSouth treats the Moon as perfectly smooth there and says so with the note \"terrain not modelled\".",
@@ -89,7 +90,8 @@ const entries = {
     lesson: "l5_slope",
   },
   named_feature: {
-    text: "A crater or mountain with an official name from the International Astronomical Union. TrueSouth uses these names to label the map and to say which feature blocks the Sun.",
+    text:
+      "A crater or mountain with an official name from the International Astronomical Union. TrueSouth uses these names to label the map and to name the nearest landmark when terrain blocks the Sun or Earth.",
   },
 
   // ── Directions and visibility ──────────────────────────────────────────────
@@ -182,7 +184,8 @@ const entries = {
     lesson: "l2_skyline",
   },
   link: {
-    text: "An hour when the lander can talk to Earth directly under the profile's rule: Earth's centre clears the skyline by at least the antenna mask, or the profile has a relay.",
+    text:
+      "An hour when the lander can talk to Earth under the profile's rule: Earth's centre clears the skyline by at least the antenna mask, or the profile has a relay.",
     lesson: "l4_link",
   },
   blackout: {
@@ -197,7 +200,8 @@ const entries = {
     text: "A spacecraft circling the Moon that passes signals between a lander and Earth. With a relay, Earth does not have to be in view, so the profile never has a blackout.",
   },
   dte: {
-    text: "Direct to Earth: a radio link between the lander and Earth with no relay in between. It only works while Earth is above the skyline.",
+    text:
+      "Direct to Earth: a radio link between the lander and Earth with no relay in between. It only works while Earth's centre clears the skyline by at least the antenna mask.",
   },
   metric: {
     text: "A measured fact about a mission window, such as the longest dark stretch in hours. The vetoes and utilities are worked out from metrics.",
@@ -273,7 +277,8 @@ const entries = {
     lesson: "l3_horizon",
   },
   landers_eye: {
-    text: "What you would see standing at the site and turning in a full circle: the outline of the horizon unrolled into a flat strip, with the Sun and Earth drawn at their real height above it. It is a 2D chart, so its left and right ends are the same direction, and heights are stretched to make small angles easy to see.",
+    text:
+      "What you would see standing at the site and turning in a full circle, unrolled into a flat 2D strip with the Sun and Earth drawn at their true angles above the skyline. Its left and right ends are the same direction, and vertical angles are stretched to make small differences easy to see.",
     lesson: "l2_skyline",
   },
   compare: {
@@ -285,16 +290,17 @@ const entries = {
     lesson: "l4_link",
   },
   countdown: {
-    text: "The time from the current time to the next sunset, sunrise, Earthset or Earthrise. These follow the profile's rules, not the moment a body touches the geometric horizon.",
+    text:
+      "The time from the current time to the next sunset, sunrise, Earthset or Earthrise. These follow the profile's rules, not the moment the Sun or Earth touches the horizon.",
     lesson: "l4_link",
   },
   sunset: {
     text: "The next moment the Sun's disc fraction falls below the profile's minimum, so the site stops being lit. It is not the moment the Sun touches the horizon.",
-    lesson: "l4_link",
+    lesson: "l2_skyline",
   },
   sunrise: {
     text: "The next moment the Sun's disc fraction rises to the profile's minimum, so the site becomes lit again. It is not the moment the Sun first appears.",
-    lesson: "l4_link",
+    lesson: "l2_skyline",
   },
   earthset: {
     text: "The next moment Earth's clearance falls below the antenna mask, so the link is lost. Earth may still be visible just above the skyline.",
@@ -358,7 +364,8 @@ const entries = {
     lesson: "l2_skyline",
   },
   ops_sun_el_min_deg: {
-    text: "For a mission that needs the Sun well up to operate, if the profile sets one: an hour only counts as lit if the Sun's centre is at least this elevation, as well as visible enough.",
+    text:
+      "An optional minimum Sun elevation for operations, in degrees. When set, an hour counts as lit only if the Sun's centre is at least this high as well as reaching the required disc fraction.",
   },
   max_dark_h: {
     text: "The longest unbroken stretch of dark hours the mission survives. Zero means it must stay lit the whole time.",
@@ -381,7 +388,7 @@ const entries = {
   },
   slope_ideal_deg: {
     text: "The slope at or below which the slope utility is a perfect 1. Between this and the maximum slope the utility falls steadily to 0.",
-    lesson: "l5_slope",
+    lesson: "l6_tradeoffs",
   },
   landing_sun_el_min_deg: {
     text: "The lowest Sun elevation allowed at touchdown, in degrees, if the profile sets one. Landing with the Sun lower than this triggers a veto.",
@@ -403,7 +410,7 @@ const entries = {
     lesson: "l6_tradeoffs",
   },
   lit_fraction: {
-    text: "The share of the mission window's hours that are lit. It counts hours, so an hour with just enough sun counts the same as a brilliant one.",
+    text: "The share of the mission window's hours that are lit. It counts hours, so an hour with just enough Sun counts the same as a brilliant one.",
     lesson: "l6_tradeoffs",
   },
   longest_dark_h: {
@@ -416,7 +423,7 @@ const entries = {
   },
   longest_blackout_h: {
     text: "The longest unbroken run of blackout hours in the mission window, in hours. The blackout veto checks it against the profile.",
-    lesson: "l4_link",
+    lesson: "l6_tradeoffs",
   },
   landing_sun_el_deg: {
     text: "The Sun's elevation at the moment of landing, in degrees. A low value means long shadows at touchdown.",
@@ -436,7 +443,7 @@ const entries = {
   },
   veto_blackout: {
     text: "Triggers when the profile has no relay and the longest blackout is longer than the mission tolerates.",
-    lesson: "l4_link",
+    lesson: "l6_tradeoffs",
   },
   veto_landing_dark: {
     text: "Triggers when the site is not lit at the moment of landing.",
