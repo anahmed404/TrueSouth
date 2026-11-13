@@ -1,5 +1,28 @@
 {
   "$defs": {
+    "APIValidationError": {
+      "additionalProperties": false,
+      "description": "HTTP 422 body, without client values or internal validator details.",
+      "properties": {
+        "fields": {
+          "items": {
+            "$ref": "#/$defs/ValidationField"
+          },
+          "title": "Fields",
+          "type": "array"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "message",
+        "fields"
+      ],
+      "title": "APIValidationError",
+      "type": "object"
+    },
     "ApronLayout": {
       "additionalProperties": false,
       "description": "Surrounding-terrain apron: one little-endian uint16 grid.\n\nA finite value decodes as ``raw / scale - offset_m`` (step 0.5 m). The value\n65535 is no height, never a real elevation. Row 0 is north and column 0 is west,\nthe same axes as ``terrain.bin``.",
@@ -2689,6 +2712,32 @@
         "sources"
       ],
       "title": "Validation",
+      "type": "object"
+    },
+    "ValidationField": {
+      "additionalProperties": false,
+      "description": "A safe field identifier and plain validation advice; never the submitted value.",
+      "properties": {
+        "field": {
+          "enum": [
+            "lat_deg",
+            "lon_deg",
+            "name",
+            "body"
+          ],
+          "title": "Field",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "message"
+      ],
+      "title": "ValidationField",
       "type": "object"
     },
     "Weights": {

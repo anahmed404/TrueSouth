@@ -40,6 +40,26 @@ export interface TrueSouthContracts {
   [k: string]: unknown;
 }
 /**
+ * HTTP 422 body, without client values or internal validator details.
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "APIValidationError".
+ */
+export interface APIValidationError {
+  fields: ValidationField[];
+  message: string;
+}
+/**
+ * A safe field identifier and plain validation advice; never the submitted value.
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "ValidationField".
+ */
+export interface ValidationField {
+  field: "lat_deg" | "lon_deg" | "name" | "body";
+  message: string;
+}
+/**
  * Surrounding-terrain apron: one little-endian uint16 grid.
  *
  * A finite value decodes as ``raw / scale - offset_m`` (step 0.5 m). The value

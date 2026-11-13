@@ -564,15 +564,27 @@ class WorkedExamples(Contract):
 class CustomSiteRequest(Contract):
     """Request to compute a custom site."""
 
-    lat_deg: Latitude = Field(description='Latitude in degrees north.')
-    lon_deg: float = Field(allow_inf_nan=False, description='Finite east longitude; normalised to [0, 360).')
-    name: Annotated[str, StringConstraints(strip_whitespace=True, max_length=120)] = Field(default='Custom site', description='Optional display name, trimmed and length limited.')
+    lat_deg: Latitude = Field(strict=True, allow_inf_nan=False, description='Latitude in degrees north.')
+    lon_deg: float = Field(strict=True, allow_inf_nan=False, description='Finite east longitude; normalised to [0, 360).')
+    name: Annotated[str, StringConstraints(strict=True, strip_whitespace=True, max_length=120)] = Field(default='Custom site', description='Optional display name, trimmed and length limited.')
 
     @field_validator('lon_deg')
     @classmethod
     def normalise_longitude(cls, value):
         return value % 360
 
+
+
+class ValidationField(Contract):
+    """A safe field identifier and plain validation advice; never the submitted value."""
+    field: Literal['lat_deg', 'lon_deg', 'name', 'body']
+    message: str
+
+
+class APIValidationError(Contract):
+    """HTTP 422 body, without client values or internal validator details."""
+    message: str
+    fields: list[ValidationField]
 
 
 class CustomSiteQueued(Contract):

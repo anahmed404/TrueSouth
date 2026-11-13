@@ -8,6 +8,7 @@ from truesouth_api.jobs import Computer, Jobs, Rejected, START
 from truesouth_api.settings import cache_dir
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
 from starlette.datastructures import Headers
 
@@ -73,6 +74,23 @@ def create_app(
         service.close()
 
     app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None, redirect_slashes=False)
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(request: Request, error: RequestValidationError):
+        advice = {
+            'lat_deg': 'Latitude must be a number from ?90 to 90.',
+            'lon_deg': 'Longitude must be a finite number.',
+            'name': 'Name must be text of at most 120 characters.',
+            'body': 'Send a JSON object with latitude, longitude and an optional name. Only these fields are allowed.',
+        }
+        fields = []
+        for issue in error.errors():
+            location = issue.get('loc', ())
+            field = location[1] if len(location) > 1 and location[1] in advice else 'body'
+            detail = {'field': field, 'message': advice[field]}
+            if detail not in fields:
+                fields.append(detail)
+        return JSONResponse({'message': 'Please check the request fields.', 'fields': fields}, status_code=422)
 
     @app.middleware("http")
     async def refuse_traversal(request: Request, call_next):  # type: ignore[no-untyped-def]
