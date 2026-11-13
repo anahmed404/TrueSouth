@@ -720,8 +720,18 @@ function Director(props: DirectorProps) {
   }, []);
 
   // ── Flights ──
+  /**
+   * The Slip Planner's fit changed (its sites, or the free space) while a locked flight ran:
+   * refit once the flight lands, so the view never rests on a fit made before the data was in.
+   */
+  const slipRefitPending = useRef(false);
   const arrive = useCallback((view: CameraViewId) => {
     const p = latest.current;
+    if (view === "slip" && slipRefitPending.current) {
+      slipRefitPending.current = false;
+      rig.flyTo(targetFor("slip"), p.reduceMotion ? 0 : SLIP_REFIT_MS);
+      invalidate();
+    }
     if (!p.onArrive) return;
     if (view === "map") {
       const pose = polarPose(p.sceneSpace);
@@ -729,7 +739,7 @@ function Director(props: DirectorProps) {
     } else {
       p.onArrive({ view });
     }
-  }, []);
+  }, [rig, targetFor, invalidate]);
 
   /**
    * Flies to a camera view (the rig's `flyToView`: locked against drags, scrolls and keys;
@@ -808,7 +818,8 @@ function Director(props: DirectorProps) {
     if (props.view === "slip") {
       // A new site set refits the Slip Planner in 450 to 600 ms. A locked flight in carries on
       // and lands on the new fit, since its target is read again below when it is re-aimed.
-      if (!rig.locked) rig.flyTo(targetFor("slip"), latest.current.reduceMotion ? 0 : SLIP_REFIT_MS);
+      if (rig.locked) slipRefitPending.current = true;
+      else rig.flyTo(targetFor("slip"), latest.current.reduceMotion ? 0 : SLIP_REFIT_MS);
       invalidate();
       return;
     }
@@ -826,6 +837,7 @@ function Director(props: DirectorProps) {
       return;
     }
     rig.setFreeSpace(props.sceneSpace, latest.current.reduceMotion ? 0 : INSET_MS);
+    if (introDone.current && latest.current.view === "slip" && rig.locked) slipRefitPending.current = true;
     if (introDone.current && !rig.userMoved && !rig.flying) {
       // The Slip Planner refits in 450 to 600 ms (slip-planner.md, "The camera fit").
       const ms = latest.current.view === "slip" ? SLIP_REFIT_MS : INSET_MS;

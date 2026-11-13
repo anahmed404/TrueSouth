@@ -317,9 +317,10 @@
     pointer-events: none;
   }
 
+  /* "was 01 Mar" sits on the axis row, under the strips, over the month names. */
   .ldp-was span {
     position: absolute;
-    bottom: -18px;
+    bottom: 1px;
     left: 3px;
     padding: 0 4px;
     background: var(--surface);
@@ -473,7 +474,7 @@
     margin-left: 0;
   }
 
-  .ldp[data-compact="true"] .seg button {
+  .ldp[data-compact="true"] .seg-option {
     min-height: 44px;
   }
 

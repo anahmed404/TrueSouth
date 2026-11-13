@@ -117,18 +117,18 @@ export function slipPose(sites: readonly SlipSite[], space: FreeSpace): SlipPose
     }
   }
 
-  const left = space.x + SLIP_FIT_INSET.side;
-  const rightEdge = space.x + space.width - SLIP_FIT_INSET.side;
-  const top = space.y + SLIP_FIT_INSET.top;
-  const bottom = space.y + space.height - SLIP_FIT_INSET.bottom;
+  // With too little free space to fit into (not measured yet, or covered), fit the window.
   const roomy = space.width > 2 * SLIP_FIT_INSET.side + 40 && space.height > SLIP_FIT_INSET.top + SLIP_FIT_INSET.bottom + 40;
+  const box2 = roomy ? space : { ...space, x: 0, y: 0, width: space.viewport.width, height: space.viewport.height };
+  const left = box2.x + SLIP_FIT_INSET.side;
+  const rightEdge = box2.x + box2.width - SLIP_FIT_INSET.side;
+  const top = box2.y + SLIP_FIT_INSET.top;
+  const bottom = box2.y + box2.height - SLIP_FIT_INSET.bottom;
   const fits = (distance: number) => {
     const pose: Pose = { pos: add(centre, mul(dir, distance)), look, up, fov: SLIP_FOV };
     return ring.every((point) => {
       const s = projectPose(pose, space, point);
-      if (!s.front) return false;
-      if (!roomy) return true;
-      return s.x > left && s.x < rightEdge && s.y > top && s.y < bottom;
+      return s.front && s.x > left && s.x < rightEdge && s.y > top && s.y < bottom;
     });
   };
   let lo = SLIP_MIN_DISTANCE;
