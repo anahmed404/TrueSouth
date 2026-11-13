@@ -345,3 +345,102 @@ def test_old_key_is_unread_and_a_truncated_entry_is_replaced(tree, monkeypatch):
         assert 'checksum' in data.files
     assert all(path.read_bytes() == untouched[path] for path in others)
     assert (output / 'sites/connecting_ridge_best_lit').is_dir()
+
+
+def _means_for(monkeypatch):
+    from truesouth.constants import SKYLINE_BINS, SKYLINE_MAX_RANGE_KM, TIME_GRID_COUNT
+    from truesouth.placement_cache import FORMAT, CandidateCache, CandidateProduct
+    from truesouth.series import Series
+    from truesouth.skyline import Skyline
+    box = {}
+
+    def fake(self, point):
+        mean = box[(point.row, point.col)]
+        empty = np.zeros(SKYLINE_BINS, dtype=np.float64)
+        skyline = Skyline(empty, empty.copy(), empty.copy(), empty.copy(), empty.copy(),
+                          0, SKYLINE_MAX_RANGE_KM, np.full(SKYLINE_BINS, 'none', dtype='<U4'))
+        columns = {name: np.zeros(TIME_GRID_COUNT) for name in (
+            'sun_az', 'sun_el', 'sun_frac', 'sun_clear', 'earth_az', 'earth_el', 'earth_frac', 'earth_clear')}
+        columns['sun_frac'][:] = mean
+        return CandidateProduct(mean, skyline, Series(columns, .25, .95))
+
+    monkeypatch.setattr(CandidateCache, '_compute', fake)
+    assert FORMAT == 2
+    return box
+
+
+def _ridge_points(prepared):
+    store = DemStore(prepared / 'LDEM_80S_80MPP_ADJ.npy')
+    from truesouth import catalog
+    site = next(item for item in catalog.load_sites() if item.id == 'connecting_ridge')
+    return candidate_points(store.core, site.lat_deg, site.lon_deg)
+
+
+def test_variant_is_the_maximum_mean(tree, monkeypatch):
+    output, prepared, _, _ = tree
+    points = _ridge_points(prepared)
+    near = min(points, key=lambda point: (point.offset_m, point.row, point.col))
+    far = max(points, key=lambda point: (point.offset_m, point.row, point.col))
+    assert far.offset_m > near.offset_m
+    means = _means_for(monkeypatch)
+    means.update({(point.row, point.col): .2 for point in points})
+    means[(near.row, near.col)] = .5
+    means[(far.row, far.col)] = .9
+    build('connecting_ridge')
+    variant = records(output)['connecting_ridge_best_lit']
+    parent = records(output)['connecting_ridge']
+    assert variant.lat_deg == pytest.approx(far.lat_deg, abs=1e-9)
+    assert variant.lon_deg == pytest.approx(far.lon_deg, abs=1e-9)
+    assert variant.offset_m == pytest.approx(far.offset_m, abs=1e-6)
+    assert parent.nearby_sun.max == pytest.approx(.9)
+    assert parent.nearby_sun.min == pytest.approx(.2)
+
+
+def test_exact_tie_prefers_nearest_then_smaller_row_then_column(tree, monkeypatch):
+    output, prepared, _, cache = tree
+    points = _ridge_points(prepared)
+    means = _means_for(monkeypatch)
+    nearest = min(points, key=lambda point: (point.offset_m, point.row, point.col))
+    farther = max(points, key=lambda point: (point.offset_m, -point.row, -point.col))
+    assert farther.offset_m > nearest.offset_m
+
+    def publish(high):
+        means.clear()
+        means.update({(point.row, point.col): .1 for point in points})
+        for point in high:
+            means[(point.row, point.col)] = .4
+        if cache.exists():
+            import shutil
+            shutil.rmtree(cache)
+        build('connecting_ridge', force=True)
+        return records(output)['connecting_ridge_best_lit']
+
+    chosen = publish((nearest, farther))
+    assert chosen.offset_m == pytest.approx(nearest.offset_m, abs=1e-6)
+    assert chosen.lat_deg == pytest.approx(nearest.lat_deg, abs=1e-9)
+
+    tied = []
+    for point in points:
+        for group in tied:
+            if group[0].offset_m == point.offset_m:
+                group.append(point)
+                break
+        else:
+            tied.append([point])
+    same_offset = next(group for group in tied if len({point.row for point in group}) >= 2
+                       and len({point.col for point in group}) >= 2)
+    ordered = sorted(same_offset, key=lambda point: (point.row, point.col))
+    low_row, high_row = ordered[0], ordered[-1]
+    assert low_row.row < high_row.row and low_row.offset_m == high_row.offset_m
+    chosen = publish((low_row, high_row))
+    assert chosen.lat_deg == pytest.approx(low_row.lat_deg, abs=1e-9)
+    assert chosen.lon_deg == pytest.approx(low_row.lon_deg, abs=1e-9)
+
+    same_row = next(group for row in {point.row for point in same_offset}
+                    if len(group := [point for point in same_offset if point.row == row]) >= 2)
+    by_col = sorted(same_row, key=lambda point: point.col)
+    assert len(by_col) >= 2 and by_col[0].col < by_col[-1].col
+    assert by_col[0].offset_m == by_col[-1].offset_m
+    chosen = publish((by_col[0], by_col[-1]))
+    assert chosen.lat_deg == pytest.approx(by_col[0].lat_deg, abs=1e-9)
+    assert chosen.lon_deg == pytest.approx(by_col[0].lon_deg, abs=1e-9)
