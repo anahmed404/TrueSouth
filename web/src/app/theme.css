@@ -139,9 +139,7 @@
   --shell-rail: 256px;
   --shell-focus: 328px;
   --shell-slim: 48px;
-  --shell-top: 52px;
   --shell-strip: 196px;
-  --shell-foot: 28px;
 
   /*
     Earlier token names, kept so existing code keeps working. They point at the C2

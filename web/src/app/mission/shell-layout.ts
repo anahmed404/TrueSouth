@@ -142,11 +142,19 @@ export type ShortcutEvent = {
   altKey: boolean;
   /** True when the key went to a text field, where "[" and "]" are typed, not shortcuts. */
   inEditableField: boolean;
+  /**
+   * True when focus is inside a dialog, popover, menu or listbox (a floating window, the
+   * profile editor), or a popover is open: the keys must not fold a panel behind it.
+   */
+  inOverlay: boolean;
 };
+
+/** The roles and attributes that mark an overlay, for `isInOverlay`. */
+export const OVERLAY_SELECTOR = '[role="dialog"], [role="menu"], [role="listbox"], [popover]';
 
 /** The panel a key press folds or unfolds, or null if the key is not a shell shortcut. */
 export function shortcutPanel(event: ShortcutEvent): SidePanel | null {
-  if (event.ctrlKey || event.metaKey || event.altKey || event.inEditableField) return null;
+  if (event.ctrlKey || event.metaKey || event.altKey || event.inEditableField || event.inOverlay) return null;
   for (const panel of SIDE_PANELS) {
     if (event.key === SHELL_SHORTCUTS[panel]) return panel;
   }

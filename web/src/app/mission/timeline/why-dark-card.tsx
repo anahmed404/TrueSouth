@@ -1,7 +1,8 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { MissionProfile } from "../../../contracts/generated";
 import { BodyIcon } from "../../../components/BodyIcon";
 import { Explain } from "../../../components/Explain";
+import { Popover } from "../../../components/Popover";
 import { SegmentedControl } from "../../../components/SegmentedControl";
 import { cx } from "../../../components/format";
 import { useFeatures, useManifest, useSeries, useSites, useSkyline } from "../../../data/hooks";
@@ -18,6 +19,7 @@ import {
   formatBearing,
   formatDistance,
   formatHeight,
+  shortReason,
   wordExplanation,
   type BodyNow,
   type Explanation,
@@ -31,23 +33,14 @@ function bodyNow(series: DecodedSeries, body: "sun" | "earth", hour: number): Bo
     : { azDeg: pick(series.earth_az), elDeg: pick(series.earth_el), frac: pick(series.earth_frac), clearDeg: pick(series.earth_clear) };
 }
 
-/**
- * "Why is it dark?": when the Sun is hidden at the current time, what hides it, from the
- * series and the skyline file; the same for Earth in a blackout. When the site is lit and
- * linked, one short line says so.
- */
-export function WhyDarkCard({ scenario, hideWhenLit = false }: PanelProps & { hideWhenLit?: boolean }) {
-  const siteId = scenario.focusedSiteId ?? scenario.siteIds[0] ?? null;
-  if (!siteId) return null;
-  return <SiteWhyDark siteId={siteId} scenario={scenario} hideWhenLit={hideWhenLit} />;
-}
+/** The card's data for the current hour: the reasons to show (empty when lit and linked). */
+type WhyDark = { shown: Explanation[]; sun: Explanation; profile: MissionProfile };
 
 /**
- * `hideWhenLit`: draw nothing when the site is lit and linked. Over the scene the card
- * appears only on a dark or blackout hour (docs/features/site-detail.md, "Where the card
- * sits").
+ * What hides the Sun or Earth at the current time, from the series and the skyline file, or
+ * null until the data has loaded (or with no site). Shared by the card and its one-line plate.
  */
-function SiteWhyDark({ siteId, scenario, hideWhenLit }: { siteId: string; scenario: PanelProps["scenario"]; hideWhenLit: boolean }) {
+function useWhyDark(siteId: string, scenario: PanelProps["scenario"]): WhyDark | null {
   const manifest = useManifest();
   const sites = useSites();
   const features = useFeatures();
@@ -63,23 +56,40 @@ function SiteWhyDark({ siteId, scenario, hideWhenLit }: { siteId: string; scenar
     return null;
   }
   const site = sites.status === "ready" ? (sites.data.find((s) => s.id === siteId) ?? null) : null;
-  const sphere = isSphere(site);
   const profile = scenario.profile;
   const context = {
     skyline: skyline.status === "ready" ? (skyline.data as SkylineArrays) : null,
     features: features.status === "ready" ? features.data : [],
-    sphere,
+    sphere: isSphere(site),
   };
   const sun = explainSun(bodyNow(series.data, "sun", hour), flags.data.lit[hour] === 1, {
     minFraction: profile.min_sun_fraction,
     minElDeg: profile.ops_sun_el_min_deg,
   }, context);
   const earth = explainEarth(bodyNow(series.data, "earth", hour), flags.data.link[hour] === 1, profile.relay_available, context);
+  return { shown: [sun, earth].filter((e) => !e.ok), sun, profile };
+}
 
-  const shown = [sun, earth].filter((e) => !e.ok);
-  if (shown.length === 0) {
+/**
+ * "Why is it dark?": when the Sun is hidden at the current time, what hides it, from the
+ * series and the skyline file; the same for Earth in a blackout. When the site is lit and
+ * linked, one short line says so, or nothing with `hideWhenLit`.
+ */
+export function WhyDarkCard({ scenario, hideWhenLit = false }: PanelProps & { hideWhenLit?: boolean }) {
+  const siteId = focusedOrFirst(scenario);
+  return siteId ? <SiteWhyDarkCard siteId={siteId} scenario={scenario} hideWhenLit={hideWhenLit} /> : null;
+}
+
+function focusedOrFirst(scenario: PanelProps["scenario"]): string | null {
+  return scenario.focusedSiteId ?? scenario.siteIds[0] ?? null;
+}
+
+function SiteWhyDarkCard({ siteId, scenario, hideWhenLit }: { siteId: string; scenario: PanelProps["scenario"]; hideWhenLit: boolean }) {
+  const why = useWhyDark(siteId, scenario);
+  if (!why) return null;
+  if (why.shown.length === 0) {
     if (hideWhenLit) return null;
-    const words = wordExplanation(sun, ruleOf(profile));
+    const words = wordExplanation(why.sun, ruleOf(why.profile));
     return (
       <section className="why why-ok" aria-label="Sunlight now">
         <BodyIcon body="sun" />
@@ -89,8 +99,62 @@ function SiteWhyDark({ siteId, scenario, hideWhenLit }: { siteId: string; scenar
       </section>
     );
   }
+  return <Reasons reasons={why.shown} profile={why.profile} />;
+}
 
-  return <Reasons reasons={shown} profile={profile} />;
+/**
+ * The card folded to one line, for over the scene: on a dark or blackout hour, the short
+ * reason for the Sun and for Earth, and a button that opens the full card above it. Nothing
+ * on a lit, linked hour. `extra` is put under the full card (for example a way to Lander's eye).
+ */
+export function WhyDarkLine({ scenario, extra }: PanelProps & { extra?: (close: () => void) => ReactNode }) {
+  const siteId = focusedOrFirst(scenario);
+  return siteId ? <SiteWhyDarkLine siteId={siteId} scenario={scenario} extra={extra} /> : null;
+}
+
+function SiteWhyDarkLine({
+  siteId,
+  scenario,
+  extra,
+}: {
+  siteId: string;
+  scenario: PanelProps["scenario"];
+  extra?: (close: () => void) => ReactNode;
+}) {
+  const why = useWhyDark(siteId, scenario);
+  if (!why || why.shown.length === 0) return null;
+  const rule = ruleOf(why.profile);
+  return (
+    <div className="plate why-line">
+      <p className="why-line-text">
+        {why.shown.map((explanation, index) => (
+          <span key={explanation.body} className="why-line-reason">
+            {index > 0 ? <span className="why-line-sep" aria-hidden="true" /> : null}
+            <BodyIcon body={explanation.body} size={14} />
+            <span className="why-line-words">{shortReason(explanation, rule)}</span>
+          </span>
+        ))}
+      </p>
+      <Popover
+        label={why.shown[0]?.body === "sun" ? "Why is it dark?" : "Why is there no link?"}
+        width={800}
+        align="end"
+        placement="above"
+        trigger={(props) => (
+          <button {...props} type="button" className="btn btn-secondary btn-sm why-line-more">
+            Why?
+          </button>
+        )}
+      >
+        {(close) => (
+          <div className="why-pop">
+            <Reasons reasons={why.shown} profile={why.profile} />
+            {extra ? extra(close) : null}
+          </div>
+        )}
+      </Popover>
+    </div>
+  );
 }
 
 /** Two reasons sit side by side only when each gets at least this much width. */

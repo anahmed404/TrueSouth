@@ -35,8 +35,8 @@
   /* ── The floating layout: the scene behind, the interface above ─────────── */
   /*
     One grid over the whole window. The scene slot is fixed behind it; every other child
-    floats with a --float-gap margin. The empty `.mc-gap` cell in the middle is the free
-    space the scene reads. Rows: app bar, view bar, sentence, free space, foot stack,
+    floats with a --float-gap margin. The empty row in the middle is the free space the scene
+    reads (free-space.ts). Rows: app bar, view bar, sentence, free space, foot stack,
     timeline, footer line. Columns: sites rail, the middle, focused-site panel.
     DESIGN.md, "Layout"; docs/features/mission-control.md, "Layout".
   */
@@ -71,13 +71,6 @@
     position: fixed;
     inset: 0;
     z-index: 0;
-  }
-
-  .mc > .mc-gap {
-    grid-row: gap;
-    grid-column: 2;
-    min-height: 0;
-    pointer-events: none;
   }
 
   /* ── App bar: four floating blocks ─────────────────────────────────────── */
@@ -307,35 +300,88 @@
     grid-row: foot;
     grid-column: 2;
     justify-self: center;
-    width: min(100%, 820px);
-    margin-bottom: var(--float-gap);
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    container-type: inline-size;
   }
 
   .mc-foot-stack[hidden] {
     display: none;
   }
 
-  .why-float {
+  /* One plate: the short reason for the Sun and for Earth, and "Why?". */
+  .why-line {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    max-width: 100%;
+    margin-bottom: var(--float-gap);
+    padding: 4px 4px 4px 12px;
+    border-radius: var(--r-md);
+  }
+
+  .why-line-text {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    min-width: 0;
+    margin: 0;
+    color: var(--ink);
+    font-size: var(--t-md);
+    line-height: 1.4;
+  }
+
+  .why-line-reason {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .why-line-words {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .why-line-reason > .body-icon,
+  .why-line-reason > svg {
+    flex: none;
+  }
+
+  .why-line-sep {
+    flex: none;
+    width: 1px;
+    height: 14px;
+    margin-right: 6px;
+    background: var(--line-strong);
+  }
+
+  .why-line-more {
+    flex: none;
+  }
+
+  /* Too narrow for both reasons on one line: the Sun's (or the first) only; "Why?" has both. */
+  @container (max-width: 640px) {
+    .why-line-reason + .why-line-reason {
+      display: none;
+    }
+  }
+
+  /* The full card, opened from "Why?". */
+  .why-pop {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: var(--s2);
-    max-height: 40vh;
     padding: var(--s2);
-    overflow-y: auto;
   }
 
-  /* The panel is the card's surface here: no second card inside it. */
-  .why-float > .why {
+  .why-pop > .why {
     align-self: stretch;
-    padding: var(--s2) var(--s2) 0;
     border: 0;
-    background: none;
-  }
-
-  /* On a lit, linked hour the card draws nothing, and the panel goes with it. */
-  .why-float:not(:has(.why)) {
-    display: none;
   }
 
   /* ── Timeline strip ─────────────────────────────────────────────────────── */
@@ -395,6 +441,12 @@
     margin: var(--s2) 0 var(--float-gap);
     box-shadow: var(--shadow-popover);
     animation: window-rise 180ms var(--ease-out);
+  }
+
+  /* With room between the open side panels, the window sits inside the free space. */
+  .mc[data-window-place="between"] .floating-window {
+    grid-row: gap / timeline;
+    grid-column: 2;
   }
 
   /* The window takes focus on open so it is read out; its controls show the focus ring. */
@@ -522,6 +574,18 @@
     border-radius: var(--r-md);
     background: transparent;
     transition: background-color var(--dur-fast) var(--ease-out);
+  }
+
+  /* "Add site" at the foot of the folded rail: a 44 px plus. */
+  .rail-add-compact {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin-top: var(--s1);
+    padding: 0;
+    border-radius: var(--r-md);
+    color: var(--ink-2);
   }
 
   .rail-lamp:hover {
@@ -2014,20 +2078,6 @@
       min-height: 44px;
     }
 
-    /* The top bar's provenance tag keeps its look; its touch target grows to 44 px. */
-    .shell-top .tag {
-      position: relative;
-    }
-
-    .shell-top .tag::after {
-      content: "";
-      position: absolute;
-      inset: 50% auto auto 50%;
-      width: max(100%, 44px);
-      height: 44px;
-      transform: translate(-50%, -50%);
-    }
-
     /* Every control at least 44 px on a touch screen. */
     .mc .btn,
     .mc .seg-option,
@@ -2068,11 +2118,20 @@
       position: relative;
     }
 
-    .explain-button::after,
-    .tag::after {
+    .explain-button::after {
       position: absolute;
       inset: -13px;
       content: "";
+    }
+
+    /* Every provenance tag keeps its look; its touch target is 44 px whatever its size. */
+    .tag::after {
+      content: "";
+      position: absolute;
+      inset: 50% auto auto 50%;
+      width: max(100%, 44px);
+      height: 44px;
+      transform: translate(-50%, -50%);
     }
   }
 

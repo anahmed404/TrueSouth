@@ -1,5 +1,5 @@
 import { AppWindow } from "lucide-react";
-import { memo, useEffect, useRef, type RefObject } from "react";
+import { memo, useEffect, useRef, type Ref, type RefObject } from "react";
 import { Explain } from "../../components/Explain";
 import { firstSentence } from "../../components/format";
 import { explanations } from "../../lib/explain";
@@ -74,10 +74,10 @@ export const ViewBar = memo(function ViewBar({ state, onPick, windowButtons }: V
  * The camera view's one sentence, on a plate under the view bar, then any notices about the
  * link. The sentence is the first sentence of the view's entry in explain.ts.
  */
-export const ViewSentence = memo(function ViewSentence({ camera }: { camera: ViewState["camera"] }) {
+export const ViewSentence = memo(function ViewSentence({ camera, ref }: { camera: ViewState["camera"]; ref?: Ref<HTMLDivElement> }) {
   const view = cameraView(camera);
   return (
-    <div className="view-sentence-stack">
+    <div ref={ref} className="view-sentence-stack">
       <p className="plate view-sentence" aria-live="polite">
         {firstSentence(explanations[view.term]?.text ?? "")} <Explain term={view.term} label={view.name} />
       </p>

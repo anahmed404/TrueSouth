@@ -419,7 +419,8 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 - **Notes:**
   - The scene is a placeholder: a near-black background and one line in the free space. T1
     plugs in by passing its component to `<SceneSlot Scene={…}>` in `mission-screen.tsx`;
-    the props are `SceneProps` in `web/src/app/scene.ts`.
+    the props are `SceneProps` in `web/src/app/scene.ts`. The scene is never unmounted for a
+    slow or missing WebGL: it is told `mode: "flat"`.
   - The link keeps one `view`: a camera view, or the open window (`slip`, `compare`). A
     window in a link or on reload opens over the System view; the camera view under a
     window opened in the page is kept in the page only.
@@ -431,6 +432,19 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - The "why is it dark" card floats at the foot of the free space only on a dark or
     blackout hour, with "See it from Lander's eye"; it is hidden while a window is open and
     on the phone.
+  - Review fixes were made (still built, not verified): "UTC" once on the phone strip; every
+    provenance tag a 44 px target on the phone; "Try 3D anyway" announced in the status
+    region with focus on the current view, and the still note names the current view;
+    `[` and `]` do nothing inside a window, popover, menu or listbox; `SceneProps` gained
+    `onAddSite`, `mode` ("3d" or "flat") and an optional `SceneReport` on `onStatus`, so the
+    scene stays mounted when WebGL is slow or missing (additive only); the "why" card is one
+    plate with "Why?" opening the full card above it (free space on a dark hour: 792 × 392 px
+    at 1440 × 900, 376 × 249 px at 1024 × 768, up from 376 × 83 px); windows sit between the
+    open side panels when there are 720 px or more; the view bar no longer re-renders on a
+    scrub (render-count test); `freeSpaceInput` turns the shell's layout state into the
+    free space and is tested (a mutation that ignores the left fold fails it); the unused
+    `--shell-top` and `--shell-foot` tokens are gone; the folded sites rail has a 44 px
+    "Add site".
 
 #### 2026-11-13 · specs · Mission Control specs rewritten for the space-first layout
 - **Who:** Claude Code agent, for the orchestrator

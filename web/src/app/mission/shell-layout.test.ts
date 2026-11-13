@@ -7,6 +7,7 @@ import {
   saveShellLayout,
   serializeShellLayout,
   setShellPanel,
+  OVERLAY_SELECTOR,
   foldAnnouncement,
   viewBarFitsBetween,
   shortcutPanel,
@@ -159,6 +160,7 @@ describe("shortcutPanel", () => {
     metaKey: false,
     altKey: false,
     inEditableField: false,
+    inOverlay: false,
     ...extra,
   });
 
@@ -173,5 +175,16 @@ describe("shortcutPanel", () => {
     expect(shortcutPanel(press("]", { metaKey: true }))).toBeNull();
     expect(shortcutPanel(press("[", { altKey: true }))).toBeNull();
     expect(shortcutPanel(press("[", { inEditableField: true }))).toBeNull();
+  });
+
+  it("does nothing inside a floating window, a popover, a menu or a listbox", () => {
+    expect(shortcutPanel(press("[", { inOverlay: true }))).toBeNull();
+    expect(shortcutPanel(press("]", { inOverlay: true }))).toBeNull();
+  });
+
+  it("names every overlay role in the selector the shell checks", () => {
+    for (const part of ['[role="dialog"]', '[role="menu"]', '[role="listbox"]', "[popover]"]) {
+      expect(OVERLAY_SELECTOR).toContain(part);
+    }
   });
 });
