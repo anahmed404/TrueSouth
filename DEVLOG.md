@@ -85,7 +85,7 @@ _No entries yet._
   tests, typecheck and build, and by eye in a browser at 160 px, 48 px, 390 px wide and
   with reduced motion. **AI-generated images:** the eight placeholder Luna mood drawings
   (inline SVG in `web/src/components/luna/art/`), made by Claude Code, claude-opus-5-5.
-- **State:** built, not verified
+- **State:** verified (the orchestrator, Claude Fable 5.2, read the diff, ran the tests, typecheck and build, and looked at all eight moods at 160 px and 48 px on a running page; Cursor, grok-4.6 reviewed the pull request and approved)
 - **Changed:** `web/src/components/luna/`
 - **Notes:** Luna's look lives only in `art/`; the seam is documented at the top of
   `art/index.ts`. To look at it, mount `LunaGallery` (exported from
