@@ -4,6 +4,8 @@ services:
   truesouth:
     build: .
     image: ${TRUESOUTH_IMAGE:-truesouth:custom}
+    environment:
+      TRUESOUTH_DATA_ROOT: /app/data
     ports:
       - "8080:8080"
     volumes:

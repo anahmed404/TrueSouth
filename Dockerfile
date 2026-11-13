@@ -35,8 +35,9 @@ COPY science/src science/src
 ENV UV_LINK_MODE=copy \
     UV_NO_MANAGED_PYTHON=1 \
     UV_PYTHON_DOWNLOADS=never \
-    UV_HTTP_TIMEOUT=600
-RUN uv sync --frozen --no-dev --no-editable --package truesouth-api \
+    UV_HTTP_TIMEOUT=60 \
+    UV_CONCURRENT_DOWNLOADS=2
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-editable --package truesouth-api \
     --no-managed-python --python /usr/local/bin/python3
 
 FROM python:3.12-slim-bookworm
@@ -47,6 +48,7 @@ COPY --from=web --chown=truesouth:truesouth /src/web/dist /app/web/dist
 COPY --chown=truesouth:truesouth data/derived /app/data/derived
 ENV PATH="/app/.venv/bin:$PATH" \
     VIRTUAL_ENV=/app/.venv \
+    TRUESOUTH_DATA_ROOT=/app/data \
     TRUESOUTH_DERIVED=/app/data/derived \
     TRUESOUTH_PREPARED=/app/data/prepared \
     TRUESOUTH_WEB_DIST=/app/web/dist \
