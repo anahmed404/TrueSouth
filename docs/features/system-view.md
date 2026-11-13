@@ -43,17 +43,30 @@ Prototype and designer's notes:
 - **Labels** for Earth and the Sun. A plate keeps each label readable and keeps it inside
   the free space, moving down to avoid other labels.
 - **The Moon's axis** and a faint equator, so the pole is easy to find.
-- **No stars.** A camera exposed for a sunlit Moon would not see them, and
-  [`../../DESIGN.md`](../../DESIGN.md) rejects a starfield.
+- **Stars,** at the team lead's request (2026-11-13): the real sky, the Yale Bright Star
+  Catalogue to magnitude 6.5 (about 8,400 stars), each drawn as a point sized and dimmed by
+  its magnitude and faintly tinted by its colour index. Mostly faint, a few bright; no glow,
+  no twinkling, no painted Milky Way. They sit behind everything and never over the Moon,
+  Earth or the Sun. They fade near the Sun, dim as the lit Moon fills the view (a camera
+  exposed for it would see fewer), and are dimmer in Local terrain and Lander's eye.
+  - **Orientation:** the Moon's pole points where it truly points in the sky (the IAU
+    model), so the Moon's equator lies among the ecliptic's stars; but the sky is turned
+    about that pole as on 2000-01-01, not for the scrubber's time. Turning it for a date
+    is ephemeris work, which the frontend does not do. Nothing on screen says the stars are
+    placed for the date.
+  - Stars are decoration. They never decide or imply a result.
+  - How `web/public/stars.bin` is made, and its source and licence:
+    `web/dev/build-stars.mjs`.
 
 All of it is a photograph of space under a flat interface. The scene's shading and shadows
 are decoration.
 
-## The "not to scale" line
+## Saying the distances are squeezed
 
-A line of plain text on the screen reads "Distances not to scale. Every direction is true."
-It stays on screen whenever the System view is the current view. It is plain text on a
-plate, not a bordered chip.
+No line on the scene says it (the team lead removed the "Distances not to scale" plate,
+2026-11-14). The view's About text says distances are squeezed by default and every
+direction is true (`system_view` in `web/src/lib/explain.ts`), and the "True scale" button's
+description says what it switches.
 
 ## Scale
 
@@ -62,11 +75,9 @@ about 400 times further.
 
 - **Default: compressed.** Every direction and angle is correct. Earth and the Sun are
   drawn closer than life, both squeezed to 2.5 Moon radii from the Moon, so they share the
-  frame with it. The "not to scale" line is on screen.
+  frame with it.
 - **True scale toggle.** Earth moves to its real distance at its real size. The camera
   pulls back to fit both. The Sun stays a direction arrow, labelled with its distance.
-  Proposed: while true scale is on, the line reads "True scale. Every direction is
-  true." Reason: its first sentence would be false.
 
 ## Textures
 
@@ -143,10 +154,45 @@ re-encoded. Sizes are from the prototype; they are budgets for the real files.
 
 - **Home:** from under the south pole, turned so that Earth and the Sun sit either side of
   the Moon.
-- **Orbit and zoom:** drag to turn, scroll to zoom, down to 60 km from the surface. The
-  arrow keys turn the camera and `+` and `−` zoom, when the scene has focus.
+- **One rule for every drag, "grab the globe":** the surface under the pointer moves with
+  the pointer (drag right and the surface moves right), on both axes, in the System view,
+  Local terrain and Lander's eye. In a tilted view the ground nearest the viewer is the
+  part that follows.
+- **Turn, freely:** drag with one finger or the left button. The Moon turns in any
+  direction, over either pole and all the way round, as often as you like (the team lead's
+  request, 2026-11-14). A horizontal drag turns the camera about its own up axis, a vertical
+  drag about its own right axis (a trackball), so the surface moves the way the pointer
+  moves whatever the orientation. There is no world "up": after going over a pole the Moon
+  may be upside down. A preset, or a double-click on empty space, flies back to a level
+  view.
+  - Far out, the camera turns about the Moon's centre. Close in, it turns about the point of
+    interest: the south pole after "South pole", the site after "Follow site", a
+    double-clicked spot, otherwise the point at the centre of the free space. A preset's
+    point fades out (it does not switch off) as it leaves the centre of the view or nears
+    its horizon.
+  - Between 0.5 and 2 Moon radii from that point, the pivot slides along the line from the
+    Moon's centre to the point, so nothing jumps.
+  - A turn never goes below 60 km from the surface: the camera slides along that height.
+  - Each view's drag is its own setting (`ORBIT_STYLE` in `rig.ts`): Local terrain keeps
+    its turntable above the ground, Lander's eye keeps a level horizon, and the Polar map
+    stays a north-up map.
+- **Slide (pan):** right-drag, Shift-drag or two-finger drag. The globe turns under the
+  camera about the Moon's centre, so the height above the surface does not change.
+- **Zoom:** scroll or pinch, toward the pointer: the surface point under the pointer stays
+  fixed on screen. Down to 60 km from the surface.
+- **Double-click or double-tap** a spot on the Moon: the camera centres it and moves in to
+  about half the distance, looking straight down. On empty space: back to the preset's
+  framing, level.
+- **Keys, when the scene has focus:** an arrow key moves the camera the arrow's way, so the
+  picture moves the other way, as on a map (in Lander's eye, the left arrow looks left).
+  In the System view the arrows turn freely, like a drag. Shift and an arrow slides. `+`
+  and `−` zoom toward the centre.
+- A short hint of these controls is in the view's "About" popover (`system_view` in
+  `web/src/lib/explain.ts`), not on the scene.
 - **Presets:** "South pole" (the default), "From Earth", "From the Sun", and "Follow site"
-  (keeps the focused site facing the camera).
+  (keeps the focused site facing the camera). The first load lands on home. A click on
+  "South pole", even when it is already chosen, frames the whole cap poleward of about
+  80°S, where the sites are, from straight below the pole, turned as home is.
 - **Free space.** The camera's principal point moves to the centre of the space between
   the floating panels, through the projection matrix. The Moon is never covered by a
   panel and there is no crop. When panels fold, the centre slides to the new free space in
@@ -186,6 +232,31 @@ The scrubber drives the scene. Playing time shows the three motions that matter:
   NVIDIA RTX 2060 desktop GPU at 1440 × 900: the scene costs under 4 ms a frame with panels
   open or folded, at pixel ratio 1 and 2, and while orbiting Local terrain (each capped by
   the display's 240 Hz). A weak laptop is not measured yet.
+- **Weak machines step down; strong ones never change.** The scene measures the frames of
+  its flights (they are drawn back to back, so the time between them is a frame's cost)
+  and steps its quality down in stages when they are slower than 36 ms. Stage 0, the full
+  picture, is what every machine starts on and what a fast one keeps. Stages 1 to 3 draw
+  fewer pixels only while the camera or the time moves (60 % of the pixel ratio, then
+  half), and lower the resting pixel ratio only on the last two stages (to 1.25, then
+  0.85). See [`../decisions/0014-the-scene-steps-quality-down.md`](../decisions/0014-the-scene-steps-quality-down.md).
+- **While moving, a lighter Moon.** The Moon sphere has only as many segments as its size
+  on screen needs to keep its edge within a quarter of a pixel (64 around at home zoom,
+  instead of 384). Shading is per pixel, so nothing else changes. At rest the full mesh is
+  back: 160 ms after the last movement the scene draws one full frame, then nothing.
+- **Measured** (1440 × 900 unless said; frames are the median time between drawn frames):
+
+  | Machine | Orbiting the System view | Flight to the Polar map |
+  | :--- | ---: | ---: |
+  | RTX 2060, before and after | 4.2 ms | 4.2 ms |
+  | SwiftShader (software GPU), before | 196 ms | 229 ms |
+  | SwiftShader, after | 33 ms | 37 ms |
+  | SwiftShader, 6× CPU throttling, before | 213 ms | 225 ms |
+  | SwiftShader, 6× CPU throttling, after | 36 ms | 41 ms |
+
+  A real laptop's built-in graphics is still not measured. Local terrain on SwiftShader is
+  still slow (about 240 ms a frame): the ground's mesh, for the ground package to take on.
+- **Dev only:** `?perf` in the address shows the frame time over the scene;
+  `window.__truesouthPerf` reads it.
 - **When nothing moves, the page renders nothing.** A still scene draws no frames.
 - **Rendering stops when the tab is hidden.**
 - One sphere per body, a few pins and lines. The page weight is under "Textures".
@@ -195,8 +266,9 @@ The scrubber drives the scene. Playing time shows the three motions that matter:
 
 ## When 3D does not run
 
-When WebGL is missing, or the first flight is slow (a median frame over 55 ms during it),
-a still picture of the System view replaces the scene:
+When WebGL is missing, or the scene is still slow on its last quality stage (a median
+flight frame over 55 ms; see "Performance"), a still picture of the System view replaces
+the scene. A slow first flight alone no longer does: it steps the quality down.
 
 - A single image behind the interface, with a note and a "Try 3D anyway" button.
 - The 55 ms threshold is a guess from one machine. Measure on a laptop with built-in

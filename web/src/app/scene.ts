@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import type { FreeSpace } from "./mission/free-space";
 import type { CameraViewId } from "./mission/views";
 import type { Scenario } from "./panel";
@@ -6,11 +7,12 @@ export type { FreeSpace, Rect } from "./mission/free-space";
 export type { CameraViewId } from "./mission/views";
 
 /**
- * How the scene is doing, reported once it knows:
+ * How the scene is doing, reported once it knows, and again if that changes:
  *
- * - "ready": it draws, and its first camera flight was fast enough.
- * - "slow": the first flight's median frame was over the threshold in
- *   docs/features/system-view.md ("When 3D does not run").
+ * - "ready": it draws (reported when its first camera flight lands).
+ * - "slow": it is still too slow on its lowest quality stage: the median of its flight
+ *   frames was over the threshold in docs/features/system-view.md ("Performance" and "When
+ *   3D does not run"). It may come later than "ready", after the scene has stepped down.
  * - "no-webgl": WebGL could not start.
  *
  * On "no-webgl", or "slow" before "Try 3D anyway", the shell sets `mode` to "flat" and, for
@@ -94,4 +96,23 @@ export type SceneProps = {
   mode: SceneMode;
   /** Optional: a camera flight has landed (see `SceneArrival`). */
   onArrive?: (arrival: SceneArrival) => void;
+};
+
+/**
+ * What a flat layer over the scene gets: the scene's props, how the scene draws (`mode`), and
+ * the last flight's arrival (null before the first one lands).
+ */
+export type FlatLayerProps = Omit<SceneProps, "onStatus" | "ignoreSlow" | "onArrive"> & {
+  arrival: SceneArrival | null;
+};
+
+/**
+ * A 2D layer the shell draws over the scene for some camera views, such as the Polar map's
+ * flat map (work package T7). It needs no WebGL, so for its `views` the shell never puts the
+ * still picture up, in flat mode too: it counts them as views that can be drawn flat, together
+ * with the scene's own `SceneReport.flatViews`.
+ */
+export type FlatLayer = {
+  views: readonly CameraViewId[];
+  Layer: ComponentType<FlatLayerProps>;
 };

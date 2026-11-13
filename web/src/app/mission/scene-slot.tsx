@@ -3,7 +3,7 @@ import { Button } from "../../components/Button";
 import { Explain } from "../../components/Explain";
 import { formatUtc } from "../../components/format";
 import type { FreeSpace } from "./free-space";
-import { STILL_PICTURE_URL, type SceneProps, type SceneReport, type SceneStatus } from "../scene";
+import { STILL_PICTURE_URL, type FlatLayer, type SceneArrival, type SceneProps, type SceneReport, type SceneStatus } from "../scene";
 import { sceneMode, showStill, stillLabel, stillNote } from "./scene-status";
 import { cameraView } from "./views";
 
@@ -15,6 +15,12 @@ type SceneSlotProps = Omit<SceneProps, "onStatus" | "ignoreSlow" | "mode"> & {
   Scene?: ComponentType<SceneProps>;
   /** Called after "Try 3D anyway", so the shell can announce it and place focus. */
   onTryAgain?: () => void;
+  /**
+   * Optional: a 2D layer drawn over the scene for some views (the Polar map's flat map). It
+   * gets the scene's props, its mode and the last arrival; its views never show the still
+   * picture.
+   */
+  flat?: FlatLayer;
 };
 
 /**
@@ -26,12 +32,22 @@ type SceneSlotProps = Omit<SceneProps, "onStatus" | "ignoreSlow" | "mode"> & {
  * picture over it with the note and "Try 3D anyway" (docs/features/system-view.md, "When 3D
  * does not run"). The rest of the interface does not depend on it.
  */
-export const SceneSlot = memo(function SceneSlot({ Scene = ScenePlaceholder, onTryAgain, ...props }: SceneSlotProps) {
+export const SceneSlot = memo(function SceneSlot({ Scene = ScenePlaceholder, onTryAgain, flat, ...props }: SceneSlotProps) {
   const [status, setStatus] = useState<SceneStatus | null>(null);
   const [report, setReport] = useState<SceneReport | null>(null);
   const [ignoreSlow, setIgnoreSlow] = useState(false);
+  const [arrival, setArrival] = useState<SceneArrival | null>(null);
   const mode = sceneMode(status, ignoreSlow);
-  const still = showStill(mode, report, props.view);
+  const flatViews = flat ? [...(report?.flatViews ?? []), ...flat.views] : (report?.flatViews ?? []);
+  const still = showStill(mode, { flatViews }, props.view);
+  const { onArrive } = props;
+  const arrive = useCallback(
+    (next: SceneArrival) => {
+      setArrival(next);
+      onArrive?.(next);
+    },
+    [onArrive],
+  );
 
   const onStatus = useCallback((next: SceneStatus, nextReport?: SceneReport) => {
     setStatus(next);
@@ -45,10 +61,11 @@ export const SceneSlot = memo(function SceneSlot({ Scene = ScenePlaceholder, onT
 
   return (
     <div className="scene-slot" data-mode={mode} data-still={still}>
-      <Scene {...props} mode={mode} ignoreSlow={ignoreSlow} onStatus={onStatus} />
+      <Scene {...props} mode={mode} ignoreSlow={ignoreSlow} onStatus={onStatus} onArrive={arrive} />
       {still ? (
         <StillPicture status={status ?? "slow"} view={props.view} freeSpace={props.freeSpace} onTryAnyway={tryAnyway} />
       ) : null}
+      {flat ? <flat.Layer {...props} mode={mode} arrival={arrival} /> : null}
     </div>
   );
 });

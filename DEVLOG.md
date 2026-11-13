@@ -936,6 +936,146 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## 3D and Map
 
+#### 2026-11-14 · T7 · The flat Polar map
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (no question
+  round: a briefed sub-agent) — wrote the flat map in `web/src/features/polar-map/` (canvas
+  drawing, pins, readouts, the takeover, the nudge), its vitest tests, the seam change in
+  `web/src/app/scene.ts` and `scene-slot.tsx`, the `polar_map` sentence and the spec edits
+  — checked by the agent with the vitest suite, typecheck, the build, impeccable's detector
+  (no findings) and by eye in a browser on the real data at 1440 × 900, 1024 × 768,
+  390 × 844, forced "no WebGL", reduced motion and a 360 px lesson box; a human has not
+  reviewed it yet
+- **State:** verified (2,017 web tests, typecheck and build pass on the merge with main (the orchestrator's run), and 425 Python tests on the same tree (the builder's run); reviewed by Cursor, which re-derived the projection independently and matched it at the pole, the four 80°S axes and five sites, confirmed the image is not mirrored and the lookup cells are right; one must-fix (the NASA caveat now stays up while a pin is dragged) and five smaller fixes made; not yet tried by the team lead)
+- **Changed:** `web/src/features/polar-map/` (new files; `index.tsx` keeps `PolarMap` as the
+  default export), `web/src/app/scene.ts` (adds `FlatLayer` and `FlatLayerProps`),
+  `web/src/app/mission/scene-slot.tsx` (optional `flat` prop), two lines in
+  `web/src/app/mission-screen.tsx`, the `polar_map` text in `web/src/lib/explain.ts`,
+  `web/package.json` and `web/pnpm-lock.yaml` (`d3-selection` and its types declared; both
+  were already in the lockfile under `d3-zoom`), `docs/features/polar-map.md`,
+  `docs/design/c2/built-polar-map-*.png`, this entry
+- **Notes:**
+  - The swap from globe to map: the scene's arrival gives the pole and the scale; the map
+    takes the scale halfway between the pole's and 80°S's, so no pin from the pole to 80°S
+    moves by more than about 0.6 % of the map's width at 80°S (a pinhole projection of the
+    cap, tested against `polarPose` and `polarScale`). Matching the pole exactly left pins
+    near 80°S up to 1.1 % off.
+  - Best-lit variants (#77, merged in): tested against the five real ones. A variant whose
+    parent is drawn stands in a callout beside it; one whose parent is folded into another
+    pin folds with it. Seen at Connecting Ridge and Shackleton rim at 40 m a pixel. The
+    nudge readout there reads "Average sunlight 54 % → 43 %, lower" 300 m from Connecting
+    Ridge, with its 40 to 87 % nearby range and the best-lit point 150 m away.
+  - Review of #89 (Cursor): the coordinate work checked out independently. Fixed: the "not
+    for your dates" caveat stays on screen while a pin is dragged; every NASA average is
+    labelled as NASA's; nearby ranges round outward in PR #92's wording ("Within 160 m: 39 %
+    to 87 %"), and byte 254 reads "over 99 %"; pan stops with a third of the map in the free
+    space; the 8K relief is let go after 20 s zoomed out and with the overlays on leaving.
+    New rendered tests (`readout-card.test.ts`) cover the caveat mid-drag, the start value
+    at the listed point, the request button and the longitude passed to `onRequestSite`.
+    Checked by eye once on the merged shell (#83): the map centres in the taller free space
+    and its controls sit above the timeline.
+  - For the Slip Planner (#87) and the Academy, `PolarMap` takes `sites`,
+    `showFeatureNames`, `overlay`, `overlayOpacity` and `onProjector` (the same shape as
+    `SceneProjector`). Nothing is built for the Slip Planner here.
+  - `artemis_regions.json` has no centres or sizes, so no outlines are drawn.
+  - Catalog sites that are not selected are grey dots without a status: a status needs the
+    site's 0.8 MB series, which loads when the site is added.
+  - On a page load straight into `view=map`, the scene's first flight waits for data; after
+    2.4 s without an arrival the map opens at its own fit (the same fit as the camera's).
+  - `polar-map.css` is not in a cascade layer: it loads before `theme.css`, and a
+    `@layer components` there reordered Tailwind's layers and reset every component's
+    padding (seen and fixed in the browser).
+
+#### 2026-11-14 · Scene polish · Controls, real stars, and speed on weak machines
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill — wrote the
+  System view's pivot, pan, zoom to the pointer and double-click (`navigate.ts`), the drag
+  fixes in `rig.ts`, the star renderer (`stars.ts`) and the script that makes
+  `web/public/stars.bin` (`web/dev/build-stars.mjs`), the quality stages and the Moon's
+  level of detail (`perf.ts`), vitest tests for all of them, and the doc changes; no
+  AI-generated imagery (the stars are a NASA/ADC catalogue) — checked by the agent with the
+  vitest suite, typecheck, build, pytest, pixel diffs of before and after screenshots, and
+  by eye and by the numbers in Chrome with hardware WebGL (RTX 2060), SwiftShader with 1×,
+  4× and 6× CPU throttling, and real touch events at 390 × 844; a human has not reviewed it
+- **State:** verified (425 Python tests, 1,975 web tests, typecheck and build pass on the merge with main; reviewed by Gemini (the star file checked against five published positions and not mirrored; level-of-detail disposal; zoom to the pointer; two mutations caught); seven findings fixed with tests (a stuck drag, the drag direction in every orientation, pivot continuity, frame timing that ignores a hidden tab and recovers); the team lead's later requests are in: the System view turns freely over both poles, and the distances plate is removed; a real laptop with built-in graphics is still not measured; not yet tried by the team lead)
+- **Changed:** `web/src/features/three/scene/` (`navigate.ts`, `stars.ts`, `perf.ts` and
+  their tests are new; `rig.ts`, `scene-root.tsx`, `overlay.tsx`, and one additive method in
+  `world.ts`, `setMoonSegments`), `web/public/stars.bin` and `web/dev/build-stars.mjs` (new),
+  `web/src/lib/explain.ts` (an optional `controls` line for the System view and Local
+  terrain) and `web/src/components/Explain.tsx` (shows it), `web/src/app/scene.ts` (the
+  `"slow"` comment), `pointers.ts` and its test (new), `docs/features/system-view.md`,
+  `DESIGN.md` (stars), `docs/decisions/0014-the-scene-steps-quality-down.md`,
+  `docs/design/c2/built-scene-polish-*.png`, this entry
+- **Notes:**
+  - **Controls.** Every drag follows "grab the globe": the surface under the pointer moves
+    with it. The sideways drag was inverted in Local terrain, and in the System view
+    whenever the south was at the top of the screen. The System view's drag is a free
+    trackball (team lead, 2026-11-14): a horizontal drag turns the camera about its own up
+    axis, a vertical drag about its own right axis, through the pivot, with no pole limit,
+    over either pole and all the way round. Far out the pivot is the Moon's centre; close in
+    the point of interest (the pole, the followed site, a double-clicked spot, or the centre
+    of the view), sliding between 0.5 and 2 Moon radii; a preset's point fades as it leaves
+    the centre or nears its horizon. A turn never goes below 60 km: it slides along it. Each
+    view's drag is a per-view setting (`ORBIT_STYLE` in `rig.ts`): Local terrain and Lander's
+    eye keep their limits, the Polar map stays north-up. Pan: right-drag, Shift-drag, two
+    fingers. Wheel and pinch zoom toward the pointer. "South pole" frames the whole cap
+    poleward of about 80°S, level; a double-click on empty space flies back to the preset's
+    level framing. Keys: arrows move the camera (the picture moves the other way), Shift and
+    an arrow pans, plus and minus zoom. The first load still lands on home.
+  - **The "Distances not to scale" plate is gone** (team lead). The About text still says
+    distances are squeezed and every direction is true; the "True scale" button's description
+    says what it switches.
+  - **Stars.** The Yale Bright Star Catalogue, 5th revised edition (Hoffleit and Warren
+    1991, CDS V/50), from HEASARC's public `bsc5p` table, reduced to 8,404 stars to
+    magnitude 6.5 in 67 kB. Placed by one fixed rotation: the Moon's pole points where the
+    IAU model says, turned about it as on 2000-01-01, not for the scrubber's time (that
+    would be ephemeris work in the frontend). Nothing on screen claims otherwise.
+  - **Speed.** Before and after, median ms between drawn frames, 1440 × 900:
+    RTX 2060 4.2 → 4.2 (all scenarios, display-capped); SwiftShader orbit 196 → 33, flight
+    to the Polar map 229 → 37; SwiftShader with 6× CPU orbit 213 → 36, flight 225 → 41.
+    The cost was the Moon's 147,000 triangles, not pixels or the main thread (2.5 ms). On a
+    fast machine the still picture is pixel-identical to before in the Moon. Not measured: a
+    real laptop's built-in graphics. Still slow on SwiftShader: Local terrain (about 240 ms
+    a frame at 6× CPU) because of the ground's mesh, left for the ground package; and the
+    first flight into Local terrain has a one-off upload stall (about 375 ms).
+  - **Quality stages** are decided by `QualityGovernor` (`perf.ts`, tested): only visible
+    flight frames count; stalls (over a second, or over four times the last window's median)
+    are dropped; three fast windows step back up; a stage that fails right after recovering
+    is not re-entered. The intro has no separate measurement any more.
+  - **The WebGL context** asks for the fast GPU: `powerPreference: "high-performance"` was
+    already set when the scene was made (#75), and the live context reports it on the RTX
+    2060; no other attribute fights it (`antialias` on, `preserveDrawingBuffer` off but in
+    the dev still capture, `failIfMajorPerformanceCaveat` off). Its cost: on a laptop with
+    two graphics chips it wakes the discrete one, so it uses more battery.
+  - **For the ground package (Local terrain on a weak GPU):** on SwiftShader with 6× CPU,
+    Local terrain draws at about 240 ms a frame (765 ms at a 4K-sized window, DPR 2), against
+    36 ms for the System view after the Moon's level of detail. Main-thread work there is
+    small (render submit 4 to 13 ms, overlay 4 to 8 ms), so the cost is the GPU drawing the
+    apron and patch meshes plus the globe at its full 384-segment mesh. What would fix it,
+    as was done for the Moon: draw fewer apron and patch triangles while the camera moves
+    (a coarser index buffer over the same vertices, swapped in while `inMotion`, full mesh
+    for the rest frame), and skip the globe's hidden pixels under the apron earlier. The
+    first flight into Local terrain also stalls about 375 ms while those meshes upload;
+    uploading them while the camera rests in another view would hide that.
+  - **Review fixes (Gemini review of #88):** a drag can no longer get stuck (pointer
+    bookkeeping in `pointers.ts`: up, cancel, lost capture, window blur, hidden tab, and a
+    mouse moving with no button all end it; tested in every order); after a pan, a sideways
+    drag moves the surface sideways (the trackball; a property test over orientations with
+    the pole up, down, sideways and in the middle); the pivot is continuous (sweeps through
+    the blend zone, across the equator, past a followed site's horizon and off the limb);
+    frame timing ignores hidden tabs and stalls and recovers (governor tests); the rest frame
+    waits 300 ms, longer than the 250 ms motion cutoff; `user-select: none` on the scene.
+    Checked in Chrome on the RTX 2060: an upward drag goes over the pole and round; after
+    panning the pole to each side all four drag directions move the centre point the drag's
+    way; a blur mid-drag leaves nothing turning; zooming out with the minus key from a
+    followed site and dragging moves smoothly; "South pole" levels the view.
+  - The timeline's play button advances one hour per drawn frame at 6 h a second, so its
+    frame gap (about 167 ms) is the play rate, not a cost.
+  - **Dev only:** `?perf` shows frame times over the scene; `window.__truesouthPerf` reads
+    them; `window.__truesouthScene` now also exposes `invalidate`.
+  - During this work the machine's disk filled up twice and the dev server crashed once;
+    every commit was re-checked afterwards.
+
 #### 2026-11-13 · T1, T2 · The 3D scene behind Mission Control
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (question

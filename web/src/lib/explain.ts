@@ -29,6 +29,8 @@ export type ExplainLessonId =
 
 export type TermExplanation = {
   text: string;
+  /** For a camera view: a one-line hint of its controls, shown under the text in the popover. */
+  controls?: string;
   /** The Academy lesson that teaches this term, where one clearly does. */
   lesson?: ExplainLessonId;
 };
@@ -278,14 +280,17 @@ const entries = {
   },
   system_view: {
     text: "A 3D view you can turn by dragging, showing the Moon, Earth and Sun from outside, so you can see where your site is, where daylight falls and where Earth sits. Distances are squeezed by default so everything fits, but every direction is true.",
+    controls:
+      "Drag to turn the Moon freely in any direction, over the poles. Right-drag, Shift-drag or two fingers slide; scroll or pinch zooms toward the pointer; double-click centres a spot. South pole shows the whole polar region, level.",
     lesson: "l1_sun",
   },
   polar_map: {
-    text: "A flat map of the Moon's south pole region, seen from above, where you pick sites and nudge a pin to see how much a small move changes the light.",
+    text: "A flat map of the Moon's south pole region, seen from above. Add sites from it, and drag the focused site's pin to see how NASA's long-term average sunlight and Earth visibility change a short way off.",
     lesson: "l5_slope",
   },
   local_terrain: {
     text: "A 3D view you can turn by dragging, showing the ground around one site as if you hovered above it, lit by the Sun as it is at the current time. Its shadows are only for understanding: whether an hour is lit comes from the series.",
+    controls: "Drag to turn about the site; scroll or pinch to move closer or further.",
     lesson: "l3_horizon",
   },
   skyline_wall: {
