@@ -14,7 +14,7 @@ def test_manifest_example():
 
 def test_invalid_values():
     with pytest.raises(ValidationError):
-        CustomSiteRequest(lat_deg=0, lon_deg=360, name="x")
+        CustomSiteRequest(lat_deg=0, lon_deg=float('inf'), name="x")
     with pytest.raises(ValidationError):
         Manifest.model_validate({"schema_version": 1, "generated_utc": "2026-11-14T09:00:00+00:00", "time_grid": {"start_utc": "2026-01-01T00:00:00Z", "step_s": 3600, "count": 52584}, "observer_height_m": 2, "skyline_bins": 1440, "moon_radius_m": 1737400})
     with pytest.raises(ValidationError):

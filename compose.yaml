@@ -1,16 +1,20 @@
-# Catalog-only. Project name and image stay on the truesouth-* prefix so this
-# checkout does not take over another compose project on the same machine.
-name: truesouth-s13
-
+# No downloads at startup. Prepared maps are optional and read-only.
+name: truesouth
 services:
   truesouth:
     build: .
-    image: truesouth-s13:catalog
+    image: ${TRUESOUTH_IMAGE:-truesouth:custom}
+    environment:
+      TRUESOUTH_DATA_ROOT: /app/data
     ports:
       - "8080:8080"
+    volumes:
+      - type: bind
+        source: ${TRUESOUTH_PREPARED_HOST:-./data/prepared}
+        target: /app/data/prepared
+        read_only: true
+      - custom-cache:/app/data/cache
+    stop_grace_period: 90s
     restart: unless-stopped
-
-# No init service. The full design used one to run fetch-raw and prepare-dem
-# when a volume of prepared maps was empty, so custom sites could read terrain.
-# This version does not compute custom sites, and data/derived is already in
-# the image. Starting the container must not download the NASA maps.
+volumes:
+  custom-cache:

@@ -24,6 +24,8 @@ Pass the map that should be reported. A core80 site can still be measured on
 the 240 m map by passing that map; this function does not choose. A
 sphere-tier latitude returns None from ``polar_slope`` even if a map covers it.
 """
+from truesouth.constants import MAX_SITE_LATITUDE_DEG
+
 
 import numpy as np
 
@@ -54,7 +56,7 @@ def polar_slope(terrain, lat_deg, lon_deg):
     lat = _finite_degree('latitude', lat_deg)
     lon = _finite_degree('longitude', lon_deg)
     # Section 2.1: the local frame is undefined closer to a pole than this.
-    if abs(lat) > 89.999:
+    if abs(lat) > MAX_SITE_LATITUDE_DEG:
         raise ValueError('site latitude must have absolute value at most 89.999 degrees')
     if str(site_tier(np.asarray([lat]))[0]) == 'sphere':
         return None

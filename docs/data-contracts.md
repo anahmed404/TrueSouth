@@ -267,6 +267,9 @@ Response:
 { "site_id": "c_-89.2000_130.5000", "status": "queued", "position_in_queue": 1 }
 ```
 
+`name` is optional, trimmed, and at most 120 characters. Longitude is finite and normalised
+to [0, 360); coordinates are rounded before computing, with negative zero removed.
+
 `status` is `queued`, `running`, `ready` or `failed`. A known site returns `ready` at once.
 
 The id is the coordinates rounded to four decimals, as `c_<lat>_<lon>`. Anyone holding the
@@ -311,9 +314,40 @@ Sensitivity arrays are row-major, row 0 is north, and each contains `size * size
 
 ### Errors
 
-Every error is `{ "error": { "code": "...", "message": "plain sentence" } }` with a
-matching HTTP status. Codes: `invalid_coordinates`, `date_outside_time_grid`,
-`rate_limited`, `queue_full`, `terrain_unavailable`, `not_found`.
+Custom-site success messages and status values above are unchanged. Errors never echo
+submitted values, unknown field names, validator types or internal exception details.
+
+| HTTP | Body | Header |
+| :--- | :--- | :--- |
+| 413 | `{ "message": "Custom-site requests must be at most 4096 bytes." }` | None |
+| 422 | `{ "message": "Please check the request fields.", "fields": [{ "field": "lat_deg", "message": "Latitude must be a number from −90 to 90." }] }` | None |
+| 429 | `{ "message": "You may start 6 custom sites per hour. Please try again later." }` | `Retry-After`: integer seconds until a slot becomes available |
+| 429 | `{ "message": "The custom-site queue is full. Please try again later." }` | `Retry-After: 1` |
+| 503 | `{ "message": "Custom sites need the terrain maps, which are not installed on this server." }` | None |
+| 503 | `{ "message": "Custom sites need the global ephemeris, which is not installed on this server." }` | None |
+| 503 | `{ "message": "This server is handling too many client addresses. Please try again later." }` | `Retry-After: 3600` |
+| 503 | `{ "message": "This server is shutting down. Please try again later." }` | None |
+| 507 | `{ "message": "This server's storage for custom sites is full." }` | None |
+
+The 422 `fields` array contains one or more `{ field, message }` objects. `field` is
+only `lat_deg`, `lon_deg`, `name` or `body`. Latitude advice is the message above, or
+`Latitude must be at least 0.001° away from a pole.` for a point the science rejects.
+Longitude advice is `Longitude must be a finite number.` Name advice is
+`Name must be text of at most 120 characters.` Malformed JSON, a missing/invalid body,
+or extra fields use `body` with `Send a JSON object with latitude, longitude and an
+optional name. Only these fields are allowed.` Latitude and longitude must be finite
+JSON numbers (booleans and strings are rejected); name must be a string.
+
+Names have control and non-printable characters removed, are trimmed, and are limited
+to 120 characters after cleaning. The body limit applies before parsing, including
+streamed requests without Content-Length. A 507 at admission creates no job and uses
+no rate slot. If storage fills during an accepted job, status becomes `failed` with
+`error: { "code": "storage_full", "message": "This server's storage for custom sites is full." }`.
+Other job failures use `computation_failed` and a plain message; the status envelope
+always retains `site_id`, `status`, `site` and `error`.
+
+Unknown or unfinished custom ids use HTTP 404 with
+`{ "message": "Custom site is not ready. Start it with POST /api/sites/custom." }`.
 
 ## Shareable scenario link
 
