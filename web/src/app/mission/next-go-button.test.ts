@@ -150,7 +150,7 @@ describe("the Next GO button", () => {
     expect(statusLine(host)).toBe("Landing moved back to 01 Mar 2028.");
   });
 
-  it("drops the note when the landing date changes another way", async () => {
+  it("drops the note and its status line when the landing date changes another way", async () => {
     sweep.status = "ready";
     sweep.rows = rowsWithGo("2028-03-14T00:00:00Z");
     const store = createScenarioStore(catalog, "?sites=fixture_ridge&land=2028-03-01T00:00Z");
@@ -159,5 +159,6 @@ describe("the Next GO button", () => {
     expect(buttons(host, "Undo")).toHaveLength(1);
     await act(async () => store.getState().slipLanding(1));
     expect(buttons(host, "Undo")).toHaveLength(0);
+    expect(statusLine(host)).toBe("");
   });
 });

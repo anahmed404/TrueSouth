@@ -43,12 +43,15 @@ function NextGoFor({ siteId }: { siteId: string }) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const descriptionId = useId();
   const [moved, setMoved] = useState<Moved | null>(null);
-  const [announcement, setAnnouncement] = useState("");
+  // What the polite status line says, and the landing date it is about.
+  const [announcement, setAnnouncement] = useState({ text: "", landingUtc: "" });
 
-  // The note is about one jump: any other change of the landing date ends it.
+  // The note and the status line are about one jump: any other change of the landing date
+  // ends them.
   useEffect(() => {
     if (moved && moved.toUtc !== landingUtc) setMoved(null);
-  }, [moved, landingUtc]);
+    if (announcement.text && announcement.landingUtc !== landingUtc) setAnnouncement({ text: "", landingUtc: "" });
+  }, [moved, announcement, landingUtc]);
 
   const jump = () => {
     if (view.kind !== "ready") return;
@@ -57,7 +60,7 @@ function NextGoFor({ siteId }: { siteId: string }) {
     state.setLandingDate(view.targetUtc);
     const text = movedText(view.targetUtc, name);
     setMoved({ toUtc: view.targetUtc, from, text });
-    setAnnouncement(text);
+    setAnnouncement({ text, landingUtc: view.targetUtc });
   };
 
   // Closing the note never strands focus: if it was inside, it lands on "Next GO".
@@ -75,7 +78,7 @@ function NextGoFor({ siteId }: { siteId: string }) {
     // jump near the end of the grid can clamp it, and Undo puts it back exactly.
     state.setCurrentTime(moved.from.currentUtc, "replace");
     setMoved(null);
-    setAnnouncement(undoneText(moved.from.landingUtc));
+    setAnnouncement({ text: undoneText(moved.from.landingUtc), landingUtc: moved.from.landingUtc });
     requestAnimationFrame(() => buttonRef.current?.focus());
   };
 
@@ -99,14 +102,15 @@ function NextGoFor({ siteId }: { siteId: string }) {
           >
             Next GO
           </Button>
-          <span id={descriptionId} className="sr-only">
+          {/* Read as the button's description only, not again in the reading flow. */}
+          <span id={descriptionId} hidden>
             {view.description}
           </span>
         </>
       )}
       {moved ? <MovedNote text={moved.text} onUndo={undo} onClose={closeNote} /> : null}
       <span className="sr-only" role="status">
-        {announcement}
+        {announcement.text}
       </span>
     </span>
   );

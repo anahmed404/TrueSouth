@@ -780,13 +780,9 @@
     justify-content: space-between;
   }
 
+  /* No room for the words: the group is still named "Landing date", and so is the date. */
   .tl-compact-landing .ldc-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+    display: none;
   }
 
   .tl-compact-landing .ldc-date {
