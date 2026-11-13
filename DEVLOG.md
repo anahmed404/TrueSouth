@@ -905,7 +905,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   plates centred once); `scene-root.tsx` (passes the series' Sun answer to the plates: one
   line and a dependency); `docs/features/local-terrain.md` ("What is drawn", the plate,
   Performance); `docs/features/panorama.md` (one sentence);
-  `docs/decisions/0014-drawn-ground-shadows.md`; `docs/design/c2/built-ground-*.png`; this
+  `docs/decisions/0015-drawn-ground-shadows.md`; `docs/design/c2/built-ground-*.png`; this
   entry. `materials.ts` is untouched: its old `groundMaterial` is no longer used and can be
   deleted by whoever merges second.
 - **Notes:**

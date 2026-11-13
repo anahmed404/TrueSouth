@@ -1,4 +1,4 @@
-# 0014. The browser draws ground shadows, and never reads them
+# 0015. The browser draws ground shadows, and never reads them
 
 **Decision.** In Local terrain and Lander's eye the ground is drawn with cast shadows, relief
 from the polar cap's slope maps, and an illustrative regolith texture close up
