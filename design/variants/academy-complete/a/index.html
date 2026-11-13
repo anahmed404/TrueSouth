@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Academy lesson complete · Variant a</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── Direction C2 tokens (see design/variants/direction-c2.md). Same block on every C2 page. ── */
+:root{
+  color-scheme:dark;
+  --bg:#0b0b0c; --surface:#141415; --raised:#1b1b1d; --hover:#232326;
+  --line:#262629; --line-strong:#37373b;
+  --ink:#ececee; --ink-2:#b3b3b8; --ink-3:#8c8c93; --ink-4:#5c5c63;
+  --accent:#f3efe6; --accent-ink:#141414;
+  --sun:#ffe2a0; --sun-core:#fff4d8; --earth:#6cc4ff; --earth-core:#9fdbff;
+  --status-go:#45c98b; --status-caution:#f2a33a; --status-nogo:#f0646d;
+  --plot:#0e0e0f; --terrain:#1d1d20; --terrain-rim:#a8a8af; --grid:rgba(255,255,255,.06);
+  --font:"Jost","Futura","Century Gothic","Avenir Next","Trebuchet MS",system-ui,sans-serif;
+  --t-xs:11px; --t-sm:12px; --t-md:13px; --t-lg:15px; --t-xl:18px; --t-2xl:24px; --t-3xl:32px; --t-display:44px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px;
+  --r-sm:6px; --r-md:10px; --r-lg:14px; --r-pill:999px;
+  /* ── Academy additions, proposed in design/variants/c2-academy.md (not in DESIGN.md yet) ── */
+  --t-ac:18px;          /* lesson body: the spec's 16 px floor plus room */
+  --t-ac-min:16px;      /* the floor for lesson text on a phone */
+  --t-ac-say:20px;      /* Luna's bubble */
+  --t-ac-title:28px;    /* lesson and path titles */
+  --r-xl:20px;          /* Academy cards and bubbles: rounder than Mission Control's 14 px */
+  --s8:64px;
+  --h-xl:56px;          /* big buttons: Check, Continue, Start */
+  --h-opt:64px;         /* answer options */
+  --ease-out:cubic-bezier(.16,1,.3,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:var(--t-lg);line-height:1.5;
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+::selection{background:var(--accent);color:var(--accent-ink)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:inherit}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-sm)}
+svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+text{font-family:var(--font)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:var(--r-pill);border:3px solid var(--bg)}
+html{scrollbar-color:var(--line-strong) transparent}
+
+/* ── the review document around the frames ── */
+.doc{width:1504px;margin:0 auto;padding:var(--s6) var(--s6) 120px}
+.doc-h{display:flex;align-items:center;gap:var(--s4)}
+.doc-h .brand{display:flex;align-items:center;gap:10px;font-size:var(--t-xl);font-weight:600}
+.doc-h .brand svg{width:24px;height:24px}
+.doc-h nav{margin-left:auto;display:flex;gap:var(--s5);font-size:var(--t-md);color:var(--ink-2)}
+.doc-h nav a:hover{color:var(--ink)}
+.doc-h nav a[aria-current="page"]{color:var(--ink);text-decoration:underline;text-underline-offset:5px}
+.proto{font-size:var(--t-sm);color:var(--ink-3);border:1px solid var(--line-strong);border-radius:var(--r-pill);padding:0 8px;line-height:18px;white-space:nowrap}
+.doc-title{margin-top:var(--s7)}
+.doc-title h1{font-size:var(--t-3xl);font-weight:600;line-height:1.1}
+.doc-title p{font-size:var(--t-xl);color:var(--ink-2);margin-top:var(--s3);max-width:80ch}
+.toc{display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s5)}
+.toc a{height:32px;padding:0 14px;border:1px solid var(--line-strong);border-radius:var(--r-pill);font-size:var(--t-md);color:var(--ink-2);display:inline-flex;align-items:center}
+.toc a:hover{color:var(--ink);background:var(--hover)}
+.state{margin-top:96px;scroll-margin-top:24px}
+.state>h2{font-size:var(--t-2xl);font-weight:600;line-height:1.2}
+.state>.cap{color:var(--ink-2);margin-top:var(--s2);max-width:96ch;font-size:var(--t-lg)}
+.state>.cap b{color:var(--ink);font-weight:500}
+.fl{font-size:var(--t-sm);color:var(--ink-3);margin:var(--s5) 0 var(--s2)}
+.fr{position:relative;overflow:hidden;background:var(--bg);outline:1px solid var(--line-strong);container-type:inline-size}
+.fr.d{width:1440px;height:900px;border-radius:var(--r-lg)}
+.fr.p{width:390px;height:844px;border-radius:var(--r-xl)}
+.fr.half{width:1440px;height:900px;border-radius:var(--r-lg);transform:scale(.5);transform-origin:0 0}
+.halfbox{width:720px;height:450px;overflow:hidden;border-radius:var(--r-sm)}
+.prow{display:flex;gap:var(--s6);align-items:flex-start}
+.notes{max-width:64ch;color:var(--ink-2);font-size:var(--t-lg);padding-top:var(--s5)}
+.notes h3{font-size:var(--t-xl);font-weight:600;color:var(--ink);margin-top:var(--s5)}
+.notes h3:first-child{margin-top:0}
+.notes p,.notes li{margin-top:var(--s2)}
+.notes ul{padding-left:20px}
+.play{margin-top:var(--s3);height:36px;padding:0 14px;border-radius:var(--r-pill);border:1px solid var(--line-strong);font-size:var(--t-md);color:var(--ink);display:inline-flex;align-items:center;gap:8px}
+.play:hover{background:var(--hover)}
+.trio{display:grid;grid-template-columns:repeat(3,390px);gap:var(--s6)}
+.trio-d{display:grid;grid-template-columns:repeat(2,720px);gap:var(--s5) var(--s5)}
+.kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 6px;border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:var(--r-sm);font-size:var(--t-sm);color:var(--ink-2);line-height:1;vertical-align:1px;background:var(--surface)}
+
+/* ── a screen inside a frame ── */
+.scr{position:absolute;inset:0;display:flex;flex-direction:column;font-size:var(--t-ac)}
+.scr-body{flex:1;min-height:0;overflow:auto}
+
+/* buttons */
+.bx{height:var(--h-xl);padding:0 28px;border-radius:var(--r-pill);font-size:var(--t-xl);font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:10px;white-space:nowrap;
+  transition:background-color .15s ease-out,color .15s ease-out,transform .1s ease-out}
+.bx svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bx.pri{background:var(--accent);color:var(--accent-ink)}
+.bx.pri:hover{background:var(--sun-core)}
+.bx.pri:active{transform:translateY(1px)}
+.bx.sec{background:var(--surface);border:1px solid var(--line-strong);color:var(--ink)}
+.bx.sec:hover{background:var(--hover)}
+.bx[disabled]{background:var(--raised);color:var(--ink-4);border:1px solid var(--line);cursor:default}
+.bq{min-height:44px;padding:0 12px;border-radius:var(--r-md);display:inline-flex;align-items:center;gap:8px;color:var(--ink-2);font-size:var(--t-lg)}
+.bq:hover{background:var(--hover);color:var(--ink)}
+.ib{width:44px;height:44px;border-radius:var(--r-pill);display:grid;place-items:center;color:var(--ink-2);flex:none}
+.ib:hover{background:var(--hover);color:var(--ink)}
+.ib svg{width:20px;height:20px}
+
+/* answer options */
+.opt{width:100%;min-height:var(--h-opt);padding:12px 18px 12px 14px;border-radius:var(--r-lg);background:var(--raised);border:1px solid var(--line-strong);
+  display:flex;align-items:center;gap:14px;font-size:var(--t-ac);color:var(--ink);transition:background-color .15s ease-out,box-shadow .15s ease-out}
+.opt:hover{background:var(--hover)}
+.opt .key{width:28px;height:28px;border-radius:var(--r-sm);border:1px solid var(--line-strong);display:grid;place-items:center;font-size:var(--t-md);color:var(--ink-3);flex:none}
+.opt .lab{flex:1}
+.opt .note{font-size:var(--t-lg);color:var(--ink-3);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.opt.sel{box-shadow:inset 0 0 0 2px var(--accent);background:var(--hover)}
+.opt.sel .key{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.opt.missed{background:var(--surface);border-style:dashed;color:var(--ink-2);cursor:default}
+.opt.missed .lab{text-decoration:line-through;text-decoration-color:var(--ink-3)}
+.opt.answer{box-shadow:inset 0 0 0 2px var(--accent);background:var(--hover)}
+.opt.answer .note{color:var(--ink)}
+.opt.dim{opacity:.55}
+.opt.focus{outline:2px solid var(--accent);outline-offset:3px}
+
+/* the achromatic "right" badge: a moonlight disc with a cut check. Statuses keep their colours for GO, CAUTION and NO-GO only */
+.ok{width:26px;height:26px;border-radius:50%;background:var(--accent);display:inline-grid;place-items:center;flex:none}
+.ok svg{width:15px;height:15px;stroke:var(--accent-ink);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ok.lg{width:40px;height:40px}.ok.lg svg{width:22px;height:22px}
+.retry{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--ink-2);display:inline-grid;place-items:center;flex:none}
+.retry svg{width:14px;height:14px;stroke:var(--ink-2);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.retry.lg{width:40px;height:40px}.retry.lg svg{width:20px;height:20px}
+
+/* Luna's bubble */
+.say{position:relative;background:var(--raised);border:1px solid var(--line-strong);border-radius:var(--r-xl);padding:16px 22px;font-size:var(--t-ac-say);line-height:1.4;color:var(--ink);max-width:560px}
+.say.old{font-size:var(--t-ac);color:var(--ink-2);background:var(--surface);border-color:var(--line)}
+.say .xp{display:inline-flex;margin-left:8px;font-size:var(--t-lg);color:var(--ink-2);font-weight:500}
+.luna{display:block;flex:none}
+.me{align-self:flex-end;background:transparent;border:1.5px solid var(--accent);border-radius:var(--r-xl);padding:12px 18px;font-size:var(--t-ac);color:var(--ink);max-width:420px}
+.me.miss{border-style:dashed;border-color:var(--ink-3);color:var(--ink-2)}
+
+/* Pip's meters and the lesson progress */
+.meters{display:flex;align-items:center;gap:var(--s5)}
+.m{display:flex;align-items:center;gap:8px;font-size:var(--t-lg);color:var(--ink-2);white-space:nowrap}
+.m b{color:var(--ink);font-weight:500}
+.m .bar{width:64px;height:6px;border-radius:var(--r-pill);background:var(--hover);overflow:hidden}
+.m .bar i{display:block;height:100%;background:var(--sun);border-radius:var(--r-pill)}
+.m.link b{color:var(--earth)}
+.m.off b{color:var(--ink-2)}
+.prog{display:flex;gap:6px;flex:1;max-width:420px}
+.prog i{flex:1;height:8px;border-radius:var(--r-pill);background:var(--hover)}
+.prog i.done{background:var(--accent)}
+.prog i.now{background:var(--ink-3)}
+.stepn{font-size:var(--t-lg);color:var(--ink-2);white-space:nowrap}
+
+/* stars, XP and patches */
+.stars{display:inline-flex;gap:3px;vertical-align:middle}
+.stars svg{width:18px;height:18px}
+.xpn{font-weight:500;color:var(--ink)}
+.xpn small{font-size:.75em;color:var(--ink-2);font-weight:400;margin-left:2px}
+
+/* the Under-the-hood card */
+.uth{background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-xl);padding:var(--s5) var(--s5) var(--s5)}
+.uth h3{font-size:var(--t-xl);font-weight:600;margin-top:var(--s5)}
+.uth h3:first-of-type{margin-top:var(--s4)}
+.uth p{font-size:var(--t-lg);color:var(--ink-2);margin-top:6px;line-height:1.55;max-width:68ch}
+.uth .head{display:flex;align-items:center;gap:12px}
+.uth .head h2{font-size:var(--t-2xl);font-weight:600}
+.uth .head .free{margin-left:auto;font-size:var(--t-md);color:var(--ink-3)}
+.math{margin-top:10px;padding:16px 18px;border-radius:var(--r-md);background:var(--plot);border:1px solid var(--line);font-size:var(--t-2xl);color:var(--ink);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.math .frac{display:inline-flex;flex-direction:column;align-items:center;line-height:1.15;vertical-align:middle}
+.math .frac>span:first-child{border-bottom:1.5px solid var(--ink);padding:0 4px 2px}
+.math .frac>span:last-child{padding:2px 4px 0}
+.math .cite{margin-left:auto;font-size:var(--t-md);color:var(--ink-3)}
+.math i{font-style:italic;font-family:var(--font)}
+.we{margin-top:10px;width:100%;border-collapse:collapse;font-size:var(--t-lg)}
+.we td{padding:8px 0;border-bottom:1px solid var(--line);vertical-align:baseline}
+.we td:first-child{color:var(--ink-2);width:46%}
+.we td:last-child{color:var(--ink)}
+.fill{display:inline-block;padding:0 6px;border-radius:var(--r-sm);background:var(--raised);border:1px solid var(--line-strong);font-weight:500;color:var(--ink)}
+.codelink{margin-top:8px;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border-radius:var(--r-md);border:1px solid var(--line-strong);font-size:var(--t-lg);color:var(--ink)}
+.codelink:hover{background:var(--hover)}
+.codelink code{font-family:var(--font);font-weight:500}
+.uth ul{margin-top:6px;padding-left:20px;color:var(--ink-2);font-size:var(--t-lg)}
+.uth li{margin-top:4px}
+
+/* status lamp, used only for GO, CAUTION and NO-GO */
+.lamp{--c:var(--status-go);width:18px;height:18px;border-radius:50%;background:var(--c);display:inline-grid;place-items:center;flex:none}
+.lamp svg{width:12px;height:12px;stroke:#0b0b0c;stroke-width:3.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.lamp.caution{--c:var(--status-caution)} .lamp.nogo{--c:var(--status-nogo)}
+.st{display:inline-flex;align-items:center;gap:6px;font-weight:600}
+.st.go{color:var(--status-go)} .st.caution{color:var(--status-caution)} .st.nogo{color:var(--status-nogo)}
+
+/* panel box for embedded Mission Control panels: 360 px wide */
+.mc-box{width:360px;max-width:100%;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--line-strong);overflow:hidden;flex:none}
+.mc-box .mc-h{display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-bottom:1px solid var(--line);font-size:var(--t-md);color:var(--ink-2)}
+.mc-box .mc-h b{color:var(--ink);font-weight:500}
+.mc-box .mc-h .r{margin-left:auto;color:var(--ink-3);font-size:var(--t-sm)}
+.mc-box svg.plot{display:block;width:100%;height:auto}
+.mc-box .mc-f{display:flex;flex-wrap:wrap;gap:6px 14px;padding:10px 12px;border-top:1px solid var(--line);font-size:var(--t-ac-min);color:var(--ink-2)}
+.mc-box .mc-f b{color:var(--ink);font-weight:500}
+.hint{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:var(--t-lg);color:var(--ink-3);margin-top:10px}
+@container (max-width:600px){.bx{white-space:normal;text-align:center;height:auto;min-height:var(--h-xl);padding:10px 22px;line-height:1.25}}
+
+/* range slider, themed */
+input[type=range].rng{-webkit-appearance:none;appearance:none;width:100%;height:44px;background:transparent;cursor:pointer}
+input[type=range].rng::-webkit-slider-runnable-track{height:6px;border-radius:var(--r-pill);background:var(--hover)}
+input[type=range].rng::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:var(--accent);margin-top:-11px;border:0}
+input[type=range].rng::-moz-range-track{height:6px;border-radius:var(--r-pill);background:var(--hover)}
+input[type=range].rng::-moz-range-thumb{width:28px;height:28px;border-radius:50%;background:var(--accent);border:0}
+
+/* the moondust burst on a correct answer (see the caption for the motion) */
+.dust{position:absolute;pointer-events:none;overflow:visible}
+.dust i{position:absolute;left:0;top:0;border-radius:50%;background:var(--accent)}
+@keyframes hop{0%{transform:translate(0,0)}100%{transform:translate(var(--dx),var(--dy))}}
+@media (prefers-reduced-motion:reduce){.dust.playing i{animation:none!important;opacity:0!important}}
+
+/* finale map legend */
+.flegend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:var(--t-md);color:var(--ink-2)}
+.flegend span{display:inline-flex;align-items:center;gap:8px}
+.flegend i{display:inline-block;flex:none}
+.lg-pip{width:12px;height:12px;border-radius:50%;background:var(--accent)}
+.lg-reg{width:14px;height:14px;border:1.4px dashed var(--ink-2);background:rgba(179,179,184,.08)}
+.lg-sun{width:14px;height:14px;border-radius:50%;background:rgba(179,179,184,.22)}
+
+
+/* ── Variant a: lesson complete in the same single column ── */
+.ct{display:flex;align-items:center;gap:12px;height:64px;padding:0 16px;border-bottom:1px solid var(--line);flex:none}
+.ct .t{font-size:var(--t-lg);color:var(--ink-2)}
+.ct .sp{flex:1}
+.skip{font-size:var(--t-lg);color:var(--ink-2);min-height:44px;display:inline-flex;align-items:center;gap:6px;padding:0 10px;border-radius:var(--r-md);white-space:nowrap}
+.skip:hover{background:var(--hover);color:var(--ink)}
+.skip svg{width:16px;height:16px}
+.col{max-width:768px;margin:0 auto;padding:40px 24px 48px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.hero{position:relative;display:flex;align-items:flex-end;justify-content:center;gap:4px}
+.hero .dust{left:50%;top:62%}
+.col h1{font-size:var(--t-3xl);font-weight:600;line-height:1.15;margin-top:20px}
+.col .sub{font-size:var(--t-ac);color:var(--ink-2);margin-top:6px}
+.score{display:flex;align-items:center;justify-content:center;gap:28px;margin-top:24px}
+.score .xpb{font-size:var(--t-3xl);font-weight:500;line-height:1}
+.score .xpb small{font-size:var(--t-xl);color:var(--ink-2);font-weight:400;margin-left:4px}
+.score .vr{width:1px;height:40px;background:var(--line-strong)}
+.score .lbl{font-size:var(--t-lg);color:var(--ink-2);margin-top:6px}
+.recap{margin-top:28px;display:flex;gap:14px;align-items:flex-start;text-align:left;max-width:600px}
+.recap .say{font-size:var(--t-ac)}
+.built{margin-top:28px;width:100%;display:flex;gap:20px;align-items:center;text-align:left;padding:16px;border-radius:var(--r-xl);background:var(--surface);border:1px solid var(--line-strong)}
+.built .plot{border-radius:var(--r-md);flex:none}
+.built h2{font-size:var(--t-xl);font-weight:600}
+.built p{font-size:var(--t-lg);color:var(--ink-2);margin-top:4px}
+.built .scn{font-size:var(--t-md);color:var(--ink-3);margin-top:8px}
+.built .bx{margin-top:14px;height:48px;font-size:var(--t-lg)}
+.cf{border-top:1px solid var(--line);flex:none}
+.cf .in{max-width:768px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;gap:16px}
+.cf .bx.pri{margin-left:auto}
+/* finale */
+.fin{max-width:960px;margin:0 auto;padding:32px 24px 40px}
+.fin .talk{display:flex;gap:18px;align-items:flex-start}
+.fin .bubbles{display:flex;flex-direction:column;gap:10px;padding-top:6px}
+.fin .mapwrap{margin-top:24px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.fin .fmap{max-width:100%;height:auto}
+.fin .two{margin-top:28px;display:flex;justify-content:center;gap:40px;flex-wrap:wrap}
+.fin .pt{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:var(--t-lg);color:var(--ink-2)}
+.fin .pt b{color:var(--ink);font-weight:600;font-size:var(--t-xl)}
+.fin .cmp{font-size:var(--t-2xl);font-weight:600;margin:40px 0 16px;padding-top:32px;border-top:1px solid var(--line)}
+.fin .tot{text-align:center;margin-top:20px;font-size:var(--t-ac);color:var(--ink-2)}
+.fin .tot b{color:var(--ink);font-weight:500}
+
+@container (max-width:600px){
+  .ct .t{display:none}
+  .col{padding:20px 16px 32px}
+  .hero .luna{width:72px;height:72px}
+  .hero .pbig{width:120px;height:120px}
+  .col h1{font-size:var(--t-2xl)}
+  .score{gap:16px}
+  .score .xpb{font-size:var(--t-2xl)}
+  .recap .luna{display:none}
+  .built{flex-direction:column;align-items:stretch;padding:12px}
+  .built .plot{width:100%;height:auto}
+  .built .bx{width:100%}
+  .cf .in{padding:12px 16px 16px;flex-direction:column-reverse;align-items:stretch;gap:8px}
+  .cf .bx.pri{margin-left:0;width:100%}
+  .cf .bq{justify-content:center}
+  .fin{padding:16px 16px 32px}
+  .fin .talk .luna{width:56px;height:56px}
+  .fin .say{font-size:var(--t-ac);padding:12px 16px}
+  .fin .fmap{width:358px;height:358px}
+  .fin .two{gap:20px}
+  .fin .pt svg{width:88px;height:88px}
+}
+</style>
+</head>
+<body>
+<main id="doc" class="doc"></main>
+<script>
+/* ── shared prototype kit: icons, Luna, Pip, patches, small panels. Colours come from the CSS tokens. ── */
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C={ink:css('--ink'),ink2:css('--ink-2'),ink3:css('--ink-3'),ink4:css('--ink-4'),line:css('--line'),lineS:css('--line-strong'),
+  bg:css('--bg'),surface:css('--surface'),raised:css('--raised'),hover:css('--hover'),accent:css('--accent'),accentInk:css('--accent-ink'),
+  sun:css('--sun'),sunCore:css('--sun-core'),earth:css('--earth'),earthCore:css('--earth-core'),plot:css('--plot'),terrain:css('--terrain'),rim:css('--terrain-rim'),grid:css('--grid'),
+  go:css('--status-go'),caution:css('--status-caution'),nogo:css('--status-nogo')};
+let UID=0; const uid=p=>(p||'u')+(++UID);
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+
+/* icons: one stroke family, 1.8 px on a 24 grid */
+const I={
+  close:'<path d="M6 6l12 12M18 6L6 18"/>',
+  back:'<path d="M15 5l-7 7 7 7"/>',
+  next:'<path d="M5 12h13M13 6l6 6-6 6"/>',
+  ext:'<path d="M14 5h5v5M19 5l-8 8M17 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h4"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/>',
+  ant:'<path d="M12 10.5V21M8.5 21h7"/><circle cx="12" cy="9" r="1.6"/><path d="M8.6 5.6a4.8 4.8 0 0 0 0 6.8M15.4 5.6a4.8 4.8 0 0 1 0 6.8M5.8 2.8a8.8 8.8 0 0 0 0 12.4M18.2 2.8a8.8 8.8 0 0 1 0 12.4"/>',
+  antOff:'<path d="M12 10.5V21M8.5 21h7"/><circle cx="12" cy="9" r="1.6"/><path d="M8.6 5.6a4.8 4.8 0 0 0 0 6.8M15.4 5.6a4.8 4.8 0 0 1 0 6.8"/><path d="M4 3l16 18"/>',
+  hood:'<path d="M5 19V9l7-5 7 5v10"/><path d="M9 19v-5h6v5"/><path d="M3 19h18"/>',
+  chev:'<path d="M9 6l6 6-6 6"/>',
+  chevU:'<path d="M6 15l6-6 6 6"/>',
+  check:'<path d="M5 12.5l4.2 4.2L19 7"/>',
+  retry:'<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/>',
+  sound:'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l4 6M21 9l-4 6"/>',
+  menu:'<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
+  key:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/>',
+  hand:'<path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11M12 10V4.5a1.5 1.5 0 0 1 3 0V11M15 10.5V6a1.5 1.5 0 0 1 3 0v7a7 7 0 0 1-7 7h-.5A6.5 6.5 0 0 1 5 16.5l-1.6-3.3a1.4 1.4 0 0 1 2.4-1.4L9 15"/>',
+  reset:'<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/>',
+  badge:'<circle cx="12" cy="12" r="9"/><path d="M12 7.2l1.45 3 3.25.4-2.4 2.2.62 3.2L12 14.4 9.08 16l.62-3.2-2.4-2.2 3.25-.4z"/>',
+  map:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 3v18M3 12h18"/>'
+};
+const ic=(n,cls='i')=>`<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
+const okBadge=(lg)=>`<span class="ok${lg?' lg':''}" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7"/></svg></span>`;
+const seeBadge=(lg)=>`<span class="retry${lg?' lg':''}" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12s-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.6"/></svg></span>`;
+const retryBadge=(lg)=>`<span class="retry${lg?' lg':''}" aria-hidden="true"><svg viewBox="0 0 24 24">${I.retry}</svg></span>`;
+const lamp=(k)=>{const g={go:'<path d="M5 12.5l4.2 4.2L19 7"/>',caution:'<path d="M12 6v7M12 17.5v.5"/>',nogo:'<path d="M7 7l10 10M17 7L7 17"/>'}[k];
+  return `<span class="lamp ${k}" aria-hidden="true"><svg viewBox="0 0 24 24">${g}</svg></span>`;};
+const status=(k)=>`<span class="st ${k}">${lamp(k)}${{go:'GO',caution:'CAUTION',nogo:'NO-GO'}[k]}</span>`;
+
+/* stars: filled moonlight for earned, an outline for not yet */
+function stars(n,size=18,label=true){
+  const p='M12 2.8l2.75 5.75 6.3.8-4.6 4.35 1.15 6.25L12 16.9l-5.6 3.05 1.15-6.25L2.95 9.35l6.3-.8z';
+  let s='';for(let i=0;i<3;i++)s+=`<svg viewBox="0 0 24 24" style="width:${size}px;height:${size}px" aria-hidden="true"><path d="${p}" fill="${i<n?C.ink:'none'}" stroke="${i<n?C.ink:C.lineS}" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+  return `<span class="stars" ${label?`role="img" aria-label="${n} of 3 stars"`:'aria-hidden="true"'}>${s}</span>`;
+}
+
+/* ── Luna: the placeholder moon face from web/src/components/luna/art (viewBox 0 0 100 100).
+   Body in Ink 2, craters in Ink 3, features cut in Night. Extras recoloured to the C2 rules: sparkles and the
+   proud star in Sun cream (the component uses the CAUTION amber), the worried drop in Ink 2. ── */
+const LUNA={
+  idle:{eyes:'r',mouth:'<path d="M43 64 Q50 68 57 64"/>',label:'Luna, calm and waiting'},
+  happy:{eyes:'r',mouth:'<path d="M37 61 Q50 75 63 61"/>',label:'Luna, smiling'},
+  thinking:{eyes:'r5,2,-3',brows:'<path d="M56 35 Q62 31 68 34"/>',mouth:'<path d="M44 66 L57 63"/>',extras:`<g fill="${C.ink}"><circle cx="76" cy="18" r="2.5"/><circle cx="84" cy="11" r="3.5"/></g>`,label:'Luna, thinking it over'},
+  cheering:{eyesPath:'<path d="M32 50 Q38 42 44 50 M56 50 Q62 42 68 50"/>',mouthFill:'<path d="M35 59 Q50 82 65 59 Z"/>',extras:`<g fill="${C.sun}"><path d="M14 18 L16 24 L22 26 L16 28 L14 34 L12 28 L6 26 L12 24 Z"/><path d="M86 14 L87.5 18.5 L92 20 L87.5 21.5 L86 26 L84.5 21.5 L80 20 L84.5 18.5 Z"/></g>`,label:'Luna, cheering'},
+  worried:{eyes:'r5,0,1',brows:'<path d="M31 38 L43 34 M57 34 L69 38"/>',mouth:'<path d="M40 69 Q45 63 50 67 Q55 71 60 65"/>',extras:`<path fill="${C.ink2}" d="M80 30 Q85 38 85 41 A5 5 0 0 1 75 41 Q75 38 80 30 Z"/>`,label:'Luna, worried'},
+  surprised:{eyes:'r7,0,-1',brows:'<path d="M31 34 Q38 28 45 33 M55 33 Q62 28 69 34"/>',mouthFill:'<ellipse cx="50" cy="67" rx="5.5" ry="6.5"/>',label:'Luna, surprised'},
+  sleepy:{eyesPath:'<path d="M32 49 Q38 55 44 49 M56 49 Q62 55 68 49"/>',mouth:'<path d="M46 65 Q50 67 54 65"/>',extras:`<path fill="none" stroke="${C.ink}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M74 14 H83 L74 23 H83 M86 4 H91 L86 9 H91"/>`,label:'Luna, sleepy'},
+  proud:{eyesPath:'<path d="M32 48 Q38 42 44 48 M56 48 Q62 42 68 48"/>',mouth:'<path d="M38 61 Q52 72 64 58"/>',extras:`<g><circle cx="78" cy="80" r="10" fill="${C.raised}" stroke="${C.ink}" stroke-width="2"/><path fill="${C.sun}" d="M78 73 L80 78 L85 78.5 L81 81.5 L82.5 86.5 L78 83.5 L73.5 86.5 L75 81.5 L71 78.5 L76 78 Z"/></g>`,label:'Luna, proud'}
+};
+function luna(mood='happy',size=96,decorative=false){
+  const m=LUNA[mood],F=C.bg,L=`fill="none" stroke="${F}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"`;
+  let eyes='';
+  if(m.eyes){const [r,dx,dy]=(m.eyes==='r'?'5.5,0,0':m.eyes.slice(1)).split(',').map(Number);
+    eyes=`<circle fill="${F}" cx="${38+dx}" cy="${48+dy}" r="${r}"/><circle fill="${F}" cx="${62+dx}" cy="${48+dy}" r="${r}"/>`;}
+  else eyes=`<g ${L}>${m.eyesPath}</g>`;
+  const brows=m.brows?`<g ${L.replace('stroke-width="4"','stroke-width="3.2"')}>${m.brows}</g>`:'';
+  const mouth=m.mouthFill?`<g fill="${F}">${m.mouthFill}</g>`:`<g ${L}>${m.mouth}</g>`;
+  const a=decorative?'aria-hidden="true"':`role="img" aria-label="${m.label}"`;
+  return `<svg class="luna" data-mood="${mood}" width="${size}" height="${size}" viewBox="0 0 100 100" ${a}>
+    <circle cx="50" cy="52" r="40" fill="${C.ink2}" stroke="${C.ink3}" stroke-width="2"/>
+    <g fill="${C.ink3}" opacity=".55"><circle cx="27" cy="32" r="6"/><circle cx="73" cy="73" r="5"/><circle cx="23" cy="64" r="3.5"/><circle cx="71" cy="28" r="3"/><circle cx="50" cy="86" r="2.5"/></g>
+    ${eyes}${brows}${mouth}${m.extras||''}</svg>`;
+}
+
+/* ── Pip: the small lander from the start screen, lit from the right ── */
+function pipG(x,y,s=1,label=false){
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <path d="M-14 22 L-8 8 M14 22 L8 8 M0 22 L0 10" stroke="${C.ink2}" stroke-width="2" stroke-linecap="round"/>
+    <rect x="-11" y="-4" width="22" height="14" rx="3" fill="${C.accent}"/>
+    <rect x="1" y="-4" width="10" height="14" rx="2" fill="${C.sun}" fill-opacity=".55"/>
+    <rect x="-26" y="-1" width="13" height="7" rx="1.5" fill="${C.ink4}"/><rect x="13" y="-1" width="13" height="7" rx="1.5" fill="${C.ink4}"/>
+    <path d="M0 -4 L0 -12" stroke="${C.accent}" stroke-width="1.6"/><circle cx="0" cy="-13" r="2.4" fill="${C.earth}"/>
+    ${label?`<text x="0" y="40" text-anchor="middle" font-size="13" font-weight="600" fill="${C.ink}">Pip</text>`:''}</g>`;
+}
+const pip=(size=48)=>`<svg width="${size}" height="${size*.75}" viewBox="-30 -18 60 45" aria-hidden="true">${pipG(0,0,1)}</svg>`;
+
+/* ── the eight lessons, from docs/academy/lessons.md ── */
+const LESSONS=[
+  {n:1,t:"Where's the Sun?",tag:'The Sun never climbs here; it circles the horizon.',patch:'Sun Chaser',unl:'System view'},
+  {n:2,t:'Mountains steal sunlight',tag:'With the Sun this low, the skyline decides light or shadow.',patch:'Skyline Sketcher',unl:"Lander's eye"},
+  {n:3,t:'The Moon is round',tag:'The ground curves away, so far mountains sink.',patch:'Horizon Hunter',unl:'Local terrain'},
+  {n:4,t:'Phone home',tag:'Earth bobs above and below the horizon each month.',patch:'Signal Keeper',unl:'Timeline and countdowns'},
+  {n:5,t:"Don't tip over",tag:'Slope decides whether a lander stays upright.',patch:'Steady Feet',unl:'Slope overlay'},
+  {n:6,t:'Trade-offs',tag:'Hard limits rule sites out; preferences rank the rest.',patch:'Decision Maker',unl:'Compare'},
+  {n:7,t:'The slip',tag:'The date matters as much as the place.',patch:'Time Bender',unl:'Slip Planner'},
+  {n:8,t:'Final mission',tag:'Choose where and when Pip lands.',patch:'Mission Planner',unl:'Mission Control'}
+];
+/* mock progress: lessons 1 to 3 done, Luna waits at lesson 4 */
+const PROGRESS={done:{1:{stars:2,xp:42},2:{stars:3,xp:50},3:{stars:2,xp:45}},next:4};
+const TOTAL_XP=137;
+
+/* ── mission patches: a round porthole badge with a line glyph. Earned: solid ring; not yet: dashed ── */
+const PATCH_GLYPH=[
+  (k,h)=>`<path d="M14 40 H50" stroke="${k}"/><ellipse cx="32" cy="40" rx="15" ry="5" stroke="${k}" stroke-dasharray="1.5 3.5"/><circle cx="41" cy="36.5" r="5" fill="${h(C.sun)}" stroke="none"/>`,
+  (k,h)=>`<circle cx="38" cy="30" r="5.5" fill="${h(C.sun)}" stroke="none"/><path d="M13 44 L22 34 L28 38 L35 27 L43 37 L51 33 V46 H13Z" fill="${C.surface}" stroke="${k}"/>`,
+  (k,h)=>`<path d="M12 46 Q32 28 52 46" stroke="${k}"/><path d="M27 33.5 L31 27 L35 33" stroke="${k}"/><path d="M12 30 H52" stroke="${k}" stroke-dasharray="2 3"/>`,
+  (k,h)=>`<path d="M14 42 H50" stroke="${k}"/><path d="M24 42 A8 8 0 0 1 40 42" fill="${h(C.earth)}" stroke="none"/><path d="M22 30 A13 13 0 0 1 42 30 M26 25 A19 19 0 0 1 38 25" stroke="${k}"/>`,
+  (k,h)=>`<path d="M14 44 H50" stroke="${k}"/><rect x="25" y="25" width="14" height="10" rx="2" stroke="${k}"/><path d="M27 35 L22 44 M37 35 L42 44 M32 35 V44" stroke="${k}"/>`,
+  (k,h)=>`<path d="M32 20 V44 M24 44 H40 M18 28 H46" stroke="${k}"/><path d="M14 38 L18 28 L22 38 Z M42 38 L46 28 L50 38 Z" stroke="${k}"/>`,
+  (k,h)=>`<rect x="19" y="21" width="26" height="24" rx="3" stroke="${k}"/><path d="M19 28 H45 M25 18 V24 M39 18 V24" stroke="${k}"/><path d="M26 38 a6 6 0 1 0 6-6" stroke="${k}"/><path d="M32 29.5 V34.5 H29" stroke="none"/>`,
+  (k,h)=>`<circle cx="32" cy="33" r="13" stroke="${k}"/><circle cx="32" cy="33" r="6" stroke="${k}" stroke-dasharray="1.5 2.5"/><path d="M38 21 a5 5 0 0 1 5 5 c0 4 -5 8 -5 8 s-5-4-5-8 a5 5 0 0 1 5-5z" fill="${h(C.accent)}" stroke="${k}"/>`,
+  (k,h)=>`<circle cx="32" cy="32" r="14" stroke="${k}"/><path d="M32 18 L36 32 L32 46 L28 32Z" fill="${h(C.ink)}" stroke="none"/><path d="M32 32 L36 32 L32 46Z" fill="${h(C.ink3)}" stroke="none"/>`
+];
+const PATCH_NAMES=[...LESSONS.map(l=>l.patch),'True South'];
+function patch(i,earned,size=64,decorative=true){
+  const k=earned?C.ink:C.lineS,h=c=>earned?c:'none';
+  const ring=earned?`<circle cx="32" cy="32" r="30" fill="${C.raised}" stroke="${C.ink2}" stroke-width="1.5"/><circle cx="32" cy="32" r="26" fill="none" stroke="${C.lineS}"/>`
+    :`<circle cx="32" cy="32" r="30" fill="none" stroke="${C.lineS}" stroke-width="1.5" stroke-dasharray="3 4"/>`;
+  const a=decorative?'aria-hidden="true"':`role="img" aria-label="${PATCH_NAMES[i]} patch, ${earned?'earned':'not earned yet'}"`;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" ${a}>${ring}<g fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${PATCH_GLYPH[i](k,h)}</g></svg>`;
+}
+
+/* ── moondust: a correct answer kicks up regolith that rises and settles in the Moon's slow gravity.
+   still(): a frozen mid-flight frame. play(): the 1.1 s motion. Reduced motion: no particles at all. ── */
+function rnd(seed){let s=seed;return()=>((s=Math.imul(s^s>>>15,1|s)+0x6D2B79F5|0,((s^s>>>14)>>>0)/4294967296));}
+function dustParticles(n,seed){const r=rnd(seed),P=[];
+  for(let i=0;i<n;i++){const ang=(-90+(r()-.5)*150)*Math.PI/180,v=90+r()*150;P.push({vx:Math.cos(ang)*v,vy:Math.sin(ang)*v,s:2+r()*4.5,c:r()<.7?C.accent:(r()<.6?C.ink2:C.sunCore)});}
+  return P;}
+function dustHTML(n=26,seed=7,t=.42){const g=150;
+  return dustParticles(n,seed).map(p=>{const x=p.vx*t,y=p.vy*t+.5*g*t*t;
+    return `<i style="width:${p.s}px;height:${p.s}px;background:${p.c};transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px);opacity:${(1-t*.6).toFixed(2)}"></i>`;}).join('');}
+function playDust(el,seed=7){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){el.innerHTML='';return;}
+  const P=dustParticles(26,seed),g=150;el.innerHTML='';
+  P.forEach(p=>{const i=document.createElement('i');i.style.cssText=`width:${p.s}px;height:${p.s}px;background:${p.c}`;el.appendChild(i);
+    const kf=[];for(let k=0;k<=10;k++){const t=k/10*1.1;kf.push({transform:`translate(${(p.vx*t).toFixed(1)}px,${(p.vy*t+.5*g*t*t).toFixed(1)}px)`,opacity:k<7?1:1-(k-7)/3});}
+    i.animate(kf,{duration:1100,easing:'linear',fill:'forwards'});});
+  setTimeout(()=>{el.innerHTML=dustHTML(26,seed);},1300);
+}
+
+/* ── small Mission Control panels, drawn simply, 360 px wide ── */
+const elC=(n)=>`<text font-size="11" fill="${C.ink3}"`;
+/* Lander's eye for lesson 1 step 2: flat skyline, the Sun's month-long path, the Sun mid-drag */
+function landersEyeDrag(az=100,best=null,focus=true){
+  const id=uid('le'),Y=e=>150-e*40,X=a=>a;
+  const sunEl=a=>1.36+.64*Math.cos((a-60)*Math.PI/180);
+  let path='';for(let a=0;a<=360;a+=3)path+=(a?'L':'M')+X(a)+','+Y(sunEl(a)).toFixed(1);
+  const se=sunEl(az),sx=X(az),sy=Y(se);
+  let g='';[0,1,2,3].forEach(e=>{g+=`<line x1="0" x2="360" y1="${Y(e)}" y2="${Y(e)}" stroke="${C.grid}"/>`;
+    g+=`<text x="6" y="${Y(e)-4}" font-size="11" fill="${C.ink3}">${e}°</text>`;});
+  return `<svg class="plot" viewBox="0 0 360 180" role="img" aria-label="Lander's eye: a flat skyline with the Sun's path for one month. The Sun is ${se.toFixed(2)} degrees up.">
+    <rect width="360" height="180" fill="${C.plot}"/>${g}
+    <path d="${path}" fill="none" stroke="${C.sun}" stroke-width="1.6" stroke-dasharray="2 4" stroke-linecap="round"/>
+    <rect x="0" y="${Y(0)}" width="360" height="40" fill="${C.terrain}"/>
+    <line x1="0" x2="360" y1="${Y(0)}" y2="${Y(0)}" stroke="${C.rim}" stroke-width="1.3"/>
+    ${[0,90,180,270].map(a=>`<text x="${X(a)+(a?0:10)}" y="${Y(0)+18}" text-anchor="middle" font-size="11" fill="${C.ink3}">${['N','E','S','W'][a/90]}</text>`).join('')}
+    ${best?`<g><line x1="${X(best)}" x2="${X(best)}" y1="${Y(sunEl(best))+14}" y2="${Y(0)}" stroke="${C.ink3}" stroke-dasharray="2 3"/></g>`:''}
+    <path d="M${sx-26},${sy+3} l-6,-3 6,-3 M${sx+26},${sy-3} l6,-3 -6,-3" stroke="${C.ink2}" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <ellipse cx="${sx}" cy="${sy}" rx="5" ry="10.6" fill="${C.sunCore}"/>
+    ${focus?`<circle cx="${sx}" cy="${sy}" r="19" fill="none" stroke="${C.accent}" stroke-width="2"/>`:''}
+    <text x="${sx}" y="${sy-26}" text-anchor="middle" font-size="12" font-weight="500" fill="${C.ink}">${se.toFixed(2)}°</text>
+  </svg>`;
+}
+/* Lander's eye for lesson 2 step 1's reveal: a ridge 1.2° tall, the Sun 0.9° up behind it */
+function landersEyeRidge(){
+  const id=uid('lr'),X=a=>(a-100)*3.6,Y=e=>140-e*60;
+  const sky=a=>{const r=(a-150)/14;return -.05+1.25*Math.exp(-r*r)+.18*Math.sin(a*.21)+.06*Math.sin(a*.9);};
+  let d='';for(let a=100;a<=200;a+=.5)d+=(a===100?'M':'L')+X(a).toFixed(1)+','+Y(sky(a)).toFixed(1);
+  const sx=X(153),sy=Y(.9);
+  let g='';[0,1,2].forEach(e=>{g+=`<line x1="0" x2="360" y1="${Y(e)}" y2="${Y(e)}" stroke="${C.grid}"/><text x="6" y="${Y(e)-4}" font-size="11" fill="${C.ink3}">${e}°</text>`;});
+  return `<svg class="plot" viewBox="0 0 360 180" role="img" aria-label="Lander's eye at that hour: the ridge looks 1.2 degrees tall and hides the Sun, which is 0.9 degrees up.">
+    <defs><clipPath id="${id}"><path d="${d}L360,0L0,0Z"/></clipPath></defs>
+    <rect width="360" height="180" fill="${C.plot}"/>${g}
+    <path d="${d}L360,180L0,180Z" fill="${C.terrain}"/>
+    <ellipse cx="${sx}" cy="${sy}" rx="4" ry="16" fill="${C.sunCore}" fill-opacity=".3"/>
+    <ellipse cx="${sx}" cy="${sy}" rx="4" ry="16" fill="${C.sunCore}" clip-path="url(#${id})"/>
+    <path d="${d}" fill="none" stroke="${C.rim}" stroke-width="1.3"/>
+    <rect x="${sx+14}" y="${sy+2}" width="72" height="20" rx="4" fill="${C.plot}" fill-opacity=".88"/>
+    <text x="${sx+20}" y="${sy+16}" font-size="12" fill="${C.sun}">Sun 0.9° up</text>
+    <rect x="${X(146)-120}" y="${Y(1.25)-24}" width="114" height="20" rx="4" fill="${C.plot}" fill-opacity=".88"/>
+    <text x="${X(146)-114}" y="${Y(1.25)-10}" font-size="12" fill="${C.ink}">Ridge looks 1.2° tall</text>
+    <text x="${X(110)}" y="172" font-size="11" fill="${C.ink3}">SE</text><text x="${X(180)}" y="172" font-size="11" fill="${C.ink3}">S</text>
+  </svg>`;
+}
+/* the curved Moon, side on, for lesson 3 */
+function curveView(km=20){
+  const X=k=>36+k*5,k2=.0011,drop=x=>k2*(x-36)*(x-36),Y0=70;
+  let d='M0,'+(Y0+2);for(let x=36;x<=360;x+=4)d+='L'+x+','+(Y0+drop(x)).toFixed(1);
+  const mx=X(km),my=Y0+drop(mx),dm=Math.round(km*km/(2*1737.4)*1000);
+  return `<svg class="plot" viewBox="0 0 360 190" role="img" aria-label="Side view of the curved Moon. At ${km} kilometres the ground has dropped ${dm} metres below flat.">
+    <rect width="360" height="190" fill="${C.plot}"/>
+    <path d="${d}L360,190L0,190Z" fill="${C.terrain}"/><path d="${d}" fill="none" stroke="${C.rim}" stroke-width="1.3"/>
+    <line x1="36" x2="356" y1="${Y0}" y2="${Y0}" stroke="${C.ink2}" stroke-dasharray="4 4"/>
+    <text x="352" y="${Y0-8}" text-anchor="end" font-size="12" fill="${C.ink2}">flat ground would be here</text>
+    ${pipG(30,Y0-22,.62)}
+    <line x1="${mx}" x2="${mx}" y1="${Y0}" y2="${my}" stroke="${C.accent}" stroke-width="2"/>
+    <circle cx="${mx}" cy="${my}" r="4" fill="${C.accent}"/>
+    <rect x="${mx+8}" y="${(Y0+my)/2-10}" width="54" height="20" rx="4" fill="${C.plot}" fill-opacity=".88"/>
+    <text x="${mx+14}" y="${(Y0+my)/2+4}" font-size="12" font-weight="500" fill="${C.ink}">${dm} m</text>
+    <text x="${mx}" y="182" text-anchor="middle" font-size="11" fill="${C.ink3}">${km} km</text>
+    <text x="8" y="182" font-size="11" fill="${C.ink3}">Drop drawn 40× taller</text>
+  </svg>`;
+}
+/* lesson 2 step 3: the learner's sketch with the real skyline laid over it */
+function skylineDraw(reveal=true){
+  const X=a=>(a-120)*4.5,Y=e=>150-e*36;
+  const real=a=>.25+.9*Math.exp(-(((a-148)/9)**2))+.55*Math.exp(-(((a-178)/12)**2))+.08*Math.sin(a*.7);
+  let d='';for(let a=120;a<=200;a+=.5)d+=(a===120?'M':'L')+X(a).toFixed(1)+','+Y(real(a)).toFixed(1);
+  const pts=[[120,.5],[130,.6],[140,1.0],[150,1.5],[160,.8],[170,.7],[180,1.0],[190,.6],[200,.4]];
+  const sk=pts.map(([a,e],i)=>(i?'L':'M')+X(a)+','+Y(e)).join('');
+  let g='';[0,1,2,3].forEach(e=>g+=`<line x1="0" x2="360" y1="${Y(e)}" y2="${Y(e)}" stroke="${C.grid}"/><text x="6" y="${Y(e)-4}" font-size="11" fill="${C.ink3}">${e}°</text>`);
+  return `<svg class="plot" viewBox="0 0 360 180" role="img" aria-label="Your sketch, dashed, with the real skyline laid over it.">
+    <rect width="360" height="180" fill="${C.plot}"/>${g}
+    ${reveal?`<path d="${d}L360,180L0,180Z" fill="${C.terrain}"/><path d="${d}" fill="none" stroke="${C.rim}" stroke-width="1.4"/>`:''}
+    <path d="${sk}" fill="none" stroke="${C.accent}" stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round"/>
+    ${pts.map(([a,e],i)=>`<circle cx="${X(a)}" cy="${Y(e)}" r="${i===3?7:5}" fill="${i===3?C.accent:C.plot}" stroke="${C.accent}" stroke-width="2"/>`).join('')}
+    <text x="${X(125)}" y="172" font-size="11" fill="${C.ink3}">120°</text><text x="${X(160)}" y="172" text-anchor="middle" font-size="11" fill="${C.ink3}">160°</text><text x="355" y="172" text-anchor="end" font-size="11" fill="${C.ink3}">200°</text>
+  </svg>`;
+}
+/* lesson 5 step 3: a close-up slope map. GO green under 10°, amber 10 to 20°, red over 20° */
+function slopeMap(){
+  const cols=18,rows=11,cs=20,r=rnd(41),V=[];
+  const s=(c,w)=>{const x=c/cols,y=w/rows;return 2.5+15*Math.abs(Math.sin(x*4+1.1)*Math.cos(y*3.3-.4))+7*Math.sin(x*11+y*7)**2+r()*3;};
+  let cells='';for(let w=0;w<rows;w++)for(let c=0;c<cols;c++){const v=s(c,w);V.push([c,w,v]);const col=v<10?C.go:v<20?C.caution:C.nogo;
+    cells+=`<rect x="${c*cs}" y="${w*cs}" width="${cs}" height="${cs}" fill="${col}" fill-opacity="${v<10?.42:.34}"/>`;}
+  const [pc,pw,pv]=V.filter(([c,w,v])=>v<8&&w>=3&&w<=8).sort((a,b)=>Math.hypot(a[0]-8,a[1]-5)-Math.hypot(b[0]-8,b[1]-5))[0];
+  slopeMap.v=pv.toFixed(1);
+  return `<svg class="plot" viewBox="0 0 360 220" role="img" aria-label="Slope map of the close-up. Pip's pin sits on a cell with a ${pv.toFixed(1)} degree slope.">
+    <rect width="360" height="220" fill="${C.plot}"/>${cells}
+    <rect x="${pc*cs}" y="${pw*cs}" width="${cs}" height="${cs}" fill="none" stroke="${C.accent}" stroke-width="2"/>
+    <path d="M${pc*cs+10},${pw*cs+10} v-22" stroke="${C.accent}" stroke-width="2"/>
+    <circle cx="${pc*cs+10}" cy="${pw*cs-14}" r="11" fill="${C.accent}"/>
+    <g transform="translate(${pc*cs+10} ${pw*cs-15}) scale(.32)"><rect x="-11" y="-4" width="22" height="14" rx="3" fill="${C.accentInk}"/><path d="M-14 22 L-8 8 M14 22 L8 8" stroke="${C.accentInk}" stroke-width="5"/></g>
+    <rect x="262" y="194" width="90" height="20" rx="4" fill="${C.plot}" fill-opacity=".88"/>
+    <line x1="268" x2="348" y1="208" y2="208" stroke="${C.ink}" stroke-width="2"/><text x="308" y="204" text-anchor="middle" font-size="11" fill="${C.ink}">100 m</text>
+  </svg>`;
+}
+/* ── a polar map, the south pole seen from above. 0° east longitude at the top, 90° to the right ── */
+const POLAR_SITES={
+  cr:{n:'Connecting Ridge',lat:-89.4555,lon:222.6192},
+  dg2:{n:'de Gerlache Rim 2',lat:-88.23,lon:295.3716,a:1},
+  hw:{n:'Haworth',lat:-86.7639,lon:337.223,a:1},
+  mm:{n:'Malapert Massif',lat:-85.9948,lon:359.7642,a:1},
+  mo:{n:'Mons Mouton',lat:-85.4266,lon:31.7428,a:1},
+  nr1:{n:'Nobile Rim 1',lat:-85.4381,lon:37.3667,a:1},
+  nr2:{n:'Nobile Rim 2',lat:-83.954,lon:58.8221,a:1}
+};
+function polarXY(lat,lon,cx,cy,pxDeg){const r=(90+lat)*pxDeg,t=lon*Math.PI/180;return [cx+r*Math.sin(t),cy-r*Math.cos(t)];}
+function polarBase(R,maxColat,id,plain){
+  const c=R,px=R/maxColat;let g=`<defs><clipPath id="${id}"><circle cx="${c}" cy="${c}" r="${R}"/></clipPath></defs>
+    <circle cx="${c}" cy="${c}" r="${R}" fill="${C.plot}"/><g clip-path="url(#${id})">`;
+  // flat tonal terrain: a few highs in Ground, Shackleton's bowl a step darker
+  const r=rnd(5);if(!plain)for(let i=0;i<46;i++){const a=r()*Math.PI*2,d=Math.sqrt(r())*R,s=(6+r()*26)*R/388;g+=`<circle cx="${(c+d*Math.cos(a)).toFixed(1)}" cy="${(c+d*Math.sin(a)).toFixed(1)}" r="${s.toFixed(1)}" fill="${C.terrain}" fill-opacity="${(.3+r()*.35).toFixed(2)}"/>`;}
+  for(let k=1;k<=maxColat;k++)g+=`<circle cx="${c}" cy="${c}" r="${k*px}" fill="none" stroke="${C.grid}" stroke-width="1"/>`;
+  for(let l=0;l<360;l+=30){const [x,y]=polarXY(-90+maxColat,l,c,c,px);g+=`<line x1="${c}" y1="${c}" x2="${x}" y2="${y}" stroke="${C.grid}"/>`;}
+  g+='</g>';
+  g+=`<circle cx="${c}" cy="${c}" r="${R}" fill="none" stroke="${C.lineS}" stroke-width="1.2"/>`;
+  return {g,c,px};
+}
+
+/* the System view, drawn simply: the Moon, the Sun's direction, Earth, and Pip's site at the pole */
+function systemMini(w=360,h=240){
+  const id=uid('sv');
+  return `<svg class="plot" viewBox="0 0 360 240" width="${w}" height="${h}" role="img" aria-label="System view: the Moon with Pip's site at the south pole, sunlight from the right, Earth to the upper left.">
+    <rect width="360" height="240" fill="${C.plot}"/>
+    <defs><clipPath id="${id}"><circle cx="180" cy="120" r="78"/></clipPath></defs>
+    <circle cx="180" cy="120" r="78" fill="${C.terrain}"/>
+    <g clip-path="url(#${id})"><path d="M180 42 A78 78 0 0 1 180 198 A30 78 0 0 0 180 42Z" fill="${C.ink4}" fill-opacity=".55"/></g>
+    <circle cx="180" cy="120" r="78" fill="none" stroke="${C.rim}" stroke-width="1.2"/>
+    <ellipse cx="180" cy="120" rx="78" ry="16" fill="none" stroke="${C.grid}" stroke-width="1.2"/>
+    ${[0,1,2,3].map(i=>`<path d="M${352} ${70+i*34} h-56" stroke="${C.sun}" stroke-width="1.6" stroke-dasharray="3 4"/><path d="M${300} ${66+i*34} l-5 4 5 4" fill="none" stroke="${C.sun}" stroke-width="1.6"/>`).join('')}
+    <circle cx="352" cy="30" r="10" fill="${C.sunCore}"/><text x="336" y="34" text-anchor="end" font-size="12" fill="${C.sun}">Sun</text>
+    <circle cx="44" cy="52" r="13" fill="${C.earthCore}"/><text x="64" y="56" font-size="12" fill="${C.earth}">Earth</text>
+    <circle cx="180" cy="196" r="5" fill="${C.accent}"/><text x="190" y="222" font-size="12" fill="${C.ink}">Pip's site, Connecting Ridge</text>
+  </svg>`;
+}
+/* the finale's map: the learner's site, NASA's candidate regions (approximate) and NASA's sunlight map, simplified */
+function finaleMap(size=520){
+  const R=size/2,id=uid('fm'),{g,c,px}=polarBase(R,6.6,id,true),P=(k)=>polarXY(POLAR_SITES[k].lat,POLAR_SITES[k].lon,c,c,px);
+  let s=`<svg class="fmap" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="Polar map: your site, Connecting Ridge, and NASA's candidate regions. The nearest region, de Gerlache Rim 2, is about 51 kilometres away.">${g}`;
+  // NASA's average-sunlight map, simplified to flat tones
+  [[-89.45,222.6,9],[-89.77,203.5,6],[-88.7,291.7,7],[-85.98,357.9,9],[-88.74,124.5,7],[-86.8,337,5],[-85.4,33,7]].forEach(([la,lo,r])=>{const [x,y]=polarXY(la,lo,c,c,px);s+=`<circle cx="${x}" cy="${y}" r="${r*R/260}" fill="${C.ink2}" fill-opacity=".22"/>`;});
+  // Shackleton crater, for orientation
+  const [shx,shy]=polarXY(-89.67,129.8,c,c,px);s+=`<circle cx="${shx}" cy="${shy}" r="${.35*px}" fill="none" stroke="${C.ink3}" stroke-width="1"/>`;
+  // the six regions with a site: their close-up map footprints, approximate
+  const box=.66*px;
+  Object.entries(POLAR_SITES).filter(([k,v])=>v.a).forEach(([k,v])=>{const [x,y]=P(k);
+    s+=`<rect x="${x-box/2}" y="${y-box/2}" width="${box}" height="${box}" fill="${C.ink2}" fill-opacity=".08" stroke="${C.ink2}" stroke-width="1.4" stroke-dasharray="4 3"/>`;
+    if(k==='nr1')return;const nm=k==='mo'?'Mons Mouton, Nobile Rim 1':v.n,below=k==='nr2'||k==='mo';const left=x>c+20;
+    s+=below?`<text x="${x}" y="${y+box/2+(k==='mo'?30:16)}" text-anchor="middle" font-size="${size>400?13:11}" fill="${C.ink2}">${nm}</text>`:`<text x="${left?x+box/2+6:x-box/2-6}" y="${y+4}" text-anchor="${left?'start':'end'}" font-size="${size>400?13:11}" fill="${C.ink2}">${nm}</text>`;});
+  // the learner's site and the distance to the nearest region
+  const [px1,py1]=P('cr'),[px2,py2]=P('dg2');
+  s+=`<line x1="${px1}" y1="${py1}" x2="${px2+box/2}" y2="${py2}" stroke="${C.accent}" stroke-width="1.5" stroke-dasharray="3 4"/>`;
+  const mx=(px1+px2)/2,my=(py1+py2)/2;
+  s+=`<rect x="${mx-30}" y="${my-24}" width="60" height="22" rx="11" fill="${C.plot}" stroke="${C.lineS}"/><text x="${mx}" y="${my-9}" text-anchor="middle" font-size="12" fill="${C.ink}">51 km</text>`;
+  s+=`<circle cx="${px1}" cy="${py1}" r="9" fill="${C.accent}" stroke="${C.bg}" stroke-width="2"/><circle cx="${px1}" cy="${py1}" r="15" fill="none" stroke="${C.accent}" stroke-width="1.5"/>`;
+  s+=`<rect x="${px1+18}" y="${py1-11}" width="${size>400?166:132}" height="24" rx="12" fill="${C.plot}" fill-opacity=".9"/><text x="${px1+28}" y="${py1+6}" font-size="${size>400?14:12}" font-weight="500" fill="${C.ink}">Pip: Connecting Ridge</text>`;
+  s+=`<text x="${c}" y="18" text-anchor="middle" font-size="11" fill="${C.ink3}">0°</text><text x="${c}" y="${size-8}" text-anchor="middle" font-size="11" fill="${C.ink3}">180°</text></svg>`;
+  return s;
+}
+const finaleLegend=()=>`<div class="flegend"><span><i class="lg-pip"></i>Your site</span><span><i class="lg-reg"></i>NASA candidate region (approximate outline)</span><span><i class="lg-sun"></i>Sunlit most of the year (NASA map, simplified)</span></div>`;
+
+/* ── the review document: header, title, contents, and one block per state ── */
+const BRAND='<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="#8c8c93" stroke-width="1.6"/><path d="M16 4 L19 16 L16 28 L13 16Z" fill="#ececee"/><path d="M16 16 L19 16 L16 28Z" fill="#8c8c93"/></svg>';
+function buildDoc(cfg){
+  const v=cfg.variant,o=v==='a'?'b':'a',here=cfg.page;
+  const pages=[['academy-path','Path'],['academy-lesson','Lesson'],['academy-complete','Complete']];
+  const nav=pages.map(([p,l])=>`<a href="../../${p}/${v}/index.html"${p===here?' aria-current="page"':''}>${l}</a>`).join('')
+    +`<a href="../../${here}/${o}/index.html">Variant ${o}</a><a href="../../../flows/academy/index.html">Flow</a>`;
+  let h=`<header class="doc-h"><a class="brand" href="../../start/c2/index.html">${BRAND}TrueSouth</a><nav aria-label="Prototype pages">${nav}</nav><span class="proto">prototype · mock data</span></header>
+  <div class="doc-title"><h1>${cfg.title}</h1><p>${cfg.lead}</p></div>
+  <nav class="toc" aria-label="States on this page">${cfg.states.map(s=>`<a href="#${s.id}">${s.short||s.title}</a>`).join('')}</nav>`;
+  cfg.states.forEach(s=>{
+    h+=`<section class="state" id="${s.id}"><h2>${s.title}</h2><p class="cap">${s.cap}</p>${s.play?`<button class="play" data-play="${s.id}">${ic('next')}Play the motion</button>`:''}`;
+    if(s.small) h+=`<p class="fl">Desktop · 1440 × 900, shown at half size</p><div class="halfbox"><div class="fr half" data-s="${s.id}" data-w="d"></div></div>`;
+    else h+=`<p class="fl">Desktop · 1440 × 900</p><div class="fr d" data-s="${s.id}" data-w="d"></div>`;
+    h+=`<div class="prow" style="margin-top:24px"><div><p class="fl">Phone · 390 × 844</p><div class="fr p" data-s="${s.id}" data-w="p"></div></div><div class="notes">${s.notes||''}</div></div></section>`;
+  });
+  document.getElementById('doc').innerHTML=h;
+  cfg.states.forEach(s=>$$(`[data-s="${s.id}"]`).forEach(f=>{f.innerHTML=s.render(f.dataset.w);if(s.after)s.after(f,f.dataset.w);}));
+  $$('[data-play]').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.play,reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    $$(`[data-s="${id}"] .dust`).forEach((d,i)=>playDust(d,7+i));
+    if(reduce)return;
+    $$(`[data-s="${id}"] [data-pop]`).forEach(e=>e.animate([{transform:'scale(.6)',opacity:0},{transform:'scale(1.06)',opacity:1,offset:.6},{transform:'scale(1)',opacity:1}],{duration:420,easing:'cubic-bezier(.16,1,.3,1)'}));
+    $$(`[data-s="${id}"] [data-hop]`).forEach(e=>e.animate([{transform:'translateY(0)'},{transform:'translateY(-14px)',offset:.4},{transform:'translateY(0)'}],{duration:700,easing:'cubic-bezier(.16,1,.3,1)'}));
+    $$(`[data-s="${id}"] [data-rise]`).forEach(e=>e.animate([{transform:'translateY(24px)',opacity:0},{transform:'translateY(0)',opacity:1}],{duration:320,easing:'cubic-bezier(.16,1,.3,1)'}));}));
+}
+
+
+const head=(t)=>`<header class="ct"><a class="ib" href="../../academy-path/a/index.html" aria-label="Back to the path">${ic('close')}</a><span class="t">${t}</span><span class="sp"></span><a class="skip" href="#">Skip to Mission Control ${ic('ext')}</a></header>`;
+const complete=()=>`<div class="scr">${head("1 · Where's the Sun?")}<div class="scr-body"><div class="col">
+  <div class="hero">${luna('proud',104)}<span data-pop style="display:inline-block">${patch(0,true,168).replace('<svg','<svg class="pbig"')}</span><div class="dust" aria-hidden="true">${dustHTML(34,23,.55)}</div></div>
+  <h1>You earned the Sun Chaser patch</h1><p class="sub">Lesson 1 complete · 1 of 9 patches</p>
+  <div class="score"><div>${stars(2,40)}<p class="lbl">4 of 5 right first time</p></div><span class="vr"></span><div><p class="xpb" data-pop>+42<small>XP</small></p><p class="lbl">42 XP in all</p></div></div>
+  <div class="recap">${luna('happy',56,true)}<p class="say">At my south pole the Sun never climbs; it circles the horizon.</p></div>
+  <section class="built" aria-label="The panel you built">${systemMini(240,160)}<div><h2>You built the System view</h2><p>The Moon, Earth and Sun at any hour, with Pip's site on the pole.</p><p class="scn">Connecting Ridge · im2_athena · landing 2028-03-01 00:00 UTC</p><a class="bx sec" href="#">Open in Mission Control ${ic('ext')}</a></div></section>
+  </div></div><footer class="cf"><div class="in"><a class="bq" href="../../academy-path/a/index.html">${ic('back')}Back to the path</a><a class="bx pri" href="../../academy-lesson/a/index.html">Next: Mountains steal sunlight ${ic('next')}</a></div></footer></div>`;
+const finale=()=>`<div class="scr">${head('8 · Final mission')}<div class="scr-body"><div class="fin">
+  <div class="talk">${luna('proud',96)}<div class="bubbles"><p class="say">Pip has landed! Connecting Ridge, GO on <span style="white-space:nowrap">2028-03-04</span>, with sunlight and a link to Earth.</p></div></div>
+  <div class="two"><div class="pt" data-pop>${patch(7,true,112)}<b>Mission Planner</b><span>Lesson 8</span></div><div class="pt" data-pop>${patch(8,true,112)}<b>True South</b><span>All eight lessons</span></div></div>
+  <p class="tot"><b>352 XP</b> · <b>19</b> of 24 stars · <b>9</b> of 9 patches</p>
+  <h2 class="cmp">How your pick compares with NASA's</h2>
+  <div class="talk">${luna('thinking',64,true)}<div class="bubbles"><p class="say">Connecting Ridge isn't one of NASA's nine regions. The nearest, de Gerlache Rim 2, is about 51 km away.</p><p class="say">That's fine. NASA weighs things we don't model, like science value and finer hazard maps.</p></div></div>
+  <div class="mapwrap">${finaleMap(480)}${finaleLegend()}</div>
+  </div></div><footer class="cf"><div class="in"><a class="bq" href="../../academy-path/a/index.html">${ic('back')}Back to the path</a><a class="bx pri" href="#">Open Mission Control with Pip's mission ${ic('ext')}</a></div></footer></div>`;
+
+const states=[
+{id:'done',short:'Lesson complete',title:'Lesson complete',play:true,
+ cap:'The end of lesson 1. The mission patch is the hero, with Luna proud beside it; then stars, XP, Luna\'s one-line recap, and the real Mission Control panel the learner just rebuilt, with "Open in Mission Control" and the lesson\'s scenario. "Next" is the main button. <b>The motion</b> (the bigger moment the spec asks for): the patch drops in from 130% to full size with a heavier puff of moondust under it (1.4 s), the stars fill one after another 150 ms apart, and the XP counts up from 0 to 42 over 600 ms. <b>Reduce motion:</b> everything is simply there; the stars and XP appear filled.',
+ render:()=>complete(),
+ notes:`<h3>At phone width</h3><ul><li>The patch is 120 px with Luna beside it; the recap bubble drops Luna's second avatar.</li><li>The built panel stacks: the drawing on top at full width, then its text and a full-width "Open in Mission Control".</li><li>The footer stacks: "Next" first and full width, "Back to the path" under it.</li></ul><h3>Stars</h3><p>Two stars because 4 of 5 steps were right first time (at least 60%). The line under the stars says so, so the rule is never a mystery.</p><h3>Keyboard</h3><p>Focus starts on "Next". "Open in Mission Control" opens in a new tab with the scenario loaded.</p>`},
+{id:'finale',short:'The finale',title:'The finale, after lesson 8: an honest comparison',play:true,
+ cap:'It opens on the win: Pip has landed, Luna is proud, and the last two patches drop in. Then, as a second beat under its own heading, the learner\'s chosen site on the polar map, with NASA\'s candidate regions and NASA\'s sunlit areas. Here the site <b>does not</b> lie in a region, and Luna says so plainly, with the distance and the reason, in two bubbles. If it did lie in or near one, her line would read: "Your site sits inside NASA\'s Malapert Massif region. You found what NASA found." Then the eighth and ninth patches, the totals, and one button that opens Mission Control with Pip\'s site, date and profile loaded.',
+ render:()=>finale(),
+ notes:`<h3>Honesty in the drawing</h3><ul><li>NASA has published outlines for all nine regions, but we have not downloaded them yet, so the map draws the six regions we have a close-up map for as dashed squares and says "approximate" in the legend. The three others are left off rather than guessed.</li><li>The sunlit areas are a simplified copy of NASA's average-sunlight map, in flat grey, never presented as our own result.</li></ul><h3>At phone width</h3><p>The map is 358 px; the legend wraps to three lines under it; the two patches sit side by side at 88 px.</p><h3>Numbers</h3><p>51 km, the date and the totals are placeholders for <code>l8.region_overlap.*</code> and the learner's own progress.</p>`}
+];
+buildDoc({variant:'a',page:'academy-complete',title:'Lesson complete and finale · variant a',
+  lead:'The same calm column as the lesson: the reward on top, the panel the learner built in the middle, one button to keep going at the bottom.',states});
+</script>
+</body>
+</html>
