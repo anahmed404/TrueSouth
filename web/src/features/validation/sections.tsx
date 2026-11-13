@@ -2,19 +2,21 @@ import { ArrowUpRight } from "lucide-react";
 import { useId, useMemo, useState, type ReactNode } from "react";
 import type { Comparison, DataSource, DifferenceOverTime, Gate } from "../../contracts/generated.ts";
 import { Disclosure } from "../../components/Disclosure";
-import { formatNumber } from "../../components/format";
 import { Explain } from "../../components/Explain";
 import { REPO_BLOB_URL } from "../academy/card/links";
 import { G2Chart } from "./G2Chart";
 import { Scatter } from "./Scatter";
 import {
-  formatCount,
-  formatPercent,
-  formatPoints,
-  formatSignedDegrees,
-  formatValue,
-  withUnit,
-} from "./format";
+  gateLimitText,
+  gateMeasuredText,
+  kindOf,
+  largestDegreesText,
+  markText,
+  measureText,
+  readingText,
+  type ValueKind,
+} from "./display";
+import { formatCount, formatPercent } from "./format";
 import {
   COMPARISON_TITLES,
   comparisonRows,
@@ -37,9 +39,9 @@ type Names = ReadonlyMap<string, string>;
 
 const BODY_NAME = { sun: "the Sun", earth: "Earth" } as const;
 
-/** A gate's value with its unit, never rounded up to or past its own limit. */
+/** A gate's largest error, rounded up (display.ts). */
 function gateValue(value: number, gate: Gate): string {
-  return withUnit(formatValue(value, { below: gate.passed ? gate.limit : undefined }), gate.unit);
+  return gateMeasuredText({ ...gate, measured: value });
 }
 
 // ── Section 2: Sun and Earth positions ───────────────────────────────────────
@@ -56,7 +58,7 @@ function skyHeadline(gate: Gate): string {
 
 function skySentence(gate: Gate): string {
   const verdict = gateVerdict(gate);
-  const limit = withUnit(formatValue(gate.limit), gate.unit);
+  const limit = gateLimitText(gate);
   if (verdict === "elsewhere" || gate.measured === null) {
     return gate.detail ?? `The limit is ${limit}.`;
   }
@@ -118,8 +120,9 @@ function G2Over({ series, gate, names }: { series: readonly DifferenceOverTime[]
   if (!site || sites.length === 0 || !peak) return null;
 
   const name = (id: string) => names.get(id) ?? id;
-  const limit = withUnit(formatValue(gate.limit), "deg");
-  const deg = (value: number) => withUnit(formatValue(value, { below: gate.limit }), "deg");
+  const limit = gateLimitText(gate);
+  // Daily and yearly values are largest differences: rounded up, against the limit.
+  const deg = (value: number) => largestDegreesText(value, gate.limit);
   const summary = `At ${name(site)}, the largest daily difference from JPL Horizons was ${deg(peak.value)}, for ${BODY_NAME[peak.body]} on ${utcDay(peak.time)} UTC. The limit is ${limit}.`;
   const across =
     overall && sites.length > 1 && overall.siteId !== site
@@ -198,7 +201,7 @@ export function GateList({ gates, label }: { gates: readonly Gate[]; label: stri
             <dl className="vl-gate-values">
               <div>
                 <dt>Limit</dt>
-                <dd className="tabular">{withUnit(formatValue(gate.limit), gate.unit)}</dd>
+                <dd className="tabular">{gateLimitText(gate)}</dd>
               </div>
               <div>
                 <dt>Largest error</dt>
@@ -221,31 +224,6 @@ export function GateList({ gates, label }: { gates: readonly Gate[]; label: stri
 
 // ── Comparisons ──────────────────────────────────────────────────────────────
 
-/** Percentages for fractions; degrees to 2 decimals, or 3 when the mark is under 0.1°. */
-type ValueKind = "percent" | "degrees" | "fine-degrees";
-
-function kindOf(rows: readonly ComparisonRow[]): ValueKind {
-  const first = rows[0];
-  if (!first || first.unit === "fraction") return "percent";
-  return first.mark < 0.1 ? "fine-degrees" : "degrees";
-}
-
-function decimals(kind: ValueKind): number {
-  return kind === "fine-degrees" ? 3 : 2;
-}
-
-function showValue(value: number, kind: ValueKind): string {
-  return kind === "percent" ? formatPercent(value) : `${formatNumber(value, decimals(kind))}°`;
-}
-
-function showDifference(row: ComparisonRow, kind: ValueKind): string {
-  return kind === "percent" ? `${formatPoints(row.difference)} points` : formatSignedDegrees(row.difference, decimals(kind));
-}
-
-function showMark(mark: number, kind: ValueKind): string {
-  return kind === "percent" ? `${formatValue(mark * 100, { sig: 2 })} percentage points` : withUnit(formatValue(mark), "deg");
-}
-
 /** Rows outside their mark, each with the explanation the file gives. Shown above the table. */
 function Outliers({ rows, kind, self }: { rows: readonly ComparisonRow[]; kind: ValueKind; self: boolean }) {
   const outside = rows.filter((row) => row.verdict === "outside");
@@ -259,8 +237,8 @@ function Outliers({ rows, kind, self }: { rows: readonly ComparisonRow[]; kind: 
             <strong>{row.siteName}</strong>
             <span className="tabular vl-quiet">
               {self
-                ? `${showValue(row.ours, kind)} against a mark of ${showMark(row.mark, kind)}`
-                : `ours ${showValue(row.ours, kind)}, NASA's ${showValue(row.reference, kind)}`}
+                ? `${measureText(row, kind)} against a mark of ${markText(row.mark, kind)}`
+                : `ours ${readingText(row.ours, kind)}, NASA's ${readingText(row.reference, kind)}`}
             </span>
           </p>
           <p className="vl-outlier-text">
@@ -304,12 +282,12 @@ function ComparisonTable({ rows, kind, self, title }: { rows: readonly Compariso
             <tr key={row.key} className={row.verdict === "outside" ? "vl-row-outside" : undefined}>
               <th scope="row">{row.siteName}</th>
               {self ? (
-                <td className="vl-num">{showValue(row.ours, kind)}</td>
+                <td className="vl-num">{measureText(row, kind)}</td>
               ) : (
                 <>
-                  <td className="vl-num">{showValue(row.ours, kind)}</td>
-                  <td className="vl-num">{showValue(row.reference, kind)}</td>
-                  <td className="vl-num">{showDifference(row, kind)}</td>
+                  <td className="vl-num">{readingText(row.ours, kind)}</td>
+                  <td className="vl-num">{readingText(row.reference, kind)}</td>
+                  <td className="vl-num">{measureText(row, kind)}</td>
                 </>
               )}
               <td>
@@ -364,8 +342,8 @@ function mapSummary(rows: readonly ComparisonRow[], mark: number | null): string
   const outside = rows.filter((row) => row.verdict === "outside");
   // Counts of the file's rows: display values.
   const within = rows.length - outside.length;
-  const markText = mark === null ? "their mark" : showMark(mark, "percent");
-  const head = `${within} of ${rows.length} sites are within ${markText} of NASA's value.`;
+  const markWords = mark === null ? "their mark" : markText(mark, "percent");
+  const head = `${within} of ${rows.length} sites are within ${markWords} of NASA's value.`;
   const tail = outside
     .map((row) => ` ${row.siteName} is outside the mark: ours ${formatPercent(row.ours)}, NASA's ${formatPercent(row.reference)}.`)
     .join("");
@@ -397,7 +375,7 @@ export function MapComparison({ id, comparisons, names }: { id: "R1" | "R2"; com
       </h3>
       <p className="vl-prose">
         {intro.lead}
-        {mark === null ? null : ` We look into any site where the two differ by more than ${showMark(mark, "percent")}.`}
+        {mark === null ? null : ` We look into any site where the two differ by more than ${markText(mark, "percent")}.`}
       </p>
       <Outliers rows={rows} kind="percent" self={false} />
       <div className="vl-pair">
@@ -445,7 +423,7 @@ export function OtherComparison({ id, comparisons, names }: { id: string; compar
       </h3>
       <p className="vl-prose">
         {OTHER_INTRO[id] ?? null}
-        {mark === null ? null : ` We look into any site where ${self ? "the difference is" : "the two differ by"} more than ${showMark(mark, kind)}.`}
+        {mark === null ? null : ` We look into any site where ${self ? "the difference is" : "the two differ by"} more than ${markText(mark, kind)}.`}
       </p>
       <Outliers rows={rows} kind={kind} self={self} />
       <ComparisonTable rows={rows} kind={kind} self={self} title={`${id} ${title}`} />

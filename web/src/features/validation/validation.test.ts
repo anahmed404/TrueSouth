@@ -204,9 +204,7 @@ describe("number display", () => {
     expect(formatValue(0)).toBe("0");
   });
 
-  it("never rounds a passing value up to its limit", () => {
-    expect(formatValue(0.0049996002397847406, { below: 0.005 })).toBe("0.0049996");
-    expect(formatValue(0.006007249421241467, { below: 0.02 })).toBe("0.006");
+  it("prints limits and readings as given", () => {
     expect(formatValue(0.02)).toBe("0.02");
     expect(formatValue(10.824032501633923, { sig: 3 })).toBe("10.8");
   });
