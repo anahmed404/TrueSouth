@@ -824,7 +824,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   agent with the tests, typecheck, build and pytest, by playing lessons 1 to 4 in a
   browser at 1440 × 900 and 390 × 844 (and once with `VITE_DATA=fixtures`, and once by
   keyboard only), and with the Impeccable detector. A human has not played the lessons.
-- **State:** built, not verified (1,696 web tests, typecheck, build and 322 Python tests pass on the merge with main)
+- **State:** built, not verified (1,836 web tests, typecheck, build and 322 Python tests pass on the merge with main, after the review fixes)
 - **Changed:** `web/src/features/academy/` (`lessons/l1.ts`–`l4.ts`, `lessons/index.ts`,
   `lessons/story.ts`, `lessons/COVERAGE.md`, `cards/`, `index.tsx`, `path-map.tsx`,
   `complete-screen.tsx`, `lesson-screen.tsx`, `lesson/stage.tsx`, `lesson/scenes.tsx`,
@@ -847,6 +847,38 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     `web/src/lib/scoring/metrics.ts`, which does not exist; the code is `scoring.ts`.
   - On the fixture the lessons validate and play, but its synthetic numbers do not fit
     the story (lesson 2's Sun is above the ridge; lesson 1's maximum is 4.4°).
+  - Review fixes (Codex review of PR #81), each its own commit:
+    1. Lesson 1 step 4 asks "Highest Sun ≈ (90° − how far south you are) + ( ? )". A test
+       checks the printed 2.08° against 90 − |`l1.site_lat_deg`| + 1.54 from the real
+       worked examples. The miss explanation says what 23.4° and 5.1° really are. The
+       lesson 1 card quotes `docs/science.md` §3.4's highest-Sun rule with |φ|, the lesson 4
+       card its 0.26° off-centre shift.
+    2. Lesson 2 step 1 says the ridge lies in the Sun's direction; step 3 sketches the
+       skyline towards the Sun; step 5 compares two features in the same direction.
+    3. Lesson 3's slider goal is exactly 20 km (19 and 21 km read 104 and 127 m and are
+       misses). A test tries every position of both sliders: an answer is accepted exactly
+       when its own readout answers the question. Lesson 4's "6.5° or more" passes it.
+    4. Story-month numbers say "this month". Lesson 4 step 5 asks "Which rule made them all
+       fail?" and says only that a 5° margin gives `l4.link_pct_mask5`% this month. Lesson 1
+       step 3 says the Sun's direction circles and for part of the month it is just below
+       level; the 511 hours and twelve 30° sectors are not typed.
+    5. The drift test covers every learner-visible string, every option in order, no
+       duplicate options and every marked answer in range. Card text is pinned by a
+       snapshot.
+    6. Played by keyboard only at 1440 × 900 and 390 × 844, all four lessons end to end:
+       focus visible on every control, no control under 44 px, no sideways scroll, no
+       console errors. Fixed: the result and a right option said "Correct" twice to a screen
+       reader; a degree slider read "6.5 °" (now "6.5°"). Progress: tests on lesson 1 played
+       wrong then right, quit halfway, replayed better and worse, and reloaded (XP is
+       best-of, never added twice, quitting saves nothing); in the browser a replay of
+       lesson 4 earned 35 XP and the total stayed 160. A missing, null, NaN or empty
+       worked-example key: the lesson does not open and says some of its numbers are not
+       built yet.
+    7. The Lander's eye chart is not wired into the panel steps (A3).
+  - Worked-example keys worth adding later: the hours the Sun is above level in the story
+    month (511 of 720), the number of 30° compass sectors the Sun visits (12), and the
+    5° link time for other 30-day windows (about 32.6% from February and 32.9% from
+    October 2028), so lesson 4 could show the month-to-month spread.
 
 #### 2026-11-13 · A8 · Validation page, "How we know it's right"
 - **Who:** Claude Code agent, for the orchestrator
