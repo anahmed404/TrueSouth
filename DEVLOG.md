@@ -493,31 +493,35 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (building the
   approved C2 chart, no redesign) — wrote `LandersEye` (the hand-built SVG chart with
   `d3-scale` and `d3-shape`, its control row, legend, states, hover readout, marker, drag,
-  scroll zoom and keyboard use), its mount under the horizon in Mission Control, and 29
-  vitest tests — checked by the agent with typecheck, the vitest suite, the build and
-  `uv run pytest`, impeccable's detector (no findings) and an inline audit pass (two fixes),
-  and by eye in a browser on the real data at 1440 × 900, 1024 × 768 and 390 × 844 and in
-  a 360 px lesson box (a local route, not committed); a human has not reviewed it yet
+  scroll zoom and keyboard use), its mount under the horizon in Mission Control, the lit
+  line's share in the shared "Why is it dark?" card, and 54 vitest tests; then fixed the
+  review of PR #78 (Gemini): the antenna mask on the chart's seam, true-size discs, the
+  legend and contrast, the lit line, label placement and the shell's measuring — checked by
+  the agent with typecheck, the vitest suite, the build and `uv run pytest`, impeccable's
+  detector (no findings) and an inline audit pass, and by eye in a browser on the real data
+  with the 3D scene behind the panel at 1440 × 900, 1024 × 768 and 390 × 844 and in a 360 px
+  lesson box (a local route, never committed); a human has not reviewed it yet
 - **State:** built, not verified
 - **Changed:** `web/src/features/panorama/` (new: `chart.tsx`, `geometry.ts`,
-  `readings.ts`, `panorama.css`, two tests; `index.tsx`), `web/src/app/mission-screen.tsx`
-  (the foot stack mounts the chart in Lander's eye and the free space ends above it),
-  `web/src/app/shell.css` (one phone rule), `docs/design/c2/built-landers-eye*.png`, this entry
+  `readings.ts`, `panorama.css`, four tests; `index.tsx`), `web/src/app/mission-screen.tsx`
+  (the foot stack mounts the chart in Lander's eye, the free space ends above it, the
+  shell reads only its own plate and remeasures on a camera change), `web/src/app/shell.css`
+  (one phone rule), `web/src/app/mission/timeline/why-dark.ts` and `why-dark-card.tsx`
+  (the lit line's share), `docs/features/panorama.md`, `docs/features/site-detail.md`,
+  `docs/design/c2/built-landers-eye*.png`, this entry
 - **Notes:**
-  - Every value drawn or read out comes from `skyline.bin` and the series as stored. "In
-    view", "partly behind the skyline" and "behind the skyline" come from the series' disc
-    fraction (1, between, 0). The 3D horizon behind the panel is T5; a plain dark ground
-    shows until then.
-  - The skyline, paths and axes are one memoised layer: a test counts its renders while the
-    hour changes 24 times (none), and in the browser the skyline's node and path stay the
-    same while play runs.
-  - On a dark or blackout hour the panel shows the one-line "why" (its "Why?" opens the full
-    card), as in the approved chart card; the full card left no room for the horizon at
-    1024 × 768. A lit, linked hour shows the card's "Lit and linked" line, not the spec's
-    "Lit. 62 % of the Sun's disc…" wording: the card is shared and was left unchanged.
-  - The marker is the caller's when `onMarkerChange` is given, else the view keeps its own.
-    The shell does not keep one yet, so Local terrain cannot show it until T5 wires it.
-  - A small disc (the Sun at ×4) gets a faint dashed locator ring so it can be found.
+  - Every value drawn or read out comes from `skyline.bin`, the series and the site meta as
+    stored. The state words are the 3D scene's (in view, partly in view, behind the ridge,
+    below the horizon), from the series' disc fraction and clearance; a test checks the two
+    agree at every hour of three fixture windows.
+  - Discs are drawn at their true angular size. On Connecting Ridge the share drawn above
+    the skyline is within 0.019 of the series' disc fraction. The fixtures store a linear
+    ramp, not the §6 circle, so there the gap reaches 0.058, which is the ramp's own error.
+  - The skyline, paths and axes are one memoised layer: render-count tests (on the chart
+    and on the whole view with its data hooks) show no rebuild while the hour changes.
+  - On a dark or blackout hour the panel shows the one-line "why" with its "Why?" button.
+  - The marker is not shared with Local terrain yet: a later package wires `marker` and
+    `onMarkerChange` through the shell.
 
 #### 2026-11-13 · MC4c · The space-first shell
 - **Who:** Claude Code agent, for the orchestrator
