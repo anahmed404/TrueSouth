@@ -54,14 +54,20 @@ is `LandersEye`; it takes `PanelProps` and also works alone in the Academy's les
 ```
 
 - **Skyline:** a filled silhouette across all 360°.
-- **Sun and Earth:** discs at their true angular size at the scrubber's time. The part of
-  a disc below the skyline is drawn dimmed.
-- **Paths:** the Sun's and Earth's tracks over the mission window, with a tick each day.
+- **Sun and Earth:** discs at their true angular size at the scrubber's time, never widened.
+  The part of a disc below the skyline is drawn dimmed. A disc under about 3 px gets a faint
+  dashed ring around it so it can be found; the ring is a marker, not part of the disc.
+- **Paths:** the Sun's and Earth's tracks over the mission window, with a tick every 24 hours
+  counted from the landing hour, so each tick is the start of the timeline's "Day N" (not a
+  UTC midnight).
 - **Horizontal line** at 0° (the local horizontal) and a dashed line at the antenna mask
-  above the skyline around Earth's position.
+  above the skyline, within 12° of Earth's positions measured on the circle (two pieces when
+  that stretch wraps past the chart's edge). No line when a relay carries the link.
 - **Compass labels** along the bottom.
-- **Legend,** one line: "Sun's path, one dot a day", "Earth's path", "A disc's faded part
-  is below the skyline".
+- **Legend,** one line: "Sun's path, one dot a day", "Earth's path", "Antenna mask above
+  the skyline" (when it is drawn), "A disc's faded part is below the skyline", and, when a
+  ring is drawn, "A dashed ring marks the Sun, too small to see here". Each line's swatch
+  uses the chart's own dash pattern, so it reads without colour.
 
 ### Scales
 
@@ -80,7 +86,9 @@ is `LandersEye`; it takes `PanelProps` and also works alone in the Academy's les
   blocker's height, and the nearest named feature.
 - **Hover a path tick:** the date and that hour's elevation and disc fraction.
 - **Drag horizontally** to rotate the view. **Scroll** to zoom the vertical scale.
-- **Click a blocker** to mark it; Local terrain shows the same marker.
+- **Click a blocker** to mark it. The mark is not shared with Local terrain yet: a later
+  package wires `marker` and `onMarkerChange` through the shell, and then Local terrain
+  shows the same marker.
 - The scrubber moves the discs along their paths.
 
 ### Drawing
@@ -100,8 +108,9 @@ Sun's disc above the skyline.
 ## States
 
 - **Sphere-tier site (Apollo 11):** in Mission Control, the camera does not descend. The
-  view sentence reads "No terrain data for Apollo 11, so its horizon is flat: the Moon
-  there is a smooth sphere." A button offers "Show Apollo 11 in the System view". In the
+  floating panel, in place of the chart, reads "No terrain data for Apollo 11, so its
+  horizon is flat: the Moon there is a smooth sphere." A button offers "Show Apollo 11 in
+  the System view". In the
   Academy's lesson mode, the chart still draws a flat skyline with the note "Terrain not
   modelled. Showing a smooth Moon."
 - **Loading:** an empty frame with axes.
