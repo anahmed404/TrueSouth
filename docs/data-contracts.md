@@ -198,6 +198,79 @@ means $v/255$, and 255 marks "no data".
   "no data" fully transparent. The web app tints them.
 - **Image sizes.** A `_4k` image is 4,096 pixels on a side and an `_8k` image 8,192.
 
+### Proposed: scene image files
+
+> **Proposed. Not a contract yet.** The Pydantic models for these files do not exist in
+> `contracts.py`, and nothing reads or writes them. Work package S16 in
+> [`build-plan.md`](build-plan.md) must define them in `contracts.py` (and fix this
+> section) before it builds anything. The names, sizes and encodings below are those of the
+> space-first prototype's `design/variants/space-first/assets/README.md`, which is the
+> reference. Where the prototype did not decide something, it is listed under "Not decided".
+
+The 3D scene ([`features/system-view.md`](features/system-view.md)) needs web-sized images
+of the Moon, Earth and the south polar cap, and a height grid around each polar site.
+Every image is NASA data, or made from NASA data by the pipeline, and is only resized,
+cropped, split or re-encoded. Nothing is retouched or AI-generated. All sizes are the
+prototype's and are budgets: the set is about 9.5 MB, and no file is over 1.6 MB.
+
+Proposed folder: `data/derived/scene/`, served under `/data/scene/`. The cap images that
+already exist under `maps/` are not copied; the scene reads them from there.
+
+**Moon and Earth (equirectangular, longitude 0° at the centre of the image, north up)**
+
+| File | Pixels | Encoding | Size | Source and operation |
+| :--- | :--- | :--- | ---: | :--- |
+| `moon_2k.webp` | 2,048 × 1,024 | WebP, quality 82 | 0.24 MB | NASA SVS 4720 LROC colour map, resized from the 4K image |
+| `moon_4k.webp` | 4,096 × 2,048 | WebP, quality 82 | 0.99 MB | The same map, re-encoded. The default |
+| `moon_8k_w.webp`, `moon_8k_e.webp` | 4,096 × 4,096 each | WebP, quality 80 | 1.47 and 1.56 MB | The 8K map, split into a west half (180°W to 0°) and an east half (0° to 180°E). Optional |
+| `moon_height_1440.png` | 1,440 × 720 | 8-bit greyscale PNG | 0.49 MB | NASA SVS 4720 LOLA heights (`ldem_4`, 4 pixels per degree). Heights from −9.0 to +10.6 km map linearly to 0–255 |
+| `earth_2k.jpg` | 2,048 × 1,024 | JPEG, quality 84, progressive | 0.33 MB | NASA Earth Observatory, Blue Marble Next Generation, March 2004, topography and bathymetry, resized from 5,400 × 2,700 |
+
+**The south polar cap.** Each image is a square centred on the south pole, covering
+±304,000 m, with +x right, +y up and row 0 at the top, in the south polar stereographic
+projection of [`science.md`](science.md) §2.3, as in `maps/meta.json`.
+
+| File | Pixels | Encoding | Size | Source and operation |
+| :--- | :--- | :--- | ---: | :--- |
+| `maps/hillshade_4k.webp` | 4,096 × 4,096 | WebP (existing) | 1.28 MB | The pipeline's shaded relief ([`science.md`](science.md) §2.4). Already in `maps/`; not copied |
+| `hillshade_core_2048.webp` | 2,048 × 2,048 | WebP, quality 85 | 0.25 MB | The centre of `maps/hillshade_8k.webp`: ±76 km around the pole, about 74 m a pixel |
+| `sunlight_2k.webp`, `earthvis_2k.webp` | 2,048 × 2,048 each | 8-bit greyscale WebP, quality 85 | 0.57 and 0.52 MB | The 4K overlay images in `maps/`, resized. 0 is black and 1 is white, as in `maps/` |
+| `cap_slope.webp` | 1,900 × 1,900 | WebP, quality 92 | 0.72 MB | The 80 m terrain map averaged in exact 4 × 4 blocks (320 m a pixel), then slopes by central differences. Red is dz/dx and green is dz/dy, stored as 128 + 160 × slope. Lets the real Sun light real relief on the globe's cap |
+| `cap_slope_core.webp` | 950 × 950 | Lossless WebP | 0.74 MB | The centre ±76 km, in 2 × 2 blocks (160 m a pixel), the same encoding |
+
+**Terrain around each polar site.** One file per site: `terrain_<site_id>.bin` (the
+prototype used short names such as `terrain_cr.bin`).
+
+| Part | Grid | Covers | How it is made |
+| :--- | :--- | :--- | :--- |
+| Patch | 257 × 257 | A 20 km square centred on the site | Heights sampled bilinearly from the 80 m map at points found by walking from the site ([`science.md`](science.md) §2.2) and projecting ([`science.md`](science.md) §2.3) |
+| Apron | 161 × 161 | A 300 km square centred on the site | The same, from a 640 m block-mean copy of the 80 m map |
+
+- **Encoding.** Little-endian `uint16`, value = (height in metres + 12,000) × 2, so the step
+  is 0.5 m. Rows run north to south. The patch comes first (66,049 values), then the apron
+  (25,921 values): 183,940 bytes, 0.18 MB.
+- **Heights** are above the reference sphere, as in `terrain.bin`.
+- `terrain.json` lists, per site, its latitude, east longitude, its height at the site, the
+  two grid sizes and widths, and the encoding string.
+- A sphere-tier site has no file.
+
+**Still picture.** `still_home.webp`, 1,440 × 900, WebP quality 82, 0.01 MB: a render of the
+textures above with no interface, pins or sight-lines, for when WebGL is missing or slow.
+Made by rendering the scene once, so it is a render of these files and not a new image.
+
+**Not decided**
+
+- The final folder and file names, and whether the files get a `schema_version`.
+- Which sites get terrain files: the prototype made four polar sites; the build needs every
+  `core80` catalog site and each best-lit variant.
+- Whether the 20 km patch should be shipped again here, since `terrain.bin` already holds
+  that area (as east, north, up and slope), or derived from it so only the apron is new.
+- The value for missing terrain in a terrain grid. The prototype does not mark any.
+- The sign convention of the slope image (the prototype's red and green channels) and the
+  check that proves it.
+- Where the credit lines for NASA SVS 4720, LRO LROC and LOLA, and NASA Earth Observatory
+  are stored, and the file that records each output's source and operation.
+
 ### `validation.json` and `academy/worked_examples.json`
 
 Described in [`validation.md`](validation.md) and

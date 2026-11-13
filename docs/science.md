@@ -343,7 +343,8 @@ of `sun_frac` over the time grid.
 - **Nearby range.** The site reports the lowest and the highest of those means, the
   number of points, and the radius.
 - **Best-lit variant.** The point with the highest mean becomes a second site with the id
-  `<id>_best_lit`. A tie goes to the point nearest the listed one. It records which site
+  `<id>_best_lit`. A tie goes to the point nearest the listed one; if the mean and the distance are both
+  equal, the smaller row index wins, then the smaller column index. It records which site
   it is a variant of and its distance from the listed point in metres. It is chosen by
   TrueSouth and is not a published site.
 

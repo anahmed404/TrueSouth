@@ -27,6 +27,8 @@ const GLOSSARY: Readonly<Record<string, readonly (readonly [term: string, key: E
     ["Custom site", "custom_site"],
     ["Latitude", "latitude"],
     ["East longitude", "east_longitude"],
+    ["Nearby range", "nearby_range"],
+    ["Best-lit variant", "best_lit_variant"],
     ["Local frame", "local_frame"],
     ["Terrain tier", "terrain_tier"],
     ["Close-up DEM", "close_up_dem"],
@@ -80,6 +82,7 @@ const GLOSSARY: Readonly<Record<string, readonly (readonly [term: string, key: E
     ["Local terrain", "local_terrain"],
     ["Skyline wall", "skyline_wall"],
     ["Lander's eye", "landers_eye"],
+    ["Still picture", "still_picture"],
     ["Countdown", "countdown"],
     ["Scrubber", "scrubber"],
   ],
@@ -100,7 +103,23 @@ const GLOSSARY: Readonly<Record<string, readonly (readonly [term: string, key: E
 };
 
 /** Glossary terms that are deliberately not explained: developers meet them, users do not. */
-const NOT_USER_FACING = ["TrueSouth", "Raw data", "Prepared data", "Derived data", "Fixtures"];
+// Terms the team uses to build the product. A visitor never reads them on screen.
+const NOT_USER_FACING = [
+  "TrueSouth",
+  "Raw data",
+  "Prepared data",
+  "Derived data",
+  "Fixtures",
+  "Polar cap",
+  "Patch",
+  "Apron",
+  "Scene",
+  "View bar",
+  "Camera view",
+  "Floating window",
+  "Free space",
+  "Plate",
+];
 
 /** Every mission profile field in docs/mission-profiles.md, by field name. */
 const PROFILE_FIELDS: readonly ExplainTerm[] = [

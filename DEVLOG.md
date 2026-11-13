@@ -198,6 +198,31 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 - Define Lesson 5's 10 m slope in science section 8 before any implementation.
 - Approve a missing-value representation before building all required keys. Lessons 5
   to 8 remain outside the deadline; they are documented here for the later package.
+#### 2026-11-13 · S15A · Sunlit-peak placement, decision 0012 part A
+- **Who:** Codex implementation agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — wrote contract fields, placement module and tests;
+  checked synthetic geometry, real skyline/series integration, full automated suites
+  and the read-only Connecting Ridge run; human review pending
+- **State:** verified (orchestrator ran 251 Python and 1,494 web tests, typecheck and type generation on the merge with main; Cursor, grok-4.7 checked the candidate geometry independently to a millimetre, reproduced Connecting Ridge and de Gerlache rim on real data and ran ten mutations; its two findings were fixed by the orchestrator)
+- **Changed:** `contracts.py`, pure `placement.py`, new Science tests, generated schema
+  and TypeScript types, `parseSites` and its tests; fixture sites gained only three null fields.
+- **Checks:** `uv run pytest`: 250 passed; web tests: 1,334 passed in 42 files;
+  web typecheck and production build passed. All exit codes 0. Schema/types regenerated;
+  fixture regeneration changed no other values or files. Merged `origin/main` before checks.
+- **Real data:** Connecting Ridge, both prepared maps and committed `system.bin`, 13
+  candidates, none skipped. Mean `sun_frac`: min 0.397490348, max 0.869614946;
+  listed coordinates 0.598582298 (the containing pixel centre is 0.599433535).
+  Best: −89.451160220°, 222.857279836° E, offset 148.536579 m;
+  map Δx −139.901063 m, Δy −49.907993 m. Agrees with decision 0012's rounded
+  0.397–0.870, listed 0.599, best −89.45116° / 222.8573° E, 149 m, −140 m / −50 m.
+  520.46 s total, including 13 candidate calculations (480.69 s) and the listed point.
+  Other four sunlit peaks not rerun; no real-data outputs committed.
+- **Part B:** Inject `mean_for_point(point)` into `evaluate_placement`; cache each
+  candidate's own ground, skyline, unquantised series and mean, keyed by map pixel and
+  input/method versions (about 13 skylines per site, roughly 40 s each). Cache the listed
+  coordinates separately. Attach the range to both records; `build_variant` returns
+  partial Site fields for normal derived-field processing, never a CatalogSite.
+  Exact sunlight and distance ties use smallest row, then column. No spec questions.
 
 #### 2026-11-13 · S8 part 2 · Catalog slopes and terrain meshes
 - **Who:** Codex agent, for the orchestrator
@@ -360,6 +385,59 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-13 · specs · Mission Control specs rewritten for the space-first layout
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-sonnet-5-5 — rewrote the Mission Control, System view, Polar map, Local terrain, Lander's eye, Slip Planner, Compare and site-detail specs, `DESIGN.md`, the build plan and two track guides, and wrote decision 0013, from the team lead's decision and the designer's notes and prototype — read back against the prototype's code and notes; the "Proposed:" items are listed in the pull request for the team lead to accept or change; no human has reviewed it yet
+- **State:** built, not verified
+- **Changed:** `docs/decisions/0013-space-first-mission-control.md`, `docs/features/` (mission-control, system-view, polar-map, local-terrain, panorama, slip-planner, compare, site-detail), `DESIGN.md`, `docs/build-plan.md`, `docs/tracks/mission-control.md`, `docs/tracks/3d-and-map.md`, `docs/data-contracts.md` (a "Proposed: scene image files" section), `CONTEXT.md` (new terms), this entry
+- **Notes:** Documents only. New work packages: MC4c (the floating shell) and S16 (the scene's image files; its contract is not written yet). T8, the custom-site job queue in S10, S11 and A6 are marked out of scope for the deadline. No code, no `contracts.py`, no prototype changes.
+
+#### 2026-11-13 · MC5 · Timeline, scrubber, countdowns and the "why is it dark" card
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (question
+  round skipped, as briefed) — wrote the timeline with its scrubber, play and clearance
+  chart, the Sun and Earth countdown cards, the "why is it dark" card, the timeline fold,
+  the history throttle and the store change that keeps `t` on a slip, with vitest tests —
+  checked by the agent with typecheck, 1,277 vitest tests and the build, impeccable's
+  detector (no findings), and by eye in a browser on the fixtures and the real Connecting
+  Ridge data at 1440 × 900, 1024 × 768 and 390 × 844; a human has not reviewed it yet
+- **State:** verified (orchestrator ran typecheck, 1,449 tests and build on the merge with main and looked at the screens on real sites; Antigravity, gemini-4-hydrogen checked every drawn value against the raw files, used it in a browser at three sizes and ran eight mutations; its six must-fix findings were fixed)
+- **Changed:** `web/src/app/mission/timeline/` (new), `web/src/app/mission/throttled-history.ts`,
+  `web/src/app/mission/shell-layout.ts`, `web/src/app/mission/scenario-context.tsx`,
+  `web/src/app/mission-screen.tsx`, `web/src/app/shell.css`, `web/src/components/BodyIcon.tsx`,
+  `web/src/state/scenario.ts` (slip and landing keep `t`), `web/src/lib/explain.ts`
+  (`blocker_height`), `docs/design/c2/built-timeline*.png`, this entry
+- **Notes:**
+  - The timeline draws in SVG: the bands are built once per site, profile, landing and width,
+    and only the scrubber line and pill move (CSS transforms), so a drag re-renders no band.
+    Measured in Chromium: a 120-step drag ran at a median frame of 4.2 ms, p95 16.6 ms.
+  - A drag, a held arrow key and play each add one history entry and replace it after. The
+    address bar is written at most four times a second (`throttled-history.ts`), because
+    browsers ignore more than about 200 history updates in 10 seconds.
+  - The "why is it dark" card reads the skyline height at the body's azimuth as elevation
+    minus clearance from the series, and the blocker from the nearest skyline bin. A named
+    feature is given only when the blocker lies within 0.6 × the feature's diameter of its
+    centre (the smallest such feature wins). Checked by hand on Connecting Ridge at
+    2028-03-07 06:00 UTC against the raw files: Sun azimuth 184.74°, elevation −1.64°,
+    skyline −0.67° (bin 739), blocker 0.560 km away, 1,945.8 m high, bearing 184.75°; no
+    named feature.
+  - Where the spec and the prototype differ, the spec won: the stretch labels sit under the
+    bands with their tags, and with a relay there is no Earth countdown.
+  - The spec names `web/src/features/mission-control/site-detail/` as the folder; the brief
+    kept this work in `web/src/app/`, so that folder's placeholder is no longer used by the
+    shell. Clicking the card to open the Lander's eye waits for MC6.
+  - Review fixes were made: a waiting address-bar write only lands on the page and history
+    entry it was made on (a click flushes it first; Back, Forward and other pages drop it);
+    countdowns never round up, and the amber flag uses the same whole minutes as the text;
+    one drag adds exactly one history entry, none if the hour never changes; what the
+    timeline draws is in `draw.ts`, tested against `hourFlags` and `evaluate` (two
+    mutations confirmed caught); the phone stacks the countdown cards; the docked
+    "why" card shows the Sun's and Earth's reasons with a switch when they do not fit side
+    by side, and the view keeps at least 120 px; play defaults to 6 h per second and stops
+    on a new focused site; the clearance chart has a text summary; the main view no longer
+    re-renders its tabs on a scrub. Checked on the real data for Connecting Ridge,
+    Shackleton rim, IM-2 Athena and Apollo 11.
+
 #### 2026-11-13 · MC7a · Slip sweep in a Web Worker
 - **Who:** Cursor agent, for the orchestrator
 - **AI use:** Cursor, grok-4.7 — wrote the sweep worker, the message handler, the client and `useSweeps`, with vitest tests — agent ran `pnpm --dir web typecheck`, `pnpm --dir web test` and `pnpm --dir web build`; a human has not reviewed it yet
@@ -486,6 +564,32 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - `|latitude| > 89.999°` throws for the local frame and for walking. The sphere point and the Sun-elevation formula still accept the poles.
 
 ## Academy
+
+#### 2026-11-13 · A5a · Lesson types for lessons 1 to 8, skeletons for 1 to 4
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — widened the lesson types, the runner and the evaluator,
+  wrote the coverage table, the lessons 1 to 4 skeletons and the vitest checks — checked
+  by the agent with typecheck, tests and build. A human has not played a lesson.
+- **State:** verified (orchestrator ran typecheck, 1,350 tests and build on the merge with main and played the sample lesson through all eight steps in a browser; Codex, gpt-6.1-terra reviewed the types and skeletons against the lesson document and ran nine mutations; its findings were fixed and the ambiguous settings decided and written into lessons.md)
+- **Changed:** `web/src/features/academy/` (`types.ts`, `runner.ts`, `evaluator.ts`,
+  `step-view.ts`, `skyline-score.ts`, `store.ts`, `lessons/l1.ts`–`l4.ts`, `lessons/story.ts`,
+  `lessons/COVERAGE.md`, and the smallest screen edits the new types needed),
+  `docs/academy/overview.md` (the star rule and the type sketch)
+- **Notes:**
+  - A reveal can be text, an illustration, or a panel at an hour, a month, a UTC range or
+    a timeline band. A scene names a flat, smooth or terrain skyline and a drag window.
+    A slider is either numbers or UTC dates, and may carry a readout, a scene and which
+    of Pip's meters follows it.
+  - A lesson with no scored step earns 1 star and no patch. `starsFor(0, 0)` had been 3.
+    A negative or non-finite skyline gap is 2 XP and not right first time.
+  - Progress is still saved only when the lesson is complete. That decision now lives in
+    `commitLessonProgress`, which the lesson screen calls, and a test fails if it writes
+    part-way.
+  - Lessons 1 to 4 are exported and tested. They are not in the catalog. `TODO(words)`
+    counts: l1_sun 9, l2_skyline 10, l3_horizon 10, l4_link 10.
+  - Review fixes were made: the skyline window, the lesson 2 drag, the two sliders, both
+    lesson 4 panels, provisional story dates, and UTC hours checked on the time grid.
+    37 of 40 steps are expressible. Lesson 8 steps 3 to 5 are not.
 
 #### 2026-11-13 · A4 · Under the hood card renderer with KaTeX and Fill chips
 - **Who:** Claude Code agent, for the orchestrator

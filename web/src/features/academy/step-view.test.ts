@@ -121,7 +121,7 @@ describe("predict step states", () => {
     kind: "predict",
     options: ["Sunlight", "Shadow"],
     answer: 1,
-    reveal: { text: "It is shadow." },
+    reveal: { kind: "text", text: "It is shadow." },
   };
   const lesson = lessonWith([step]);
 
@@ -146,7 +146,7 @@ describe("tune-slider step states", () => {
     ...base,
     id: "slide",
     kind: "tune-slider",
-    slider: { min: 0, max: 4, step: 1, unit: "steps" },
+    slider: { kind: "number", min: 0, max: 4, step: 1, unit: "steps" },
     goal: { metric: "value", op: "==", value: 3 },
     answerLabel: "3 steps",
   };
@@ -154,31 +154,31 @@ describe("tune-slider step states", () => {
 
   it("starts at its minimum and can be checked at once", () => {
     const draft = initialDraft(step);
-    expect(draft).toEqual({ kind: "tune-slider", value: 0 });
+    expect(draft).toEqual({ kind: "tune-slider", variant: "number", value: 0 });
     expect(canCheck(step, initialRunnerState(), draft)).toBe(true);
   });
 
   it("after a miss, keeps the slider where it is but will not check the same value twice", () => {
-    const draft: Draft = { kind: "tune-slider", value: 1 };
-    const runner = submit(initialRunnerState(), { kind: "tune-slider", value: 1 }, lesson);
+    const draft: Draft = { kind: "tune-slider", variant: "number", value: 1 };
+    const runner = submit(initialRunnerState(), { kind: "tune-slider", variant: "number", value: 1 }, lesson);
     expect(runner.phase).toBe("hint");
     expect(draftAfterCheck(step, runner, draft)).toEqual(draft);
     expect(canCheck(step, runner, draft)).toBe(false);
-    expect(canCheck(step, runner, { kind: "tune-slider", value: 2 })).toBe(true);
+    expect(canCheck(step, runner, { kind: "tune-slider", variant: "number", value: 2 })).toBe(true);
     expect(conversationFor(step, runner)[1]).toMatchObject({ who: "me", text: "1 steps", miss: true });
   });
 
   it("shows its answer label after two misses, and its value when right", () => {
-    const shown = submit(submit(initialRunnerState(), { kind: "tune-slider", value: 1 }, lesson), { kind: "tune-slider", value: 2 }, lesson);
+    const shown = submit(submit(initialRunnerState(), { kind: "tune-slider", variant: "number", value: 1 }, lesson), { kind: "tune-slider", variant: "number", value: 2 }, lesson);
     expect(resultFor(step, shown)).toEqual({ tone: "shown", headline: "3 steps", xp: 2 });
-    const right = submit(initialRunnerState(), { kind: "tune-slider", value: 3 }, lesson);
+    const right = submit(initialRunnerState(), { kind: "tune-slider", variant: "number", value: 3 }, lesson);
     expect(conversationFor(step, right)[1]).toMatchObject({ who: "me", text: "3 steps", miss: false });
   });
 });
 
 describe("panel steps before A3", () => {
   it("offer a skip instead of Check", () => {
-    const step: Step = { ...base, id: "pin", kind: "drop-pin", map: { siteIds: [] } };
+    const step: Step = { ...base, id: "pin", kind: "drop-pin", map: { view: "polar", siteIds: [], sitesKey: null, aside: null } };
     expect(primaryAction(step, initialRunnerState(), null, false)).toEqual({ kind: "skip", label: "Skip this step" });
   });
 });

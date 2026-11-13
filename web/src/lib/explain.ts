@@ -84,6 +84,15 @@ const entries = {
   ground_height: {
     text: "How high the ground at the site stands, in metres, above the Moon's reference sphere, a smooth ball with a radius of 1,737,400 metres. It is not the same as elevation, which here means an angle above the horizon.",
   },
+  nearby_range: {
+    text: "For a sunlit peak, the lowest and highest average sunlight found within about 160 metres of the listed point. A wide range means a small move changes the answer a lot.",
+  },
+  best_lit_variant: {
+    text: "A second version of a sunlit-peak site, placed by TrueSouth at the best-lit spot close to the listed point. It is not a published site, and its sunlight is an upper reading.",
+  },
+  still_picture: {
+    text: "A fixed image shown in place of the 3D scene when this device cannot draw it smoothly. The panels, the timeline and every result still work.",
+  },
   close_up_dem: {
     text: "A very sharp DEM, with squares 5 metres across, that exists for only a few sites. It is used for slope and for the close-up 3D view.",
     lesson: "l5_slope",
@@ -115,6 +124,10 @@ const entries = {
   },
   blocker: {
     text: "The terrain point that sets the skyline in one skyline bin: the one that reaches the highest elevation as seen from the site. A small ridge nearby can beat a tall mountain far away, so it is not always the tallest ground.",
+    lesson: "l2_skyline",
+  },
+  blocker_height: {
+    text: "How high the blocker stands above the Moon's reference sphere, a smooth ball with a radius of 1,737,400 metres. The higher and nearer it is, the more of the sky it hides.",
     lesson: "l2_skyline",
   },
   clearance: {

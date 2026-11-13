@@ -9,6 +9,8 @@
     "lon_deg": 222.0,
     "moontrek_url": "https://trek.nasa.gov/moon/",
     "name": "Fixture Ridge",
+    "nearby_sun": null,
+    "offset_m": null,
     "outcome": null,
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
     "slope": {
@@ -17,7 +19,8 @@
       "source": "synthetic fixture"
     },
     "source_url": "",
-    "terrain_tier": "core80"
+    "terrain_tier": "core80",
+    "variant_of": null
   },
   {
     "description": "Synthetic fixture; not a real lunar site.",
@@ -29,6 +32,8 @@
     "lon_deg": 20.0,
     "moontrek_url": "https://trek.nasa.gov/moon/",
     "name": "Fixture Crater",
+    "nearby_sun": null,
+    "offset_m": null,
     "outcome": null,
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
     "slope": {
@@ -37,7 +42,8 @@
       "source": "synthetic fixture"
     },
     "source_url": "",
-    "terrain_tier": "core80"
+    "terrain_tier": "core80",
+    "variant_of": null
   },
   {
     "description": "Synthetic fixture; not a real lunar site.",
@@ -49,6 +55,8 @@
     "lon_deg": 4.0,
     "moontrek_url": "https://trek.nasa.gov/moon/",
     "name": "Fixture Edge",
+    "nearby_sun": null,
+    "offset_m": null,
     "outcome": null,
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
     "slope": {
@@ -57,7 +65,8 @@
       "source": "synthetic fixture"
     },
     "source_url": "",
-    "terrain_tier": "core80"
+    "terrain_tier": "core80",
+    "variant_of": null
   },
   {
     "description": "Synthetic fixture; not a real lunar site.",
@@ -69,6 +78,8 @@
     "lon_deg": 30.0,
     "moontrek_url": "https://trek.nasa.gov/moon/",
     "name": "Fixture Wide",
+    "nearby_sun": null,
+    "offset_m": null,
     "outcome": null,
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
     "slope": {
@@ -77,7 +88,8 @@
       "source": "synthetic fixture"
     },
     "source_url": "",
-    "terrain_tier": "wide240"
+    "terrain_tier": "wide240",
+    "variant_of": null
   },
   {
     "description": "Synthetic fixture; not a real lunar site.",
@@ -89,10 +101,13 @@
     "lon_deg": 20.0,
     "moontrek_url": "https://trek.nasa.gov/moon/",
     "name": "Fixture Sphere",
+    "nearby_sun": null,
+    "offset_m": null,
     "outcome": null,
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
     "slope": null,
     "source_url": "",
-    "terrain_tier": "sphere"
+    "terrain_tier": "sphere",
+    "variant_of": null
   }
 ]
