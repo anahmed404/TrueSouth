@@ -455,3 +455,117 @@ describe("slider goals agree with their own readouts", () => {
     expect(sliders).toEqual(["l3-distance", "l4-margin"]);
   });
 });
+
+/** Every string a learner can see in a lesson, with where it comes from. */
+function visibleStrings(lesson: Lesson): { where: string; text: string }[] {
+  const out: { where: string; text: string }[] = [
+    { where: "title", text: lesson.title },
+    { where: "tagline", text: lesson.tagline },
+    { where: "recap", text: lesson.recap },
+    { where: "patch", text: lesson.patch.name },
+  ];
+  const steps: readonly Step[] = lesson.steps;
+  for (const step of steps) {
+    const at = (field: string) => `${step.id}.${field}`;
+    out.push({ where: at("luna"), text: step.luna.says }, { where: at("hint"), text: step.hint }, { where: at("explain"), text: step.explain });
+    if (step.kind === "choice" || step.kind === "predict" || step.kind === "fill-formula") {
+      step.options.forEach((option, index) => out.push({ where: at(`option ${index + 1}`), text: option }));
+    }
+    if (step.kind === "fill-formula") out.push({ where: at("tex"), text: step.tex });
+    if (step.kind === "predict") {
+      out.push({ where: at("reveal"), text: step.reveal.kind === "text" ? step.reveal.text : step.reveal.caption });
+    }
+    if (step.kind === "spot-bug") {
+      step.lines.forEach((line, index) => out.push({ where: at(`line ${index + 1}`), text: line }));
+      if (step.title) out.push({ where: at("title"), text: step.title });
+    }
+    if (step.kind === "drag-body" || step.kind === "tune-slider" || step.kind === "drop-pin") {
+      if (step.answerLabel) out.push({ where: at("answer label"), text: step.answerLabel });
+    }
+    if (step.kind === "drag-body") (step.readout ?? []).forEach((line) => out.push({ where: at("readout"), text: line }));
+    if (step.kind === "drag-body" || step.kind === "draw-skyline" || step.kind === "drop-pin") {
+      if (step.preview) out.push({ where: at("preview"), text: step.preview.says }, { where: at("preview reveal"), text: step.preview.reveal });
+    }
+    if (step.kind === "tune-slider") {
+      if (step.slider.label) out.push({ where: at("slider label"), text: step.slider.label });
+      if (step.slider.kind === "number") {
+        out.push({ where: at("slider unit"), text: step.slider.unit });
+        if (step.slider.readout) out.push({ where: at("readout label"), text: step.slider.readout.label });
+      }
+    }
+  }
+  return out;
+}
+
+/** Lower case, placeholders in the doc's form, bold marks and spacing removed. */
+function loose(text: string): string {
+  return canon(text).replaceAll("**", "").toLowerCase();
+}
+
+/** The options a doc row lists before its first sentence break: "A / **B** / C". */
+function docOptions(row: DocRow): string[] {
+  const head = row.happens.split(/\.\s/)[0] ?? "";
+  return head.split(" / ").map((option) => canon(option.replaceAll("**", "")));
+}
+
+/** The numbered lines of a spot-bug row: "Lines: (1) a; (2) b; **(3) c**; (4) d. …". */
+function docLines(row: DocRow): string[] {
+  const text = row.happens.replaceAll("**", "");
+  return [...text.matchAll(/\((\d)\)\s*(.+?)(?=;|\.\s+[A-Z]|\.?$)/g)].map((match) => canon(match[2] ?? ""));
+}
+
+describe("every learner-visible string of lessons 1 to 4 is in the doc", () => {
+  it.each(lessons.map((lesson, index) => [index + 1, lesson] as const))("lesson %s", (number, lesson) => {
+    const text = loose(section(number));
+    // Short strings must sit in their own slot of the doc, or a key name could match them.
+    const slot = (where: string, value: string): string => {
+      if (where === "title") return `## ${number}. ${value}`;
+      if (where === "tagline" || where === "recap") return `**idea:** ${value}`;
+      if (where === "patch") return `**patch:** ${value}.`;
+      if (where.endsWith("slider label") || where.endsWith("readout label")) return `"${value}"`;
+      if (where.endsWith("slider unit")) return `in ${value}`;
+      if (where.endsWith("answer label") && sliders.has(where.split(".")[0] ?? "")) return `goal: ${value}`;
+      return value;
+    };
+    const sliders = new Set(lesson.steps.filter((step) => step.kind === "tune-slider").map((step) => step.id));
+    const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    for (const item of visibleStrings(lesson)) {
+      const want = loose(slot(item.where, item.text));
+      const found = new RegExp(`(^|[^\\p{L}\\p{N}])${escape(want)}($|[^\\p{L}\\p{N}])`, "u").test(text);
+      expect(found, `${lesson.id} ${item.where}: "${item.text}" is not in lessons.md as ${want}`).toBe(true);
+    }
+  });
+
+  it.each(lessons.map((lesson, index) => [index + 1, lesson] as const))("lesson %s lists exactly the doc's options and lines, in order", (number, lesson) => {
+    const rows = sectionRows(number);
+    const steps: readonly Step[] = lesson.steps;
+    steps.forEach((step, index) => {
+      const row = rows[index];
+      if (!row) throw new Error(`lesson ${number} has no doc row ${index + 1}`);
+      if (step.kind === "choice" || step.kind === "predict" || step.kind === "fill-formula") {
+        expect(step.options.map(canon), step.id).toEqual(docOptions(row));
+      }
+      if (step.kind === "spot-bug") expect(step.lines.map(canon), step.id).toEqual(docLines(row));
+    });
+  });
+
+  it("no step has two identical options or lines, and every marked answer is in range", () => {
+    for (const lesson of lessons) {
+      const steps: readonly Step[] = lesson.steps;
+      for (const step of steps) {
+        const list =
+          step.kind === "choice" || step.kind === "predict" || step.kind === "fill-formula"
+            ? step.options
+            : step.kind === "spot-bug"
+              ? step.lines
+              : null;
+        if (!list) continue;
+        expect(new Set(list.map(loose)).size, `${step.id} repeats an option`).toBe(list.length);
+        expect(list.length).toBeGreaterThanOrEqual(2);
+        const answer = step.kind === "spot-bug" ? step.buggyLine : "answer" in step ? step.answer : null;
+        expect(typeof answer, step.id).toBe("number");
+        expect(Number.isInteger(answer) && (answer as number) >= 0 && (answer as number) < list.length, `${step.id} answer ${String(answer)}`).toBe(true);
+      }
+    }
+  });
+});

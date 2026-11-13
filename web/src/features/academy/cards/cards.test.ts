@@ -113,3 +113,25 @@ describe("the cards of lessons 1 to 4", () => {
     expect(html).toContain("The Sun’s centre is below the skyline".replace("’", "&#x27;"));
   });
 });
+
+describe("the cards of lessons 1 to 4 against docs/academy/lessons.md", () => {
+  const doc = readRepo("docs/academy/lessons.md");
+
+  /** The "Card:" paragraph of a lesson, up to the next blank line. */
+  function cardParagraph(number: number): string {
+    const start = doc.indexOf(`## ${number}. `);
+    const card = doc.indexOf("**Card:**", start);
+    return doc.slice(card, doc.indexOf("\n\n", card));
+  }
+
+  it.each(LESSON_CARDS.map((card, index) => [index + 1, card] as const))("lesson %s's card quotes only sections its Card paragraph lists", (number, card) => {
+    const paragraph = cardParagraph(number);
+    for (const formula of card.formulas) {
+      expect(paragraph, `${card.id} quotes §${formula.section.number}`).toContain(`§${formula.section.number}`);
+    }
+  });
+
+  it.each(cases)("%s: every learner-visible string is pinned, so a change is a deliberate update", (_, card) => {
+    expect(allText(card)).toMatchSnapshot();
+  });
+});
