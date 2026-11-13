@@ -203,10 +203,26 @@ describe("the decided readouts and the lesson 2 drag window", () => {
     expect(piecewiseLinear(3, readout.knots)).toBe(15);
     expect(piecewiseLinear(8, readout.knots)).toBe(0);
     expect(numberReadoutAt(readout, 5.5)).toBe(5);
+  });
+
+  it("reads lesson 4's slider goal and link time from the fixture", () => {
+    const fixture = JSON.parse(readRepo("data/fixtures/academy/worked_examples.json")) as Record<string, unknown>;
+    const shares = fixture["l4.link_pct_by_mask"];
+    const goal = fixture["l4.mask_for_15pct_deg"];
+    if (!Array.isArray(shares) || typeof goal !== "number") throw new Error("fixture mask list");
     const step = lesson4.steps[3];
-    if (step?.kind !== "tune-slider" || step.slider.kind !== "number") throw new Error("lesson 4 step 4");
+    if (step?.kind !== "tune-slider" || step.slider.kind !== "number" || step.slider.readout?.kind !== "example-list") {
+      throw new Error("lesson 4 step 4");
+    }
+    expect(step.slider).toMatchObject({ min: 0, max: 10, step: 0.5 });
+    expect(step.goal).toMatchObject({ value: "{{example.l4.mask_for_15pct_deg}}", tolerance: 1 });
     expect(step.slider.follow).toEqual({ link: "link-up", source: "readout" });
-    expect(step.goal).toMatchObject({ value: 5, tolerance: 1 });
+    expect(step.slider.readout.key).toBe("l4.link_pct_by_mask");
+    shares.forEach((share, index) => {
+      expect(numberReadoutAt(step.slider.kind === "number" ? step.slider.readout! : { kind: "stops", label: "", stops: [] }, index * 0.5, fixture)).toBe(share);
+    });
+    expect(goal).toBe(shares.findIndex((share) => typeof share === "number" && share < 15) * 0.5);
+    expect(validateLesson(lesson4, lessonCheck(fixture))).toEqual([]);
   });
 
   it("clamps the 48 hours around lesson 2's hour to the time grid", () => {

@@ -2793,6 +2793,16 @@
           "title": "L2.Ridge Rise M",
           "type": "number"
         },
+        "l2.site_id": {
+          "description": "l2.site_id: site identifier.",
+          "title": "L2.Site Id",
+          "type": "string"
+        },
+        "l2.site_name": {
+          "description": "l2.site_name: text.",
+          "title": "L2.Site Name",
+          "type": "string"
+        },
         "l2.sun_az_deg": {
           "description": "l2.sun_az_deg: degrees.",
           "title": "L2.Sun Az Deg",
@@ -2884,6 +2894,16 @@
           "title": "L4.Example Utc",
           "type": "string"
         },
+        "l4.link_pct_by_mask": {
+          "description": "l4.link_pct_by_mask: percent, one share for each mask from 0 degrees to 10 degrees in steps of 0.5 degrees.",
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 21,
+          "minItems": 21,
+          "title": "L4.Link Pct By Mask",
+          "type": "array"
+        },
         "l4.link_pct_mask0": {
           "description": "l4.link_pct_mask0: percent.",
           "title": "L4.Link Pct Mask0",
@@ -2899,30 +2919,63 @@
           "title": "L4.Link Pct Mask5",
           "type": "number"
         },
+        "l4.mask_for_15pct_deg": {
+          "description": "l4.mask_for_15pct_deg: degrees.",
+          "title": "L4.Mask For 15Pct Deg",
+          "type": "number"
+        },
         "l5.example_site": {
           "description": "l5.example_site: text.",
           "title": "L5.Example Site",
           "type": "string"
         },
         "l5.plane_a": {
-          "description": "l5.plane_a: dimensionless.",
-          "title": "L5.Plane A",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "l5.plane_a: dimensionless, or null when the close-up fit is absent.",
+          "title": "L5.Plane A"
         },
         "l5.plane_b": {
-          "description": "l5.plane_b: dimensionless.",
-          "title": "L5.Plane B",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "l5.plane_b: dimensionless, or null when the close-up fit is absent.",
+          "title": "L5.Plane B"
         },
         "l5.slope_100m_deg": {
-          "description": "l5.slope_100m_deg: degrees.",
-          "title": "L5.Slope 100M Deg",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "l5.slope_100m_deg: degrees, or null when the close-up fit is absent.",
+          "title": "L5.Slope 100M Deg"
         },
         "l5.slope_10m_deg": {
-          "description": "l5.slope_10m_deg: degrees.",
-          "title": "L5.Slope 10M Deg",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "l5.slope_10m_deg: degrees, or null when the 10 m method is not defined.",
+          "title": "L5.Slope 10M Deg"
         },
         "l5.slope_160m_deg": {
           "description": "l5.slope_160m_deg: degrees.",
@@ -2935,9 +2988,16 @@
           "type": "number"
         },
         "l6.b_score": {
-          "description": "l6.b_score: dimensionless.",
-          "title": "L6.B Score",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "l6.b_score: dimensionless, or null when site B was not selected.",
+          "title": "L6.B Score"
         },
         "l6.example_metrics.landing_lit": {
           "description": "l6.example_metrics.landing_lit: boolean.",
@@ -3000,14 +3060,28 @@
           "type": "string"
         },
         "l6.site_b": {
-          "description": "l6.site_b: text.",
-          "title": "L6.Site B",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "l6.site_b: text, or null when no second site passes every veto.",
+          "title": "L6.Site B"
         },
         "l7.alt_site": {
-          "description": "l7.alt_site: text.",
-          "title": "L7.Alt Site",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "l7.alt_site: text, or null when no polar catalog site is GO on the slipped date.",
+          "title": "L7.Alt Site"
         },
         "l7.go_date": {
           "description": "l7.go_date: UTC timestamp.",
@@ -3049,18 +3123,60 @@
           "type": "array"
         },
         "l8.region_overlap.overlaps": {
-          "description": "l8.region_overlap.overlaps: boolean.",
-          "title": "L8.Region Overlap.Overlaps",
-          "type": "boolean"
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "l8.region_overlap.overlaps: boolean, or null when official region outlines are absent.",
+          "title": "L8.Region Overlap.Overlaps"
         },
         "l8.region_overlap.region_name": {
-          "description": "l8.region_overlap.region_name: text.",
-          "title": "L8.Region Overlap.Region Name",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "l8.region_overlap.region_name: text, or null when official region outlines are absent.",
+          "title": "L8.Region Overlap.Region Name"
         },
         "l8.region_overlap.site_id": {
           "description": "l8.region_overlap.site_id: text.",
           "title": "L8.Region Overlap.Site Id",
+          "type": "string"
+        },
+        "story.landing_utc": {
+          "description": "story.landing_utc: UTC timestamp.",
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "Story.Landing Utc",
+          "type": "string"
+        },
+        "story.month_end_utc": {
+          "description": "story.month_end_utc: UTC timestamp, exclusive end of the story month.",
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "Story.Month End Utc",
+          "type": "string"
+        },
+        "story.profile_id": {
+          "description": "story.profile_id: profile identifier.",
+          "title": "Story.Profile Id",
+          "type": "string"
+        },
+        "story.site_id": {
+          "description": "story.site_id: site identifier.",
+          "title": "Story.Site Id",
+          "type": "string"
+        },
+        "story.window_end_utc": {
+          "description": "story.window_end_utc: UTC timestamp, exclusive end of the mission window.",
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "Story.Window End Utc",
           "type": "string"
         }
       },
@@ -3078,6 +3194,8 @@
         "l2.sun_az_deg",
         "l2.ridge_dist_km",
         "l2.ridge_rise_m",
+        "l2.site_id",
+        "l2.site_name",
         "l2.ridge_el_deg",
         "l2.ridge_feature",
         "l2.sun_frac",
@@ -3092,9 +3210,11 @@
         "l4.earth_el_max_deg",
         "l4.earth_el_min_deg",
         "l4.earth_up_pct",
+        "l4.link_pct_by_mask",
         "l4.link_pct_mask0",
         "l4.link_pct_mask1",
         "l4.link_pct_mask5",
+        "l4.mask_for_15pct_deg",
         "l4.example_utc",
         "l4.example_earth_az",
         "l4.example_earth_el",
@@ -3129,7 +3249,12 @@
         "l8.candidates",
         "l8.region_overlap.site_id",
         "l8.region_overlap.region_name",
-        "l8.region_overlap.overlaps"
+        "l8.region_overlap.overlaps",
+        "story.landing_utc",
+        "story.month_end_utc",
+        "story.profile_id",
+        "story.site_id",
+        "story.window_end_utc"
       ],
       "title": "WorkedExamples",
       "type": "object"

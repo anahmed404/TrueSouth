@@ -50,6 +50,13 @@ export function numberReadoutAt(readout: NumberReadout, at: number, examples: Wo
     return readout.stops.find((stop) => stop.at === at)?.text ?? null;
   }
   if (readout.kind === "curvature-drop") return curvatureDropMetres(at, readout.radiusM);
+  if (readout.kind === "example-list") {
+    const list = examples[readout.key];
+    if (!Array.isArray(list) || !(readout.step > 0) || !Number.isFinite(at)) return null;
+    const index = Math.round((at - readout.origin) / readout.step);
+    const value = list[index];
+    return typeof value === "number" && Number.isFinite(value) ? value : null;
+  }
   const knots: { at: number; value: number }[] = [];
   for (const knot of readout.knots) {
     const x = knotNumber(knot.at, examples);
