@@ -39,15 +39,15 @@ changing it changes the skyline.
 | `id` | `viper` | `im2_athena` | `chandrayaan3` | `artemis_crewed` | `blue_ghost1` |
 | `duration_days` | **100** | **10** | **14** | **6.5** | **14** |
 | `min_sun_fraction` | 0.5 | 0.5 | 0.5 | 0.5 | 0.5 |
-| `ops_sun_el_min_deg` | none | none | **6** | none | none |
+| `ops_sun_el_min_deg` | none | none | 6 | none | none |
 | `max_dark_h` | **50** | 6 | 6 | **0** | 5 |
-| `relay_available` | **false** | **false** | **false** | **false** | false |
+| `relay_available` | **false** | false | false | **false** | false |
 | `antenna_mask_deg` | 1 | 1 | 1 | 1 | 1 |
 | `max_blackout_h` | **432** | 12 | 12 | **0** | 12 |
 | `max_slope_deg` | **15** | 10 | **10** | **10** | 10 |
 | `slope_ideal_deg` | 5 | 5 | 5 | 5 | 5 |
-| `landing_sun_el_min_deg` | none | none | **6** | none | none |
-| `landing_sun_el_max_deg` | none | none | **9** | none | none |
+| `landing_sun_el_min_deg` | none | none | 6 | none | none |
+| `landing_sun_el_max_deg` | none | none | 9 | none | none |
 | `weights` (slope, power, comms) | 0.40, 0.35, 0.25 | same | same | same | same |
 
 A sixth profile, **Custom**, starts as a copy of whichever preset is selected and lets the
@@ -79,7 +79,8 @@ Pip, the Academy lander, uses `im2_athena`.
 
 - **10 days:** "Surface Operations: Approximately 10 days".
   <https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf>
-- **No relay:** the mission used the company's ground network, direct to Earth.
+- **Assumed no relay:** the mission used the company's ground network, direct to Earth.
+  We have no document to cite for this, so the value is tagged assumed.
 - **Assumed 10° slope:** a 10° figure appears only in a secondary source we could not read.
   Intuitive Machines publishes no limit.
 - **Assumed 6 h darkness, 12 h blackout:** no figures are published. The lander "cannot
@@ -95,13 +96,16 @@ Pip, the Academy lander, uses `im2_athena`.
 
 - **14 days:** "Mission Life (Lander & Rover) One lunar day (~14 Earth days)".
   <https://www.isro.gov.in/Chandrayaan3_Details.html>
-- **Sun 6–9° at landing, at least 6° to operate:** "For landing, the angle requirement was
-  6-9° elevation and we managed to land when elevation was 8.75°. For operations, we need a
-  minimum of 6° elevation angle" (project director, Times of India interview).
+- **Assumed Sun 6–9° at landing, at least 6° to operate:** "For landing, the angle
+  requirement was 6-9° elevation and we managed to land when elevation was 8.75°. For
+  operations, we need a minimum of 6° elevation angle" (project director, Times of India
+  interview). We have the quotation but no link to the interview, so these three values
+  are tagged assumed until a link is found.
 - **10° site slope:** "Slope less than 10 deg." The lander itself tolerated up to 12°.
   <https://www.hou.usra.edu/meetings/lpsc2023/pdf/1037.pdf>
-- **Relay:** direct to Earth, with the Chandrayaan-2 orbiter as a contingency link. The
-  preset models the direct link, so `relay_available` is false.
+- **Assumed no relay:** direct to Earth, with the Chandrayaan-2 orbiter as a contingency
+  link. The preset models the direct link, so `relay_available` is false. We have no
+  document to cite for this, so the value is tagged assumed.
 - **Assumed 6 h darkness, 12 h blackout:** not published.
 - **Note:** the 6–9° landing rule can never be met within a few degrees of the pole, where
   the Sun stays below about 2°. That is correct: Chandrayaan-3 landed at 69°S.

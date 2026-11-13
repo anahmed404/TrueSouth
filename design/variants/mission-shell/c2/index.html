@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mission Control · Direction C2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── Direction C2 tokens (see design/variants/direction-c2.md). Same block on every C2 page. ── */
+:root{
+  color-scheme:dark;
+  --bg:#0b0b0c; --surface:#141415; --raised:#1b1b1d; --hover:#232326;
+  --line:#262629; --line-strong:#37373b;
+  --ink:#ececee; --ink-2:#b3b3b8; --ink-3:#8c8c93; --ink-4:#5c5c63;
+  --accent:#f3efe6; --accent-ink:#141414;
+  --sun:#ffe2a0; --sun-core:#fff4d8; --earth:#6cc4ff; --earth-core:#9fdbff;
+  --status-go:#45c98b; --status-caution:#f2a33a; --status-nogo:#f0646d;
+  --plot:#0e0e0f; --terrain:#1d1d20; --terrain-rim:#a8a8af; --grid:rgba(255,255,255,.06);
+  --font:"Jost","Futura","Century Gothic","Avenir Next","Trebuchet MS",system-ui,sans-serif;
+  --t-xs:11px; --t-sm:12px; /* --t-xs is for SVG axis ticks only; HTML text floor is --t-sm */ --t-md:13px; --t-lg:15px; --t-xl:18px; --t-2xl:24px; --t-3xl:32px; --t-display:44px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px;
+  --r-sm:6px; --r-md:10px; --r-lg:14px; --r-pill:999px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:var(--t-md);line-height:1.4;
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;overflow:hidden}
+::selection{background:var(--accent);color:var(--accent-ink)}
+button,summary{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-sm)}
+.unit{font-size:.7em;color:var(--ink-2);font-weight:400;margin-left:1px}
+.sub{color:var(--ink-2)} .lbl{color:var(--ink-3)}
+svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* provenance tags: solid + arrow = sourced, dashed = assumed. Quiet: grey, small, never coloured */
+.tag{display:inline-flex;align-items:center;gap:2px;height:17px;padding:0 6px;border-radius:var(--r-pill);
+  font-size:var(--t-sm);font-weight:400;color:var(--ink-3);white-space:nowrap;vertical-align:1px;line-height:1}
+.tag.src{border:1px solid var(--line-strong)} .tag.src::after{content:"↗"}
+.tag.asm{border:1px dashed var(--line-strong)}
+
+/* status: a flat lamp with a cut glyph, always beside the word */
+.lamp{--c:var(--status-go);width:16px;height:16px;border-radius:50%;background:var(--c);display:inline-grid;place-items:center;flex:none}
+.lamp svg{width:11px;height:11px;stroke:#0b0b0c;stroke-width:3.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.go{--c:var(--status-go)} .caution{--c:var(--status-caution)} .nogo{--c:var(--status-nogo)}
+.status{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--c)}
+
+/* ── shell grid: docked, nothing floats over the main view ── */
+.app{width:1440px;height:900px;margin:0 auto;padding:0 8px;display:grid;
+  grid-template-columns:256px 824px 328px;column-gap:8px;grid-template-rows:52px 620px 8px 196px 24px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);min-height:0}
+
+/* top bar */
+.top{grid-column:1/-1;display:flex;align-items:center;gap:var(--s3);padding:0 var(--s1)}
+.brand{display:flex;align-items:center;gap:8px;font-size:var(--t-xl);font-weight:600;margin-right:var(--s2)}
+.brand svg{width:22px;height:22px}
+.seg{display:flex;padding:2px;border-radius:var(--r-pill);background:var(--raised);border:1px solid var(--line)}
+.seg button{height:28px;padding:0 14px;border-radius:var(--r-pill);font-size:var(--t-md);color:var(--ink-2)}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:500}
+.spacer{flex:1}
+.field{display:flex;align-items:center;gap:var(--s2);height:36px;padding:4px 6px 4px 12px;border-radius:var(--r-md);background:var(--raised);border:1px solid var(--line)}
+.field .lbl{font-size:var(--t-sm)}
+.field .v{font-size:var(--t-lg);font-weight:500}
+.field .v small{font-size:var(--t-sm);color:var(--ink-3);font-weight:400}
+.ib{width:26px;height:26px;border-radius:var(--r-sm);display:grid;place-items:center;color:var(--ink-2)}
+.ib:hover{background:var(--hover);color:var(--ink)}
+.ib svg{width:14px;height:14px}
+.btn{height:28px;padding:0 10px;border-radius:var(--r-sm);font-size:var(--t-sm);color:var(--ink-2);border:1px solid var(--line-strong)}
+.btn:hover{color:var(--ink);background:var(--hover)}
+.btn-lg{height:36px;padding:0 14px;border-radius:var(--r-md);font-size:var(--t-md);color:var(--ink);display:inline-flex;align-items:center;gap:8px}
+.vr{width:1px;height:20px;background:var(--line-strong)}
+
+/* sites rail */
+.rail{grid-column:1;grid-row:2;padding:var(--s4) var(--s2) var(--s2);display:flex;flex-direction:column}
+.rail-h{display:flex;justify-content:space-between;align-items:baseline;padding:0 var(--s2)}
+.rail-h h2{font-size:var(--t-lg);font-weight:600}
+.rail-h span{font-size:var(--t-sm);color:var(--ink-3)}
+.rail-sub{padding:2px var(--s2) var(--s3);font-size:var(--t-sm);color:var(--ink-3)}
+.sites{list-style:none;display:flex;flex-direction:column;gap:2px}
+.site{display:block;width:100%;text-align:left;padding:10px var(--s2) 10px var(--s3);border-radius:var(--r-md);border:1px solid transparent}
+.site:hover{background:var(--raised)}
+.site[aria-current="true"]{background:var(--hover);border-color:var(--line-strong)}
+.site .nm{font-size:var(--t-lg);font-weight:500;display:block}
+.site .ln.lbl{color:var(--ink-3)}
+.site .ln{display:flex;align-items:center;gap:var(--s2);margin-top:3px;font-size:var(--t-sm);color:var(--ink-2)}
+.site .status{font-size:var(--t-sm)}
+.add{margin-top:var(--s2);height:36px;border-radius:var(--r-md);border:1px dashed var(--line-strong);color:var(--ink-2);display:flex;align-items:center;justify-content:center;gap:6px;font-size:var(--t-md)}
+.add:hover{color:var(--ink);background:var(--raised)}
+
+/* main view */
+.main{grid-column:2;grid-row:2;display:flex;flex-direction:column;overflow:hidden}
+.tabs{display:flex;gap:2px;padding:6px 6px 0;border-bottom:1px solid var(--line)}
+.tab{flex:1;text-align:left;padding:8px 10px 9px;border-radius:var(--r-md) var(--r-md) 0 0;position:relative;color:var(--ink-2)}
+.tab:hover{background:var(--raised);color:var(--ink)}
+.tab b{display:flex;align-items:center;gap:6px;font-size:var(--t-md);font-weight:500;white-space:nowrap}
+.tab span{display:block;font-size:var(--t-sm);color:var(--ink-3);margin-top:1px;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);background:var(--raised)}
+.tab[aria-selected="true"]::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:2px;border-radius:var(--r-sm);background:var(--accent)}
+.d3{display:inline-flex;align-items:center;gap:3px;height:16px;padding:0 5px;border-radius:var(--r-sm);font-size:var(--t-sm);font-weight:500;color:var(--ink-2);background:var(--hover);border:1px solid var(--line-strong)}
+.d3 svg{width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linejoin:round}
+.vbody{padding:var(--s4) var(--s4) var(--s3);display:flex;flex-direction:column;gap:var(--s3);min-height:0}
+.what{font-size:var(--t-lg);line-height:1.45;color:var(--ink);max-width:66ch}
+.what em{font-style:normal;color:var(--ink-2)}
+.vctl{display:flex;align-items:center;gap:var(--s3);font-size:var(--t-sm);color:var(--ink-3)}
+.mseg{display:flex;padding:3px;border-radius:var(--r-pill);background:var(--raised);border:1px solid var(--line)}
+.mseg button{height:22px;padding:0 10px;border-radius:var(--r-pill);font-size:var(--t-sm);color:var(--ink-2)}
+.mseg button[aria-pressed="true"]{background:var(--hover);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line-strong)}
+.toggle{display:inline-flex;align-items:center;gap:8px;font-size:var(--t-sm);color:var(--ink-2)}
+.toggle i{width:26px;height:16px;border-radius:var(--r-pill);background:var(--raised);border:1px solid var(--line-strong);position:relative}
+.toggle i::after{content:"";position:absolute;left:2px;top:2px;width:10px;height:10px;border-radius:50%;background:var(--ink-3)}
+.plot{display:block;border-radius:var(--r-md);background:var(--plot);border:1px solid var(--line)}
+.legend{display:flex;flex-wrap:wrap;gap:4px var(--s4);font-size:var(--t-sm);color:var(--ink-3);align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:18px;height:0;border-top:2px dashed var(--sun)}
+.sw.e{border-top:2px solid var(--earth)} .sw.m{border-top:1.5px dashed var(--earth)}
+.why{display:flex;align-items:flex-start;gap:var(--s3);padding:var(--s3) var(--s4);border-radius:var(--r-md);background:var(--raised);border:1px solid var(--line)}
+.why .i{color:var(--sun);margin-top:2px}
+.why h3{font-size:var(--t-md);font-weight:600}
+.why p{font-size:var(--t-md);color:var(--ink-2);margin-top:1px}
+.why .btn{margin-left:auto;flex:none;align-self:center;white-space:nowrap}
+
+/* focused-site panel */
+.focus{grid-column:3;grid-row:2;padding:var(--s4);display:flex;flex-direction:column;gap:var(--s4);overflow:auto}
+.f-h h2{font-size:var(--t-xl);font-weight:600;line-height:1.2}
+.f-h p{font-size:var(--t-sm);color:var(--ink-3);margin-top:2px}
+.verdict{padding:var(--s3) var(--s4);border-radius:var(--r-md);background:var(--raised);border:1px solid var(--line)}
+.verdict .status{font-size:var(--t-2xl);gap:10px;line-height:1}
+.verdict .status .lamp{width:24px;height:24px}
+.verdict .status .lamp svg{width:15px;height:15px}
+.verdict p{font-size:var(--t-md);color:var(--ink-2);margin-top:var(--s2)}
+.verdict p s{color:var(--ink-3)}
+.h3{font-size:var(--t-sm);color:var(--ink-3);font-weight:400;margin-bottom:6px}
+.broken{padding:var(--s3) var(--s4) 14px;border-radius:var(--r-md);border:1px solid color-mix(in oklab,var(--status-nogo),transparent 55%)}
+.broken .row{display:flex;align-items:baseline;justify-content:space-between}
+.broken .t{font-size:var(--t-lg);font-weight:500;display:flex;align-items:center;gap:8px}
+.broken .m{font-size:var(--t-2xl);font-weight:500;color:var(--status-nogo);line-height:1}
+.broken .l{font-size:var(--t-sm);color:var(--ink-2);margin-top:2px}
+.meter{height:6px;border-radius:var(--r-pill);background:var(--hover);position:relative;margin-top:10px}
+.meter i{position:absolute;inset:0 auto 0 0;border-radius:var(--r-pill);background:var(--status-nogo)}
+.meter u{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink);border-radius:var(--r-sm)}
+.meter-k{display:flex;justify-content:space-between;font-size:var(--t-sm);color:var(--ink-3);margin-top:5px}
+.passes{list-style:none;display:flex;flex-direction:column;gap:6px}
+.passes li{display:grid;grid-template-columns:16px 1fr auto;gap:8px;align-items:center;font-size:var(--t-md);color:var(--ink-2)}
+.passes li b{color:var(--ink);font-weight:500}
+.passes svg{width:14px;height:14px;stroke:var(--status-go);fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+details{border-top:1px solid var(--line);padding-top:var(--s3)}
+details summary{list-style:none;display:flex;align-items:center;gap:8px;font-size:var(--t-md);font-weight:500}
+details summary::-webkit-details-marker{display:none}
+details summary .chev{width:14px;height:14px;transition:transform .15s ease-out}
+details[open] summary .chev{transform:rotate(90deg)}
+details summary small{margin-left:auto;font-size:var(--t-sm);color:var(--ink-3);font-weight:400}
+details dl{display:grid;grid-template-columns:1fr auto;gap:6px var(--s3);margin-top:var(--s3);font-size:var(--t-md)}
+details dt{color:var(--ink-2);display:flex;align-items:center;gap:6px}
+details dd{text-align:right;font-weight:500}
+.links{margin-top:auto;display:flex;gap:var(--s4);font-size:var(--t-sm)}
+.links a{color:var(--ink-2);text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}
+.links a:hover{color:var(--ink)}
+
+/* timeline strip */
+.strip{grid-column:1/-1;grid-row:4;display:grid;grid-template-columns:1fr auto;gap:var(--s4);padding:var(--s3) var(--s4)}
+.tl-h{display:flex;align-items:center;gap:var(--s3);height:28px;white-space:nowrap}
+.tl-h h2{font-size:var(--t-lg);font-weight:600}
+.tl-h .win{font-size:var(--t-sm);color:var(--ink-2)}
+.tl-h .ctl{margin-left:auto;display:flex;align-items:center;gap:var(--s2)}
+.play{width:28px;height:28px;border-radius:50%;background:var(--accent);display:grid;place-items:center}
+.play svg{width:10px;height:10px;fill:var(--accent-ink)}
+#tl{display:block;margin-top:4px}
+.cards{display:flex;gap:var(--s2)}
+.cd{width:184px;border-radius:var(--r-md);padding:var(--s3) 14px;background:var(--raised);border:1px solid var(--line);display:flex;flex-direction:column}
+.cd.warn{border-color:var(--status-caution)}
+.cd .hd{display:flex;align-items:center;gap:6px;font-size:var(--t-md);font-weight:500}
+.cd .state{margin-left:auto;font-size:var(--t-sm);font-weight:400;color:var(--ink-2)}
+.cd .ev{font-size:var(--t-sm);color:var(--ink-2);margin-top:var(--s2)}
+.cd .cnt{font-size:var(--t-2xl);font-weight:500;line-height:1.1}
+.cd .cnt small{font-size:var(--t-md);color:var(--ink-2);font-weight:400;margin:0 4px 0 1px}
+.cd.warn .cnt{color:var(--status-caution)}
+.flag{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-sm);font-weight:500;color:var(--status-caution);margin-top:2px}
+.flag .lamp{width:13px;height:13px}
+.flag .lamp svg{width:9px;height:9px}
+.cd .vals{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:var(--t-sm);color:var(--ink-3)}
+.cd .vals b{display:block;font-size:var(--t-md);color:var(--ink);font-weight:500}
+
+.foot{grid-column:1/-1;grid-row:5;display:flex;align-items:center;justify-content:center;position:relative;font-size:var(--t-sm);color:var(--ink-3)}
+.proto{position:absolute;left:8px;font-size:var(--t-sm);color:var(--ink-3);border:1px solid var(--line-strong);border-radius:var(--r-pill);padding:0 8px;line-height:16px}
+
+/* svg text */
+text{font-family:var(--font)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="g-go" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="g-caution" viewBox="0 0 24 24"><path d="M12 5.5v8"/><path d="M12 18.5v.2"/></symbol>
+  <symbol id="g-nogo" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2" fill="#ffe2a0" stroke="none"/><g stroke="#ffe2a0" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></g></symbol>
+  <symbol id="i-earth" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="#6cc4ff" stroke="none"/><path d="M7 9c2 0 2.5 1.5 4 1.5S13 9 14.5 9.5 16 12 18 12M8 15.5c1.5-.5 3 .5 4.5 0" stroke="#0b2a40" stroke-width="1.6" fill="none" stroke-linecap="round"/></symbol>
+  <symbol id="i-cube" viewBox="0 0 12 12"><path d="M6 1l4.5 2.5v5L6 11 1.5 8.5v-5z"/><path d="M1.5 3.5L6 6l4.5-2.5M6 6v5"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 16 16"><path d="M6 3.5L10.5 8 6 12.5"/></symbol>
+</svg>
+
+<div class="app">
+  <!-- top bar -->
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="#8c8c93" stroke-width="1.6"/><path d="M16 4 L19 16 L16 28 L13 16Z" fill="#ececee"/><path d="M16 16 L19 16 L16 28Z" fill="#8c8c93"/></svg>
+      TrueSouth
+    </div>
+    <nav class="seg" aria-label="Mode"><button aria-pressed="true">Mission Control</button><button aria-pressed="false">Academy</button></nav>
+    <div class="spacer"></div>
+    <button class="field" aria-label="Mission profile: IM-2 Athena, 10 days">
+      <span class="lbl">Mission profile</span>
+      <span class="v">IM-2 Athena</span>
+      <span class="sub" style="font-size:var(--t-sm)">10 d</span><span class="tag src">sourced</span>
+      <svg class="i" style="width:14px;height:14px;color:var(--ink-3);margin-right:4px" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg>
+    </button>
+    <div class="field">
+      <span class="lbl">Landing date</span>
+      <button class="ib" aria-label="One day earlier"><svg class="i" viewBox="0 0 16 16"><path d="M10 3.5L5.5 8 10 12.5"/></svg></button>
+      <span class="v">2028-03-01 00:00 <small>UTC</small></span>
+      <button class="ib" aria-label="One day later"><svg class="i" viewBox="0 0 16 16"><path d="M6 3.5L10.5 8 6 12.5"/></svg></button>
+      <span class="vr"></span>
+      <button class="btn">Slip +7 d</button><button class="btn" style="margin-right:2px">+14 d</button>
+    </div>
+    <button class="btn-lg btn"><svg class="i" viewBox="0 0 20 20"><circle cx="5" cy="10" r="2.2"/><circle cx="15" cy="4.5" r="2.2"/><circle cx="15" cy="15.5" r="2.2"/><path d="M7 9l6-3.4M7 11l6 3.4"/></svg>Share</button>
+  </header>
+
+  <!-- selected sites -->
+  <aside class="panel rail" aria-label="Selected sites">
+    <div class="rail-h"><h2>Selected sites</h2><span>5 of 8</span></div>
+    <p class="rail-sub">Status if landing 2028-03-01 00:00 UTC</p>
+    <ul class="sites">
+      <li><button class="site" aria-current="true"><span class="nm">Connecting Ridge</span>
+        <span class="ln"><span class="status nogo"><span class="lamp"><svg><use href="#g-nogo"/></svg></span>NO-GO</span>Blackout 31 h</span></button></li>
+      <li><button class="site"><span class="nm">Malapert Massif</span>
+        <span class="ln"><span class="status go"><span class="lamp"><svg><use href="#g-go"/></svg></span>GO</span>Score 81</span></button></li>
+      <li><button class="site"><span class="nm">Mons Mouton</span>
+        <span class="ln"><span class="status caution"><span class="lamp"><svg><use href="#g-caution"/></svg></span>CAUTION</span>Score 63</span></button></li>
+      <li><button class="site"><span class="nm">de Gerlache Rim 2</span>
+        <span class="ln"><span class="status caution"><span class="lamp"><svg><use href="#g-caution"/></svg></span>CAUTION</span>Score 58</span></button></li>
+      <li><button class="site"><span class="nm">Apollo 11</span>
+        <span class="ln"><span class="status go"><span class="lamp"><svg><use href="#g-go"/></svg></span>GO</span>Score 100</span><span class="ln lbl">Terrain not modelled</span></button></li>
+    </ul>
+    <button class="add"><svg class="i" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>Add site</button>
+  </aside>
+
+  <!-- main view -->
+  <main class="panel main">
+    <div class="tabs" role="tablist" aria-label="Views">
+      <button class="tab" role="tab" aria-selected="false"><b>Slip Planner</b><span>Every landing date</span></button>
+      <button class="tab" role="tab" aria-selected="false"><b>Polar map</b><span>Pick and nudge sites</span></button>
+      <button class="tab" role="tab" aria-selected="false"><b>System view <i class="d3"><svg><use href="#i-cube"/></svg>3D</i></b><span>Moon, Earth and Sun</span></button>
+      <button class="tab" role="tab" aria-selected="false"><b>Local terrain <i class="d3"><svg><use href="#i-cube"/></svg>3D</i></b><span>The ground at the site</span></button>
+      <button class="tab" role="tab" aria-selected="true"><b>Lander's eye</b><span>The horizon from the site</span></button>
+      <button class="tab" role="tab" aria-selected="false"><b>Compare</b><span>Sites side by side</span></button>
+    </div>
+    <div class="vbody">
+      <p class="what">What you would see standing at Connecting Ridge and turning in a full circle: the outline of the horizon, with the Sun and Earth drawn at their real height above it.</p>
+      <div class="vctl">
+        <span>Centre on</span>
+        <span class="mseg"><button aria-pressed="true">Earth</button><button aria-pressed="false">Sun</button><button aria-pressed="false">North</button></span>
+        <span>Heights stretched ×12, so the low sky is readable</span>
+        <button class="toggle" style="margin-left:auto"><i></i>Split view</button>
+      </div>
+      <svg class="plot" id="pano" width="792" height="276" role="img" aria-label="Lander's eye panorama for Connecting Ridge: the Sun sits just behind a ridge at azimuth 266°, Earth is clear at azimuth 136°"></svg>
+      <div class="legend">
+        <span><i class="sw"></i>Sun's path, one dot a day</span>
+        <span><i class="sw e"></i>Earth's path</span>
+        <span><i class="sw m"></i>Antenna mask, 1.00° above the skyline <span class="tag asm">assumed</span></span>
+        <span>A disc's faded part is below the skyline</span>
+      </div>
+      <div class="why" role="note">
+        <svg class="i" viewBox="0 0 24 24"><use href="#i-sun"/></svg>
+        <div><h3>Why is it dark?</h3><p>Sun is 1.08° up. The ridge in that direction rises to 1.33°, 12.4 km away, near de Gerlache. Blocked by terrain.</p></div>
+        <button class="btn">Centre on azimuth 265.98°</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- focused site -->
+  <aside class="panel focus" aria-label="Focused site">
+    <div class="f-h">
+      <h2>Connecting Ridge</h2>
+      <p>−89.4555°, 222.6192° E · core80 terrain · close-up DEM</p>
+    </div>
+
+    <div class="verdict" role="status">
+      <span class="status nogo"><span class="lamp"><svg><use href="#g-nogo"/></svg></span>NO-GO</span>
+      <p>One rule is broken, so this landing date fails. Score <s>51</s> is not used.</p>
+    </div>
+
+    <section>
+      <h3 class="h3">Broken rule</h3>
+      <div class="broken">
+        <div class="row"><span class="t"><span class="lamp nogo"><svg><use href="#g-nogo"/></svg></span>Longest blackout</span><span class="m">31<span class="unit">h</span></span></div>
+        <p class="l">Limit 12 h <span class="tag asm">assumed</span>. Earth is out of contact for 31 hours in a row from 09 Mar 17:00 UTC.</p>
+        <div class="meter" aria-hidden="true"><i style="width:100%"></i><u style="left:38.7%"></u></div>
+        <div class="meter-k"><span>0 h</span><span style="margin-left:24%">limit 12 h</span><span style="margin-left:auto">31 h</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h3 class="h3">Rules that pass</h3>
+      <ul class="passes">
+        <li><svg viewBox="0 0 24 24"><use href="#g-go"/></svg><span>Longest dark <b>4 h</b>, limit 6 h</span><span class="tag asm">assumed</span></li>
+        <li><svg viewBox="0 0 24 24"><use href="#g-go"/></svg><span>Slope <b>3.1°</b>, limit 10°</span><span class="tag asm">assumed</span></li>
+        <li><svg viewBox="0 0 24 24"><use href="#g-go"/></svg><span>Lit at landing, disc <b>1.00</b>, needs 0.5</span><span class="tag asm">assumed</span></li>
+      </ul>
+    </section>
+
+    <details>
+      <summary><svg class="i chev" viewBox="0 0 16 16"><use href="#i-chev"/></svg>Mission window metrics<small>8 values, 240 h</small></summary>
+      <dl>
+        <dt>Lit</dt><dd>97.1 %</dd>
+        <dt>Mean Sun disc fraction</dt><dd>0.96</dd>
+        <dt>Longest dark stretch</dt><dd>4 h</dd>
+        <dt>Earth link</dt><dd>87.1 %</dd>
+        <dt>Longest blackout</dt><dd style="color:var(--status-nogo)">31 h</dd>
+        <dt>Sun at landing</dt><dd>0.80°</dd>
+        <dt>Slope, 100 m baseline</dt><dd>3.1°</dd>
+        <dt>Utilities: slope, power, comms</dt><dd>1.00 · 0.32 · 0.00</dd>
+      </dl>
+    </details>
+
+    <nav class="links" aria-label="Open this site elsewhere"><a href="https://quickmap.lroc.asu.edu/">Open in Quickmap ↗</a><a href="https://trek.nasa.gov/moon/">Open in Moon Trek ↗</a></nav>
+  </aside>
+
+  <!-- timeline and countdowns -->
+  <section class="panel strip" aria-label="Timeline and countdowns">
+    <div>
+      <div class="tl-h">
+        <h2>Timeline</h2>
+        <span class="win">Mission window 01 Mar 00:00 → 11 Mar 00:00 UTC, 10 d <span class="tag src">sourced</span></span>
+        <div class="ctl">
+          <button class="play" aria-label="Play"><svg viewBox="0 0 10 10"><path d="M2 1l7 4-7 4z"/></svg></button>
+          <button class="btn">1 h per second</button>
+          <button class="toggle"><i></i>Clearance chart</button>
+        </div>
+      </div>
+      <svg id="tl" width="996" height="140" role="img" aria-label="Sun and Earth bands for the mission window. Longest dark stretch 4 hours; longest blackout 31 hours breaks the 12 hour limit."></svg>
+    </div>
+    <div class="cards">
+      <div class="cd warn">
+        <div class="hd"><svg class="i" viewBox="0 0 24 24"><use href="#i-sun"/></svg>Sun<span class="state">Dark</span></div>
+        <div class="ev">Sunrise in</div>
+        <div class="cnt">2<small>h</small>58<small>m</small></div>
+        <div class="flag"><span class="lamp caution"><svg><use href="#g-caution"/></svg></span>Under 6 h</div>
+        <div class="vals"><span>Elevation<b>1.08°</b></span><span>Disc fraction<b>0.01</b></span></div>
+      </div>
+      <div class="cd">
+        <div class="hd"><svg class="i" viewBox="0 0 24 24"><use href="#i-earth"/></svg>Earth<span class="state">Link</span></div>
+        <div class="ev">Earthset in</div>
+        <div class="cnt">6<small>d</small>1<small>h</small></div>
+        <div class="flag" style="visibility:hidden">&nbsp;</div>
+        <div class="vals"><span>Elevation<b>2.97°</b></span><span>Clearance<b>2.46°</b></span></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot"><span class="proto">prototype · mock data</span>Planning aid, not flight certification. Limits marked assumed are our estimates.</footer>
+</div>
+
+<script>
+/* ── Mock model: the same invented series for Connecting Ridge under im2_athena as every Direction C page. ── */
+const M=(()=>{
+const P=[[0,-0.40],[12,-0.12],[25,0.35],[34,0.12],[48,0.62],[58,0.92],[66,0.50],[80,-0.25],[95,-0.95],[108,-1.25],[120,-0.62],[128,0.18],[133,0.38],[137,0.55],[140,0.95],[142.5,1.32],[146,1.02],[152,0.48],[165,0.06],[180,-0.32],[195,0.18],[210,0.62],[222,0.92],[228,1.18],[231.2,1.47],[234,1.08],[240,0.70],[248,0.62],[256,0.86],[263.6,0.90],[265.9,1.30],[267.2,0.92],[274,0.70],[282,0.25],[292,-0.50],[305,-1.05],[318,-0.70],[332,-0.18],[345,0.10],[360,-0.40]];
+function base(a){a=((a%360)+360)%360;for(let i=0;i<P.length-1;i++){const[a0,e0]=P[i],[a1,e1]=P[i+1];if(a>=a0&&a<=a1){const t=(a-a0)/(a1-a0);return e0+(e1-e0)*(1-Math.cos(Math.PI*t))/2;}}return P[0][1];}
+const sky=a=>{const r=a*Math.PI/180;return base(a)+0.045*Math.sin(r*37)+0.03*Math.sin(r*91+1.3)+0.02*Math.sin(r*173+.4);};
+const SUN_R=0.2665,EARTH_R=0.95;
+const sunAz=h=>(((298-0.5083*h)%360)+360)%360, sunEl=h=>0.80+0.0046*h-0.0000025*h*h;
+const earthAz=h=>133+8*h/240+0.6*Math.sin(2*Math.PI*h/327), earthEl=h=>3.399-0.0068*h;
+function frac(az,el,rho){let n=0,d=0;for(let i=0;i<33;i++){const x=-rho+(i+0.5)*2*rho/33,c=Math.sqrt(rho*rho-x*x),A=az+x/Math.cos(el*Math.PI/180);n+=Math.min(Math.max(el+c-sky(A),0),2*c);d+=2*c;}return n/d;}
+const series=h=>{const sa=sunAz(h),se=sunEl(h),ea=earthAz(h),ee=earthEl(h);return{h,sa,se,sf:frac(sa,se,SUN_R),sc:se-sky(sa),ea,ee,ec:ee-sky(ea),link:ee-sky(ea)>=1};};
+return{sky,series,SUN_R,EARTH_R};})();
+const NS='http://www.w3.org/2000/svg';
+function E(tag,a,p){const e=document.createElementNS(NS,tag);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C={ink:css('--ink'),ink2:css('--ink-2'),ink3:css('--ink-3'),line:css('--line'),sun:css('--sun'),sunCore:css('--sun-core'),earth:css('--earth'),earthCore:css('--earth-core'),
+  nogo:css('--status-nogo'),bg:css('--bg'),plot:css('--plot'),terrain:css('--terrain'),rim:css('--terrain-rim'),grid:css('--grid'),accent:css('--accent'),raised:css('--raised')};
+const wrap=d=>((d+180)%360+360)%360-180;
+const HOUR=63;               // scrubber: 2028-03-03 15:00 UTC, mission day 3
+
+/* ── Lander's eye ── */
+(function(){
+  const svg=document.getElementById('pano');
+  const W=792,x0=40,pw=740,az0=137,lo=-2.5,hi=6.5,top=10,px=pw/360,py=px*12,bottom=top+(hi-lo)*py;
+  const cx=x0+pw/2,X=a=>cx+wrap(a-az0)*px,Y=e=>top+(hi-e)*py,xl=x0,xr=x0+pw;
+  const defs=E('defs',{},svg);
+  // grid: elevation lines every 2°, azimuth lines every 30°
+  for(let e=-2;e<=6;e+=2){if(e===0)continue;E('line',{x1:xl,x2:xr,y1:Y(e),y2:Y(e),stroke:C.grid},svg);
+    E('text',{x:xl-8,y:Y(e)+4,'text-anchor':'end','font-size':11,fill:C.ink3},svg).textContent=(e>0?'+':'−')+Math.abs(e)+'°';}
+  for(let a=0;a<360;a+=30)E('line',{x1:X(a),x2:X(a),y1:top,y2:bottom,stroke:C.grid},svg);
+  // skyline
+  let d='';for(let i=0;i<=1440;i++){const a=az0-180+i*.25;d+=(i?'L':'M')+(xl+i*.25*px).toFixed(1)+','+Y(M.sky(a)).toFixed(1);}
+  E('clipPath',{id:'skyclip'},defs).appendChild(E('path',{d:d+`L${xr},0L${xl},0Z`}));
+  // antenna mask above the skyline around Earth
+  let md='';for(let a=122;a<=152;a+=.25)md+=(a===122?'M':'L')+X(a).toFixed(1)+','+Y(M.sky(a)+1).toFixed(1);
+  E('path',{d:md,fill:'none',stroke:C.earth,'stroke-width':1.3,'stroke-dasharray':'5 4',opacity:.8},svg);
+  // paths over the mission window, a dot each day
+  const sp=[],ep=[];for(let h=0;h<=240;h++){const s=M.series(h);sp.push([X(s.sa),Y(s.se)]);ep.push([X(s.ea),Y(s.ee)]);}
+  const poly=pts=>pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join('');
+  E('path',{d:poly(sp),fill:'none',stroke:C.sun,'stroke-width':1.5,'stroke-dasharray':'2 4','stroke-linecap':'round',opacity:.85},svg);
+  E('path',{d:poly(ep),fill:'none',stroke:C.earth,'stroke-width':1.5,opacity:.9},svg);
+  for(let k=0;k<=10;k++){const h=k*24;E('circle',{cx:sp[h][0],cy:sp[h][1],r:2.2,fill:C.sun},svg);}
+  const dl=(x,y,t,anc)=>{const n=E('text',{x,y,'text-anchor':anc,'font-size':11,fill:C.ink3},svg);n.textContent=t;};
+  dl(sp[0][0]+6,sp[0][1]-7,'day 1','start');dl(sp[240][0]+2,sp[240][1]+16,'window end','middle');
+  // terrain
+  E('path',{d:d+`L${xr},${bottom}L${xl},${bottom}Z`,fill:C.terrain},svg);
+  E('path',{d,fill:'none',stroke:C.rim,'stroke-width':1.2,'stroke-linejoin':'round'},svg);
+  // 0° local horizontal
+  E('line',{x1:xl,x2:xr,y1:Y(0),y2:Y(0),stroke:C.ink2,'stroke-opacity':.55,'stroke-dasharray':'1 3'},svg);
+  E('text',{x:xl-8,y:Y(0)+4,'text-anchor':'end','font-size':11,fill:C.ink2},svg).textContent='0°';
+  // compass
+  const cy=bottom+1, names={0:'N',90:'E',180:'S',270:'W'};
+  E('line',{x1:xl,x2:xr,y1:cy,y2:cy,stroke:C.ink3,'stroke-opacity':.5},svg);
+  for(let a=0;a<360;a+=10){const x=X(a),big=a%90===0,mid=a%30===0;if(x<xl||x>xr)continue;
+    E('line',{x1:x,x2:x,y1:cy,y2:cy+(big?7:mid?5:3),stroke:C.ink3,'stroke-opacity':big?1:.6},svg);
+    if(big)E('text',{x,y:cy+21,'text-anchor':'middle','font-size':13,'font-weight':600,fill:C.ink},svg).textContent=names[a];
+    else if(mid)E('text',{x,y:cy+20,'text-anchor':'middle','font-size':11,fill:C.ink3},svg).textContent=a+'°';}
+  // discs at the scrubber hour: full disc faded, the part above the skyline at full strength
+  const s=M.series(HOUR);
+  function disc(a,e,R,core){const x=X(a),y=Y(e),rx=Math.max(R*px,1.2),ry=R*py;
+    E('ellipse',{cx:x,cy:y,rx,ry,fill:core,'fill-opacity':.3},svg);
+    E('ellipse',{cx:x,cy:y,rx,ry,fill:core,'clip-path':'url(#skyclip)'},svg);return[x,y,rx,ry];}
+  const [sx,sy]=disc(s.sa,s.se,M.SUN_R,C.sunCore), [ex,ey,,ery]=disc(s.ea,s.ee,M.EARTH_R,C.earthCore);
+  // blocker under the Sun
+  const bx=X(265.98),by=Y(M.sky(265.98));
+  E('circle',{cx:bx,cy:by,r:5,fill:'none',stroke:C.ink,'stroke-width':1.3},svg);
+  // labels, set on a plate so they stay readable over grid lines
+  const lab=(x,y,t1,t2,anchor,col)=>{const g=E('g',{},svg);
+    const a=E('text',{x,y,'text-anchor':anchor,'font-size':13,'font-weight':500,fill:col},g);a.textContent=t1;
+    const b=E('text',{x,y:y+15,'text-anchor':anchor,'font-size':11.5,fill:C.ink2},g);b.textContent=t2;
+    const bb=g.getBBox();g.insertBefore(E('rect',{x:bb.x-5,y:bb.y-3,width:bb.width+10,height:bb.height+6,rx:5,fill:C.plot,'fill-opacity':.88}),a);};
+  lab(sx-14,sy-62,'Sun, behind the ridge','1.08° up · disc fraction 0.01','end',C.sun);
+  E('line',{x1:sx-10,y1:sy-36,x2:sx-2,y2:sy-6,stroke:C.sun,'stroke-opacity':.6},svg);
+  lab(ex-12,ey-ery+6,'Earth, in view','2.97° up · clearance 2.46°','end',C.earth);
+  E('text',{x:X(122)-4,y:Y(M.sky(122)+1)+4,'text-anchor':'end','font-size':11,fill:C.earth,'fill-opacity':.9},svg).textContent='antenna mask';
+})();
+
+/* ── Timeline ── */
+(function(){
+  const svg=document.getElementById('tl');
+  const H0=-72,H1=312,x0=52,w=940,k=w/(H1-H0),X=h=>x0+(h-H0)*k;
+  const ax=14,sy=26,bh=26,ey=60,dy=104,ly=126;
+  const S=[];for(let h=H0;h<H1;h++)S.push(M.series(h));
+  const g=E('g',{},svg);
+  E('text',{x:0,y:sy+17,'font-size':13,fill:C.ink},g).textContent='Sun';
+  E('text',{x:0,y:ey+17,'font-size':13,fill:C.ink},g).textContent='Earth';
+  [sy,ey].forEach((y,i)=>{E('rect',{x:x0,y,width:w,height:bh,rx:6,fill:C.plot,stroke:C.line},g);
+    const c=E('clipPath',{id:'c'+i},svg);E('rect',{x:x0,y,width:w,height:bh,rx:6},c);});
+  let sd='',sc='',ed='',ec='';
+  S.forEach(s=>{const x=X(s.h),ww=k+.15,inW=s.h>=0&&s.h<240;
+    if(s.sf>=.5){const hh=bh*s.sf,r=`M${x.toFixed(2)},${(sy+bh-hh).toFixed(2)}h${ww.toFixed(2)}v${hh.toFixed(2)}h${-ww.toFixed(2)}Z`;inW?sd+=r:sc+=r;}
+    if(s.link){const r=`M${x.toFixed(2)},${ey}h${ww.toFixed(2)}v${bh}h${-ww.toFixed(2)}Z`;inW?ed+=r:ec+=r;}});
+  E('path',{d:sc,fill:C.sun,'fill-opacity':.2,'clip-path':'url(#c0)'},g);E('path',{d:sd,fill:C.sun,'clip-path':'url(#c0)'},g);
+  E('path',{d:ec,fill:C.earth,'fill-opacity':.2,'clip-path':'url(#c1)'},g);E('path',{d:ed,fill:C.earth,'clip-path':'url(#c1)'},g);
+  for(let d=-3;d<=13;d++){const x=X(d*24),inW=d>=0&&d<10;
+    if(d>-3&&d<13)E('line',{x1:x,x2:x,y1:sy,y2:ey+bh,stroke:C.bg,'stroke-opacity':.6},g);
+    if(d<13){const t=E('text',{x:X(d*24+12),y:ax,'text-anchor':'middle','font-size':11,fill:inW?C.ink2:C.ink3},g);
+      t.textContent=inW?(d===0?'Day 1':String(d+1)):(d<0?d+' d':'+'+(d-9)+' d');if(!inW)t.setAttribute('fill-opacity',.7);
+      const dt=new Date(Date.UTC(2028,2,1)+d*864e5);
+      const tt=E('text',{x:X(d*24+12),y:dy,'text-anchor':'middle','font-size':11,fill:C.ink3},g);tt.textContent=String(dt.getUTCDate()).padStart(2,'0')+' Mar';if(!inW)tt.setAttribute('fill-opacity',.7);}}
+  E('text',{x:0,y:dy,'font-size':11,fill:C.ink3},g).textContent='UTC';
+  [0,240].forEach(h=>E('line',{x1:X(h),x2:X(h),y1:ax+4,y2:ey+bh+4,stroke:C.ink2,'stroke-opacity':.7},g));
+  // longest stretches: outlined on the band and labelled underneath
+  E('rect',{x:X(62)-2,y:sy-3,width:X(66)-X(62)+4,height:bh+6,rx:5,fill:'none',stroke:C.ink2,'stroke-width':1.3,'stroke-dasharray':'3 2'},g);
+  E('rect',{x:X(209)-2,y:ey-3,width:X(240)-X(209)+4,height:bh+6,rx:6,fill:'none',stroke:C.nogo,'stroke-width':2},g);
+  E('text',{x:X(64),y:ly,'text-anchor':'middle','font-size':11.5,fill:C.ink2},g).textContent='Longest dark 4 h, limit 6 h, passes';
+  const vt=E('text',{x:X(224.5)+8,y:ly,'text-anchor':'middle','font-size':11.5,'font-weight':500,fill:C.nogo},g);vt.textContent='Longest blackout 31 h, limit 12 h';
+  const vb=vt.getBBox(),lx=vb.x-10,lyc=vb.y+vb.height/2;E('circle',{cx:lx,cy:lyc,r:6,fill:C.nogo},g);
+  E('path',{d:`M${lx-2.4} ${lyc-2.4}l4.8 4.8M${lx+2.4} ${lyc-2.4}l-4.8 4.8`,stroke:'#0b0b0c','stroke-width':1.8,'stroke-linecap':'round'},g);
+  // scrubber
+  const x=X(HOUR+.5);
+  E('line',{x1:x,x2:x,y1:ax+5,y2:ey+bh+5,stroke:C.accent,'stroke-width':2},g);
+  E('circle',{cx:x,cy:ey+bh+7,r:5,fill:C.accent,stroke:'#141415','stroke-width':2},g);
+  const t=E('text',{x,y:ax,'text-anchor':'middle','font-size':11,'font-weight':500,fill:'#141414'},g);t.textContent='Day 3 · 03 Mar 15:00 UTC';
+  const b=t.getBBox();g.insertBefore(E('rect',{x:b.x-8,y:b.y-2,width:b.width+16,height:b.height+4,rx:(b.height+4)/2,fill:C.accent}),t);
+})();
+</script>
+</body>
+</html>
