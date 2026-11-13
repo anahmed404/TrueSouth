@@ -41,8 +41,8 @@ each integration checkpoint.
 
 | Milestone | State |
 | :--- | :--- |
-| M0 Foundations | not started |
-| M1 Thin slice | not started |
+| M0 Foundations | complete, 2026-11-13: S0 to S2, MC0 to MC2, T0, A0 and A1 verified; 151 Python and 1,058 web tests pass; the app loads all five fixture sites |
+| M1 Thin slice | in progress: S3 to S6, MC4a and A7 verified; S7 and MC3 in review; A2 and S9 being built |
 | M2 Mission Control complete on catalog data | not started |
 | M3 Everything | not started |
 | M4 Tuned and submitted | not started |
@@ -151,6 +151,14 @@ each integration checkpoint.
 - **State:** verified (the orchestrator, Claude Fable 5.2, ran gate G10 on the final 58 shared cases, largest difference 0 against a limit of 1e-9, and the sweep timing, 56 ms for 8 sites over the full grid; Codex, gpt-6.1-terra compared it line by line with scoring.py, ran 350 random series and profiles through both with no mismatch, and broke it eight ways to see which G10 catches)
 - **Changed:** `web/src/lib/scoring/`, this entry
 - **Notes:** 58 regenerated cases, largest absolute difference from the reference 0 (limit 1e-9). Slip sweep, 8 sites, 52,584 hours, 100-day window: 56.4 ms. The sweep stores typed arrays; one landing is rebuilt on read. Evaluation hooks are a follow-up. No disagreement with `docs/science.md` §9–11.
+
+#### 2026-11-13 · MC1 · Loaders, decoders and the data hooks
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote the decoders, loaders, data store, hooks, time helpers and tests — agent ran typecheck, vitest and the production build, and opened DataCheck on the fixture server; the orchestrator has not checked it yet
+- **State:** verified (orchestrator ran typecheck, 1,058 tests and build on the merge with main; Codex review, six fixes confirmed)
+- **Changed:** `web/src/data/`, `web/src/state/data.ts`, `web/src/lib/time/`, `docs/tracks/README.md`, this entry
+- **Notes:** Decoded series are Float64Array so they match Python's float64 decode. A missing terrain.bin, closeup.bin or validation.json is ready with null data. Custom site ids load from `/api/custom/<id>/`.
+  Review fixes were made: series scale and offset are checked against the contract, a mounted hook reloads after dropSite, mesh tests pin cell order, an absent mesh is not fetched, and profiles must include every required field.
 
 #### 2026-11-13 · MC4a · C2 theme, shared components, start screen and Mission Control shell
 - **Who:** Claude Code agent, for the orchestrator

@@ -12,7 +12,9 @@ globe lives in the [System view](system-view.md).
 
 ## What it shows
 
-- **Base layer:** shaded relief from the 80 m map, covering 80°S to the pole.
+- **Base layer:** shaded relief from the 80 m map, covering 80°S to the pole. It is lit
+  from the top-left of the image as a drawing convention
+  ([`science.md`](../science.md) §2.4), not by the real Sun.
 - **Overlays,** one at a time, with an opacity slider:
   - NASA's average sunlight (share of time lit, averaged over 18.6 years).
   - NASA's average Earth visibility.

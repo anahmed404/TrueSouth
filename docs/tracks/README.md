@@ -69,13 +69,15 @@ Mission Control.
 useManifest()            // time grid, constants
 useSites()               // the catalog
 useSite(siteId)          // one site's sites.json entry and meta
-useSeries(siteId)        // decoded Float32Array per column
+useSeries(siteId)        // decoded Float64Array per column
 useSkyline(siteId)       // the five skyline arrays
 useTerrain(siteId)       // the local mesh arrays, or null
 useCloseup(siteId)       // the close-up mesh arrays, or null
 useSystem()              // sub-solar and sub-Earth points, distances
 useProfiles()            // the presets
 ```
+
+Series values are Float64Array, computed as raw * scale + offset in float64, so they match the Python reference exactly and scoring agrees to 1e-9.
 
 Each hook returns `{ status: "loading" | "ready" | "error", data, error }`.
 
