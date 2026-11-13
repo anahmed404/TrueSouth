@@ -261,8 +261,13 @@ export function createScenarioStore(catalog: ScenarioCatalog, search = ""): Scen
 
     setLandingDate: (utc, write = "push") => {
       const state = get();
-      const times = landingFromHour(state, utc);
-      if (!times) return;
+      let landingHour: number;
+      try {
+        landingHour = utcToHourIndex(state.catalog.grid, utc);
+      } catch {
+        return;
+      }
+      const times = moveLandingKeepingOffset(state, landingHour);
       if (times.landingUtc === state.landingUtc && times.currentUtc === state.currentUtc) return;
       set(commit(state, { ...times, historyMode: write }));
     },
@@ -277,9 +282,7 @@ export function createScenarioStore(catalog: ScenarioCatalog, search = ""): Scen
       } catch {
         return;
       }
-      const last = lastLandingHour(grid, state.profile.duration_days);
-      const landingUtc = hourIndexToUtc(grid, clamp(hour, 0, last));
-      const times = reclampTimes(grid, state.profile.duration_days, landingUtc, state.currentUtc);
+      const times = moveLandingKeepingOffset(state, hour);
       if (times.landingUtc === state.landingUtc && times.currentUtc === state.currentUtc) return;
       set(commit(state, { ...times, historyMode: "push" }));
     },
@@ -1022,13 +1025,30 @@ function reclampTimes(
   };
 }
 
-function landingFromHour(state: ScenarioData, utc: string): { landingUtc: string; currentUtc: string } | null {
+/**
+ * A new landing hour that keeps the current time's offset from landing, the link's `t`
+ * (docs/data-contracts.md, "Shareable scenario link"): the scrubber moves with the
+ * landing. The landing is clamped to the last hour whose window fits, and the current
+ * time only to the timeline that the time grid allows.
+ */
+function moveLandingKeepingOffset(
+  state: ScenarioData,
+  landingHour: number,
+): { landingUtc: string; currentUtc: string } {
+  const grid = state.catalog.grid;
+  const durationDays = state.profile.duration_days;
+  let offset = 0;
   try {
-    utcToHourIndex(state.catalog.grid, utc);
+    offset = utcToHourIndex(grid, state.currentUtc) - utcToHourIndex(grid, state.landingUtc);
   } catch {
-    return null;
+    offset = 0;
   }
-  return reclampTimes(state.catalog.grid, state.profile.duration_days, utc, state.currentUtc);
+  const landing = clamp(landingHour, 0, lastLandingHour(grid, durationDays));
+  const bounds = timelineBounds(grid, landing, durationDays);
+  return {
+    landingUtc: hourIndexToUtc(grid, landing),
+    currentUtc: hourIndexToUtc(grid, clamp(landing + offset, bounds.start, bounds.end)),
+  };
 }
 
 function currentFromHour(state: ScenarioData, utc: string): string | null {
