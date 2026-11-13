@@ -3,7 +3,7 @@ import { Button } from "../../components/Button";
 import { Explain } from "../../components/Explain";
 import { formatUtc } from "../../components/format";
 import type { FreeSpace } from "./free-space";
-import type { SceneProps, SceneStatus } from "../scene";
+import { STILL_PICTURE_URL, type SceneProps, type SceneStatus } from "../scene";
 import { sceneDisplay, stillNote } from "./scene-status";
 import { cameraView } from "./views";
 
@@ -59,14 +59,16 @@ function tooSmall(space: FreeSpace): boolean {
 
 type StillProps = { status: SceneStatus; freeSpace: FreeSpace; onTryAnyway: () => void };
 
-/**
- * The still picture behind the interface, with its note. The picture itself is a plain
- * placeholder until the scene's image files exist (work package S16).
- */
+/** The still picture behind the interface, with its note. */
 function StillPicture({ status, freeSpace, onTryAnyway }: StillProps) {
   return (
     <>
-      <div className="scene-still" role="img" aria-label="Still picture of the System view. The image is not made yet." />
+      <img
+        className="scene-still"
+        src={STILL_PICTURE_URL}
+        alt="Still picture of the System view: the Moon half lit, with the Sun and Earth on either side."
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      />
       {tooSmall(freeSpace) ? null : (
         <div className="plate scene-plate scene-note" style={plateStyle(freeSpace, 12)} role="status">
           <p>

@@ -10,6 +10,7 @@ import { FloatingWindow } from "./mission/floating-window";
 import { FocusedSitePanel } from "./mission/focused-site-panel";
 import { ScenarioProvider, useScenario, useScenarioStore } from "./mission/scenario-context";
 import { SceneSlot } from "./mission/scene-slot";
+import { SpaceScene } from "../features/three/scene";
 import {
   foldAnnouncement,
   loadShellLayout,
@@ -246,6 +247,7 @@ function MissionShell() {
       />
 
       <SceneSlot
+        Scene={SpaceScene}
         view={state.camera}
         scenario={scenario}
         freeSpace={freeSpace}
