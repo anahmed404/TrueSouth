@@ -291,9 +291,17 @@ describe("the six views", () => {
   });
 
   it("say that the flat views are flat", () => {
-    expect(textOf("slip_planner")).toMatch(/\bflat\b/);
     expect(textOf("polar_map")).toMatch(/\bflat\b/);
     expect(textOf("landers_eye")).toMatch(/\b2D\b/);
+  });
+
+  it("explain the Slip Planner as the sites on the Moon and their landing dates", () => {
+    // A camera view since 2026-11-13 (docs/features/slip-planner.md), no longer a flat grid.
+    const text = textOf("slip_planner");
+    expect(text).toMatch(/south pole/);
+    expect(text).toMatch(/GO, CAUTION or NO-GO/);
+    expect(text).toMatch(/landing dates/);
+    expect(text).not.toMatch(/grid/);
   });
 
   it("explain the Lander's eye as a full circle unrolled into a strip", () => {

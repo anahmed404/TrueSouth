@@ -789,14 +789,16 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 - **AI use:** Claude Code (Sonnet 5.5) — rewrote `docs/features/slip-planner.md` and the
   places that called the Slip Planner a window, from `design/variants/c2-slip-on-moon.md` and
   the team lead's picks — not yet read by the team lead; links checked by script
-- **State:** built, not verified (documents only)
+- **State:** verified (308 Python tests and 1,578 web tests pass on the merge with main; read by the orchestrator against the design note and the prototype's code)
 - **Changed:** `docs/features/slip-planner.md`, `CONTEXT.md`, `DESIGN.md`,
   `docs/decisions/0013-space-first-mission-control.md`, `docs/build-plan.md`,
   `docs/challenge.md`, and the Slip Planner wording in `docs/features/` and `docs/tracks/`
 - **Notes:** Variant a (lamp and ring) is picked; variant b and the window of squares are
-  rejected. New glossary terms Spot and Landing-date panel need entries in the glossary test
-  and in `web/src/lib/explain.ts`; the `slip_planner` explanation there still says "colour
-  grid".
+  rejected. The orchestrator closed the open points: the shading is on when the view opens;
+  strips are landings at 00:00 UTC and a landing at another hour gets a note; picking a
+  camera view closes Compare. Spot and Landing-date panel are in the glossary test as layout
+  words, and the `slip_planner` explanation in `web/src/lib/explain.ts` now describes the
+  view. The shell still shows a Slip Planner window button until MC7 is built.
 
 #### 2026-11-13 · planning · One orchestrator runs all four tracks
 - **Who:** team lead
