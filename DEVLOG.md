@@ -124,6 +124,13 @@ each integration checkpoint.
 
 ## Mission Control
 
+#### 2026-11-13 · MC2 · Browser port of the mission scoring reference
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — ported `scoring.py` into `web/src/lib/scoring/` and wrote the gate G10 test plus hand-worked unit tests — agent ran `pnpm --dir web typecheck`, `pnpm --dir web test` and `pnpm --dir web build`; a human has not reviewed it yet
+- **State:** built, not verified
+- **Changed:** `web/src/lib/scoring/`, this entry
+- **Notes:** 58 regenerated cases, largest absolute difference from the reference 0 (limit 1e-9). Slip sweep, 8 sites, 52,584 hours, 100-day window: 56.4 ms. The sweep stores typed arrays; one landing is rebuilt on read. Evaluation hooks are a follow-up. No disagreement with `docs/science.md` §9–11.
+
 #### 2026-11-13 · MC0 · Web scaffold with panel placeholders
 - **Who:** Cursor agent, for the orchestrator
 - **AI use:** Cursor, grok-4.7 — wrote the Vite app, router, theme tokens, data middleware,
