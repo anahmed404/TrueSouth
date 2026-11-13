@@ -752,6 +752,16 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     checks like the ones above.
   - Flat mode (the shell's `mode: "flat"`): the scene draws nothing, unmounts its Canvas and
     reports `flatViews: []`, so the shell's still picture stands for every view.
+  - Review fixes (Gemini review of #75): the System view can pitch away from the pole (a step
+    toward it stops at the limit and never flips); a flight that changes the camera view is
+    locked against drags, scrolls and keys, another pick re-targets it, and the Polar map's
+    lighting blend lives in the rig and ends at 0 or 1; failed loads say so on a plate and
+    never draw a made-up Sun, Earth or distance (`plates.ts`); the apron is lowered only
+    under the patch; Lander's eye labels read "Sun, 1.1° below level · in view" from the
+    series' disc fraction and clearance; replaced Moon textures are released; the 8K seam
+    no longer wraps at 180°; pins are named with their status. Checked with rig, plate,
+    ground and label tests, and in the browser with hardware WebGL (the failure states were
+    forced through the app's own data store).
   - three.js r187 prints a `THREE.Clock` deprecation warning from inside React Three Fiber.
 
 #### 2026-11-13 · T0 · Coordinate helpers and a shared Canvas mount
