@@ -616,6 +616,14 @@ export interface Site {
    */
   name: string;
   /**
+   * Range of nearby mean sunlight, or null; science.md §7.1.
+   */
+  nearby_sun?: NearbySun | null;
+  /**
+   * Distance from the listed point in map metres for a variant, otherwise null.
+   */
+  offset_m?: number | null;
+  /**
    * Mission outcome, or null.
    */
   outcome: string | null;
@@ -635,6 +643,34 @@ export interface Site {
    * Terrain tier.
    */
   terrain_tier: "core80" | "wide240" | "sphere";
+  /**
+   * Listed site id for a best-lit variant, otherwise null.
+   */
+  variant_of?: string | null;
+}
+/**
+ * Range of mean sunlight at usable nearby map pixel centres (science.md §7.1).
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "NearbySun".
+ */
+export interface NearbySun {
+  /**
+   * Highest mean sun_frac over the time grid.
+   */
+  max: number;
+  /**
+   * Lowest mean sun_frac over the time grid.
+   */
+  min: number;
+  /**
+   * Number of usable pixel centres evaluated.
+   */
+  points: number;
+  /**
+   * Search radius in map metres.
+   */
+  radius_m: number;
 }
 /**
  * Site slope and measurement baseline.

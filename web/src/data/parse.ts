@@ -145,6 +145,37 @@ export function parseSites(value: unknown): Sites {
     const record = expectObject(site, `sites.json item ${index}`);
     expectString(record.id, "sites.json", `item ${index} id`);
     expectString(record.terrain_tier, "sites.json", `item ${index} terrain_tier`);
+    const label = `sites.json item ${index}`;
+    const variantOf = record.variant_of ?? null;
+    const offset = record.offset_m ?? null;
+    if (variantOf !== null) {
+      const id = expectString(variantOf, label, "variant_of");
+      if (!/^(?:[a-z][a-z0-9]*(?:_[a-z0-9]+)*|c_-?\d+\.\d{4}_\d+\.\d{4})$/.test(id)) {
+        throw new Error(`${label} variant_of must be a site id`);
+      }
+      if (record.id !== `${id}_best_lit`) {
+        throw new Error(`${label} id must equal <variant_of>_best_lit`);
+      }
+    }
+    if (offset !== null && expectNumber(offset, label, "offset_m") < 0) {
+      throw new Error(`${label} offset_m must not be negative`);
+    }
+    if ((variantOf === null) !== (offset === null)) {
+      throw new Error(`${label} variant_of and offset_m must both be null or both set`);
+    }
+    if (record.nearby_sun !== undefined && record.nearby_sun !== null) {
+      const nearby = expectObject(record.nearby_sun, `${label} nearby_sun`);
+      if (Object.keys(nearby).some((key) => !["radius_m", "points", "min", "max"].includes(key))) {
+        throw new Error(`${label} nearby_sun has an unknown field`);
+      }
+      const radius = expectNumber(nearby.radius_m, label, "nearby_sun.radius_m");
+      const points = expectNumber(nearby.points, label, "nearby_sun.points");
+      const min = expectNumber(nearby.min, label, "nearby_sun.min");
+      const max = expectNumber(nearby.max, label, "nearby_sun.max");
+      if (radius <= 0 || !Number.isInteger(points) || points < 1 || min < 0 || max > 1 || min > max) {
+        throw new Error(`${label} nearby_sun requires a positive radius, positive integer points and 0 <= min <= max <= 1`);
+      }
+    }
     return record as unknown as Sites[number];
   });
 }

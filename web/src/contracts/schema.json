@@ -1247,6 +1247,46 @@
       "title": "MissionProfile",
       "type": "object"
     },
+    "NearbySun": {
+      "additionalProperties": false,
+      "description": "Range of mean sunlight at usable nearby map pixel centres (science.md §7.1).",
+      "properties": {
+        "max": {
+          "description": "Highest mean sun_frac over the time grid.",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Max",
+          "type": "number"
+        },
+        "min": {
+          "description": "Lowest mean sun_frac over the time grid.",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Min",
+          "type": "number"
+        },
+        "points": {
+          "description": "Number of usable pixel centres evaluated.",
+          "minimum": 1,
+          "title": "Points",
+          "type": "integer"
+        },
+        "radius_m": {
+          "description": "Search radius in map metres.",
+          "exclusiveMinimum": 0,
+          "title": "Radius M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "radius_m",
+        "points",
+        "min",
+        "max"
+      ],
+      "title": "NearbySun",
+      "type": "object"
+    },
     "ProfileProvenance": {
       "additionalProperties": false,
       "description": "Provenance for every mission profile value, including null values.",
@@ -1832,6 +1872,32 @@
           "title": "Name",
           "type": "string"
         },
+        "nearby_sun": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NearbySun"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Range of nearby mean sunlight, or null; science.md §7.1."
+        },
+        "offset_m": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Distance from the listed point in map metres for a variant, otherwise null.",
+          "title": "Offset M"
+        },
         "outcome": {
           "anyOf": [
             {
@@ -1874,6 +1940,20 @@
           ],
           "title": "Terrain Tier",
           "type": "string"
+        },
+        "variant_of": {
+          "anyOf": [
+            {
+              "pattern": "^(?:[a-z][a-z0-9]*(?:_[a-z0-9]+)*|c_-?\\d+\\.\\d{4}_\\d+\\.\\d{4})$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Listed site id for a best-lit variant, otherwise null.",
+          "title": "Variant Of"
         }
       },
       "required": [
