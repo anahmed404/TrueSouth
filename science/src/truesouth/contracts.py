@@ -69,6 +69,21 @@ class CatalogSites(RootModel[list[CatalogSite]]):
     root: list[CatalogSite] = Field(description='Ordered catalog site inputs.')
 
 
+class NearbySun(Contract):
+    """Range of mean sunlight at usable nearby map pixel centres (science.md §7.1)."""
+
+    radius_m: float = Field(gt=0, strict=True, allow_inf_nan=False, description='Search radius in map metres.')
+    points: int = Field(ge=1, strict=True, description='Number of usable pixel centres evaluated.')
+    min: float = Field(ge=0, le=1, strict=True, description='Lowest mean sun_frac over the time grid.')
+    max: float = Field(ge=0, le=1, strict=True, description='Highest mean sun_frac over the time grid.')
+
+    @model_validator(mode='after')
+    def ordered_range(self):
+        if self.min > self.max:
+            raise ValueError('nearby_sun min must be at most max')
+        return self
+
+
 class Site(Contract):
     """Catalog or custom site."""
 
@@ -86,6 +101,17 @@ class Site(Contract):
     slope: Slope | None = Field(description='Slope and measurement baseline, or null.')
     quickmap_url: str = Field(description='NASA Quickmap link.')
     moontrek_url: str = Field(description='NASA Moon Trek link.')
+    variant_of: SiteId | None = Field(default=None, description='Listed site id for a best-lit variant, otherwise null.')
+    offset_m: float | None = Field(default=None, ge=0, strict=True, allow_inf_nan=False, description='Distance from the listed point in map metres for a variant, otherwise null.')
+    nearby_sun: NearbySun | None = Field(default=None, description='Range of nearby mean sunlight, or null; science.md §7.1.')
+
+    @model_validator(mode='after')
+    def variant_identity(self):
+        if (self.variant_of is None) != (self.offset_m is None):
+            raise ValueError('variant_of and offset_m must both be null or both set')
+        if self.variant_of is not None and self.id != f'{self.variant_of}_best_lit':
+            raise ValueError('variant id must equal <variant_of>_best_lit')
+        return self
 
 
 class Sites(RootModel[list[Site]]):

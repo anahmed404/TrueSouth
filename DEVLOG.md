@@ -49,6 +49,32 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-13 · S15A · Sunlit-peak placement, decision 0012 part A
+- **Who:** Codex implementation agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — wrote contract fields, placement module and tests;
+  checked synthetic geometry, real skyline/series integration, full automated suites
+  and the read-only Connecting Ridge run; human review pending
+- **State:** verified (orchestrator ran 251 Python and 1,494 web tests, typecheck and type generation on the merge with main; Cursor, grok-4.7 checked the candidate geometry independently to a millimetre, reproduced Connecting Ridge and de Gerlache rim on real data and ran ten mutations; its two findings were fixed by the orchestrator)
+- **Changed:** `contracts.py`, pure `placement.py`, new Science tests, generated schema
+  and TypeScript types, `parseSites` and its tests; fixture sites gained only three null fields.
+- **Checks:** `uv run pytest`: 250 passed; web tests: 1,334 passed in 42 files;
+  web typecheck and production build passed. All exit codes 0. Schema/types regenerated;
+  fixture regeneration changed no other values or files. Merged `origin/main` before checks.
+- **Real data:** Connecting Ridge, both prepared maps and committed `system.bin`, 13
+  candidates, none skipped. Mean `sun_frac`: min 0.397490348, max 0.869614946;
+  listed coordinates 0.598582298 (the containing pixel centre is 0.599433535).
+  Best: −89.451160220°, 222.857279836° E, offset 148.536579 m;
+  map Δx −139.901063 m, Δy −49.907993 m. Agrees with decision 0012's rounded
+  0.397–0.870, listed 0.599, best −89.45116° / 222.8573° E, 149 m, −140 m / −50 m.
+  520.46 s total, including 13 candidate calculations (480.69 s) and the listed point.
+  Other four sunlit peaks not rerun; no real-data outputs committed.
+- **Part B:** Inject `mean_for_point(point)` into `evaluate_placement`; cache each
+  candidate's own ground, skyline, unquantised series and mean, keyed by map pixel and
+  input/method versions (about 13 skylines per site, roughly 40 s each). Cache the listed
+  coordinates separately. Attach the range to both records; `build_variant` returns
+  partial Site fields for normal derived-field processing, never a CatalogSite.
+  Exact sunlight and distance ties use smallest row, then column. No spec questions.
+
 #### 2026-11-13 · S8 part 2 · Catalog slopes and terrain meshes
 - **Who:** Codex agent, for the orchestrator
 - **AI use:** Codex, gpt-6.1-terra — wrote tests first, implemented build-sites wiring, and ran real-data builds and checks — human and orchestrator review pending
