@@ -95,6 +95,13 @@ each integration checkpoint.
 
 ## Mission Control
 
+#### 2026-11-13 · MC1 · Loaders, decoders and the data hooks
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote the decoders, loaders, data store, hooks, time helpers and tests — agent ran typecheck, vitest and the production build, and opened DataCheck on the fixture server; the orchestrator has not checked it yet
+- **State:** built, not verified
+- **Changed:** `web/src/data/`, `web/src/state/data.ts`, `web/src/lib/time/`, this entry
+- **Notes:** Decoded series are Float64Array so they match Python's float64 decode. A missing terrain.bin, closeup.bin or validation.json is ready with null data. Custom site ids load from `/api/custom/<id>/`.
+
 #### 2026-11-13 · MC0 · Web scaffold with panel placeholders
 - **Who:** Cursor agent, for the orchestrator
 - **AI use:** Cursor, grok-4.7 — wrote the Vite app, router, theme tokens, data middleware,
