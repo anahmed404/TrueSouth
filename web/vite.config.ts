@@ -16,6 +16,17 @@ function dataSource(env: Record<string, string>): DataSource {
   return value === "fixtures" ? "fixtures" : "derived";
 }
 
+const contentTypes: Record<string, string> = {
+  ".json": "application/json; charset=utf-8",
+  ".bin": "application/octet-stream",
+  ".webp": "image/webp",
+  ".png": "image/png",
+};
+
+function contentTypeFor(filePath: string): string {
+  return contentTypes[path.extname(filePath).toLowerCase()] ?? "application/octet-stream";
+}
+
 function sendNotFound(res: ServerResponse): void {
   res.statusCode = 404;
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
@@ -47,6 +58,8 @@ function dataFilesPlugin(source: DataSource): Plugin {
             }
 
             res.statusCode = 200;
+            res.setHeader("Content-Type", contentTypeFor(filePath));
+            res.setHeader("Content-Length", stat.size);
             const stream = fs.createReadStream(filePath);
             stream.on("error", () => {
               if (!res.headersSent) {
