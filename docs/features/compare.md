@@ -10,8 +10,8 @@ Prototype: [`../../design/variants/c2-space-first.md`](../../design/variants/c2-
 ## A floating window
 
 Compare is a table, not a place, so it opens as a **floating window** over the scene and
-leaves the camera where it is. It follows the same rules as the Slip Planner window
-([`slip-planner.md`](slip-planner.md)):
+leaves the camera where it is. It follows the floating-window rules in
+[`mission-control.md`](mission-control.md):
 
 - **Opening.** The "Compare" button on the view bar, marked with a small window icon. The
   window rises and fades in over 180 ms (none under "reduce motion").
@@ -19,8 +19,7 @@ leaves the camera where it is. It follows the same rules as the Slip Planner win
   between the view bar and the timeline. On a phone it fills the screen.
 - **Header.** The title "Compare", the summary sentence (below), an "Export CSV" button and
   a close button.
-- **Closing.** Escape, or the close button. Focus returns to the view bar button. Clicking
-  the Slip Planner button replaces this window with the Slip Planner.
+- **Closing.** Escape, or the close button. Focus returns to the view bar button.
 - **Not modal.** `role="dialog"` with `aria-modal="false"`.
 - **What stays visible.** The scene, the app bar, the view bar, the side panels and the
   timeline. The scrubber and the landing date keep working, and the table updates with
@@ -44,7 +43,7 @@ its coordinates. Rows, top to bottom:
 | Slope | Degrees, with its baseline and source |
 | Timeline | The mission window's Sun and Earth bands, small |
 | Skyline | A small Lander's eye strip |
-| Nearby dates | The site's Slip Planner row for 60 days either side of the landing date |
+| Nearby dates | The site's Slip Planner strip for 60 days either side of the landing date |
 
 The prototype draws the first eight rows. The last three come from the earlier spec and
 are kept.

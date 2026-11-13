@@ -9,13 +9,21 @@ the switching:
 | :--- | :--- |
 | System view | Home. The camera looks at the whole scene. |
 | Polar map | The camera flies to the south pole, and the flat map takes over. |
+| Slip Planner | The camera flies to a stop above the south pole, and the selected sites become spots on the ground. The bottom panel shows landing dates. |
 | Local terrain | The camera continues down to the focused site. |
 | Lander's eye | The camera drops to 2 m above the ground. |
-| Slip Planner | Opens as a floating window over the scene. The camera stays put. |
 | Compare | Opens as a floating window over the scene. The camera stays put. |
 
 The team lead decided this on 2026-11-13. It replaces the docked layout approved earlier
 the same day.
+
+**Update, 2026-11-13.** The table above first had the Slip Planner as a floating window
+over a grid. After seeing the prototype, the team lead picked the Slip Planner as a camera
+view on the Moon instead, so the table now lists it as one. The view sits between the Polar
+map and Local terrain, and Compare is the only floating window. The spec is
+[`../features/slip-planner.md`](../features/slip-planner.md), and the design note is
+[`../../design/variants/c2-slip-on-moon.md`](../../design/variants/c2-slip-on-moon.md). The
+quoted words below were said before the prototype and are left as they were.
 
 In the team lead's words: "I want the main view to be the system view for the mission
 control which will be a 3d view of the sun moon and earth. We should probably have a
@@ -41,8 +49,8 @@ screenshots in `docs/design/c2/space-*.png`. The specs below were written from i
 
 - **The home view.** The System view is always behind the interface, not a tab. The
   timeline's current time moves the Sun and Earth in it.
-- **Navigation.** One floating view bar replaces the six tabs. Four of its entries move the
-  camera; two open floating windows. Local terrain is no longer a separate screen: it is the
+- **Navigation.** One floating view bar replaces the six tabs. Five of its entries move the
+  camera; one opens a floating window. Local terrain is no longer a separate screen: it is the
   scene with the camera low over the site.
 - **Panels.** Each panel floats with a 16 px margin and is only as tall as its content. The
   side panels and the timeline fold away, so the scene can fill the window.

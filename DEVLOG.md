@@ -732,6 +732,20 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Planning
 
+#### 2026-11-13 · MC7 (spec) · The Slip Planner spec rewritten as a view on the Moon
+- **Who:** team lead
+- **AI use:** Claude Code (Sonnet 5.5) — rewrote `docs/features/slip-planner.md` and the
+  places that called the Slip Planner a window, from `design/variants/c2-slip-on-moon.md` and
+  the team lead's picks — not yet read by the team lead; links checked by script
+- **State:** built, not verified (documents only)
+- **Changed:** `docs/features/slip-planner.md`, `CONTEXT.md`, `DESIGN.md`,
+  `docs/decisions/0013-space-first-mission-control.md`, `docs/build-plan.md`,
+  `docs/challenge.md`, and the Slip Planner wording in `docs/features/` and `docs/tracks/`
+- **Notes:** Variant a (lamp and ring) is picked; variant b and the window of squares are
+  rejected. New glossary terms Spot and Landing-date panel need entries in the glossary test
+  and in `web/src/lib/explain.ts`; the `slip_planner` explanation there still says "colour
+  grid".
+
 #### 2026-11-13 · planning · One orchestrator runs all four tracks
 - **Who:** team lead
 - **AI use:** Claude Code — wrote `docs/orchestration/` — team lead set the rules it
