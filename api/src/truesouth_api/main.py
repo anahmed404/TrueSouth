@@ -1,11 +1,11 @@
-"""Catalog-only HTTP API.
+"""Catalog files and on-demand custom sites."""
 
-Serves `/api/health`, derived files at `/data/`, and the built web app at `/`.
-Custom sites are a 501. The job queue and the sensitivity grid are not
-registered: the web app never calls those URLs.
-"""
-
+from contextlib import asynccontextmanager
 from pathlib import Path
+
+from truesouth.contracts import CustomSiteRequest, CustomSiteQueued, CustomSiteStatus
+from truesouth_api.jobs import Computer, Jobs, Rejected, START
+from truesouth_api.settings import cache_dir
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
@@ -58,12 +58,22 @@ def create_app(
     derived: Path | None = None,
     prepared: Path | None = None,
     web_dist: Path | None = None,
+    cache: Path | None = None,
+    jobs: Jobs | None = None,
 ) -> FastAPI:
     derived_root = derived if derived is not None else derived_dir()
     prepared_root = prepared if prepared is not None else prepared_dir()
     web_root = web_dist if web_dist is not None else web_dist_dir()
 
-    app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, redirect_slashes=False)
+    cache_root = cache if cache is not None else cache_dir()
+    service = jobs or Jobs(cache_root, Computer(derived_root, prepared_root, cache_root))
+
+    @asynccontextmanager
+    async def lifespan(app):
+        yield
+        service.close()
+
+    app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None, redirect_slashes=False)
 
     @app.middleware("http")
     async def refuse_traversal(request: Request, call_next):  # type: ignore[no-untyped-def]
@@ -79,9 +89,27 @@ def create_app(
     def health() -> JSONResponse:
         return JSONResponse(health_report(derived_root, prepared_root), headers={"Cache-Control": "no-store"})
 
-    @app.api_route("/api/custom/{rest:path}", methods=["GET", "HEAD"])
-    def custom_unavailable(rest: str) -> JSONResponse:
-        return JSONResponse(status_code=501, content={"message": CUSTOM_MESSAGE})
+    @app.post('/api/sites/custom', response_model=CustomSiteQueued)
+    def submit(request: Request, body: CustomSiteRequest):
+        try:
+            return service.submit(body, request.client.host if request.client else 'unknown')
+        except Rejected as error:
+            headers = {'Retry-After': str(error.retry)} if error.retry else {}
+            return JSONResponse({'message': error.message}, status_code=error.status, headers=headers)
+
+    @app.get('/api/sites/custom/{identity}', response_model=CustomSiteStatus)
+    def custom_status(identity: str):
+        state = service.status(identity)
+        return state if state else JSONResponse({'message': START}, status_code=404)
+
+    @app.api_route('/api/custom/{identity}/{rest:path}', methods=['GET', 'HEAD'])
+    def custom_files(request: Request, identity: str, rest: str):
+        if service.cached(identity) is None:
+            return JSONResponse({'message': START}, status_code=404)
+        if rest not in ('meta.json', 'series.bin', 'skyline.bin', 'terrain.bin'):
+            return _json_missing()
+        found = safe_file(cache_root, identity + '/' + rest)
+        return file_response(found, DATA_CACHE, request.headers) if found else _json_missing()
 
     @app.api_route("/api/{rest:path}", methods=API_METHODS)
     def unknown_api(rest: str) -> JSONResponse:

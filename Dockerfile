@@ -1,7 +1,7 @@
-# Catalog-only TrueSouth.
+# TrueSouth catalog and custom sites.
 # Node builds the web app. uv installs truesouth-api from uv.lock.
 # The final image serves that app, the API, and data/derived on port 8080.
-# The science package is not installed: this server does not run the pipeline.
+# Prepared-map runtime needs no rasterio; only the prepare extra installs it.
 
 FROM node:22-bookworm-slim AS web
 WORKDIR /src/web
@@ -31,6 +31,7 @@ COPY pyproject.toml uv.lock ./
 COPY api/pyproject.toml api/pyproject.toml
 COPY api/src api/src
 COPY science/pyproject.toml science/pyproject.toml
+COPY science/src science/src
 ENV UV_LINK_MODE=copy \
     UV_NO_MANAGED_PYTHON=1 \
     UV_PYTHON_DOWNLOADS=never \
@@ -51,6 +52,7 @@ ENV PATH="/app/.venv/bin:$PATH" \
     TRUESOUTH_WEB_DIST=/app/web/dist \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
+RUN mkdir -p /app/data/cache && chown truesouth:truesouth /app/data/cache
 USER truesouth
 EXPOSE 8080
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=6 \

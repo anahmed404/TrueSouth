@@ -37,7 +37,7 @@ PREPARED_MAPS = (
     "LDEM_60S_240MPP_ADJ.json",
 )
 
-UNAVAILABLE = "Custom sites and the sensitivity grid are not available in this version."
+UNAVAILABLE = "Custom sites need the terrain maps, which are not installed on this server."
 
 
 def _is_file(path: Path) -> bool:
@@ -169,11 +169,12 @@ def health_report(derived: Path, prepared: Path) -> dict[str, object]:
     else:
         status = "incomplete"
 
+    available = all(_is_file(prepared / name) for name in PREPARED_MAPS)
     return {
         "status": status,
-        "custom_sites": "not_available",
+        "custom_sites": "available" if available else "not_available",
         "sensitivity_grid": "not_available",
-        "message": UNAVAILABLE,
+        "message": ("Custom sites are available. Sensitivity grids are not available in this version." if available else UNAVAILABLE),
         "derived": {
             **files,
             "sites_json_readable": readable,

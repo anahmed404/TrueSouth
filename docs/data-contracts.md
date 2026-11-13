@@ -267,6 +267,9 @@ Response:
 { "site_id": "c_-89.2000_130.5000", "status": "queued", "position_in_queue": 1 }
 ```
 
+`name` is optional, trimmed, and at most 120 characters. Longitude is finite and normalised
+to [0, 360); coordinates are rounded before computing, with negative zero removed.
+
 `status` is `queued`, `running`, `ready` or `failed`. A known site returns `ready` at once.
 
 The id is the coordinates rounded to four decimals, as `c_<lat>_<lon>`. Anyone holding the
@@ -311,7 +314,9 @@ Sensitivity arrays are row-major, row 0 is north, and each contains `size * size
 
 ### Errors
 
-Every error is `{ "error": { "code": "...", "message": "plain sentence" } }` with a
+Custom-site HTTP errors use `{ "message": "plain sentence" }`; validation errors are HTTP 422.
+Job failures in the status response use `{ code, message }`. Other API errors use
+`{ "error": { "code": "...", "message": "plain sentence" } }` with a
 matching HTTP status. Codes: `invalid_coordinates`, `date_outside_time_grid`,
 `rate_limited`, `queue_full`, `terrain_unavailable`, `not_found`.
 

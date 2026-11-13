@@ -2,7 +2,7 @@ from datetime import datetime
 import math
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, RootModel, StringConstraints, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, RootModel, StringConstraints, field_validator, model_validator
 
 
 def _valid_utc(value: str) -> str:
@@ -565,8 +565,14 @@ class CustomSiteRequest(Contract):
     """Request to compute a custom site."""
 
     lat_deg: Latitude = Field(description='Latitude in degrees north.')
-    lon_deg: Longitude = Field(description='East longitude in degrees.')
-    name: str = Field(description='Custom site display name.')
+    lon_deg: float = Field(allow_inf_nan=False, description='Finite east longitude; normalised to [0, 360).')
+    name: Annotated[str, StringConstraints(strip_whitespace=True, max_length=120)] = Field(default='Custom site', description='Optional display name, trimmed and length limited.')
+
+    @field_validator('lon_deg')
+    @classmethod
+    def normalise_longitude(cls, value):
+        return value % 360
+
 
 
 class CustomSiteQueued(Contract):
@@ -580,7 +586,7 @@ class CustomSiteQueued(Contract):
 class ErrorDetail(Contract):
     """Structured API error."""
 
-    code: Literal['invalid_coordinates', 'date_outside_time_grid', 'rate_limited', 'queue_full', 'terrain_unavailable', 'not_found'] = Field(description='Stable error code.')
+    code: Literal['invalid_coordinates', 'date_outside_time_grid', 'rate_limited', 'queue_full', 'terrain_unavailable', 'not_found', 'computation_failed'] = Field(description='Stable error code.')
     message: str = Field(description='Plain-language error message.')
 
 

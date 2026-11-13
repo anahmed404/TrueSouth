@@ -592,13 +592,13 @@ export interface CustomSiteRequest {
    */
   lat_deg: number;
   /**
-   * East longitude in degrees.
+   * Finite east longitude; normalised to [0, 360).
    */
   lon_deg: number;
   /**
-   * Custom site display name.
+   * Optional display name, trimmed and length limited.
    */
-  name: string;
+  name?: string;
 }
 /**
  * Custom site job status.
@@ -640,7 +640,8 @@ export interface ErrorDetail {
     | "rate_limited"
     | "queue_full"
     | "terrain_unavailable"
-    | "not_found";
+    | "not_found"
+    | "computation_failed";
   /**
    * Plain-language error message.
    */
@@ -836,7 +837,8 @@ export interface ErrorDetail1 {
     | "rate_limited"
     | "queue_full"
     | "terrain_unavailable"
-    | "not_found";
+    | "not_found"
+    | "computation_failed";
   /**
    * Plain-language error message.
    */

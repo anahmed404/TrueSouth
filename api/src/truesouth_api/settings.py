@@ -48,3 +48,10 @@ def web_dist_dir() -> Path:
     if override:
         return Path(override)
     return repo_root() / "web" / "dist"
+
+
+def cache_dir() -> Path:
+    override = os.environ.get("TRUESOUTH_CACHE")
+    if override:
+        return Path(override)
+    return Path(os.environ.get(DATA_ROOT_ENV, repo_root() / "data")) / "cache"

@@ -146,53 +146,63 @@ def run(args):
         if not args.force and _current(target, site, built.get(site.id), newest_input):
             print(f'{site.id}: up to date')
             continue
-        tier = site_tier(site.lat_deg).item()
-        site_store = DemStore() if tier == 'sphere' else store
-        ground = None
-        slope = None
-        mesh = None
-        if tier != 'sphere':
-            if site_store.tiers(site.lat_deg, site.lon_deg).item() != tier:
-                raise ValueError(f'{site.id}: prepared {tier} terrain unavailable at site')
-            height, missing = site_store.sample(site.lat_deg, site.lon_deg)
-            if missing:
-                raise ValueError(f'{site.id}: site ground height is missing')
-            ground = float(height)
-            slope = polar_slope(site_store.core if tier == 'core80' else site_store.wide,
-                                site.lat_deg, site.lon_deg)
-            mesh = terrain_mesh(site_store, site.lat_deg, site.lon_deg)
-        skyline = compute_skyline(site_store, site.lat_deg, site.lon_deg)
-        series = build_series(site.lat_deg, site.lon_deg, ground if ground is not None else 0.,
-                              skyline.el_deg, global_data)
-        meta = SiteMeta(site_id=site.id, series=SeriesMeta(columns=SeriesLayout().arrays),
-                        sun_radius_deg=series.sun_radius_deg, earth_radius_deg=series.earth_radius_deg,
-                        skyline=skyline.meta,
-                        terrain=MeshMeta(size=mesh.size, window_km=mesh.window_km) if mesh else None,
-                        closeup=None)
-        derived_site = Site(**site.model_dump(), terrain_tier=tier, has_closeup=False,
-                            elevation_m=ground, slope=slope,
-                            quickmap_url='https://quickmap.lroc.asu.edu/',
-                            moontrek_url='https://trek.nasa.gov/moon/')
-        staging = Path(tempfile.mkdtemp(dir=target.parent, prefix='.'+site.id+'.'))
-        try:
-            _write_model(staging/'meta.json', meta)
-            write_series(staging/'series.bin', series.columns)
-            write_skyline(staging/'skyline.bin', dict(zip(SkylineLayout().arrays, skyline.arrays)), SKYLINE_BINS)
-            if mesh is not None:
-                write_terrain(staging/'terrain.bin', mesh.arrays, mesh.size)
-            # Validate the serialized artifacts before publishing any of them.
-            SiteMeta.model_validate_json((staging/'meta.json').read_bytes())
-            read_series(staging/'series.bin', TIME_GRID_COUNT)
-            read_skyline(staging/'skyline.bin', SKYLINE_BINS)
-            if mesh is not None:
-                read_terrain(staging/'terrain.bin', mesh.size)
-            _publish_site(staging, target)
-        finally:
-            if staging.exists():
-                shutil.rmtree(staging)
+        derived_site = build_site(site, store, global_data, target)
         built[site.id] = derived_site
         _write_model(index, Sites(root=[built[key] for key in sorted(built)]))
-        print(f'{site.id}: built in {perf_counter()-started:.6f} s; tier={tier}; ground_m={ground}')
+        print(f'{site.id}: built in {perf_counter()-started:.6f} s; tier={derived_site.terrain_tier}; ground_m={derived_site.elevation_m}')
     for name in ('profiles.json', 'features.json', 'artemis_regions.json'):
         _atomic_bytes(output/name, (paths.catalog_dir()/name).read_bytes())
     _write_model(output/'manifest.json', manifest)
+
+
+def build_site(site, store, global_data, target, *, tier=None, site_entry=False):
+    """Shared catalog/custom computation and atomic publication; no network calls."""
+    target = Path(target)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tier = tier or site_tier(site.lat_deg).item()
+    site_store = DemStore() if tier == 'sphere' else store
+    ground = None
+    slope = None
+    mesh = None
+    if tier != 'sphere':
+        if site_store.tiers(site.lat_deg, site.lon_deg).item() != tier:
+            raise ValueError(f'{site.id}: prepared {tier} terrain unavailable at site')
+        height, missing = site_store.sample(site.lat_deg, site.lon_deg)
+        if missing:
+            raise ValueError(f'{site.id}: site ground height is missing')
+        ground = float(height)
+        slope = polar_slope(site_store.core if tier == 'core80' else site_store.wide,
+                            site.lat_deg, site.lon_deg)
+        mesh = terrain_mesh(site_store, site.lat_deg, site.lon_deg)
+    skyline = compute_skyline(site_store, site.lat_deg, site.lon_deg)
+    series = build_series(site.lat_deg, site.lon_deg, ground if ground is not None else 0.,
+                          skyline.el_deg, global_data)
+    meta = SiteMeta(site_id=site.id, series=SeriesMeta(columns=SeriesLayout().arrays),
+                    sun_radius_deg=series.sun_radius_deg, earth_radius_deg=series.earth_radius_deg,
+                    skyline=skyline.meta,
+                    terrain=MeshMeta(size=mesh.size, window_km=mesh.window_km) if mesh else None,
+                    closeup=None)
+    derived_site = Site(**site.model_dump(), terrain_tier=tier, has_closeup=False,
+                        elevation_m=ground, slope=slope,
+                        quickmap_url='https://quickmap.lroc.asu.edu/',
+                        moontrek_url='https://trek.nasa.gov/moon/')
+    staging = Path(tempfile.mkdtemp(dir=target.parent, prefix='.'+site.id+'.'))
+    try:
+        _write_model(staging/'meta.json', meta)
+        write_series(staging/'series.bin', series.columns)
+        write_skyline(staging/'skyline.bin', dict(zip(SkylineLayout().arrays, skyline.arrays)), SKYLINE_BINS)
+        if mesh is not None:
+            write_terrain(staging/'terrain.bin', mesh.arrays, mesh.size)
+        # Validate the serialized artifacts before publishing any of them.
+        SiteMeta.model_validate_json((staging/'meta.json').read_bytes())
+        read_series(staging/'series.bin', TIME_GRID_COUNT)
+        read_skyline(staging/'skyline.bin', SKYLINE_BINS)
+        if mesh is not None:
+            read_terrain(staging/'terrain.bin', mesh.size)
+        if site_entry:
+            _write_model(staging/'site.json', derived_site)
+        _publish_site(staging, target)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
+    return derived_site

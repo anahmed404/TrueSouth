@@ -641,22 +641,21 @@
           "type": "number"
         },
         "lon_deg": {
-          "description": "East longitude in degrees.",
-          "exclusiveMaximum": 360,
-          "minimum": 0,
+          "description": "Finite east longitude; normalised to [0, 360).",
           "title": "Lon Deg",
           "type": "number"
         },
         "name": {
-          "description": "Custom site display name.",
+          "default": "Custom site",
+          "description": "Optional display name, trimmed and length limited.",
+          "maxLength": 120,
           "title": "Name",
           "type": "string"
         }
       },
       "required": [
         "lat_deg",
-        "lon_deg",
-        "name"
+        "lon_deg"
       ],
       "title": "CustomSiteRequest",
       "type": "object"
@@ -804,7 +803,8 @@
             "rate_limited",
             "queue_full",
             "terrain_unavailable",
-            "not_found"
+            "not_found",
+            "computation_failed"
           ],
           "title": "Code",
           "type": "string"
