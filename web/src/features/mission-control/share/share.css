@@ -1,20 +1,14 @@
 /*
-  The Share control's fallback field, shown only when the browser blocks the clipboard
-  (docs/features/share-export.md). Tokens only.
+  The Share control's fallback, shown only when the browser blocks the clipboard
+  (docs/features/share-export.md). It is a shell popover (components/Popover), so it sits
+  in the top layer with the popover's surface, border and shadow. Tokens only.
 */
 
-.share-fallback {
-  position: absolute;
-  top: calc(100% + var(--s2));
-  right: 0;
-  z-index: 20;
+.share-fallback-body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  width: min(420px, calc(100vw - 2 * var(--float-gap)));
   padding: var(--s3);
-  border-color: var(--line-strong);
-  box-shadow: var(--shadow-popover);
 }
 
 .share-fallback-label {
