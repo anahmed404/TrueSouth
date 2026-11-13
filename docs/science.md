@@ -257,8 +257,8 @@ $$g_x = \frac{z_{r,c+1} - z_{r,c-1}}{2p} \qquad g_y = \frac{z_{r-1,c} - z_{r+1,c
 
 The baseline is $2p$: 160 m or 480 m. $k$ is the scale factor from section 2.3.
 
-A site reports `slope_deg`, `slope_baseline_m` and `slope_source`. A sphere-tier site
-reports no slope.
+A site reports `slope: { deg, baseline_m, source }` as defined in
+[`data-contracts.md`](data-contracts.md). A sphere-tier site reports no slope.
 
 `slope.py`
 
