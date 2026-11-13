@@ -4,6 +4,8 @@
  * - every value in a site's column is the focused-site panel's value for the same site,
  *   profile and landing date, read through the same hook (`useSiteStatus`);
  * - the table draws those values;
+ * - the rendered `<Compare>` and the rendered `<FocusedSitePanel>` show the same text, row
+ *   by row, slope included, for every fixture site, every preset and two dates;
  * - a scrub of the current time does not re-render the table, and a new landing date does.
  */
 
@@ -18,11 +20,13 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { Manifest, MissionProfile, Sites } from "../../../contracts/generated";
 import { SERIES_COLUMNS, decodeSeries } from "../../../data/decode/index";
 import { describeEvaluation, describeMetrics, formatValue, scoreText } from "../../../app/mission/rules";
+import { FocusedSitePanel } from "../../../app/mission/focused-site-panel";
 import { ScenarioStoreProvider } from "../../../app/mission/scenario-context";
 import { useSiteStatus, type SiteStatus } from "../../../app/mission/site-status";
 import { hourIndexToUtc } from "../../../lib/time";
 import { dataStore, seriesKey } from "../../../state/data";
 import { createScenarioStore, type ScenarioCatalog } from "../../../state/scenario";
+import { allNodes, installDocument, propsOf, type FakeNode } from "../../../app/mission/fake-dom";
 import Compare, { CompareTable, compareRenders } from "./index";
 import { compareColumn, metricRows, statusCells, summarySentence, type ColumnView } from "./model";
 
@@ -47,102 +51,17 @@ function seed(): void {
   dataStore.setState({ entries });
 }
 
-/** Just enough of a DOM for React to mount into, in Node (as in features/panorama/renders.test.ts). */
-class FakeNode {
-  childNodes: FakeNode[] = [];
-  parentNode: FakeNode | null = null;
-  ownerDocument: FakeNode | null = null;
-  style: Record<string, string> = {};
-  nodeValue = "";
-  textContent = "";
-  constructor(
-    readonly nodeType: number,
-    readonly nodeName: string,
-  ) {}
-  get tagName() {
-    return this.nodeName;
-  }
-  get firstChild(): FakeNode | null {
-    return this.childNodes[0] ?? null;
-  }
-  addEventListener() {}
-  removeEventListener() {}
-  setAttribute() {}
-  removeAttribute() {}
-  getAttribute() {
-    return null;
-  }
-  querySelector() {
-    return null;
-  }
-  appendChild(child: FakeNode) {
-    child.parentNode = this;
-    this.childNodes.push(child);
-    return child;
-  }
-  removeChild(child: FakeNode) {
-    this.childNodes = this.childNodes.filter((node) => node !== child);
-    return child;
-  }
-  insertBefore(child: FakeNode, before: FakeNode | null) {
-    if (!before) return this.appendChild(child);
-    child.parentNode = this;
-    this.childNodes.splice(Math.max(0, this.childNodes.indexOf(before)), 0, child);
-    return child;
-  }
-  contains(other: FakeNode | null): boolean {
-    for (let node = other; node; node = node.parentNode) if (node === this) return true;
-    return false;
-  }
-  createElement(tag: string) {
-    const node = new FakeNode(1, tag.toUpperCase());
-    node.ownerDocument = this;
-    return node;
-  }
-  createElementNS(_namespace: string, tag: string) {
-    return this.createElement(tag);
-  }
-  createTextNode(text: string) {
-    const node = new FakeNode(3, "#text");
-    node.nodeValue = text;
-    node.ownerDocument = this;
-    return node;
-  }
-  createComment(text: string) {
-    const node = new FakeNode(8, "#comment");
-    node.nodeValue = text;
-    return node;
-  }
-}
-
-function installDocument(): FakeNode {
-  const document = new FakeNode(9, "#document");
-  document.ownerDocument = document;
-  const host = globalThis as unknown as Record<string, unknown>;
-  host.document = Object.assign(document, {
-    documentElement: document.createElement("html"),
-    body: document.createElement("body"),
-    head: document.createElement("head"),
-    activeElement: null,
-    defaultView: globalThis,
-  });
-  host.window = globalThis;
-  host.HTMLElement = class {};
-  host.HTMLIFrameElement = class {};
-  host.Element = class {};
-  host.Node = class {};
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  return document;
-}
-
 const hadWindow = "window" in globalThis;
 let root: Root | null = null;
+let container: FakeNode | null = null;
 
-async function mount(node: ReactNode): Promise<void> {
+async function mount(node: ReactNode): Promise<FakeNode> {
   const document = installDocument();
   const { createRoot } = await import("react-dom/client");
-  root = createRoot(document.createElement("div") as unknown as Element);
+  container = document.createElement("div");
+  root = createRoot(container as unknown as Element);
   await act(async () => root?.render(routed(node)));
+  return container;
 }
 
 /** Explain tips link to Academy lessons, so a router must be around. */
@@ -292,5 +211,126 @@ describe("the summary on the fixture", () => {
     const columns: ColumnView[] = SITE_IDS.map((id) => compareColumn(id, sites, statuses[id] as SiteStatus, profile));
     const sentence = summarySentence(columns, profile, landingUtc);
     expect(sentence.startsWith(`For ${profile.name} landing 2026-07-15 20:00 UTC`)).toBe(true);
+  });
+});
+
+/** The text a sighted reader sees: no tooltips, no screen-reader-only text, spaces collapsed. */
+function seen(node: FakeNode | undefined): string {
+  if (!node) return "";
+  const hidden = (n: FakeNode) => {
+    const c = propsOf(n).className;
+    return typeof c === "string" && /\b(tip-bubble|sr-only|cmp-best-mark)\b/.test(c);
+  };
+  const walk = (n: FakeNode): string =>
+    n.nodeType === 3 ? n.nodeValue : hidden(n) ? "" : n.childNodes.length === 0 ? n.textContent : n.childNodes.map(walk).join("");
+  return walk(node).replace(/[\s\u202f\u00a0]+/g, " ").trim();
+}
+
+/** Text without any spaces. */
+const flat = (text: string | undefined) => (text ?? "").replace(/[\s  ]+/g, "");
+
+function hasClass(node: FakeNode, name: string): boolean {
+  const c = propsOf(node).className;
+  return typeof c === "string" && c.split(/\s+/).includes(name);
+}
+const byClass = (root: FakeNode, name: string) => allNodes(root).filter((n) => hasClass(n, name));
+const byTag = (root: FakeNode, tag: string) => allNodes(root).filter((n) => n.nodeName === tag);
+const childrenByTag = (node: FakeNode, tag: string) => node.childNodes.filter((n) => n.nodeName === tag);
+
+/** What the rendered focused-site panel shows. */
+function readPanel(root: FakeNode) {
+  const panel = byTag(root, "ASIDE").find((n) => propsOf(n).id === "focused-site") as FakeNode;
+  const metrics: Record<string, string> = {};
+  for (const row of byClass(panel, "metrics-row")) {
+    metrics[seen(childrenByTag(row, "DT")[0])] = seen(childrenByTag(row, "DD")[0]);
+  }
+  return {
+    status: seen(byClass(panel, "verdict").flatMap((v) => byClass(v, "status-badge"))[0]),
+    score: seen(byClass(panel, "score-value")[0]).replace(/ of 100$/, ""),
+    broken: byClass(panel, "broken-name").map(seen),
+    brokenValues: byClass(panel, "broken-value").map(seen),
+    metrics,
+  };
+}
+
+/** What the rendered Compare table shows in one site's column, row by row. */
+function readColumn(root: FakeNode, siteName: string) {
+  const table = byTag(root, "TABLE").find((n) => hasClass(n, "cmp-table")) as FakeNode;
+  const names = byClass(table, "cmp-site-name").map(seen);
+  const index = names.indexOf(siteName);
+  expect(index, `${siteName} is a column`).toBeGreaterThanOrEqual(0);
+  const body = byTag(table, "TBODY")[0] as FakeNode;
+  const rows = childrenByTag(body, "TR");
+  const cell = (rowName: string) => {
+    const row = rows.find((r) => seen(childrenByTag(r, "TH")[0]).startsWith(rowName));
+    expect(row, `row ${rowName}`).toBeDefined();
+    return childrenByTag(row as FakeNode, "TD")[index] as FakeNode;
+  };
+  const metric = (rowName: string) => {
+    const td = cell(rowName);
+    return { value: seen(byClass(td, "cmp-value")[0]), sub: seen(byClass(td, "cmp-sub")[0]) };
+  };
+  const status = cell("Status");
+  const broken = cell("Broken rule");
+  return {
+    status: seen(byClass(status, "status-badge")[0]),
+    score: seen(byClass(status, "cmp-score")[0]).replace(/\s*not used$/, ""),
+    broken: byClass(broken, "cmp-broken-name").map(seen),
+    brokenValues: byTag(broken, "B").map(seen),
+    sunlight: metric("Sunlight"),
+    dark: metric("Longest dark stretch"),
+    link: metric("Earth link"),
+    blackout: metric("Longest blackout"),
+    landing: metric("Sun at landing"),
+    slope: metric("Slope"),
+  };
+}
+
+describe("the rendered Compare table shows what the rendered focused-site panel shows", () => {
+  const cases = profiles.flatMap((profile) => [4700, 30000].map((hour) => ({ profile, landingUtc: hourIndexToUtc(grid, hour) })));
+
+  it.each(cases.map((c) => [c.profile.id, c.landingUtc, c] as const))("%s landing %s, every fixture site", async (_id, _utc, { profile, landingUtc }) => {
+    const store = createScenarioStore(catalog, `?profile=${profile.id}&sites=${SITE_IDS.join(",")}&land=${landingUtc}&t=0&view=compare`);
+    const view = () =>
+      createElement(ScenarioStoreProvider, {
+        store,
+        children: [
+          createElement(Compare, { key: "compare", scenario: store.getState().scenario, mode: "mission" }),
+          createElement(FocusedSitePanel, { key: "panel", collapsed: false, onToggle: () => undefined }),
+        ],
+      });
+    const dom = await mount(view());
+    const checked = new Set<string>();
+
+    for (const site of sites) {
+      await act(async () => {
+        store.getState().focusSite(site.id);
+        root?.render(routed(view()));
+      });
+      const panel = readPanel(dom);
+      const column = readColumn(dom, site.name);
+      const m = panel.metrics;
+
+      // The fake DOM has no CSS, so elements set apart by a gap ("162" and "h" in the panel's
+      // large numbers, a value and its "best" mark) join without a space: compare without spaces.
+      const same = (a: string | undefined, b: string | undefined) => expect(flat(a), site.id).toBe(flat(b));
+      same(column.status, panel.status);
+      same(column.score, panel.score);
+      expect(column.broken.map(flat), site.id).toEqual(panel.broken.map(flat));
+      for (const value of column.brokenValues) expect(panel.brokenValues.map(flat), site.id).toContain(flat(value));
+
+      same(column.sunlight.value, m["Mean Sun disc fraction"]);
+      same(column.sunlight.sub, `${m["Lit"]} lit`);
+      same(column.dark.value, m["Longest dark stretch"]);
+      same(column.link.value, m["Earth link"]);
+      same(column.blackout.value, m["Longest blackout"]);
+      same(column.landing.value, m["Sun at landing"]);
+      same(column.landing.sub, m["Lit at landing"] === "yes" ? "lit" : "dark");
+      // The slope: "4.1° over 160 m" in both, or "Slope not assessed" for a sphere-tier site.
+      if (m["Slope"] === "Slope not assessed") same(column.slope.value, "Slope not assessed");
+      else same(`${column.slope.value} ${column.slope.sub}`, m["Slope"]);
+      checked.add(panel.status);
+    }
+    expect(checked.size).toBeGreaterThan(0);
   });
 });

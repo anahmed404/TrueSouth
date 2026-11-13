@@ -67,6 +67,19 @@ describe("the shared link", () => {
     expect(scenarioOf(after)).toEqual(scenarioOf(before));
   });
 
+  it("round-trips a landing hour that is not midnight, and a current time hours after it", () => {
+    const store = createScenarioStore(catalog, "?profile=im2_athena&land=2027-03-09T17:00:00Z&t=0&view=compare");
+    store.getState().stepCurrentTime(29);
+    const before = store.getState();
+    expect(before.landingUtc).toBe("2027-03-09T17:00:00Z");
+    expect(before.currentUtc).toBe("2027-03-10T22:00:00Z");
+    const after = reopen(scenarioLink(before, location));
+    expect(after.notices).toEqual([]);
+    expect(after.landingUtc).toBe("2027-03-09T17:00:00Z");
+    expect(after.currentUtc).toBe("2027-03-10T22:00:00Z");
+    expect(scenarioOf(after)).toEqual(scenarioOf(before));
+  });
+
   it("round-trips every view", () => {
     for (const view of ["slip", "system", "map", "terrain", "panorama", "compare"] as const) {
       const store = createScenarioStore(catalog, "");
