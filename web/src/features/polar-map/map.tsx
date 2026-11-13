@@ -29,7 +29,7 @@ import { SegmentedControl } from "../../components/SegmentedControl";
 import { cx } from "../../components/format";
 import type { Site } from "../../contracts/generated";
 import { useFeatures, useMapLookup, useMapsMeta, useSites } from "../../data";
-import { polarStereoForward, polarStereoScale } from "../../lib/geo";
+import { polarStereoForward, polarStereoInverse, polarStereoScale } from "../../lib/geo";
 import { useEvaluation } from "../../lib/scoring";
 import { useMapImage } from "./assets";
 import { drawMap, readPalette, type Marker, type Palette } from "./draw";
@@ -97,6 +97,8 @@ type Readout =
 const OVERLAY_TINT: Record<OverlayId, keyof Palette> = { sunlight: "sun", earthvis: "earth" };
 const KEY_PAN_PX = 60;
 const KEY_MOVE_PX = 8;
+const KEY_NUDGE_M = 100;
+const KEY_NUDGE_BIG_M = 1000;
 const ZOOM_STEP = 1.6;
 
 /** Reports a selected site's status for the landing date, from the evaluation hooks. */
@@ -503,12 +505,26 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
     animateTo(fit);
   }, [animateTo, fit]);
 
-  const moveReadoutBy = (dx: number, dy: number) => {
+  /**
+   * Arrow keys move the open point: the "New site here?" point by screen pixels, the nudged
+   * pin by a fixed distance on the ground (100 m, or 1 km with Shift), so a keyboard nudge is
+   * as small as a drag when zoomed in, at any zoom.
+   */
+  const moveReadoutBy = (dirX: number, dirY: number, big: boolean) => {
     const current = readoutRef.current;
     if (!current || current.kind === "catalog") return false;
-    const at = latLonToScreen(current.at.latDeg, current.at.lonDeg, viewRef.current);
-    const next = screenToLatLon(at.x + dx, at.y + dy, viewRef.current);
-    setReadout({ ...current, at: next, ...(current.kind === "nudge" ? { dragging: false } : {}) } as Readout);
+    let next: Point;
+    if (current.kind === "nudge") {
+      const step = big ? KEY_NUDGE_BIG_M : KEY_NUDGE_M;
+      const { x_m, y_m } = polarStereoForward(current.at.latDeg, current.at.lonDeg);
+      next = polarStereoInverse(x_m + dirX * step, y_m - dirY * step);
+      setReadout({ ...current, at: next, dragging: false });
+    } else {
+      const at = latLonToScreen(current.at.latDeg, current.at.lonDeg, viewRef.current);
+      const px = KEY_MOVE_PX * (big ? 5 : 1);
+      next = screenToLatLon(at.x + dirX * px, at.y + dirY * px, viewRef.current);
+      setReadout({ ...current, at: next });
+    }
     return true;
   };
 
@@ -525,7 +541,7 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
     const arrow = arrows[event.key];
     if (arrow) {
       event.preventDefault();
-      if (moveReadoutBy(arrow[0] * KEY_MOVE_PX * big, arrow[1] * KEY_MOVE_PX * big)) return;
+      if (moveReadoutBy(arrow[0], arrow[1], event.shiftKey)) return;
       userMoved.current = true;
       const v = viewRef.current;
       // Arrows move the view: the map slides the other way.
@@ -570,7 +586,8 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
     return grid ? readLookup(grid, at.latDeg, at.lonDeg) : null;
   };
   const overlaysReady = sunImage.status === "ready" && earthImage.status === "ready";
-  const scale = scaleBar(view, lesson ? 88 : 110);
+  const narrow = box.width > 0 && box.width < 640;
+  const scale = scaleBar(view, lesson || narrow ? 72 : 110);
 
   const centreOfFrame = { left: frame.x + frame.width / 2 };
 
@@ -651,6 +668,20 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
           </div>
           {lesson ? null : (
             <div className="pm-overlay">
+              {narrow ? (
+                <label className="pm-select">
+                  <span className="sr-only">Overlay</span>
+                  <select value={overlay} onChange={(event) => setOverlay(event.target.value as OverlayId | "none")}>
+                    <option value="none">No overlay</option>
+                    <option value="sunlight" disabled={!overlaysReady}>
+                      {overlaysReady ? "Sunlight" : "Sunlight (loading)"}
+                    </option>
+                    <option value="earthvis" disabled={!overlaysReady}>
+                      {overlaysReady ? "Earth visibility" : "Earth visibility (loading)"}
+                    </option>
+                  </select>
+                </label>
+              ) : (
               <SegmentedControl<OverlayId | "none">
                 label="Overlay"
                 value={overlay}
@@ -661,6 +692,7 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
                   { value: "earthvis", label: overlaysReady ? "Earth visibility" : "Loading", disabled: !overlaysReady },
                 ]}
               />
+              )}
               {overlay !== "none" ? (
                 <label className="pm-opacity">
                   <span className="sr-only">Overlay opacity</span>

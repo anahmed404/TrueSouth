@@ -94,9 +94,12 @@ export function fitView(frame: Frame, halfWidthM = DEFAULT_HALF_WIDTH_M, margin 
   return { k: WORLD_UNIT_M / mpp, x: centre.x, y: centre.y };
 }
 
-/** How far the map may zoom: out to 70 % of the fit, in to 12 m a pixel. */
+/**
+ * How far the map may zoom: out to 70 % of the fit, in to 25 m a pixel. The sharpest relief
+ * pixel is 74 m (the 8K image); closer than this only blurs it.
+ */
 export function zoomExtent(fit: MapView): [number, number] {
-  return [fit.k * 0.7, WORLD_UNIT_M / 12];
+  return [fit.k * 0.7, WORLD_UNIT_M / 25];
 }
 
 /**

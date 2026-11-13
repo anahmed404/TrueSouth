@@ -102,6 +102,7 @@ function makeLayer(options: PolarMapLayerOptions) {
       <div
         className="pm-layer"
         data-shown={shown && phase.kind === "shown"}
+        data-open={phase.openAt ? "arrival" : "fit"}
         style={{ transitionDuration: `${fadeMs}ms` }}
         aria-hidden={phase.kind !== "shown"}
       >

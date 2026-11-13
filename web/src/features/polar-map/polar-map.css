@@ -198,6 +198,17 @@ selector is scoped to .pm, so nothing here reaches other components.
   gap: var(--s2);
 }
 
+.pm-select select {
+  height: 28px;
+  padding: 0 var(--s2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--raised);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--t-md);
+}
+
 .pm-opacity input {
   width: 96px;
   accent-color: var(--accent);
@@ -317,7 +328,8 @@ selector is scoped to .pm, so nothing here reaches other components.
     min-height: 44px;
   }
 
-  .pm-opacity input {
+  .pm-opacity input,
+  .pm-select select {
     height: 44px;
   }
 }
