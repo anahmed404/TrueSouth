@@ -81,12 +81,10 @@ export function storyScene(skyline: SkylineKind, timeRange: TimeRange | null): S
   return { scenario: storyScenario, skyline, timeRange };
 }
 
-/** A description from the lesson doc, not final learner-facing wording. */
-export function todo(description: string): string {
-  return `TODO(words): ${description}`;
-}
-
-/** One month around a worked-example hour. The month's endpoints are not decided yet. */
+/**
+ * One month around a worked-example hour. The story month itself is decided (the 720 hours
+ * from `story.landing_utc`, docs/academy/lessons.md); the panels that play it are A3's.
+ */
 export function oneMonth(aroundUtc: GoalValue): { kind: "span"; span: "one-month"; aroundUtc: GoalValue } {
   return { kind: "span", span: "one-month", aroundUtc };
 }
