@@ -1,5 +1,7 @@
+import { MessageChannel } from "node:worker_threads";
 import { describe, expect, it } from "vitest";
 import { evaluate, evaluationAt, slipSweep, windowLength, type ScoringProfile, type Series } from "./index";
+import { handleSweepRequest, type SweepSeries } from "./sweep-protocol";
 
 const HOURS = 52_584;
 const SITES = 8;
@@ -65,6 +67,82 @@ function makeSeries(count: number, seed: number): Series {
     earth_clear: Float32Array.from({ length: count }, () => random() * 8 - 2),
   };
 }
+
+describe("sweep worker timing", () => {
+  it("measures one handler sweep and the cost of moving eight series columns", () => {
+    const mission: ScoringProfile = {
+      duration_days: 100,
+      min_sun_fraction: 0.5,
+      ops_sun_el_min_deg: 2,
+      max_dark_h: 50,
+      relay_available: false,
+      antenna_mask_deg: 1,
+      max_blackout_h: 12,
+      max_slope_deg: 10,
+      slope_ideal_deg: 5,
+      landing_sun_el_min_deg: null,
+      landing_sun_el_max_deg: null,
+      weights: { slope: 1, power: 1, comms: 1 },
+    };
+    const columns = Array.from({ length: 8 }, (_, column) => {
+      const random = mulberry32(50 + column);
+      return Float64Array.from({ length: HOURS }, () => random());
+    });
+    const series: SweepSeries = {
+      sun_frac: columns[0] ?? new Float64Array(),
+      sun_el: columns[1] ?? new Float64Array(),
+      earth_clear: columns[2] ?? new Float64Array(),
+    };
+    const grid = { count: HOURS, start_utc: "2026-01-01T00:00:00Z", step_s: 3600 };
+    const stored = new Map<number, SweepSeries>();
+    const request = {
+      type: "sweep" as const,
+      requestId: 1,
+      siteId: "timing",
+      seriesToken: 1,
+      series,
+      slopeDeg: 4,
+      profile: mission,
+      timeGrid: grid,
+    };
+    handleSweepRequest(request, stored);
+
+    const sweepStarted = performance.now();
+    const reply = handleSweepRequest({ ...request, requestId: 2, series: undefined }, stored);
+    const sweepMs = performance.now() - sweepStarted;
+    console.info(`sweep handler: 1 site × ${HOURS} hours, 100-day window, ${sweepMs.toFixed(1)} ms`);
+
+    const cloneStarted = performance.now();
+    const cloned = structuredClone(columns);
+    const cloneMs = performance.now() - cloneStarted;
+    console.info(
+      `structured clone: 8 columns × ${HOURS} float64, ${cloneMs.toFixed(1)} ms`,
+    );
+
+    const copyStarted = performance.now();
+    const copied = columns.map((column) => new Float64Array(column));
+    const copyMs = performance.now() - copyStarted;
+    const channel = new MessageChannel();
+    const transferStarted = performance.now();
+    channel.port1.postMessage(
+      { columns: copied },
+      copied.map((column) => column.buffer),
+    );
+    const transferMs = performance.now() - transferStarted;
+    channel.port1.close();
+    channel.port2.close();
+    console.info(
+      `transfer: 8 columns × ${HOURS} float64, copy ${copyMs.toFixed(1)} ms, postMessage ${transferMs.toFixed(1)} ms`,
+    );
+
+    expect(sweepMs).toBeLessThan(GENEROUS_BOUND_MS);
+    expect(cloneMs).toBeLessThan(GENEROUS_BOUND_MS);
+    expect(copyMs + transferMs).toBeLessThan(GENEROUS_BOUND_MS);
+    expect(reply.type).toBe("sweep");
+    expect(cloned).toHaveLength(8);
+    expect(copied[0]?.byteLength).toBe(0);
+  });
+});
 
 function mulberry32(seed: number): () => number {
   let state = seed >>> 0;

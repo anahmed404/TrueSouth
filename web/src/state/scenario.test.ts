@@ -567,11 +567,14 @@ describe("shareable scenario link", () => {
     expect(store.getState().landingUtc).toBe("2028-03-17T00:00:00Z");
   });
 
-  it("does not use local-time Date methods in the scenario store or the scoring hooks", () => {
+  it("does not use local-time Date methods in the scenario store, the scoring hooks, or the sweep worker", () => {
     const here = path.dirname(fileURLToPath(import.meta.url));
     const sources = [
       readFileSync(path.join(here, "scenario.ts"), "utf8"),
       readFileSync(path.join(here, "../lib/scoring/hooks.ts"), "utf8"),
+      readFileSync(path.join(here, "../lib/scoring/sweep-protocol.ts"), "utf8"),
+      readFileSync(path.join(here, "../lib/scoring/sweep-client.ts"), "utf8"),
+      readFileSync(path.join(here, "../lib/scoring/sweep.worker.ts"), "utf8"),
     ];
     const forbidden =
       /\b(?:getHours|getDate|getDay|getMonth|getFullYear|getMinutes|setHours|setDate|setMonth|setFullYear|setMinutes|getTimezoneOffset|toLocale)/;
