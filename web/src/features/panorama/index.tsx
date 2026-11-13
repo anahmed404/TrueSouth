@@ -250,10 +250,10 @@ function SiteLandersEye({ siteId, scenario, mode, marker, onMarkerChange, onShow
             ))}
           </span>
         </div>
-        <span className="pano-stretch" title="The vertical scale is stretched against the horizontal one; the discs keep their true angular size.">
+        <span className="pano-stretch">
           {stretchWords(scales.stretch)}
           {zoom ? (
-            <button type="button" className="pano-reset" onClick={onResetZoom}>
+            <button type="button" className="pano-reset" aria-label="Reset the vertical stretch" onClick={onResetZoom}>
               Reset
             </button>
           ) : null}
