@@ -50,12 +50,14 @@ def test_g4_flat_sphere(tmp_path):
     assert np.isfinite(result.dist_km).all()
 
 
-def wall_store(tmp_path, site, azimuth, distance, height, pixel=240):
+def wall_store(tmp_path, site, azimuth, distance, height, pixel=240, plateau=False):
     point = destination(*site, azimuth, distance)
     peak = np.zeros((3, 3))
     peak[1, 1] = height
-    core = prepared(tmp_path, 'site', np.zeros((11, 11)), site)
-    wide = prepared(tmp_path, 'wall', peak, point, pixel)
+    if plateau:
+        peak[:] = height
+    core = prepared(tmp_path, f'site_{distance}', np.zeros((11, 11)), site)
+    wide = prepared(tmp_path, f'wall_{distance}', peak, point, pixel)
     return DemStore(core, wide), point
 
 
@@ -137,11 +139,7 @@ def test_ray_continues_on_wide_map(tmp_path, distance):
     # Core ends at 400 m. The 30 km wall is beyond the core switch but before
     # the wide switch: it MUST still use rays. At 60 km every pixel is used.
     # Wide lattice starts at 40 m; choose a plateau so the 30 km peak is sampled.
-    store, point = wall_store(tmp_path, site, 0, distance, 3000)
-    if distance == 30000:
-        data = np.load(store.wide.path)
-        data[:] = 3000
-        np.save(store.wide.path, data)
+    store, point = wall_store(tmp_path, site, 0, distance, 3000, plateau=distance == 30000)
     result = compute_skyline(store, *site)
     assert result.height_m[0] == pytest.approx(3000, abs=1e-5)
     assert result.method[0] == ('near' if distance < 55000 else 'far')
