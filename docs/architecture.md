@@ -157,7 +157,8 @@ Base URLs:
 - Polar maps: `https://pgda.gsfc.nasa.gov/data/LOLA_20mpp/`
 - Close-up DEMs: `https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/<Site>/`
 - Sunlight maps: `https://pgda.gsfc.nasa.gov/data/MoonIllumination/`
-- Moon texture: `https://svs.gsfc.nasa.gov/4720`
+- Moon texture: `https://svs.gsfc.nasa.gov/4720`; the file fetched is
+  `https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_poles_2k.tif`
 
 The first, third and all five `AVGVISIB` and close-up sizes were confirmed by direct
 request. The wide map's exact file name follows the catalogue's naming pattern and has not
