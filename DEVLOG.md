@@ -49,6 +49,13 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-13 · S16 · Scene image files and aprons
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote the scene builder, contracts, tests, fixture scene and web loader — checked with pytest, vitest, the real NASA build, landmark boxes and a byte comparison to the prototype; human review pending. No AI-generated imagery.
+- **State:** verified (the orchestrator, Claude Fable 5.2, ran 263 Python and 1,498 web tests, typecheck, build and schema export on the merge with main; decoded three aprons and compared 141 cells with the terrain store at independently computed positions (largest difference 0.25 m, the encoding step is 0.5 m; a transposed grid would not match); checked Tycho, Copernicus and two maria on the Moon map; replaced input modification times with content hashes so the committed metadata is the same on every machine)
+- **Changed:** `scene_assets.py`, `build-scene-assets`, `fetch-raw` texture group, `contracts.py`, generated schema and types, `data/derived/scene/`, `data/fixtures/scene/`, web `data/` loader, `docs/data-contracts.md`, `docs/architecture.md`. One line in `cli.py` registers the command; discovery is not automatic.
+- **Notes:** Build 29.1 s. `scene/` is 8,658,276 bytes (derived 50,785,847 before, 59,444,123 after). Largest file `moon_8k_e.webp` is 1,557,786 bytes. A second run printed "up to date" and the folder hash was unchanged. `moon_4k.webp`, `hillshade_core_2048.webp`, `earth_2k.jpg` and `cap_slope.webp` match the prototype pixel for pixel. The height PNG differs in 20 of 1,036,800 pixels, each by 1. Connecting Ridge apron centre is 1,950.5 m against elevation 1,950.256 m (0.244 m). Largest difference against `terrain.bin` on the 121 shared vertices is 0.244 m. The ±10 km patch edge is not an apron node; the nearest ring is ±9,375 m. The 2K TIFF is not downloaded. Checks this session: pytest 263 passed; web typecheck exit 0; web tests 1,498 passed in 53 files; web build exit 0; `gen:types` left git status unchanged. All exit codes 0.
+
 #### 2026-11-13 · S15A · Sunlit-peak placement, decision 0012 part A
 - **Who:** Codex implementation agent, for the orchestrator
 - **AI use:** Codex, gpt-6.1-sol — wrote contract fields, placement module and tests;

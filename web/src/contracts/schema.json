@@ -1,5 +1,62 @@
 {
   "$defs": {
+    "ApronLayout": {
+      "additionalProperties": false,
+      "description": "Surrounding-terrain apron: one little-endian uint16 grid.\n\nA finite value decodes as ``raw / scale - offset_m`` (step 0.5 m). The value\n65535 is no height, never a real elevation. Row 0 is north and column 0 is west,\nthe same axes as ``terrain.bin``.",
+      "properties": {
+        "byte_order": {
+          "const": "little",
+          "default": "little",
+          "description": "Little-endian byte order.",
+          "title": "Byte Order",
+          "type": "string"
+        },
+        "column_order": {
+          "const": "west_to_east",
+          "default": "west_to_east",
+          "description": "Column 0 is the western edge.",
+          "title": "Column Order",
+          "type": "string"
+        },
+        "dtype": {
+          "const": "uint16",
+          "default": "uint16",
+          "description": "Unsigned 16-bit integers.",
+          "title": "Dtype",
+          "type": "string"
+        },
+        "missing": {
+          "const": 65535,
+          "default": 65535,
+          "description": "65535 means no height.",
+          "title": "Missing",
+          "type": "integer"
+        },
+        "offset_m": {
+          "const": 12000.0,
+          "default": 12000.0,
+          "description": "Decode a finite value as raw / scale - offset_m.",
+          "title": "Offset M",
+          "type": "number"
+        },
+        "row_order": {
+          "const": "north_to_south",
+          "default": "north_to_south",
+          "description": "Row 0 is the northern edge.",
+          "title": "Row Order",
+          "type": "string"
+        },
+        "scale": {
+          "const": 2.0,
+          "default": 2.0,
+          "description": "Decode a finite value as raw / scale - offset_m.",
+          "title": "Scale",
+          "type": "number"
+        }
+      },
+      "title": "ApronLayout",
+      "type": "object"
+    },
     "ArtemisRegion": {
       "additionalProperties": false,
       "description": "Artemis candidate region.",
@@ -100,6 +157,10 @@
       "additionalProperties": false,
       "description": "Binary formats, with ordered arrays and orientation.",
       "properties": {
+        "apron": {
+          "$ref": "#/$defs/ApronLayout",
+          "description": "Surrounding-terrain apron encoding."
+        },
         "closeup": {
           "$ref": "#/$defs/TerrainLayout",
           "description": "Close-up mesh encoding."
@@ -1544,6 +1605,221 @@
       },
       "title": "Profiles",
       "type": "array"
+    },
+    "SceneApronFile": {
+      "additionalProperties": false,
+      "description": "One site's apron file.",
+      "properties": {
+        "columns": {
+          "description": "Columns. Column 0 is the western edge.",
+          "exclusiveMinimum": 1,
+          "title": "Columns",
+          "type": "integer"
+        },
+        "file": {
+          "description": "Path under /data/, scene/aprons/<site_id>.bin.",
+          "minLength": 1,
+          "title": "File",
+          "type": "string"
+        },
+        "rows": {
+          "description": "Rows. Row 0 is the northern edge.",
+          "exclusiveMinimum": 1,
+          "title": "Rows",
+          "type": "integer"
+        },
+        "site_id": {
+          "description": "Catalog site id. Sphere-tier sites have no apron.",
+          "pattern": "^(?:[a-z][a-z0-9]*(?:_[a-z0-9]+)*|c_-?\\d+\\.\\d{4}_\\d+\\.\\d{4})$",
+          "title": "Site Id",
+          "type": "string"
+        },
+        "window_m": {
+          "description": "Width and height of the square, in metres.",
+          "exclusiveMinimum": 0,
+          "title": "Window M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "site_id",
+        "file",
+        "rows",
+        "columns",
+        "window_m"
+      ],
+      "title": "SceneApronFile",
+      "type": "object"
+    },
+    "SceneImage": {
+      "additionalProperties": false,
+      "description": "One image the scene draws, with the operation that made it.",
+      "properties": {
+        "credit": {
+          "description": "Credit line for the source.",
+          "minLength": 1,
+          "title": "Credit",
+          "type": "string"
+        },
+        "encoding": {
+          "description": "Encoder settings. Lossy WebP names are quality and method.",
+          "enum": [
+            "webp_q82_m6",
+            "webp_q80_m6",
+            "webp_q85_m6",
+            "webp_q92_m6",
+            "webp_lossless_m6",
+            "webp_lossless",
+            "webp_q80_m4",
+            "png_grey8",
+            "jpeg_q84_progressive"
+          ],
+          "title": "Encoding",
+          "type": "string"
+        },
+        "file": {
+          "description": "Path under /data/, such as scene/moon_4k.webp or maps/hillshade_4k.webp.",
+          "minLength": 1,
+          "title": "File",
+          "type": "string"
+        },
+        "height_px": {
+          "description": "Height in pixels.",
+          "exclusiveMinimum": 0,
+          "title": "Height Px",
+          "type": "integer"
+        },
+        "operation": {
+          "description": "Resize, crop, split, re-encode, or slope, in plain language.",
+          "minLength": 1,
+          "title": "Operation",
+          "type": "string"
+        },
+        "optional": {
+          "default": false,
+          "description": "True when the scene can load without this file.",
+          "title": "Optional",
+          "type": "boolean"
+        },
+        "orientation": {
+          "description": "Pixel axes.",
+          "enum": [
+            "equirectangular_lon0_center_north_up",
+            "south_polar_stereographic_x_right_y_up"
+          ],
+          "title": "Orientation",
+          "type": "string"
+        },
+        "source": {
+          "description": "Source file or derived product.",
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
+        },
+        "width_px": {
+          "description": "Width in pixels.",
+          "exclusiveMinimum": 0,
+          "title": "Width Px",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "file",
+        "width_px",
+        "height_px",
+        "encoding",
+        "orientation",
+        "source",
+        "operation",
+        "credit"
+      ],
+      "title": "SceneImage",
+      "type": "object"
+    },
+    "SceneInput": {
+      "additionalProperties": false,
+      "description": "A file the scene build read, so a second run can skip unchanged work.",
+      "properties": {
+        "bytes": {
+          "description": "Size in bytes.",
+          "minimum": 0,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "name": {
+          "description": "File name.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "sha256": {
+          "description": "SHA-256 of the file content, in hex.",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "bytes",
+        "sha256"
+      ],
+      "title": "SceneInput",
+      "type": "object"
+    },
+    "SceneMeta": {
+      "additionalProperties": false,
+      "description": "scene/meta.json: every scene file, its pixels, encoding, orientation and source.",
+      "properties": {
+        "apron": {
+          "$ref": "#/$defs/ApronLayout",
+          "description": "Shared apron encoding."
+        },
+        "aprons": {
+          "description": "One apron for each non-sphere site. The 20 km patch is terrain.bin, not repeated here.",
+          "items": {
+            "$ref": "#/$defs/SceneApronFile"
+          },
+          "title": "Aprons",
+          "type": "array"
+        },
+        "generated_utc": {
+          "description": "Generation timestamp in UTC.",
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "Generated Utc",
+          "type": "string"
+        },
+        "images": {
+          "description": "Moon, Earth and polar-cap images, including maps the scene reads in place.",
+          "items": {
+            "$ref": "#/$defs/SceneImage"
+          },
+          "title": "Images",
+          "type": "array"
+        },
+        "inputs": {
+          "description": "Input fingerprints for the up-to-date check.",
+          "items": {
+            "$ref": "#/$defs/SceneInput"
+          },
+          "title": "Inputs",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "description": "Contract version.",
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "generated_utc",
+        "images",
+        "aprons"
+      ],
+      "title": "SceneMeta",
+      "type": "object"
     },
     "SensitivityCentre": {
       "additionalProperties": false,

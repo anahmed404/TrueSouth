@@ -12,4 +12,5 @@ export {
   type SeriesColumnSpec,
 } from "./layouts.ts";
 export { decodeLookup, decodeSkyline, decodeSystem, decodeTerrain, decodeTerrainGrid, lookupFraction } from "./arrays.ts";
+export { APRON_MISSING, APRON_OFFSET_M, APRON_SCALE, decodeApron, type DecodedApron } from "./apron.ts";
 export { decodeSeries } from "./series.ts";
