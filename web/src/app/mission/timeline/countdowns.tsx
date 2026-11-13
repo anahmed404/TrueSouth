@@ -103,6 +103,11 @@ export function CountdownNumber({ hours, gridEnd }: { hours: number | null; grid
   );
 }
 
+/** "Next sunset", "Next Earthrise": Earthrise and Earthset keep their capital E. */
+export function nextEvent(view: Pick<CountdownView, "body" | "eventName">): string {
+  return `Next ${view.body === "sun" ? view.eventName.toLowerCase() : view.eventName}`;
+}
+
 function CountdownCard({
   view,
   gridEnd,
@@ -129,7 +134,7 @@ function CountdownCard({
           <div>
             <p className="cd-event">
               <Explain term={view.event} label={view.eventName}>
-                {view.hours !== null && view.hours > 0 ? `${view.eventName} in` : `Next ${view.eventName.toLowerCase()}`}
+                {view.hours !== null && view.hours > 0 ? `${view.eventName} in` : nextEvent(view)}
               </Explain>
             </p>
             <CountdownNumber hours={view.hours} gridEnd={gridEnd} />

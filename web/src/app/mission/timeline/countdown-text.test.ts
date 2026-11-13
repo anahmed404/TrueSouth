@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { earthCountdown, formatWait, noneBefore, sunCountdown, waitParts } from "./countdown-text";
-import { stretchNow } from "./countdowns";
+import { earthCountdown, formatWait, noneBefore, sunCountdown, waitMinutes, waitParts, waitUnder } from "./countdown-text";
+import { nextEvent, stretchNow } from "./countdowns";
 
 const END = "2031-12-31T23:00:00Z";
 const none = { sunset: null, sunrise: null, earthset: null, earthrise: null };
@@ -23,9 +23,35 @@ describe("formatWait", () => {
     expect(formatWait(5.9999)).toBe("5 h 59 m");
     expect(formatWait(6)).toBe("6 h 00 m");
     expect(waitParts(1 - 1e-9)).toEqual([
-      { value: "1", unit: "h" },
-      { value: "00", unit: "m" },
+      { value: "0", unit: "h" },
+      { value: "59", unit: "m" },
     ]);
+  });
+
+  it("reads float noise on a whole minute as that minute, and nothing larger", () => {
+    // 6 h that float arithmetic left a hair short.
+    expect(waitMinutes(5.999999999999999)).toBe(360);
+    expect(waitMinutes(2 + 58 / 60)).toBe(178);
+    // A real shortfall, even a tiny one, stays under.
+    expect(waitMinutes(6 - 1e-8)).toBe(359);
+    expect(waitMinutes(6 - 1 / 36_000)).toBe(359);
+  });
+
+  it("keeps the text and the 6-hour flag on the same number around 6 h", () => {
+    const at = (hours: number) => sunCountdown({ ...none, sunrise: hours }, false, END);
+    expect(at(6 - 1e-8)).toMatchObject({ sentence: "Sunrise in 5 h 59 m", soon: true });
+    expect(at(6)).toMatchObject({ sentence: "Sunrise in 6 h 00 m", soon: false });
+    expect(at(6 + 1e-8)).toMatchObject({ sentence: "Sunrise in 6 h 00 m", soon: false });
+    expect(at(5.999999999999999)).toMatchObject({ sentence: "Sunrise in 6 h 00 m", soon: false });
+  });
+
+  it("judges a wait against any limit on the printed minutes", () => {
+    expect(waitUnder(12 - 1e-8, 12)).toBe(true);
+    expect(formatWait(12 - 1e-8)).toBe("11 h 59 m");
+    expect(waitUnder(12, 12)).toBe(false);
+    expect(formatWait(12)).toBe("12 h 00 m");
+    expect(waitUnder(12 + 1e-8, 12)).toBe(false);
+    expect(waitUnder(11.999999999999998, 12)).toBe(false);
   });
 
   it("handles 0 minutes", () => {
@@ -92,6 +118,9 @@ describe("stretchNow", () => {
   it("measures the dark stretch around the current hour inside the window", () => {
     expect(stretchNow(lit, 3, 0, 10, 6)).toMatchObject({ hours: 6, broken: false, value: h(6), limit: h(6) });
     expect(stretchNow(lit, 3, 0, 10, 5)).toMatchObject({ hours: 6, broken: true, value: h(6), limit: h(5) });
+    expect(stretchNow(lit, 3, 0, 10, 7)).toMatchObject({ hours: 6, broken: false, value: h(6), limit: h(7) });
+    // A limit with decimals: 6 h against 5.99 h breaks it and prints "6.00 h, limit 5.99 h".
+    expect(stretchNow(lit, 3, 0, 10, 5.99)).toMatchObject({ broken: true, value: "6.00 h", limit: "5.99 h" });
   });
 
   it("cuts the stretch at the window's edges, as the veto does", () => {
@@ -103,5 +132,13 @@ describe("stretchNow", () => {
     expect(stretchNow(lit, 0, 0, 10, 6)).toBeNull();
     expect(stretchNow(lit, 3, 4, 10, 6)).toBeNull();
     expect(stretchNow(lit, 9, 0, 9, 6)).toBeNull();
+  });
+});
+
+describe("nextEvent", () => {
+  it("keeps the capital E of Earthset and Earthrise", () => {
+    expect(nextEvent({ body: "sun", eventName: "Sunset" })).toBe("Next sunset");
+    expect(nextEvent({ body: "earth", eventName: "Earthset" })).toBe("Next Earthset");
+    expect(nextEvent({ body: "earth", eventName: "Earthrise" })).toBe("Next Earthrise");
   });
 });

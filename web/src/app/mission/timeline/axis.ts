@@ -250,8 +250,9 @@ export function labelStep(pxPerDay: number, minPx = 44): number {
 
 /**
  * Day ticks across the range, every 24 hours from the landing hour (so the window's days
- * line up with "Day 1", "Day 2"…). The window end gets its own tick when the window is not
- * a whole number of days.
+ * line up with "Day 1", "Day 2"…), from the first such hour at or after the range's start.
+ * A window that is not a whole number of days ends between two ticks; the timeline marks
+ * that end with its own line, not with a tick.
  */
 export function dayTicks(range: TimelineRange, gridStartMs: number, pxPerHour: number): DayTick[] {
   const step = labelStep(pxPerHour * 24);

@@ -215,10 +215,6 @@
     color: var(--status-caution);
   }
 
-  .tl-folded .tl-fold-slot {
-    margin-left: auto;
-  }
-
   /* ── Plot ───────────────────────────────────────────────────────────────── */
   .tl-plot-wrap {
     display: flex;
@@ -649,7 +645,11 @@
   }
 
   .why-two {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .why-switch {
+    justify-self: start;
   }
 
   .why-ok {
@@ -729,18 +729,13 @@
       min-height: 44px;
     }
 
-    /* The fold button stays beside the title. */
-    .tl-head .tl-title {
-      flex: 1;
+    /* The countdown cards stack, so their labels and values never run out of a card. */
+    .cd-row {
+      grid-template-columns: minmax(0, 1fr);
     }
 
-    .tl-head .tl-fold-slot {
-      order: -1;
-      margin-left: auto;
-    }
-
-    .tl-head .tl-title {
-      order: -2;
+    .tl .tl-head .tl-window {
+      flex-basis: 100%;
     }
 
     /* Tags and info icons keep their look; their touch target grows to 44 px. */

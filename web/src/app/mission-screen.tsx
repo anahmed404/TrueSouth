@@ -170,7 +170,6 @@ function MissionShell() {
 const MainView = memo(function MainView() {
   const store = useScenarioStore();
   const view = useScenario(selectView);
-  const scenario = useScenario(selectScenario);
   const setView = useCallback((id: ViewId) => store.getState().setView(id), [store]);
   const active = VIEWS.find((v) => v.id === view) ?? VIEWS[0];
 
@@ -183,13 +182,24 @@ const MainView = memo(function MainView() {
           <p className="view-what">
             {firstSentence(explanations[active.term]?.text ?? "")} <Explain term={active.term} label={active.name} />
           </p>
-          <div className="view-stage">
-            <active.Panel scenario={scenario} mode="mission" />
-          </div>
+          <ViewStage view={active} />
         </TabPanel>
       ) : null}
       <WhyDarkSlot />
     </Panel>
+  );
+});
+
+/**
+ * The open view. Only this part reads the whole scenario, so a scrub re-renders the view
+ * and not the tabs or the notice strip above it.
+ */
+const ViewStage = memo(function ViewStage({ view }: { view: (typeof VIEWS)[number] }) {
+  const scenario = useScenario(selectScenario);
+  return (
+    <div className="view-stage">
+      <view.Panel scenario={scenario} mode="mission" />
+    </div>
   );
 });
 

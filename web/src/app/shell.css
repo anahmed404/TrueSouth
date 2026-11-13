@@ -295,10 +295,11 @@
   /* ── Main view ──────────────────────────────────────────────────────────── */
   .view-body {
     display: flex;
-    flex: 1;
+    flex: 1 1 auto;
     flex-direction: column;
     gap: var(--s3);
-    min-height: 0;
+    /* Never shorter than its sentence and the stage's minimum, so nothing overlaps them. */
+    min-height: min-content;
     padding: var(--s4) var(--s4) var(--s4);
   }
 
@@ -315,15 +316,35 @@
     vertical-align: -3px;
   }
 
+  .shell-main {
+    /* The least height the open view keeps, whatever is docked under it. */
+    --view-stage-min: 120px;
+    /* On a window too short for the tabs, the view at its least height and one row of the
+       card under it, the main view scrolls: nothing is squeezed, clipped or overlapped. */
+    overflow-y: auto;
+  }
+
+  .shell-main > :not(.view-why) {
+    flex-shrink: 0;
+  }
+
   .view-stage {
     display: flex;
     flex: 1;
-    min-height: 0;
+    min-height: var(--view-stage-min);
   }
 
-  /* The "Why is it dark?" card, docked under the view in its own column. */
+  /*
+    The "Why is it dark?" card, docked under the view in its own column. It gives way
+    first: at most 40 % of the main view, and when even that does not fit, it scrolls
+    inside itself rather than squeezing the view.
+  */
   .view-why {
-    flex: none;
+    flex: 0 1 auto;
+    /* Always at least the card's first row. */
+    min-height: 64px;
+    max-height: 40%;
+    overflow-y: auto;
     padding: 0 var(--s4) var(--s4);
   }
 
@@ -1544,6 +1565,20 @@
     .shell-foot {
       padding: var(--s2) 0;
       text-align: center;
+    }
+
+    /* The top bar's provenance tag keeps its look; its touch target grows to 44 px. */
+    .shell-top .tag {
+      position: relative;
+    }
+
+    .shell-top .tag::after {
+      content: "";
+      position: absolute;
+      inset: 50% auto auto 50%;
+      width: max(100%, 44px);
+      height: 44px;
+      transform: translate(-50%, -50%);
     }
 
     /* Every control at least 44 px on a touch screen. */

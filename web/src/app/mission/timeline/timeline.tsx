@@ -23,25 +23,35 @@ import type { DecodedSeries } from "../../../data/decode/layouts";
 import { useCountdowns, useEvaluation, useHourFlags, type Evaluation, type HourFlags } from "../../../lib/scoring";
 import { hourIndexToUtc, utcToHourIndex } from "../../../lib/time";
 import type { PanelProps } from "../../panel";
-import { formatLimit, ruleFields, settingsProvenance, valueAndLimit } from "../rules";
+import { formatLimit, settingsProvenance } from "../rules";
 import { SettingsTag } from "../settings-tag";
 import { NO_RESULT_TEXT } from "../site-status";
 import {
-  bandSegments,
   dayTicks,
   hourScale,
   hourToX,
-  longestOffRun,
   pillText,
   sliderValueText,
   timelineRange,
   windowText,
   xToHour,
   type HourScale,
-  type Run,
-  type Segment,
   type TimelineRange,
 } from "./axis";
+import { dragStart, dragStep, type DragState } from "./drag";
+import {
+  NARROW_PLOT,
+  PLOT,
+  bandLayers,
+  clearanceSummary,
+  plotLayout,
+  rectsPath,
+  segmentRects,
+  stretchOutline,
+  stretches,
+  type PlotLayout,
+  type Stretch,
+} from "./draw";
 import { earthCountdown, sunCountdown, type CountdownView } from "./countdown-text";
 import { speedLabel, usePlayback } from "./use-playback";
 
@@ -111,7 +121,7 @@ function SiteTimeline({ scenario, siteId, grid, hours, folded = false, onToggleF
     [grid, range.start, range.end, onTimeChange, onScenarioChange],
   );
 
-  const playback = usePlayback(range, current, setHour);
+  const playback = usePlayback(range, current, setHour, siteId);
   const flags = useHourFlags(siteId, profile);
   const series = useSeries(siteId);
   const evaluation = useEvaluation(siteId, profile, scenario.landingUtc);
@@ -148,6 +158,7 @@ function SiteTimeline({ scenario, siteId, grid, hours, folded = false, onToggleF
     return (
       <div className="tl tl-folded">
         <h2 className="tl-title">Timeline</h2>
+        {foldButton}
         <span className="tl-folded-time tabular">{pillText(range, current, gridStartMs)}</span>
         {playButton}
         <span className="tl-folded-counts">
@@ -160,7 +171,6 @@ function SiteTimeline({ scenario, siteId, grid, hours, folded = false, onToggleF
             <span className="tl-muted">Countdowns load with the site's data…</span>
           )}
         </span>
-        {foldButton}
       </div>
     );
   }
@@ -173,6 +183,7 @@ function SiteTimeline({ scenario, siteId, grid, hours, folded = false, onToggleF
         <h2 className="tl-title">
           <Explain term="timeline">Timeline</Explain>
         </h2>
+        {foldButton}
         <p className="tl-window">
           <span className="tl-window-dates tabular">
             <Explain term="mission_window">Mission window</Explain> {windowText(range, gridStartMs)}
@@ -192,7 +203,6 @@ function SiteTimeline({ scenario, siteId, grid, hours, folded = false, onToggleF
             Clearance chart
           </button>
         </div>
-        {foldButton}
       </div>
 
       {flags.status === "error" || series.status === "error" ? (
@@ -237,13 +247,13 @@ function TimelineMessage({ children, folded, onToggleFold }: TimelineProps & { c
   return (
     <div className={cx("tl", folded && "tl-folded")}>
       <h2 className="tl-title">Timeline</h2>
-      <p className="tl-message">{children}</p>
       {onToggleFold ? <FoldButton folded={folded ?? false} onToggle={onToggleFold} /> : null}
+      <p className="tl-message">{children}</p>
     </div>
   );
 }
 
-/** Folds the timeline to one row and back. Its slot is what the row orders and aligns. */
+/** Folds the timeline to one row and back. It sits right after the title, in both states. */
 function FoldButton({ folded, onToggle }: { folded: boolean; onToggle: () => void }) {
   return (
     <span className="tl-fold-slot">
@@ -259,17 +269,6 @@ function FoldButton({ folded, onToggle }: { folded: boolean; onToggle: () => voi
 }
 
 /* ── The plot: chart, bands, scrubber ─────────────────────────────────────── */
-
-/** Plot geometry in CSS pixels. */
-const GUTTER = 48;
-const GUTTER_NARROW = 40;
-const RIGHT = 4;
-const DAY_ROW = 20;
-const BAND_H = 26;
-const BAND_GAP = 6;
-const DATE_ROW = 18;
-const CHART_H = 96;
-const CHART_GAP = 12;
 
 type PlotProps = {
   range: TimelineRange;
@@ -302,89 +301,33 @@ function useWidth<T extends HTMLElement>(): [RefObject<T | null>, number] {
   return [ref, width];
 }
 
-/** The longest stretches, located from the flags, numbered from the metrics. */
-type Stretch = {
-  kind: "dark" | "blackout";
-  run: Run | null;
-  hours: number;
-  broken: boolean;
-  label: string;
-  /** "limit 6 h", or null when there is no limit to show (a relay). */
-  limit: string | null;
-  term: string;
-  fields: ReturnType<typeof settingsProvenance>;
-};
-
-function stretches(range: TimelineRange, flags: HourFlags, evaluation: Evaluation | null, profile: MissionProfile): Stretch[] {
-  if (!evaluation) return [];
-  const out: Stretch[] = [];
-  const dark = longestOffRun(flags.lit, range.landing, range.windowEnd);
-  const darkPrinted = valueAndLimit(evaluation.metrics.longestDarkH, profile.max_dark_h, "h", 0);
-  out.push({
-    kind: "dark",
-    run: dark,
-    hours: evaluation.metrics.longestDarkH,
-    broken: evaluation.vetoes.darkness.triggered,
-    label: dark ? `Longest dark ${darkPrinted.value}` : "No dark hours",
-    limit: `limit ${darkPrinted.limit}`,
-    term: "longest_dark_h",
-    fields: settingsProvenance(profile, ruleFields(profile, "darkness")),
-  });
-  if (profile.relay_available) {
-    out.push({
-      kind: "blackout",
-      run: null,
-      hours: 0,
-      broken: false,
-      label: "No blackouts with a relay",
-      limit: null,
-      term: "relay",
-      fields: settingsProvenance(profile, ruleFields(profile, "relay")),
-    });
-  } else {
-    const blackout = longestOffRun(flags.link, range.landing, range.windowEnd);
-    const printed = valueAndLimit(evaluation.metrics.longestBlackoutH, profile.max_blackout_h, "h", 0);
-    out.push({
-      kind: "blackout",
-      run: blackout,
-      hours: evaluation.metrics.longestBlackoutH,
-      broken: evaluation.vetoes.blackout.triggered,
-      label: blackout ? `Longest blackout ${printed.value}` : "No blackout",
-      limit: `limit ${printed.limit}`,
-      term: "longest_blackout_h",
-      fields: settingsProvenance(profile, ruleFields(profile, "blackout")),
-    });
-  }
-  return out;
-}
+/** Every key the scrubber handles. */
+const SLIDER_KEYS =
+  "ArrowLeft ArrowRight ArrowUp ArrowDown Shift+ArrowLeft Shift+ArrowRight Shift+ArrowUp Shift+ArrowDown PageUp PageDown Home End";
 
 function Plot(props: PlotProps) {
   const { range, gridStartMs, current, flags, series, evaluation, profile, chartOpen, setHour, pausePlay, flagsNow } = props;
   const [ref, width] = useWidth<HTMLDivElement>();
-  const narrow = width > 0 && width < 520;
-  const x0 = narrow ? GUTTER_NARROW : GUTTER;
-  const scale = useMemo(() => hourScale(range, x0, Math.max(0, width - x0 - RIGHT)), [range, x0, width]);
+  const narrow = width > 0 && width < NARROW_PLOT;
+  const x0 = narrow ? PLOT.gutterNarrow : PLOT.gutter;
+  const scale = useMemo(() => hourScale(range, x0, Math.max(0, width - x0 - PLOT.right)), [range, x0, width]);
   const list = useMemo(() => stretches(range, flags, evaluation, profile), [range, flags, evaluation, profile]);
+  const layout = useMemo(() => plotLayout(chartOpen), [chartOpen]);
+  const summary = useMemo(() => (chartOpen ? clearanceSummary(series, range, profile) : ""), [chartOpen, series, range, profile]);
 
-  const chartTop = 0;
-  const bandsTop = chartOpen ? CHART_H + CHART_GAP : 0;
-  const sunY = bandsTop + DAY_ROW;
-  const earthY = sunY + BAND_H + BAND_GAP;
-  const height = earthY + BAND_H + DATE_ROW;
-
-  // Drag: the first step adds one history entry, later steps replace it.
-  const drag = useRef<{ pushed: boolean; frame: number | null; x: number; left: number } | null>(null);
+  // One drag adds one history entry at its first change of hour (see drag.ts).
+  const drag = useRef<{ state: DragState; frame: number | null; x: number; left: number } | null>(null);
   const currentRef = useRef(current);
   currentRef.current = current;
 
   const applyX = useCallback(() => {
-    const state = drag.current;
-    if (!state) return;
-    state.frame = null;
-    const hour = xToHour(scale, state.x - state.left);
-    if (hour === currentRef.current && state.pushed) return;
-    setHour(hour, state.pushed ? "replace" : "push");
-    state.pushed = true;
+    const active = drag.current;
+    if (!active) return;
+    active.frame = null;
+    const step = dragStep(active.state, xToHour(scale, active.x - active.left));
+    if (!step) return;
+    active.state = step.next;
+    setHour(step.next.last, step.write);
   }, [scale, setHour]);
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -393,7 +336,7 @@ function Plot(props: PlotProps) {
     event.currentTarget.setPointerCapture(event.pointerId);
     event.currentTarget.focus({ preventScroll: true });
     const left = event.currentTarget.getBoundingClientRect().left;
-    drag.current = { pushed: false, frame: null, x: event.clientX, left };
+    drag.current = { state: dragStart(currentRef.current), frame: null, x: event.clientX, left };
     applyX();
   };
 
@@ -460,10 +403,11 @@ function Plot(props: PlotProps) {
   return (
     <div className="tl-plot-wrap">
       {chartOpen ? <ChartLegend profile={profile} /> : null}
+      {chartOpen ? <p className="sr-only">{summary}</p> : null}
       <div
         ref={ref}
         className="tl-plot"
-        style={{ height }}
+        style={{ height: layout.height }}
         role="slider"
         tabIndex={0}
         aria-label="Scrubber: the current time"
@@ -471,7 +415,7 @@ function Plot(props: PlotProps) {
         aria-valuemax={range.end - range.landing}
         aria-valuenow={current - range.landing}
         aria-valuetext={valueText}
-        aria-keyshortcuts="ArrowLeft ArrowRight Shift+ArrowLeft Shift+ArrowRight Home End"
+        aria-keyshortcuts={SLIDER_KEYS}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
@@ -482,7 +426,7 @@ function Plot(props: PlotProps) {
         {width > 0 ? (
           <>
             {chartOpen ? (
-              <ClearanceChart scale={scale} range={range} series={series} profile={profile} top={chartTop} width={width} />
+              <ClearanceChart scale={scale} range={range} series={series} profile={profile} top={layout.chartTop} width={width} />
             ) : null}
             <Bands
               scale={scale}
@@ -491,13 +435,13 @@ function Plot(props: PlotProps) {
               flags={flags}
               sunFrac={series.sun_frac}
               stretches={list}
-              top={bandsTop}
+              layout={layout}
               width={width}
             />
-            <div className="tl-scrub" style={{ transform: `translateX(${x}px)`, height: earthY + BAND_H + 4 }} aria-hidden="true">
+            <div className="tl-scrub" style={{ transform: `translateX(${x}px)`, height: layout.earthY + PLOT.bandH + 4 }} aria-hidden="true">
               <span className="tl-scrub-knob" />
             </div>
-            <ScrubPill x={x} top={bandsTop} width={width} text={pillText(range, current, gridStartMs)} />
+            <ScrubPill x={x} top={layout.bandsTop} width={width} text={pillText(range, current, gridStartMs)} />
           </>
         ) : null}
       </div>
@@ -532,32 +476,20 @@ type BandsProps = {
   flags: HourFlags;
   sunFrac: Float64Array;
   stretches: Stretch[];
-  top: number;
+  layout: PlotLayout;
   width: number;
 };
 
-function segmentPath(segments: Segment[], scale: HourScale, y: number, h: number, inWindow: boolean): string {
-  let d = "";
-  for (const segment of segments) {
-    if (segment.inWindow !== inWindow) continue;
-    const xa = hourToX(scale, segment.from);
-    const xb = hourToX(scale, segment.to);
-    const hh = h * segment.level;
-    d += `M${xa.toFixed(2)} ${(y + h - hh).toFixed(2)}H${xb.toFixed(2)}V${(y + h).toFixed(2)}H${xa.toFixed(2)}Z`;
-  }
-  return d;
-}
-
-const Bands = memo(function Bands({ scale, range, gridStartMs, flags, sunFrac, stretches: list, top, width, }: BandsProps) {
+const Bands = memo(function Bands({ scale, range, gridStartMs, flags, sunFrac, stretches: list, layout, width }: BandsProps) {
   const id = useId().replace(/:/g, "");
-  const sunY = top + DAY_ROW;
-  const earthY = sunY + BAND_H + BAND_GAP;
-  const height = earthY + BAND_H + DATE_ROW;
+  const { bandsTop: top, sunY, earthY, height } = layout;
+  const bandH = PLOT.bandH;
   const plotW = scale.width;
   const x0 = scale.x0;
 
-  const sun = useMemo(() => bandSegments(flags.lit, range, (hour) => sunFrac[hour] ?? 0), [flags.lit, range, sunFrac]);
-  const earth = useMemo(() => bandSegments(flags.link, range), [flags.link, range]);
+  const bands = useMemo(() => bandLayers(flags, sunFrac, range), [flags, sunFrac, range]);
+  const sunRects = useMemo(() => segmentRects(bands.sun, scale, sunY, bandH), [bands.sun, scale, sunY, bandH]);
+  const earthRects = useMemo(() => segmentRects(bands.earth, scale, earthY, bandH), [bands.earth, scale, earthY, bandH]);
   const ticks = useMemo(() => dayTicks(range, gridStartMs, scale.slots > 0 ? plotW / scale.slots : 0), [range, gridStartMs, plotW, scale.slots]);
   const pxPerDay = scale.slots > 0 ? (plotW / scale.slots) * 24 : 0;
   const landingX = hourToX(scale, range.landing);
@@ -569,33 +501,33 @@ const Bands = memo(function Bands({ scale, range, gridStartMs, flags, sunFrac, s
     <svg className="tl-svg" width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden="true" focusable="false">
       <defs>
         <clipPath id={`${id}-s`}>
-          <rect x={x0} y={sunY} width={plotW} height={BAND_H} rx={6} />
+          <rect x={x0} y={sunY} width={plotW} height={bandH} rx={6} />
         </clipPath>
         <clipPath id={`${id}-e`}>
-          <rect x={x0} y={earthY} width={plotW} height={BAND_H} rx={6} />
+          <rect x={x0} y={earthY} width={plotW} height={bandH} rx={6} />
         </clipPath>
       </defs>
 
-      <text className="tl-row-label" x={0} y={sunY + BAND_H / 2 + 4}>
+      <text className="tl-row-label" x={0} y={sunY + bandH / 2 + 4}>
         Sun
       </text>
-      <text className="tl-row-label" x={0} y={earthY + BAND_H / 2 + 4}>
+      <text className="tl-row-label" x={0} y={earthY + bandH / 2 + 4}>
         Earth
       </text>
       <text className="tl-axis-note" x={0} y={height - 4}>
         UTC
       </text>
 
-      <rect className="tl-well" x={x0 + 0.5} y={sunY + 0.5} width={Math.max(0, plotW - 1)} height={BAND_H - 1} rx={6} />
-      <rect className="tl-well" x={x0 + 0.5} y={earthY + 0.5} width={Math.max(0, plotW - 1)} height={BAND_H - 1} rx={6} />
+      <rect className="tl-well" x={x0 + 0.5} y={sunY + 0.5} width={Math.max(0, plotW - 1)} height={bandH - 1} rx={6} />
+      <rect className="tl-well" x={x0 + 0.5} y={earthY + 0.5} width={Math.max(0, plotW - 1)} height={bandH - 1} rx={6} />
 
       <g clipPath={`url(#${id}-s)`}>
-        <path className="tl-band-sun tl-context" d={segmentPath(sun, scale, sunY, BAND_H, false)} />
-        <path className="tl-band-sun" d={segmentPath(sun, scale, sunY, BAND_H, true)} />
+        <path className="tl-band-sun tl-context" d={rectsPath(sunRects, false)} />
+        <path className="tl-band-sun" d={rectsPath(sunRects, true)} />
       </g>
       <g clipPath={`url(#${id}-e)`}>
-        <path className="tl-band-earth tl-context" d={segmentPath(earth, scale, earthY, BAND_H, false)} />
-        <path className="tl-band-earth" d={segmentPath(earth, scale, earthY, BAND_H, true)} />
+        <path className="tl-band-earth tl-context" d={rectsPath(earthRects, false)} />
+        <path className="tl-band-earth" d={rectsPath(earthRects, true)} />
       </g>
 
       {pxPerDay >= 6
@@ -607,7 +539,7 @@ const Bands = memo(function Bands({ scale, range, gridStartMs, flags, sunFrac, s
                 x1={hourToX(scale, tick.hour)}
                 x2={hourToX(scale, tick.hour)}
                 y1={sunY}
-                y2={earthY + BAND_H}
+                y2={earthY + bandH}
               />
             ) : null,
           )
@@ -626,22 +558,20 @@ const Bands = memo(function Bands({ scale, range, gridStartMs, flags, sunFrac, s
         ) : null,
       )}
 
-      <line className="tl-edge" x1={landingX} x2={landingX} y1={top + 2} y2={earthY + BAND_H + 3} />
-      {range.windowEnd <= range.end + 1 ? <line className="tl-edge" x1={endX} x2={endX} y1={top + 2} y2={earthY + BAND_H + 3} /> : null}
+      <line className="tl-edge" x1={landingX} x2={landingX} y1={top + 2} y2={earthY + bandH + 3} />
+      {range.windowEnd <= range.end + 1 ? <line className="tl-edge" x1={endX} x2={endX} y1={top + 2} y2={earthY + bandH + 3} /> : null}
 
       {list.map((stretch) => {
-        if (!stretch.run) return null;
-        const xa = hourToX(scale, stretch.run.from) - 2;
-        const xb = hourToX(scale, stretch.run.to) + 2;
-        const y = (stretch.kind === "dark" ? sunY : earthY) - 3;
+        const rect = stretchOutline(stretch, scale, layout);
+        if (!rect) return null;
         return (
           <rect
             key={stretch.kind}
             className={cx("tl-stretch", stretch.broken && "is-broken")}
-            x={xa}
-            y={y}
-            width={Math.max(4, xb - xa)}
-            height={BAND_H + 6}
+            x={rect.x}
+            y={rect.y}
+            width={rect.width}
+            height={rect.height}
             rx={7}
           />
         );
@@ -805,7 +735,7 @@ const ClearanceChart = memo(function ClearanceChart({ scale, range, series, prof
     lo -= pad;
     hi += pad;
     const step = NICE_STEPS.find((s) => (hi - lo) / s <= 4) ?? 90;
-    const y = (v: number) => top + 4 + (CHART_H - 8) * (1 - (v - lo) / (hi - lo));
+    const y = (v: number) => top + 4 + (PLOT.chartH - 8) * (1 - (v - lo) / (hi - lo));
     const line = (values: Float64Array) => {
       let d = "";
       for (let h = range.start; h <= range.end; h++) {
@@ -825,8 +755,8 @@ const ClearanceChart = memo(function ClearanceChart({ scale, range, series, prof
   const sign = (v: number) => (v > 0 ? `+${v}°` : v < 0 ? `−${-v}°` : "0°");
 
   return (
-    <svg className="tl-svg tl-chart" width={width} height={CHART_H} viewBox={`0 ${top} ${width} ${CHART_H}`} aria-hidden="true" focusable="false">
-      <rect className="tl-chart-well" x={x0 + 0.5} y={top + 0.5} width={Math.max(0, scale.width - 1)} height={CHART_H - 1} rx={8} />
+    <svg className="tl-svg tl-chart" width={width} height={PLOT.chartH} viewBox={`0 ${top} ${width} ${PLOT.chartH}`} aria-hidden="true" focusable="false">
+      <rect className="tl-chart-well" x={x0 + 0.5} y={top + 0.5} width={Math.max(0, scale.width - 1)} height={PLOT.chartH - 1} rx={8} />
       {chart.ticks.map((v) => (
         <g key={v}>
           <line className={v === 0 ? "tl-zero" : "tl-grid"} x1={x0} x2={x1} y1={chart.y(v)} y2={chart.y(v)} />
@@ -837,7 +767,7 @@ const ClearanceChart = memo(function ClearanceChart({ scale, range, series, prof
       ))}
       {chart.ticks.includes(0) ? null : <line className="tl-zero" x1={x0} x2={x1} y1={chart.y(0)} y2={chart.y(0)} />}
       {chart.mask !== null ? <line className="tl-mask" x1={x0} x2={x1} y1={chart.y(chart.mask)} y2={chart.y(chart.mask)} /> : null}
-      <line className="tl-edge" x1={hourToX(scale, range.landing)} x2={hourToX(scale, range.landing)} y1={top} y2={top + CHART_H} />
+      <line className="tl-edge" x1={hourToX(scale, range.landing)} x2={hourToX(scale, range.landing)} y1={top} y2={top + PLOT.chartH} />
       <path className="tl-line-sun" d={chart.sun} />
       <path className="tl-line-earth" d={chart.earth} />
     </svg>

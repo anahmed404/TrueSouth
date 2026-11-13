@@ -5,6 +5,9 @@ import type { TimelineRange } from "./axis";
 export const PLAY_SPEEDS = [1, 6, 24] as const;
 export type PlaySpeed = (typeof PLAY_SPEEDS)[number];
 
+/** 6 h per second: a 10-day window plays in 40 seconds. */
+export const DEFAULT_PLAY_SPEED: PlaySpeed = 6;
+
 export function speedLabel(speed: PlaySpeed): string {
   return speed === 24 ? "1 d per second" : `${speed} h per second`;
 }
@@ -32,11 +35,11 @@ type Step = (hour: number, write: "push" | "replace") => void;
  * Plays time forward. Playing is something the user starts, so it runs even with "reduce
  * motion"; it adds no motion of its own beyond moving the scrubber hour by hour. The first
  * step adds one history entry, the rest replace it. Play pauses when the tab is hidden,
- * when the timeline changes, and at its stop hour.
+ * when the timeline changes, when another site is focused, and at its stop hour.
  */
-export function usePlayback(range: TimelineRange, current: number, onStep: Step) {
+export function usePlayback(range: TimelineRange, current: number, onStep: Step, siteId: string) {
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState<PlaySpeed>(1);
+  const [speed, setSpeed] = useState<PlaySpeed>(DEFAULT_PLAY_SPEED);
   const frame = useRef<number | null>(null);
   const live = useRef({ range, current, onStep, speed });
   live.current = { range, current, onStep, speed };
@@ -102,8 +105,8 @@ export function usePlayback(range: TimelineRange, current: number, onStep: Step)
     }
   }, [run]);
 
-  // A new site, landing or duration changes what "the end" means: stop.
-  useEffect(() => pause, [range.landing, range.windowEnd, range.start, range.end, pause]);
+  // A new site, landing or duration changes what is being played: stop.
+  useEffect(() => pause, [siteId, range.landing, range.windowEnd, range.start, range.end, pause]);
 
   useEffect(() => {
     const onVisibility = () => {

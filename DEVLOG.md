@@ -244,6 +244,17 @@ each integration checkpoint.
   - The spec names `web/src/features/mission-control/site-detail/` as the folder; the brief
     kept this work in `web/src/app/`, so that folder's placeholder is no longer used by the
     shell. Clicking the card to open the Lander's eye waits for MC6.
+  - Review fixes were made: a waiting address-bar write only lands on the page and history
+    entry it was made on (a click flushes it first; Back, Forward and other pages drop it);
+    countdowns never round up, and the amber flag uses the same whole minutes as the text;
+    one drag adds exactly one history entry, none if the hour never changes; what the
+    timeline draws is in `draw.ts`, tested against `hourFlags` and `evaluate` (two
+    mutations confirmed caught); the phone stacks the countdown cards; the docked
+    "why" card shows the Sun's and Earth's reasons with a switch when they do not fit side
+    by side, and the view keeps at least 120 px; play defaults to 6 h per second and stops
+    on a new focused site; the clearance chart has a text summary; the main view no longer
+    re-renders its tabs on a scrub. Checked on the real data for Connecting Ridge,
+    Shackleton rim, IM-2 Athena and Apollo 11.
 
 #### 2026-11-13 · MC7a · Slip sweep in a Web Worker
 - **Who:** Cursor agent, for the orchestrator

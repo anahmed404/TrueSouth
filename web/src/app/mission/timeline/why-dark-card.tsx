@@ -1,6 +1,8 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import type { MissionProfile } from "../../../contracts/generated";
 import { BodyIcon } from "../../../components/BodyIcon";
 import { Explain } from "../../../components/Explain";
+import { SegmentedControl } from "../../../components/SegmentedControl";
 import { cx } from "../../../components/format";
 import { useFeatures, useManifest, useSeries, useSites, useSkyline } from "../../../data/hooks";
 import type { DecodedSeries } from "../../../data/decode/layouts";
@@ -82,10 +84,54 @@ function SiteWhyDark({ siteId, scenario }: { siteId: string; scenario: PanelProp
     );
   }
 
+  return <Reasons reasons={shown} profile={profile} />;
+}
+
+/** Two reasons sit side by side only when each gets at least this much width. */
+const SIDE_BY_SIDE_PX = 2 * 340 + 24 + 2 * 16;
+
+/**
+ * One reason, or two. Two sit side by side when there is room; otherwise a two-item
+ * switch shows the Sun's reason or the Earth's, so the card never grows to two stacked
+ * reasons and crowds the view above it.
+ */
+function Reasons({ reasons, profile }: { reasons: Explanation[]; profile: MissionProfile }) {
+  const ref = useRef<HTMLElement>(null);
+  const [width, setWidth] = useState(0);
+  const [pick, setPick] = useState<"sun" | "earth">("sun");
+  useLayoutEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    setWidth(node.clientWidth);
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) setWidth(Math.round(entry.contentRect.width));
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  const two = reasons.length > 1;
+  const sideBySide = two && width >= SIDE_BY_SIDE_PX;
+  const chosen = reasons.find((r) => r.body === pick) ?? reasons[0];
+  const visible = !two || sideBySide ? reasons : chosen ? [chosen] : [];
+
   return (
-    <section className={cx("why", shown.length > 1 && "why-two")} aria-label="Why it is dark">
-      {shown.map((explanation) => (
-        <Reason key={explanation.body} explanation={explanation} profile={profile} />
+    <section ref={ref} className={cx("why", sideBySide && "why-two")} aria-label="Why it is dark">
+      {two && !sideBySide ? (
+        <SegmentedControl
+          label="Explain"
+          className="why-switch"
+          value={chosen?.body ?? "sun"}
+          onChange={setPick}
+          options={[
+            { value: "sun", label: "Why is it dark?" },
+            { value: "earth", label: "Why is there no link?" },
+          ]}
+        />
+      ) : null}
+      {visible.map((explanation) => (
+        <Reason key={explanation.body} explanation={explanation} profile={profile} titled={!two || sideBySide} />
       ))}
     </section>
   );
@@ -101,17 +147,19 @@ function ruleTag(profile: MissionProfile, explanation: Explanation): SettingsPro
   return settingsProvenance(profile, ["min_sun_fraction"]);
 }
 
-function Reason({ explanation, profile }: { explanation: Explanation; profile: MissionProfile }) {
+function Reason({ explanation, profile, titled }: { explanation: Explanation; profile: MissionProfile; titled: boolean }) {
   const words = wordExplanation(explanation, ruleOf(profile));
   const { blocker, feature } = explanation;
   const sun = explanation.body === "sun";
   return (
     <div className="why-reason">
       <div className="why-text">
-        <h3 className="why-title">
-          <BodyIcon body={explanation.body} />
-          {sun ? "Why is it dark?" : "Why is there no link?"}
-        </h3>
+        {titled ? (
+          <h3 className="why-title">
+            <BodyIcon body={explanation.body} />
+            {sun ? "Why is it dark?" : "Why is there no link?"}
+          </h3>
+        ) : null}
         <p className="why-sentence">
           {words.text}
           {words.rule ? (
