@@ -78,7 +78,7 @@ def create_app(
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, error: RequestValidationError):
         advice = {
-            'lat_deg': 'Latitude must be a number from ?90 to 90.',
+            'lat_deg': 'Latitude must be a number from \u221290 to 90.',
             'lon_deg': 'Longitude must be a finite number.',
             'name': 'Name must be text of at most 120 characters.',
             'body': 'Send a JSON object with latitude, longitude and an optional name. Only these fields are allowed.',
