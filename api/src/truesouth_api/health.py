@@ -137,6 +137,9 @@ def _scene_files(root: Path) -> list[str] | None:
         try:
             if child.is_file():
                 names.append(child.name)
+            elif child.is_dir():
+                # One folder down: the aprons live in scene/aprons/.
+                names.extend(f"{child.name}/{inner.name}" for inner in child.iterdir() if inner.is_file())
         except OSError:
             continue
     return sorted(names)

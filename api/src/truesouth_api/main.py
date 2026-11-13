@@ -9,6 +9,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
+from starlette.datastructures import Headers
 
 from truesouth_api.health import health_report
 from truesouth_api.settings import derived_dir, prepared_dir, web_dist_dir
@@ -27,21 +28,21 @@ def _json_missing() -> JSONResponse:
     return JSONResponse({"message": NOT_FOUND}, status_code=404)
 
 
-def _serve_data(root: Path, relative: str) -> Response:
+def _serve_data(root: Path, relative: str, headers: Headers) -> Response:
     found = safe_file(root, relative)
     if found is None:
         return _plain_missing()
-    return file_response(found, DATA_CACHE)
+    return file_response(found, DATA_CACHE, headers)
 
 
-def _serve_web(root: Path, relative: str) -> Response:
+def _serve_web(root: Path, relative: str, headers: Headers) -> Response:
     if relative not in ("",):
-        if unsafe(relative):
+        if unsafe(relative) or any(part.startswith(".") for part in relative.split("/")):
             return _plain_missing()
         found = safe_file(root, relative)
         if found is not None:
             cache = ASSET_CACHE if relative.startswith("assets/") else "public, max-age=3600"
-            return file_response(found, cache)
+            return file_response(found, cache, headers)
         # A missing file with a suffix is a 404. Client routes have none,
         # so `/mission` and `/academy/sample` fall through to the shell.
         if "." in Path(relative).name:
@@ -49,7 +50,7 @@ def _serve_web(root: Path, relative: str) -> Response:
     index = safe_file(root, "index.html")
     if index is None:
         return _plain_missing()
-    return file_response(index, SHELL_CACHE)
+    return file_response(index, SHELL_CACHE, headers)
 
 
 def create_app(
@@ -88,17 +89,17 @@ def create_app(
 
     @app.api_route("/data", methods=["GET", "HEAD"])
     @app.api_route("/data/{rest:path}", methods=["GET", "HEAD"])
-    def derived_files(rest: str = "") -> Response:
-        return _serve_data(derived_root, rest)
+    def derived_files(request: Request, rest: str = "") -> Response:
+        return _serve_data(derived_root, rest, request.headers)
 
     @app.api_route("/", methods=["GET", "HEAD"])
     @app.api_route("/{rest:path}", methods=["GET", "HEAD"])
-    def frontend(rest: str = "") -> Response:
+    def frontend(request: Request, rest: str = "") -> Response:
         if rest == "api" or rest.startswith("api/"):
             return _json_missing()
         if rest == "data" or rest.startswith("data/"):
             return _plain_missing()
-        return _serve_web(web_root, rest)
+        return _serve_web(web_root, rest, request.headers)
 
     return app
 

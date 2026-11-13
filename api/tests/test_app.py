@@ -61,6 +61,7 @@ def _catalog(root: Path) -> None:
     for name in MAP_FILES:
         _write(root / "maps" / name, name.encode("ascii"))
     _write(root / "scene" / "moon_2k.webp", b"moon")
+    _write(root / "scene" / "aprons" / "ridge.bin", b"apron")
     _write(root / "tiny.png", b"\x89PNG")
     _write(root / "tiny.jpg", b"\xff\xd8")
 
@@ -147,7 +148,7 @@ def test_health_everything_present(tmp_path: Path) -> None:
         assert derived["maps"][name] is True
     assert derived["site_files"]["ridge"]["series.bin"] is True
     assert derived["site_files"]["ridge"]["closeup.bin"] is True
-    assert derived["scene"] == ["moon_2k.webp"]
+    assert derived["scene"] == ["aprons/ridge.bin", "moon_2k.webp"]
     for name in PREPARED:
         assert body["prepared_maps"][name] is True
 
@@ -202,7 +203,7 @@ def test_static_file_bytes_and_content_types(tmp_path: Path) -> None:
     assert series.status_code == 200
     assert series.content == b"series-bytes"
     assert series.headers["content-type"].startswith("application/octet-stream")
-    assert "max-age" in series.headers["cache-control"]
+    assert series.headers["cache-control"] == "no-cache"
 
     meta = client.get("/data/sites/ridge/meta.json")
     assert meta.status_code == 200
@@ -223,6 +224,40 @@ def test_static_file_bytes_and_content_types(tmp_path: Path) -> None:
     assert jpg.status_code == 200
     assert jpg.content == b"\xff\xd8"
     assert jpg.headers["content-type"].startswith("image/jpeg")
+
+
+def test_data_file_is_revalidated_not_reused(tmp_path: Path) -> None:
+    """A rebuilt file keeps its name, so the browser asks each time and gets a 304 or the new bytes."""
+    derived = tmp_path / "derived"
+    client = TestClient(_app(tmp_path, fill=True))
+    first = client.get("/data/sites/ridge/series.bin")
+    etag = first.headers["etag"]
+
+    again = client.get("/data/sites/ridge/series.bin", headers={"If-None-Match": etag})
+    assert again.status_code == 304
+    assert again.content == b""
+    assert again.headers["etag"] == etag
+
+    weak = client.get("/data/sites/ridge/series.bin", headers={"If-None-Match": f'W/{etag}, "other"'})
+    assert weak.status_code == 304
+
+    (derived / "sites" / "ridge" / "series.bin").write_bytes(b"rebuilt series bytes")
+    changed = client.get("/data/sites/ridge/series.bin", headers={"If-None-Match": etag})
+    assert changed.status_code == 200
+    assert changed.content == b"rebuilt series bytes"
+    assert changed.headers["etag"] != etag
+
+
+def test_dot_files_are_refused(tmp_path: Path) -> None:
+    derived = tmp_path / "derived"
+    client = TestClient(_app(tmp_path, fill=True))
+    (derived / ".secret").write_text("no", encoding="utf-8")
+    (derived / "sites" / ".hidden").mkdir()
+    (derived / "sites" / ".hidden" / "a.json").write_text("{}", encoding="utf-8")
+    for url in ("/data/.secret", "/data/sites/.hidden/a.json", "/.env", "/.git/config"):
+        response = client.get(url)
+        assert response.status_code == 404, url
+        assert "html" not in response.headers["content-type"], url
 
 
 def test_missing_data_file_is_not_html(tmp_path: Path) -> None:
