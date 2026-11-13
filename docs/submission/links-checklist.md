@@ -4,7 +4,7 @@ Every link the submission will contain, and what must be true before sending it.
 The last column is for the team to fill: open each link in a **private (incognito)
 window, signed out**, and tick it only if the right page loads.
 
-State checked at @@CHECKED@@.
+State checked at 2026-11-13 22:14 UTC (`origin/main` at 63d518a).
 
 ## Must be true before submitting
 
@@ -23,7 +23,8 @@ State checked at @@CHECKED@@.
 - [ ] **No link in the submission text goes to `localhost`**, a pull request, or a page
   behind a login.
 - [ ] The pull requests that the texts depend on are merged, or the texts are edited:
-  #81 (Academy), #79 (validation page), #77 (variants), #80 (custom-site server). See
+  #81 (Academy), #83 (landing date in the timeline, "Next GO"), #77 (variants), #80
+  (custom-site server). See
   [`objectives-map.md`](objectives-map.md).
 - [ ] The Docker image builds from a clean checkout (`docker compose -p truesouth-s13 up -d --build`,
   then open <http://localhost:8080>), if the repository or zip is what judges will run. CHECK: this was last

@@ -1047,7 +1047,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 - **Changed:** `docs/submission/` (new), this entry
 - **Notes:**
   - States in the objective map were checked against `origin/main` and the open pull
-    requests, and must be checked again on the day: #81 (Academy lessons 1 to 4), #79 (validation page),
+    requests, and must be checked again on the day (the validation page, #79, had merged): #81 (Academy lessons 1 to 4), #83 (landing date in the timeline and "Next GO"),
     #77 (sunlit-peak variants) and #80 (custom-site server) were open. The Slip Planner, the
     Compare window, the flat Polar map and the custom-coordinates form are not built and
     have no pull request, so the demo script reaches the slip story with the landing-date

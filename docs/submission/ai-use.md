@@ -2,7 +2,7 @@
 
 For the Space Apps submission. Compiled from the "AI use" lines in
 [`../../DEVLOG.md`](../../DEVLOG.md) and from [`../orchestration/`](../orchestration/)
-(the orchestrator prompt and `status.md`). State as of @@CHECKED@@ on `origin/main`.
+(the orchestrator prompt and `status.md`). State as of 2026-11-13 22:14 UTC (`origin/main` at 63d518a) on `origin/main`.
 
 ## In short
 
@@ -45,7 +45,7 @@ so below.
 - **Tests.** Python science code has pytest tests against known geometry. TypeScript
   scoring code has vitest tests against a shared fixture, so it matches the Python
   reference to 1e-9. The orchestrator's rule was to run both suites before every merge. It
-  added that rule after two documents-only merges broke `main`. @@TESTS@@
+  added that rule after two documents-only merges broke `main`. On the branch that added this file, 322 Python tests and 1,744 web tests passed.
 - **Validation gates.** Eleven gates (G1 to G11) and reported comparisons against NASA's
   own maps. Gate G2 compares our Sun and Earth directions with JPL Horizons at 2,103,360
   points. The results, including two outside their marks, are in
@@ -65,7 +65,7 @@ so below.
 - **By eye.** User interface work was looked at in a browser, at three window widths. The
   automated browser has no graphics card, so the 3D scene was judged from captures made on a
   machine with one.
-- **Human review.** In 32 of the 43 entries in `DEVLOG.md`, the AI-use line says a human
+- **Human review.** In 33 of the 45 entries in `DEVLOG.md`, the AI-use line says a human
   has not yet reviewed the code (counted by searching those lines for phrases such as
   "human review pending"; the count is approximate). The team lead reviewed designs and
   results at checkpoints, not every line of code.
@@ -108,11 +108,11 @@ here, with the tool's name. Nothing in the repository says what the video is mad
 
 ## How we counted
 
-- **"43 entries".** `DEVLOG.md` has 44 headings that begin `####`; one of them is the
-  entry template. The 43 real entries each have an "AI use" line. One says "not recorded"
+- **"45 entries".** `DEVLOG.md` has 46 headings that begin `####`; one of them is the
+  entry template. The 45 real entries each have an "AI use" line. One says "not recorded"
   (the first planning notes, marked superseded).
 - **"87 rows" and "30 review rows".** From the "Usage ledger" table in
   `docs/orchestration/status.md`: rows beginning with a 2026 date. By provider: Claude Code
   22, Codex 26, Cursor 24, Antigravity 15. The status file's own "Totals so far" line reads
   24, 26, 23 and 15 (88 in all), which does not match its table; we use the table.
-- **"32 of 43".** A text search, as described above.
+- **"33 of 45".** A text search, as described above.

@@ -7,13 +7,12 @@ request, it is marked **[PR]** and listed under "Before pasting".
 
 ## Before pasting
 
-State checked against `origin/main` at @@CHECKED@@. Re-run `git fetch origin` and
+State checked against `origin/main` at 2026-11-13 22:14 UTC (`origin/main` at 63d518a). Re-run `git fetch origin` and
 `gh pr list --state open`, then read this list again.
 
 | Marked | What it depends on | If it is not merged |
 | :--- | :--- | :--- |
 | **[PR-81]** | Pull request #81, Academy lessons 1 to 4 playable | Say "the Academy's first four lessons are being finished" or delete the Academy sentences about lessons |
-| **[PR-79]** | Pull request #79, the validation page | Delete "and a validation page that shows every comparison" |
 
 Nothing in the three texts depends on the Slip Planner, the Compare window, the flat Polar
 map or custom coordinates. None of those is merged. Do not add them. If the Slip Planner
@@ -83,7 +82,7 @@ a verdict and re-scores instantly when the date or any limit changes.
 
 ### How we know it is right
 
-We check against NASA's own data and publish every result **[PR-79]**.
+We check against NASA's own data and publish every result on a validation page.
 
 - **Sun and Earth directions** match JPL Horizons' own site tables at all 20 sites and every
   hour: 2,103,360 comparisons, largest difference 0.0061 degrees, pass mark 0.02. The raw

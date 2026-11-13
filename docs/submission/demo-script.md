@@ -4,7 +4,7 @@ For the presenter. Read the **Say** lines aloud. They use no lunar jargon. The s
 one in the Academy: Pip is a small solar lander headed for the Moon's south pole, and its
 launch slips by three weeks.
 
-State checked against `origin/main` at @@CHECKED@@. This script uses only what is merged,
+State checked against `origin/main` at 2026-11-13 22:14 UTC (`origin/main` at 63d518a). This script uses only what is merged,
 with two exceptions marked **[PR]**. The Slip Planner is **not built** (its window is a
 placeholder), so steps 2 to 4 use the landing-date buttons. If the Slip Planner merges
 first, see "If the Slip Planner is merged" at the end.
@@ -82,7 +82,8 @@ Timings add up to 3:00.
 ### 2. The launch slips (0:15 to 0:30)
 
 - **Click:** the "Slip +7 d" button in the top bar three times. The landing date reads
-  2028-01-22 00:00 UTC. (Or open link B.)
+  2028-01-22 00:00 UTC. (Or open link B.) If #83 has merged, the date controls are in the
+  header of the bottom timeline, not the top bar; the buttons are the same.
 - **You see:** the verdicts in the left rail change.
 - **Say:** "Pip's launch just slipped three weeks. It was fine on 1 January. Same site, same
   mission, 22 January."
@@ -103,7 +104,9 @@ Timings add up to 3:00.
 
 ### 4. The next good date (0:55 to 1:10)
 
-- **Click:** "One day later" five times, or open link C. The date reads 2028-01-27.
+- **Click:** "One day later" five times, or open link C. The date reads 2028-01-27. If #83
+  has merged, click "Next GO" once instead: it should jump to 2028-01-27 for Connecting
+  Ridge (CHECK: it searches from the day after the landing date; confirm the date it lands on).
 - **You see:** GO, score 99.9. The timeline shows no dark stretch and no blackout.
 - **Say:** "Five days later it works again. A slip of three weeks is NO-GO. A slip of
   twenty-six days is GO. That is the whole point: small date changes decide the mission."
@@ -162,13 +165,13 @@ Timings add up to 3:00.
 
 ### 10. How we know it is right (2:45 to 3:00)
 
-- **Open:** `<live>/validation`. **[PR-79]**
+- **Open:** `<live>/validation` (merged in #79).
 - **You see:** the headline comparison against NASA's Horizons.
 - **Say:** "We checked our Sun and Earth directions against NASA's own ephemeris service
   at every site and every hour: over two million comparisons. The largest difference is
   0.0061 degrees. We publish the two results that miss our marks, too."
-- **If #79 is not merged:** say the same words from the card below. The start screen's
-  "How we know it's right" link opens a page that is a stub today. Do not click it.
+- **If the page is slow or fails:** say the same words from the headline card below.
+  CHECK: open `/validation` on the live site, and read its headline against the card.
 
 ## The one-minute version
 

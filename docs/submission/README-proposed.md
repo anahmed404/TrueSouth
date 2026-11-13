@@ -5,7 +5,7 @@ README is unchanged.
 
 ## Review of the current README
 
-Read against `origin/main` at @@CHECKED@@:
+Read against `origin/main` at 2026-11-13 22:14 UTC (`origin/main` at 63d518a):
 
 - **Out of date:** "Planning is complete. No application code exists yet." Code exists:
   the science pipeline, the API, the web app, the 3D scene and the Docker build.
@@ -63,17 +63,17 @@ CHECK: `built-mission-nogo.png` shows an older build ("Not built yet" panels). D
 
 ## What is built, and what is not
 
-State as of @@CHECKED@@. [`docs/orchestration/status.md`](../orchestration/status.md) is the
+State as of 2026-11-13 22:14 UTC (`origin/main` at 63d518a). [`docs/orchestration/status.md`](../orchestration/status.md) is the
 live record.
 
 **Built:** the science pipeline and its derived data for 20 sites; validation against
 NASA's maps; the Mission Control shell; the 3D scene (System view, the ground in Local
 terrain); the Lander's eye; the timeline and countdowns; scoring in the browser; the
-shareable link; a Docker build; Academy screens and lesson skeletons.
+shareable link; the validation page; a Docker build; Academy screens and lesson skeletons.
 
-**In review (open pull requests):** Academy lessons 1 to 4 playable (#81); the validation
-page (#79); nearby range and best-lit variants for sunlit peaks (#77); a server that
-computes custom sites (#80).
+**In review (open pull requests):** Academy lessons 1 to 4 playable (#81); the landing date
+moving into the timeline, with a "Next GO" button (#83); nearby range and best-lit variants
+for sunlit peaks (#77); a server that computes custom sites (#80).
 
 **Not built:** the Slip Planner view, the Compare window, the flat Polar map, Local terrain
 overlays, a form for custom coordinates, Academy lessons 5 to 8, Luna's final art.
