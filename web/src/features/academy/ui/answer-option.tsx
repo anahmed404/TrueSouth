@@ -2,9 +2,25 @@ import type { KeyboardEvent, ReactNode } from "react";
 import type { OptionView } from "../step-view";
 import { CorrectMark, ShownMark } from "./marks";
 
+/**
+ * Which option in a radio group is in the tab order. A group is one tab stop: the checked
+ * option if there is one, otherwise the first option that can still be picked. The arrow
+ * keys move between the rest. Returns -1 when no option can take focus.
+ */
+export function optionTabStop(views: readonly OptionView[], checkedIndex?: number): number {
+  const checked =
+    checkedIndex !== undefined && checkedIndex >= 0
+      ? checkedIndex
+      : views.findIndex((view) => view.state === "selected" || view.state === "answer");
+  if (checked >= 0) return checked;
+  return views.findIndex((view) => view.state !== "missed");
+}
+
 type AnswerOptionProps = {
   index: number;
   view: OptionView;
+  /** This option is the group's one tab stop (see `optionTabStop`). */
+  tabStop: boolean;
   /** The group is answered: no option can be picked. */
   locked: boolean;
   onPick: (index: number) => void;
@@ -16,7 +32,7 @@ type AnswerOptionProps = {
  * States: default, selected, missed (dashed and crossed out), answer, dimmed.
  * A `role="radio"` inside an `OptionGroup`.
  */
-export function AnswerOption({ index, view, locked, onPick, children }: AnswerOptionProps) {
+export function AnswerOption({ index, view, tabStop, locked, onPick, children }: AnswerOptionProps) {
   const checked = view.state === "selected" || view.state === "answer";
   const disabled = locked || view.state === "missed";
   return (
@@ -28,7 +44,7 @@ export function AnswerOption({ index, view, locked, onPick, children }: AnswerOp
       className="ac-opt"
       data-state={view.state}
       data-ac-option={index}
-      tabIndex={disabled && !checked ? -1 : 0}
+      tabIndex={tabStop ? 0 : -1}
       onClick={() => {
         if (!disabled) onPick(index);
       }}

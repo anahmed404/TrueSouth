@@ -126,7 +126,8 @@ export function LessonScreen({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (leaveTo !== null || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
-      if (!step || tab !== "luna" && event.key !== "Enter") return;
+      // The "Under the hood" tab hides the step, so no shortcut may answer it from there.
+      if (!step || tab !== "luna") return;
       if (event.key === "Enter") {
         if (ownsEnter(event.target)) return;
         event.preventDefault();

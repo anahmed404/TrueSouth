@@ -5,7 +5,7 @@ import { resolveDegrees, type WorkedExamples } from "../placeholders";
 import type { RunnerState } from "../runner";
 import { isAnswered, type Draft, type OptionView } from "../step-view";
 import type { PanelId, RevealSpec, Step } from "../types";
-import { AnswerOption, OptionGroup } from "../ui/answer-option";
+import { AnswerOption, OptionGroup, optionTabStop } from "../ui/answer-option";
 import { filledText } from "../ui/filled";
 import { CorrectMark } from "../ui/marks";
 import { Moondust } from "../ui/moondust";
@@ -92,6 +92,7 @@ function StageBody({ step, runner, draft, views, examples, celebrate, onDraft }:
                   key={index}
                   index={index}
                   view={views[index] ?? { state: "default", note: null, correct: false }}
+                  tabStop={index === optionTabStop(views)}
                   locked={answered}
                   onPick={(picked) => onDraft({ kind: "spot-bug", selected: picked })}
                 >
@@ -259,7 +260,7 @@ function FormulaStage({
               role="radio"
               aria-checked={inSlot}
               aria-disabled={disabled || undefined}
-              tabIndex={disabled && !inSlot ? -1 : 0}
+              tabIndex={index === optionTabStop(views, placed) ? 0 : -1}
               className="ac-tile"
               data-state={view.state}
               data-ac-option={index}

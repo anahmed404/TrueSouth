@@ -15,7 +15,7 @@ import {
   type ResultView,
 } from "../step-view";
 import type { Step, UnderTheHoodCard as CardData } from "../types";
-import { AnswerOption, OptionGroup } from "../ui/answer-option";
+import { AnswerOption, OptionGroup, optionTabStop } from "../ui/answer-option";
 import { filledText } from "../ui/filled";
 import { CorrectMark, ShownMark } from "../ui/marks";
 
@@ -116,6 +116,7 @@ function LunaTab({ step, runner, views, examples, onPick, primary, onPrimary, re
               key={index}
               index={index}
               view={views[index] ?? { state: "default", note: null, correct: false }}
+              tabStop={index === optionTabStop(views)}
               locked={answered}
               onPick={onPick}
             >
