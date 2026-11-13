@@ -50,11 +50,11 @@ each integration checkpoint.
 ## Science
 
 #### 2026-11-13 · S0 · Python workspace and contracts
-- **Who:** Science track
+- **Who:** Codex agent, for the orchestrator
 - **AI use:** Codex, gpt-6.1-terra — implemented workspace, contracts and CLI — automated checks run; human review pending
 - **State:** built, not verified
 - **Changed:** Python workspace, science, api, schema and data contract documentation
-- **Notes:** Provenance serialization and worked-example nesting are specified in data-contracts.md.
+- **Notes:** Review fixes: closed provenance and layouts, flat worked examples, validations, descriptions, feature IDs, documentation and expanded tests.
 
 
 ## Mission Control

@@ -24,11 +24,10 @@ def test_invalid_values():
 def test_cli_and_schema():
     from truesouth.cli import COMMANDS, export_schema
     from truesouth.contracts import CONTRACT_MODELS
-    export_schema()
+    from truesouth.cli import schema_bytes
     p = Path('web/src/contracts/schema.json')
     first = p.read_bytes()
-    export_schema()
-    assert first == p.read_bytes()
+    assert first == schema_bytes() == schema_bytes()
     assert set(json.loads(first)['$defs']) == {m.__name__ for m in CONTRACT_MODELS}
     help_text = subprocess.check_output([sys.executable, '-m', 'truesouth.cli', '--help'], text=True)
     for command in COMMANDS:

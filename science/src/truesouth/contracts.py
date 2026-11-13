@@ -1,216 +1,585 @@
 from datetime import datetime
 from typing import Annotated, Literal
-from pydantic import BaseModel, Field, RootModel, StringConstraints, field_validator, model_validator
+
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, RootModel, StringConstraints, model_validator
+
+
+def _valid_utc(value: str) -> str:
+    """Check that a UTC timestamp is a real calendar time."""
+    datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return value
+
 
 Latitude = Annotated[float, Field(ge=-90, le=90)]
 Longitude = Annotated[float, Field(ge=0, lt=360)]
-UTC = Annotated[str, StringConstraints(pattern=r'^\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d(?:\.\d+)?)?Z$')]
+UTC = Annotated[str, StringConstraints(pattern=r"^\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d(?:\.\d+)?)?Z$"), AfterValidator(_valid_utc)]
+CatalogId = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$")]
+SiteId = Annotated[str, StringConstraints(pattern=r"^(?:[a-z][a-z0-9]*(?:_[a-z0-9]+)*|c_-?\d+\.\d{4}_\d+\.\d{4})$")]
+
 
 class Contract(BaseModel):
-    @field_validator('*', mode='after')
-    @classmethod
-    def valid_dates(cls, value, info):
-        if info.field_name.endswith('_utc') and isinstance(value, str):
-            datetime.fromisoformat(value.replace('Z', '+00:00'))
-        return value
+    """Base for closed JSON contract objects."""
+
+    model_config = ConfigDict(extra="forbid")
+
 
 class TimeGrid(Contract):
-    start_utc: UTC
-    step_s: int
-    count: int
+    """UTC grid shared by all series."""
+
+    start_utc: UTC = Field(description='First time grid timestamp in UTC.')
+    step_s: int = Field(description='Time step in seconds.')
+    count: int = Field(description='Number of hourly samples.')
+
 
 class Manifest(Contract):
-    schema_version: Literal[1]
-    generated_utc: UTC
-    time_grid: TimeGrid
-    observer_height_m: float
-    skyline_bins: int
-    moon_radius_m: float
+    """Version and shared time grid for derived data."""
+
+    schema_version: Literal[1] = Field(description='Contract version.')
+    generated_utc: UTC = Field(description='Generation timestamp in UTC.')
+    time_grid: TimeGrid = Field(description='Shared UTC time grid.')
+    observer_height_m: float = Field(description='Observer height in metres.')
+    skyline_bins: int = Field(description='Number of skyline azimuth bins.')
+    moon_radius_m: float = Field(description='Moon reference radius in metres.')
+
 
 class Slope(Contract):
-    deg: float
-    baseline_m: float
-    source: str
+    """Site slope and measurement baseline."""
+
+    deg: float = Field(description='Slope in degrees.')
+    baseline_m: float = Field(description='Measurement baseline in metres.')
+    source: str = Field(description='Slope data source.')
+
 
 class Site(Contract):
-    id: str
-    name: str
-    group: Literal['artemis', 'sunlit_peak', 'polar_lander', 'contrast']
-    lat_deg: Latitude
-    lon_deg: Longitude
-    description: str
-    source_url: str
-    outcome: str | None
-    terrain_tier: Literal['core80', 'wide240', 'sphere']
-    has_closeup: bool
-    elevation_m: float | None
-    slope: Slope | None
-    quickmap_url: str
-    moontrek_url: str
+    """Catalog or custom site."""
 
-class Sites(RootModel[list[Site]]): pass
+    id: SiteId = Field(description='Stable lowercase snake_case catalog id or custom c_<lat>_<lon> id with four decimal places.')
+    name: str = Field(description='Display name.')
+    group: Literal['artemis', 'sunlit_peak', 'polar_lander', 'contrast'] = Field(description='Catalog group.')
+    lat_deg: Latitude = Field(description='Latitude in degrees north.')
+    lon_deg: Longitude = Field(description='East longitude in degrees, from 0 inclusive to 360 exclusive.')
+    description: str = Field(description='Plain-language site description.')
+    source_url: str = Field(description='Source of site coordinates.')
+    outcome: str | None = Field(description='Mission outcome, or null.')
+    terrain_tier: Literal['core80', 'wide240', 'sphere'] = Field(description='Terrain tier.')
+    has_closeup: bool = Field(description='Whether a close-up DEM exists.')
+    elevation_m: float | None = Field(description='Ground elevation in metres above reference sphere, or null.')
+    slope: Slope | None = Field(description='Slope and measurement baseline, or null.')
+    quickmap_url: str = Field(description='NASA Quickmap link.')
+    moontrek_url: str = Field(description='NASA Moon Trek link.')
+
+
+class Sites(RootModel[list[Site]]):
+    """Array of catalog sites."""
+
+    root: list[Site] = Field(description="Ordered array of Site objects.")
+
 
 class SeriesColumn(Contract):
-    name: str
-    scale: float
-    offset: float
+    """One scaled Int16 series column."""
 
-class SeriesMeta(Contract):
-    columns: list[SeriesColumn]
+    name: Literal['sun_az', 'sun_el', 'sun_frac', 'sun_clear', 'earth_az', 'earth_el', 'earth_frac', 'earth_clear'] = Field(description='Series column name.')
+    scale: float = Field(description='Decode as raw * scale + offset; angle units are degrees.')
+    offset: float = Field(description='Decode as raw * scale + offset; angle units are degrees.')
 
-class SkylineMeta(Contract):
-    bins: int
-    missing_samples: int
-    max_range_km: float
-
-class MeshMeta(Contract):
-    size: int
-    window_km: float
-
-class SiteMeta(Contract):
-    site_id: str
-    series: SeriesMeta
-    sun_radius_deg: float
-    earth_radius_deg: float
-    skyline: SkylineMeta
-    terrain: MeshMeta | None
-    closeup: MeshMeta | None
-
-class Sourced(Contract):
-    kind: Literal['sourced']
-    source_url: str
-    quote: str
-
-class Assumed(Contract):
-    kind: Literal['assumed']
-    reason: str
-
-class Weights(Contract):
-    slope: float = Field(ge=0)
-    power: float = Field(ge=0)
-    comms: float = Field(ge=0)
-
-PROFILE_FIELDS = ('duration_days', 'min_sun_fraction', 'ops_sun_el_min_deg', 'max_dark_h', 'relay_available', 'antenna_mask_deg', 'max_blackout_h', 'max_slope_deg', 'slope_ideal_deg', 'landing_sun_el_min_deg', 'landing_sun_el_max_deg', 'weights')
-class MissionProfile(Contract):
-    id: str
-    name: str
-    based_on: str
-    duration_days: float
-    min_sun_fraction: float
-    ops_sun_el_min_deg: float | None
-    max_dark_h: float
-    relay_available: bool
-    antenna_mask_deg: float
-    max_blackout_h: float
-    max_slope_deg: float
-    slope_ideal_deg: float
-    landing_sun_el_min_deg: float | None
-    landing_sun_el_max_deg: float | None
-    weights: Weights
-    provenance: dict[str, Sourced | Assumed]
-
-    @model_validator(mode='after')
-    def provenance_complete(self):
-        if set(PROFILE_FIELDS) - self.provenance.keys():
-            raise ValueError('Every profile value requires provenance')
+    @model_validator(mode="after")
+    def documented_scaling(self):
+        expected_scale = 0.0001 if self.name.endswith("_frac") else 0.01
+        expected_offset = 180.0 if self.name.endswith("_az") else 0.0
+        if self.scale != expected_scale or self.offset != expected_offset:
+            raise ValueError("Series column scale and offset must match its name")
         return self
 
-class Profiles(RootModel[list[MissionProfile]]): pass
+
+class ColumnSunAz(SeriesColumn):
+    """Documented sun_az column."""
+
+    name: Literal['sun_az'] = Field(description='Column name.')
+    scale: float = Field(description='Decode as raw * scale + offset.', json_schema_extra={"const": 0.01})
+    offset: float = Field(description='Decode as raw * scale + offset.', json_schema_extra={"const": 180.0})
+
+
+class ColumnSunEl(SeriesColumn):
+    """Documented sun_el column."""
+
+    name: Literal['sun_el'] = Field(description='Column name.')
+    scale: float = Field(description='Decode as raw * scale + offset.', json_schema_extra={"const": 0.01})
+    offset: float = Field(description='Decode as raw * scale + offset.', json_schema_extra={"const": 0.0})
+
+
+class ColumnSunFrac(SeriesColumn):
+    """Documented sun_frac column."""
+
+    name: Literal['sun_frac'] = Field(description='Column name.')
+    scale: float = Field(description='Decode as raw * scale + offset.', json_schema_extra={"const": 0.0001})
+    offset: float = Field(description='Decode as raw * scale + offset.', json_schema_extra={"const": 0.0})
+
+
+class ColumnSunClear(SeriesColumn):
+    """Documented sun_clear column."""
+
+    name: Literal['sun_clear'] = Field(description='Column name.')
+    scale: float = Field(description='Decode as raw * scale + offset.', json_schema_extra={"const": 0.01})
+    offset: float = Field(description='Decode as raw * scale + offset.', json_schema_extra={"const": 0.0})
+
+
+class ColumnEarthAz(SeriesColumn):
+    """Documented earth_az column."""
+
+    name: Literal['earth_az'] = Field(description='Column name.')
+    scale: float = Field(description='Decode as raw * scale + offset.', json_schema_extra={"const": 0.01})
+    offset: float = Field(description='Decode as raw * scale + offset.', json_schema_extra={"const": 180.0})
+
+
+class ColumnEarthEl(SeriesColumn):
+    """Documented earth_el column."""
+
+    name: Literal['earth_el'] = Field(description='Column name.')
+    scale: float = Field(description='Decode as raw * scale + offset.', json_schema_extra={"const": 0.01})
+    offset: float = Field(description='Decode as raw * scale + offset.', json_schema_extra={"const": 0.0})
+
+
+class ColumnEarthFrac(SeriesColumn):
+    """Documented earth_frac column."""
+
+    name: Literal['earth_frac'] = Field(description='Column name.')
+    scale: float = Field(description='Decode as raw * scale + offset.', json_schema_extra={"const": 0.0001})
+    offset: float = Field(description='Decode as raw * scale + offset.', json_schema_extra={"const": 0.0})
+
+
+class ColumnEarthClear(SeriesColumn):
+    """Documented earth_clear column."""
+
+    name: Literal['earth_clear'] = Field(description='Column name.')
+    scale: float = Field(description='Decode as raw * scale + offset.', json_schema_extra={"const": 0.01})
+    offset: float = Field(description='Decode as raw * scale + offset.', json_schema_extra={"const": 0.0})
+
+
+class SeriesMeta(Contract):
+    """Ordered series column encodings."""
+
+    columns: tuple[ColumnSunAz, ColumnSunEl, ColumnSunFrac, ColumnSunClear, ColumnEarthAz, ColumnEarthEl, ColumnEarthFrac, ColumnEarthClear] = Field(description='Eight Int16 columns in documented order; value = raw * scale + offset.')
+
+    @model_validator(mode="after")
+    def documented_columns(self):
+        expected = [("sun_az", 0.01, 180.0), ("sun_el", 0.01, 0.0), ("sun_frac", 0.0001, 0.0), ("sun_clear", 0.01, 0.0), ("earth_az", 0.01, 180.0), ("earth_el", 0.01, 0.0), ("earth_frac", 0.0001, 0.0), ("earth_clear", 0.01, 0.0)]
+        if [(c.name, c.scale, c.offset) for c in self.columns] != expected:
+            raise ValueError("Series columns must match documented order, scales and offsets")
+        return self
+
+
+class SkylineMeta(Contract):
+    """Skyline metadata."""
+
+    bins: int = Field(description='Number of skyline bins.')
+    missing_samples: int = Field(description='Number of missing terrain samples.')
+    max_range_km: float = Field(description='Maximum skyline distance in kilometres.')
+
+
+class MeshMeta(Contract):
+    """Terrain mesh dimensions."""
+
+    size: int = Field(description='Vertices per side.')
+    window_km: float = Field(description='Window width in kilometres.')
+
+
+class SiteMeta(Contract):
+    """Per-site derived file metadata."""
+
+    site_id: SiteId = Field(description='Catalog id or c_<lat>_<lon> custom id.')
+    series: SeriesMeta = Field(description='Column encodings for series.bin.')
+    sun_radius_deg: float = Field(description='Average Sun angular radius in degrees.')
+    earth_radius_deg: float = Field(description='Average Earth angular radius in degrees.')
+    skyline: SkylineMeta = Field(description='Skyline dimensions.')
+    terrain: MeshMeta | None = Field(description='Terrain mesh metadata, null if terrain.bin is absent.')
+    closeup: MeshMeta | None = Field(description='Close-up mesh metadata, null if closeup.bin is absent.')
+
+
+class Sourced(Contract):
+    """A value supported by a published source."""
+
+    kind: Literal['sourced'] = Field(description='Value is taken from a published source.')
+    source_url: str = Field(description='URL of published source.')
+    quote: str = Field(description='Supporting quotation.')
+
+
+class Assumed(Contract):
+    """A value chosen because no source is published."""
+
+    kind: Literal['assumed'] = Field(description='Value is an assumption rather than a sourced claim.')
+    reason: str = Field(description='Reason for the assumption.')
+
+
+Provenance = Annotated[Sourced | Assumed, Field(discriminator="kind")]
+
+PROFILE_FIELDS = ('duration_days', 'min_sun_fraction', 'ops_sun_el_min_deg', 'max_dark_h', 'relay_available', 'antenna_mask_deg', 'max_blackout_h', 'max_slope_deg', 'slope_ideal_deg', 'landing_sun_el_min_deg', 'landing_sun_el_max_deg', 'weights')
+
+
+class ProfileProvenance(Contract):
+    """Provenance for every mission profile value, including null values."""
+
+    duration_days: Provenance = Field(description='Source or assumption for duration_days.')
+    min_sun_fraction: Provenance = Field(description='Source or assumption for min_sun_fraction.')
+    ops_sun_el_min_deg: Provenance = Field(description='Source or assumption for ops_sun_el_min_deg.')
+    max_dark_h: Provenance = Field(description='Source or assumption for max_dark_h.')
+    relay_available: Provenance = Field(description='Source or assumption for relay_available.')
+    antenna_mask_deg: Provenance = Field(description='Source or assumption for antenna_mask_deg.')
+    max_blackout_h: Provenance = Field(description='Source or assumption for max_blackout_h.')
+    max_slope_deg: Provenance = Field(description='Source or assumption for max_slope_deg.')
+    slope_ideal_deg: Provenance = Field(description='Source or assumption for slope_ideal_deg.')
+    landing_sun_el_min_deg: Provenance = Field(description='Source or assumption for landing_sun_el_min_deg.')
+    landing_sun_el_max_deg: Provenance = Field(description='Source or assumption for landing_sun_el_max_deg.')
+    weights: Provenance = Field(description='Source or assumption for weights.')
+
+
+class Weights(Contract):
+    """Non-negative relative scoring weights."""
+
+    slope: float = Field(description='Relative slope weight, dimensionless.', ge=0)
+    power: float = Field(description='Relative power weight, dimensionless.', ge=0)
+    comms: float = Field(description='Relative comms weight, dimensionless.', ge=0)
+
+
+class MissionProfile(Contract):
+    """Mission limits, preferences and provenance."""
+
+    id: CatalogId = Field(description='Stable preset id.')
+    name: str = Field(description='Profile display name.')
+    based_on: str = Field(description='Mission on which the profile is based.')
+    duration_days: float = Field(description='Mission duration in days.')
+    min_sun_fraction: float = Field(description='Minimum visible Sun disc fraction, dimensionless.')
+    ops_sun_el_min_deg: float | None = Field(description='Optional minimum operational Sun elevation in degrees.')
+    max_dark_h: float = Field(description='Maximum continuous darkness in hours.')
+    relay_available: bool = Field(description='Whether a communications relay is available.')
+    antenna_mask_deg: float = Field(description='Minimum Earth clearance in degrees.')
+    max_blackout_h: float = Field(description='Maximum continuous blackout in hours.')
+    max_slope_deg: float = Field(description='Maximum site slope in degrees.')
+    slope_ideal_deg: float = Field(description='Ideal site slope in degrees.')
+    landing_sun_el_min_deg: float | None = Field(description='Optional minimum landing Sun elevation in degrees.')
+    landing_sun_el_max_deg: float | None = Field(description='Optional maximum landing Sun elevation in degrees.')
+    weights: Weights = Field(description='Relative scoring weights.')
+    provenance: ProfileProvenance = Field(description='Source or assumption for each profile value.')
+
+
+class Profiles(RootModel[list[MissionProfile]]):
+    """Array of mission profiles."""
+
+    root: list[MissionProfile] = Field(description="Ordered array of MissionProfile objects.")
+
+
 class Feature(Contract):
-    name: str
-    kind: str
-    lat_deg: Latitude
-    lon_deg: Longitude
-    diameter_km: float
-class Features(RootModel[list[Feature]]): pass
+    """IAU named feature for map labels."""
+
+    name: str = Field(description='IAU feature name.')
+    kind: Literal['crater', 'mountain'] = Field(description='Feature kind: crater or mountain.')
+    iau_id: int = Field(description='IAU gazetteer feature id.')
+    lat_deg: Latitude = Field(description='Latitude in degrees north.')
+    lon_deg: Longitude = Field(description='East longitude in degrees.')
+    diameter_km: float = Field(description='Diameter in kilometres.')
+
+
+class Features(RootModel[list[Feature]]):
+    """Array of named features."""
+
+    root: list[Feature] = Field(description="Ordered array of Feature objects.")
+
+
 class ArtemisRegion(Contract):
-    name: str
-    lat_deg: Latitude | None
-    lon_deg: Longitude | None
-    size_km: float | None
-    source_url: str
-class ArtemisRegions(RootModel[list[ArtemisRegion]]): pass
+    """Artemis candidate region."""
+
+    name: str = Field(description='Region name.')
+    lat_deg: Latitude | None = Field(description='Centre latitude in degrees, or null if unpublished.')
+    lon_deg: Longitude | None = Field(description='Centre east longitude in degrees, or null if unpublished.')
+    size_km: float | None = Field(description='Region size in kilometres, or null if unpublished.')
+    source_url: str = Field(description='Source URL.')
+
+
+class ArtemisRegions(RootModel[list[ArtemisRegion]]):
+    """Array of Artemis regions."""
+
+    root: list[ArtemisRegion] = Field(description="Ordered array of ArtemisRegion objects.")
+
+
 class MapLayer(Contract):
-    files: list[str]
-    lookup: str | None = None
-    lookup_size: int | None = None
+    """Map image and optional lookup grid."""
+
+    files: list[str] = Field(description='Image file names.')
+    lookup: str | None = Field(description='Lookup grid filename, or null.', default=None)
+    lookup_size: int | None = Field(description='Lookup grid pixels per side, or null.', default=None)
+
+
 class MapLayers(Contract):
-    hillshade: MapLayer
-    sunlight: MapLayer
-    earthvis: MapLayer
+    """Named map layers."""
+
+    hillshade: MapLayer = Field(description='hillshade map layer.')
+    sunlight: MapLayer = Field(description='sunlight map layer.')
+    earthvis: MapLayer = Field(description='earthvis map layer.')
+
+
 class MapMeta(Contract):
-    projection: Literal['south_polar_stereographic']
-    half_width_m: float
-    layers: MapLayers
+    """South-polar map metadata."""
+
+    projection: Literal['south_polar_stereographic'] = Field(description='South polar stereographic projection.')
+    half_width_m: float = Field(description='Distance from centre to edge in metres.')
+    layers: MapLayers = Field(description='Image and lookup layers.')
+
+
 class Gate(Contract):
-    id: str
-    name: str
-    passed: bool
-    measured: float
-    limit: float
-    unit: str
-    samples: int
+    """Validation hard gate result."""
+
+    id: str = Field(description='Gate identifier.')
+    name: str = Field(description='Gate name.')
+    passed: bool = Field(description='Whether the gate passed.')
+    measured: float = Field(description='Measured value in unit.')
+    limit: float = Field(description='Passing limit in unit.')
+    unit: str = Field(description='Unit of measured value and limit.')
+    samples: int = Field(description='Number of samples.')
+
+
 class Comparison(Contract):
-    id: str
-    site_id: str
-    ours: float
-    reference: float
-    unit: str
-    reference_source: str
+    """Reported validation comparison."""
+
+    id: str = Field(description='Comparison identifier.')
+    site_id: SiteId = Field(description='Site identifier.')
+    ours: float = Field(description='Our measured value in unit.')
+    reference: float = Field(description='Reference value in unit.')
+    unit: str = Field(description='Unit of both values.')
+    reference_source: str = Field(description='Reference source URL.')
+
+
 class Validation(Contract):
-    generated_utc: UTC
-    gates: list[Gate]
-    comparisons: list[Comparison]
-class WorkedExamples(RootModel[dict[str, dict[str, object]]]): pass
+    """Hard gates and reported comparisons."""
+
+    generated_utc: UTC = Field(description='Generation time in UTC.')
+    gates: list[Gate] = Field(description='Hard gate results.')
+    comparisons: list[Comparison] = Field(description='Reported comparisons.')
+
+
+class WorkedExamples(Contract):
+    """Flat worked-example values keyed by full dotted lesson key; every key is required."""
+
+    l1_sun_el_max_deg: float = Field(description='l1.sun_el_max_deg: degrees.', alias='l1.sun_el_max_deg')
+    l1_sun_el_min_deg: float = Field(description='l1.sun_el_min_deg: degrees.', alias='l1.sun_el_min_deg')
+    l1_site_lat_deg: float = Field(description='l1.site_lat_deg: degrees.', alias='l1.site_lat_deg')
+    l1_example_utc: UTC = Field(description='l1.example_utc: UTC timestamp.', alias='l1.example_utc')
+    l1_example_subsolar_lat: float = Field(description='l1.example_subsolar_lat: degrees.', alias='l1.example_subsolar_lat')
+    l1_example_subsolar_lon: float = Field(description='l1.example_subsolar_lon: degrees.', alias='l1.example_subsolar_lon')
+    l1_example_sun_az: float = Field(description='l1.example_sun_az: degrees.', alias='l1.example_sun_az')
+    l1_example_sun_el: float = Field(description='l1.example_sun_el: degrees.', alias='l1.example_sun_el')
+    l2_example_utc: UTC = Field(description='l2.example_utc: UTC timestamp.', alias='l2.example_utc')
+    l2_sun_el_deg: float = Field(description='l2.sun_el_deg: degrees.', alias='l2.sun_el_deg')
+    l2_sun_az_deg: float = Field(description='l2.sun_az_deg: degrees.', alias='l2.sun_az_deg')
+    l2_ridge_dist_km: float = Field(description='l2.ridge_dist_km: kilometres.', alias='l2.ridge_dist_km')
+    l2_ridge_rise_m: float = Field(description='l2.ridge_rise_m: metres.', alias='l2.ridge_rise_m')
+    l2_ridge_el_deg: float = Field(description='l2.ridge_el_deg: degrees.', alias='l2.ridge_el_deg')
+    l2_ridge_feature: str = Field(description='l2.ridge_feature: text.', alias='l2.ridge_feature')
+    l2_sun_frac: float = Field(description='l2.sun_frac: dimensionless.', alias='l2.sun_frac')
+    l3_drop_at_20km_m: float = Field(description='l3.drop_at_20km_m: metres.', alias='l3.drop_at_20km_m')
+    l3_drop_at_60km_m: float = Field(description='l3.drop_at_60km_m: metres.', alias='l3.drop_at_60km_m')
+    l3_drop_at_130km_m: float = Field(description='l3.drop_at_130km_m: metres.', alias='l3.drop_at_130km_m')
+    l3_example_bin_az: float = Field(description='l3.example_bin_az: degrees.', alias='l3.example_bin_az')
+    l3_example_dist_km: float = Field(description='l3.example_dist_km: kilometres.', alias='l3.example_dist_km')
+    l3_example_height_m: float = Field(description='l3.example_height_m: metres.', alias='l3.example_height_m')
+    l3_example_el_flat_deg: float = Field(description='l3.example_el_flat_deg: degrees.', alias='l3.example_el_flat_deg')
+    l3_example_el_true_deg: float = Field(description='l3.example_el_true_deg: degrees.', alias='l3.example_el_true_deg')
+    l4_earth_el_max_deg: float = Field(description='l4.earth_el_max_deg: degrees.', alias='l4.earth_el_max_deg')
+    l4_earth_el_min_deg: float = Field(description='l4.earth_el_min_deg: degrees.', alias='l4.earth_el_min_deg')
+    l4_earth_up_pct: float = Field(description='l4.earth_up_pct: percent.', alias='l4.earth_up_pct')
+    l4_link_pct_mask0: float = Field(description='l4.link_pct_mask0: percent.', alias='l4.link_pct_mask0')
+    l4_link_pct_mask1: float = Field(description='l4.link_pct_mask1: percent.', alias='l4.link_pct_mask1')
+    l4_link_pct_mask5: float = Field(description='l4.link_pct_mask5: percent.', alias='l4.link_pct_mask5')
+    l4_example_utc: UTC = Field(description='l4.example_utc: UTC timestamp.', alias='l4.example_utc')
+    l4_example_earth_az: float = Field(description='l4.example_earth_az: degrees.', alias='l4.example_earth_az')
+    l4_example_earth_el: float = Field(description='l4.example_earth_el: degrees.', alias='l4.example_earth_el')
+    l4_example_earth_clear: float = Field(description='l4.example_earth_clear: degrees.', alias='l4.example_earth_clear')
+    l5_slope_10m_deg: float = Field(description='l5.slope_10m_deg: degrees.', alias='l5.slope_10m_deg')
+    l5_slope_100m_deg: float = Field(description='l5.slope_100m_deg: degrees.', alias='l5.slope_100m_deg')
+    l5_slope_160m_deg: float = Field(description='l5.slope_160m_deg: degrees.', alias='l5.slope_160m_deg')
+    l5_example_site: str = Field(description='l5.example_site: text.', alias='l5.example_site')
+    l5_plane_a: float = Field(description='l5.plane_a: dimensionless.', alias='l5.plane_a')
+    l5_plane_b: float = Field(description='l5.plane_b: dimensionless.', alias='l5.plane_b')
+    l6_site_a: str = Field(description='l6.site_a: text.', alias='l6.site_a')
+    l6_site_b: str = Field(description='l6.site_b: text.', alias='l6.site_b')
+    l6_a_score: float = Field(description='l6.a_score: dimensionless.', alias='l6.a_score')
+    l6_b_score: float = Field(description='l6.b_score: dimensionless.', alias='l6.b_score')
+    l6_example_metrics_sun_fraction_mean: float = Field(description='l6.example_metrics.sun_fraction_mean: dimensionless.', alias='l6.example_metrics.sun_fraction_mean')
+    l6_example_metrics_lit_fraction: float = Field(description='l6.example_metrics.lit_fraction: dimensionless.', alias='l6.example_metrics.lit_fraction')
+    l6_example_metrics_longest_dark_h: float = Field(description='l6.example_metrics.longest_dark_h: hours.', alias='l6.example_metrics.longest_dark_h')
+    l6_example_metrics_link_fraction: float = Field(description='l6.example_metrics.link_fraction: dimensionless.', alias='l6.example_metrics.link_fraction')
+    l6_example_metrics_longest_blackout_h: float = Field(description='l6.example_metrics.longest_blackout_h: hours.', alias='l6.example_metrics.longest_blackout_h')
+    l6_example_metrics_landing_sun_el_deg: float = Field(description='l6.example_metrics.landing_sun_el_deg: degrees.', alias='l6.example_metrics.landing_sun_el_deg')
+    l6_example_metrics_landing_lit: bool = Field(description='l6.example_metrics.landing_lit: boolean.', alias='l6.example_metrics.landing_lit')
+    l6_example_utilities_slope: float = Field(description='l6.example_utilities.slope: dimensionless.', alias='l6.example_utilities.slope')
+    l6_example_utilities_power: float = Field(description='l6.example_utilities.power: dimensionless.', alias='l6.example_utilities.power')
+    l6_example_utilities_comms: float = Field(description='l6.example_utilities.comms: dimensionless.', alias='l6.example_utilities.comms')
+    l6_example_score: float = Field(description='l6.example_score: dimensionless.', alias='l6.example_score')
+    l7_go_date: UTC = Field(description='l7.go_date: UTC timestamp.', alias='l7.go_date')
+    l7_slip_date: UTC = Field(description='l7.slip_date: UTC timestamp.', alias='l7.slip_date')
+    l7_slip_vetoes: list[str] = Field(description='l7.slip_vetoes: list of text identifiers.', alias='l7.slip_vetoes')
+    l7_slip_blackout_h: float = Field(description='l7.slip_blackout_h: hours.', alias='l7.slip_blackout_h')
+    l7_next_go_date: UTC = Field(description='l7.next_go_date: UTC timestamp.', alias='l7.next_go_date')
+    l7_alt_site: str = Field(description='l7.alt_site: text.', alias='l7.alt_site')
+    l8_candidates: list[str] = Field(description='l8.candidates: list of text identifiers.', alias='l8.candidates')
+    l8_region_overlap_site_id: str = Field(description='l8.region_overlap.site_id: text.', alias='l8.region_overlap.site_id')
+    l8_region_overlap_region_name: str = Field(description='l8.region_overlap.region_name: text.', alias='l8.region_overlap.region_name')
+    l8_region_overlap_overlaps: bool = Field(description='l8.region_overlap.overlaps: boolean.', alias='l8.region_overlap.overlaps')
+
+
 class CustomSiteRequest(Contract):
-    lat_deg: Latitude
-    lon_deg: Longitude
-    name: str
+    """Request to compute a custom site."""
+
+    lat_deg: Latitude = Field(description='Latitude in degrees north.')
+    lon_deg: Longitude = Field(description='East longitude in degrees.')
+    name: str = Field(description='Custom site display name.')
+
+
 class CustomSiteQueued(Contract):
-    site_id: str
-    status: Literal['queued', 'running', 'ready', 'failed']
-    position_in_queue: int
-class CustomSiteStatus(Contract):
-    site_id: str
-    status: Literal['queued', 'running', 'ready', 'failed']
-    site: Site | None
-    error: str | None
-class SensitivityRequest(Contract):
-    lat_deg: Latitude
-    lon_deg: Longitude
-    landing_utc: UTC
-    duration_days: float
-    min_sun_fraction: float
-    antenna_mask_deg: float
-class SensitivityCentre(Contract):
-    sun_fraction_mean: float
-    link_fraction: float
-class SensitivityResponse(Contract):
-    size: int
-    spacing_m: float
-    sun_fraction_mean: list[float]
-    link_fraction: list[float]
-    centre_full_method: SensitivityCentre
-    centre_fast_method: SensitivityCentre
+    """Custom site job submission response."""
+
+    site_id: SiteId = Field(description='Custom id c_<lat>_<lon>, coordinates rounded to four decimal places.')
+    status: Literal['queued', 'running', 'ready', 'failed'] = Field(description='Job status.')
+    position_in_queue: int = Field(description='Position in queue.')
+
+
 class ErrorDetail(Contract):
-    code: Literal['invalid_coordinates', 'date_outside_time_grid', 'rate_limited', 'queue_full', 'terrain_unavailable', 'not_found']
-    message: str
+    """Structured API error."""
+
+    code: Literal['invalid_coordinates', 'date_outside_time_grid', 'rate_limited', 'queue_full', 'terrain_unavailable', 'not_found'] = Field(description='Stable error code.')
+    message: str = Field(description='Plain-language error message.')
+
+
 class ErrorResponse(Contract):
-    error: ErrorDetail
+    """API error envelope."""
 
-# docs/data-contracts.md: binary layouts, little endian and array-major.
-SERIES_COLUMNS = tuple(SeriesColumn(name=n, scale=s, offset=o) for n,s,o in [
-    ('sun_az', .01, 180), ('sun_el', .01, 0), ('sun_frac', .0001, 0), ('sun_clear', .01, 0),
-    ('earth_az', .01, 180), ('earth_el', .01, 0), ('earth_frac', .0001, 0), ('earth_clear', .01, 0)])
-BINARY_LAYOUTS = {
-    'series': {'dtype': 'int16', 'byte_order': 'little', 'arrays': [c.model_dump() for c in SERIES_COLUMNS]},
-    'skyline': {'dtype': 'float32', 'byte_order': 'little', 'arrays': ['el_deg', 'dist_km', 'lat_deg', 'lon_deg', 'height_m']},
-    'terrain': {'dtype': 'float32', 'byte_order': 'little', 'arrays': ['east_km', 'north_km', 'up_km', 'slope_deg'], 'row_order': 'north_to_south', 'column_order': 'west_to_east'},
-    'closeup': {'dtype': 'float32', 'byte_order': 'little', 'arrays': ['east_km', 'north_km', 'up_km', 'slope_deg'], 'row_order': 'north_to_south', 'column_order': 'west_to_east'},
-    'system': {'dtype': 'float32', 'byte_order': 'little', 'arrays': ['subsolar_lat', 'subsolar_lon', 'subearth_lat', 'subearth_lon', 'earth_dist_km', 'sun_dist_km']},
-    'map_lookup': {'dtype': 'uint8', 'byte_order': 'little', 'scale': 1/255, 'missing': 255},
-}
+    error: ErrorDetail = Field(description='Error code and message.')
+
+
+class CustomSiteStatus(Contract):
+    """Custom site job status."""
+
+    site_id: SiteId = Field(description='Custom id c_<lat>_<lon>, with four decimal places.')
+    status: Literal['queued', 'running', 'ready', 'failed'] = Field(description='Job status.')
+    site: Site | None = Field(description='Completed site, or null.')
+    error: ErrorDetail | None = Field(description='Error code and message, or null.')
+
+
+class SensitivityRequest(Contract):
+    """Request for a local sensitivity grid."""
+
+    lat_deg: Latitude = Field(description='Latitude in degrees north.')
+    lon_deg: Longitude = Field(description='East longitude in degrees.')
+    landing_utc: UTC = Field(description='Landing time in UTC.')
+    duration_days: float = Field(description='Mission duration in days.')
+    min_sun_fraction: float = Field(description='Minimum Sun fraction, dimensionless.')
+    antenna_mask_deg: float = Field(description='Antenna mask clearance in degrees.')
+
+
+class SensitivityCentre(Contract):
+    """Centre point results."""
+
+    sun_fraction_mean: float = Field(description='Mean Sun disc fraction, dimensionless.')
+    link_fraction: float = Field(description='Share of hours with a link, dimensionless.')
+
+
+class SensitivityResponse(Contract):
+    """Sensitivity grid, row-major with row 0 north."""
+
+    size: int = Field(description='Grid width and height in points.')
+    spacing_m: float = Field(description='Grid spacing in metres.')
+    sun_fraction_mean: list[float] = Field(description='Mean Sun fraction, row-major, row 0 north; size × size values.')
+    link_fraction: list[float] = Field(description='Link fraction, row-major, row 0 north; size × size values.')
+    centre_full_method: SensitivityCentre = Field(description='Centre evaluated using full skyline.')
+    centre_fast_method: SensitivityCentre = Field(description='Centre evaluated using fast skyline.')
+
+    @model_validator(mode="after")
+    def validate_grid(self):
+        if self.size <= 0 or len(self.sun_fraction_mean) != self.size ** 2 or len(self.link_fraction) != self.size ** 2:
+            raise ValueError("Each sensitivity array must contain size * size values")
+        return self
+
+
+# Binary encodings from docs/data-contracts.md; every array is little-endian.
+
+SERIES_COLUMNS = tuple(SeriesColumn(name=n, scale=s, offset=o) for n, s, o in [('sun_az', 0.01, 180), ('sun_el', 0.01, 0), ('sun_frac', 0.0001, 0), ('sun_clear', 0.01, 0), ('earth_az', 0.01, 180), ('earth_el', 0.01, 0), ('earth_frac', 0.0001, 0), ('earth_clear', 0.01, 0)])
+
+
+class SeriesLayout(Contract):
+    """Series file: column-major Int16 arrays."""
+
+    dtype: Literal['int16'] = Field(description='Signed 16-bit integers.', default="int16")
+    byte_order: Literal['little'] = Field(description='Little-endian byte order.', default="little")
+    arrays: tuple[ColumnSunAz, ColumnSunEl, ColumnSunFrac, ColumnSunClear, ColumnEarthAz, ColumnEarthEl, ColumnEarthFrac, ColumnEarthClear] = Field(description='Column arrays in documented order; decode raw * scale + offset.', default_factory=lambda: tuple(cls.model_validate(column.model_dump()) for cls, column in zip((ColumnSunAz, ColumnSunEl, ColumnSunFrac, ColumnSunClear, ColumnEarthAz, ColumnEarthEl, ColumnEarthFrac, ColumnEarthClear), SERIES_COLUMNS)))
+
+    @model_validator(mode="after")
+    def documented_columns(self):
+        expected = [("sun_az", 0.01, 180.0), ("sun_el", 0.01, 0.0), ("sun_frac", 0.0001, 0.0), ("sun_clear", 0.01, 0.0), ("earth_az", 0.01, 180.0), ("earth_el", 0.01, 0.0), ("earth_frac", 0.0001, 0.0), ("earth_clear", 0.01, 0.0)]
+        if [(c.name, c.scale, c.offset) for c in self.arrays] != expected:
+            raise ValueError("Series columns must match documented order, scales and offsets")
+        return self
+
+
+class SkylineLayout(Contract):
+    """Skyline file: five Float32 arrays."""
+
+    dtype: Literal['float32'] = Field(description='32-bit floating point.', default="float32")
+    byte_order: Literal['little'] = Field(description='Little-endian byte order.', default="little")
+    arrays: tuple[Literal['el_deg'], Literal['dist_km'], Literal['lat_deg'], Literal['lon_deg'], Literal['height_m']] = Field(description='Ordered skyline arrays: degrees, kilometres, degrees, degrees, metres.', default=('el_deg', 'dist_km', 'lat_deg', 'lon_deg', 'height_m'))
+
+
+class TerrainLayout(Contract):
+    """Terrain or close-up file: four Float32 arrays."""
+
+    dtype: Literal['float32'] = Field(description='32-bit floating point.', default="float32")
+    byte_order: Literal['little'] = Field(description='Little-endian byte order.', default="little")
+    arrays: tuple[Literal['east_km'], Literal['north_km'], Literal['up_km'], Literal['slope_deg']] = Field(description='Ordered position in kilometres and slope in degrees.', default=('east_km', 'north_km', 'up_km', 'slope_deg'))
+    row_order: Literal['north_to_south'] = Field(description='Row 0 is the northern edge.', default="north_to_south")
+    column_order: Literal['west_to_east'] = Field(description='Column 0 is the western edge.', default="west_to_east")
+
+
+class SystemLayout(Contract):
+    """Global ephemeris file: six Float32 arrays."""
+
+    dtype: Literal['float32'] = Field(description='32-bit floating point.', default="float32")
+    byte_order: Literal['little'] = Field(description='Little-endian byte order.', default="little")
+    arrays: tuple[Literal['subsolar_lat'], Literal['subsolar_lon'], Literal['subearth_lat'], Literal['subearth_lon'], Literal['earth_dist_km'], Literal['sun_dist_km']] = Field(description='Ordered sub-point latitudes and longitudes in degrees and distances in kilometres.', default=('subsolar_lat', 'subsolar_lon', 'subearth_lat', 'subearth_lon', 'earth_dist_km', 'sun_dist_km'))
+
+
+class MapLookupLayout(Contract):
+    """Uint8 map lookup grid with the same orientation as the images."""
+
+    dtype: Literal['uint8'] = Field(description='Unsigned 8-bit integers.', default="uint8")
+    byte_order: Literal['little'] = Field(description='Little-endian byte order.', default="little")
+    scale: float = Field(description='Decode valid values as raw / 255.', default=1 / 255, json_schema_extra={"const": 1 / 255})
+    missing: Literal[255] = Field(description='255 means no data.', default=255)
+    row_order: Literal['top_to_bottom'] = Field(description='Row 0 is the top; +y is up.', default="top_to_bottom")
+    column_order: Literal['left_to_right'] = Field(description='Column 0 is left; +x is right.', default="left_to_right")
+
+    @model_validator(mode="after")
+    def validate_scale(self):
+        if self.scale != 1 / 255:
+            raise ValueError("Lookup scale must equal 1 / 255")
+        return self
+
+
 class BinaryLayouts(Contract):
-    layouts: dict[str, object] = BINARY_LAYOUTS
+    """Binary formats, with ordered arrays and orientation."""
 
-CONTRACT_MODELS = (BinaryLayouts, TimeGrid, Manifest, Slope, Site, Sites, SeriesColumn, SeriesMeta, SkylineMeta, MeshMeta, SiteMeta, Sourced, Assumed, Weights, MissionProfile, Profiles, Feature, Features, ArtemisRegion, ArtemisRegions, MapLayer, MapLayers, MapMeta, Gate, Comparison, Validation, WorkedExamples, CustomSiteRequest, CustomSiteQueued, CustomSiteStatus, SensitivityRequest, SensitivityCentre, SensitivityResponse, ErrorDetail, ErrorResponse)
+    series: SeriesLayout = Field(description='Per-site series encoding.', default_factory=SeriesLayout)
+    skyline: SkylineLayout = Field(description='Skyline encoding.', default_factory=SkylineLayout)
+    terrain: TerrainLayout = Field(description='Terrain mesh encoding.', default_factory=TerrainLayout)
+    closeup: TerrainLayout = Field(description='Close-up mesh encoding.', default_factory=TerrainLayout)
+    system: SystemLayout = Field(description='Global ephemeris encoding.', default_factory=SystemLayout)
+    map_lookup: MapLookupLayout = Field(description='Map lookup encoding.', default_factory=MapLookupLayout)
+
+
+BINARY_LAYOUTS = BinaryLayouts().model_dump(mode="json")
+
+CONTRACT_MODELS = tuple(
+    value
+    for value in list(globals().values())
+    if isinstance(value, type)
+    and issubclass(value, BaseModel)
+    and value not in (BaseModel, RootModel, Contract)
+    and value.__module__ == __name__
+    and not value.__name__.startswith("RootModel[")
+)
