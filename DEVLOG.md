@@ -592,12 +592,17 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   Connecting Ridge and reading each tool's own coordinate readout; and by eye at 1440 × 900,
   1024 × 768 and 390 × 844 with four, eight, one and best-lit sites, keyboard only, real
   downloads read back with Python's csv module, and a copied link opened in a fresh browser
-  context; a human has not reviewed it yet
-- **State:** verified (333 Python tests, 1,947 web tests, typecheck and build pass on the
-  merge with main; not yet seen by the team lead)
+  context. Reviewed by Gemini (request changes, two defects; substance confirmed on real
+  data); the agent then fixed all eight review items: the Share fallback moved into the
+  shell's popover, CSV formula injection, the variant's "not ranked" sentence, the shared
+  site wording and rounding, rendered-panel tests, the summary and Sun-at-landing edges, the
+  CSV's precision note, and custom sites. A human has not reviewed it yet
+- **State:** built, not verified (the review fixes await the re-review)
 - **Changed:** `web/src/features/mission-control/compare/` (model, table, exports, tests),
   `web/src/features/mission-control/share/` (new: Share button, link, NASA links, tests),
-  `web/src/lib/export/` (new: CSV writer and reader), `web/src/app/mission/top-bar.tsx`
+  `web/src/lib/export/` (new: CSV writer and reader, with the formula guard),
+  `web/src/components/Popover.tsx` (an optional handle to open it from code),
+  `web/src/app/mission/top-bar.tsx`
   (Share moved out to its own component; merged with #83, so the app bar holds the brand,
   the mode switch, the profile and Share), `web/src/lib/explain.ts` (Compare's text),
   `docs/features/compare.md`, `docs/features/share-export.md`,
@@ -616,6 +621,9 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     south-pole projection south of 80° S. The formats are in `share-export.md`. The links
     are in the Compare table only; adding them to the focused-site panel is a follow-up.
   - A scrub does not re-render the table (a render-count test).
+  - The variant and nearby-range words are copied into `compare/site-wording.ts` from the
+    sites package's `site-labels.ts` (#92); import them from there once #92 is on main.
+  - Every CSV string cell that would run as a formula gets a leading `'`; numbers never do.
 
 #### 2026-11-14 · MC shell feedback · No view sentence; the landing date joins the timeline; "Next GO"
 - **Who:** Claude Code agent, for the orchestrator
