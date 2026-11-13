@@ -257,3 +257,5 @@ def build_fixtures(root=None, cases_path=None):
     _json(root/'validation.json',_validation())
     _json(root/'academy'/'worked_examples.json',_worked())
     _json(cases_path,_cases(root,sites,profiles))
+    from truesouth.scene_assets import write_fixture_scene
+    write_fixture_scene(root, sites, STAMP)

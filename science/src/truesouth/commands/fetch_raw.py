@@ -29,7 +29,11 @@ for res in ('85S_060M', '75S_120M'):
     for suffix in ('', '_EARTH'):
         name = f'AVGVISIB_{res}_201608{suffix}.TIF'
         FILES.append(Download('visibility', LIGHT+name, name))
-FILES.append(Download('texture', 'https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_poles_2k.tif', 'lroc_color_poles_2k.tif'))
+SVS = 'https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/'
+# moon_2k.webp is a resize of the 4K map. Nothing in the pipeline reads the 2K TIFF.
+for name in ('lroc_color_poles_4k.tif', 'lroc_color_poles_8k.tif', 'ldem_4.tif'):
+    FILES.append(Download('texture', SVS + name, name))
+FILES.append(Download('texture', 'https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography-bathymetry/march/world.topo.bathy.200403.3x5400x2700.jpg', 'world.topo.bathy.200403.3x5400x2700.jpg'))
 
 def check(client, files):
     sizes, errors = {}, []

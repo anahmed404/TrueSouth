@@ -5,6 +5,7 @@ import type {
   MapMeta,
   MeshMeta,
   Profiles,
+  SceneMeta,
   SiteMeta,
   Sites,
   Validation,
@@ -270,11 +271,30 @@ export function parseMapsMeta(value: unknown): MapMeta {
   return record as unknown as MapMeta;
 }
 
+function isMeasuredGate(passed: unknown, measured: unknown): boolean {
+  return typeof passed === "boolean" && typeof measured === "number" && Number.isFinite(measured);
+}
+
 export function parseValidation(value: unknown): Validation {
-  const record = expectObject(value, "validation.json");
-  expectArray(record.gates, "validation.json gates");
-  expectArray(record.comparisons, "validation.json comparisons");
-  expectString(record.generated_utc, "validation.json", "generated_utc");
+  const fileName = "validation.json";
+  const record = expectObject(value, fileName);
+  const gates = expectArray(record.gates, `${fileName} gates`);
+  expectArray(record.comparisons, `${fileName} comparisons`);
+  expectString(record.generated_utc, fileName, "generated_utc");
+  gates.forEach((gate, index) => {
+    const item = expectObject(gate, `${fileName} gates[${index}]`);
+    const where = `gates[${index}]`;
+    const unmeasured = item.passed === null && item.measured === null;
+    if (!unmeasured && !isMeasuredGate(item.passed, item.measured)) {
+      throw new Error(`${fileName} ${where} passed and measured must be a result or both null`);
+    }
+    if (unmeasured) {
+      if (item.samples !== 0) {
+        throw new Error(`${fileName} ${where} was not measured here, so samples must be 0`);
+      }
+      expectString(item.detail, fileName, `${where} detail`);
+    }
+  });
   return record as unknown as Validation;
 }
 
@@ -282,4 +302,70 @@ export function parseWorkedExamples(value: unknown): WorkedExamples {
   const record = expectObject(value, "academy/worked_examples.json");
   expectString(record["l1.example_utc"], "academy/worked_examples.json", "l1.example_utc");
   return record as unknown as WorkedExamples;
+}
+
+const SCENE_ORIENTATIONS = new Set([
+  "equirectangular_lon0_center_north_up",
+  "south_polar_stereographic_x_right_y_up",
+]);
+
+export function parseSceneMeta(value: unknown): SceneMeta {
+  const fileName = "scene/meta.json";
+  const record = expectObject(value, fileName);
+  if (record.schema_version !== KNOWN_SCHEMA_VERSION) {
+    throw new Error(
+      `${fileName} has schema_version ${String(record.schema_version)}; this app knows schema_version ${KNOWN_SCHEMA_VERSION}`,
+    );
+  }
+  const generated = expectString(record.generated_utc, fileName, "generated_utc");
+  if (!generated.endsWith("Z")) throw new Error(`${fileName} generated_utc must end in Z`);
+  const images = expectArray(record.images, `${fileName} images`);
+  if (images.length === 0) throw new Error(`${fileName} images is empty`);
+  images.forEach((image, index) => {
+    const item = expectObject(image, `${fileName} images ${index}`);
+    expectString(item.file, fileName, `images ${index} file`);
+    for (const field of ["width_px", "height_px"] as const) {
+      const size = item[field];
+      if (typeof size !== "number" || !Number.isInteger(size) || size <= 0) {
+        throw new Error(`${fileName} images ${index} ${field} must be a positive integer`);
+      }
+    }
+    expectString(item.encoding, fileName, `images ${index} encoding`);
+    const orientation = expectString(item.orientation, fileName, `images ${index} orientation`);
+    if (!SCENE_ORIENTATIONS.has(orientation)) {
+      throw new Error(`${fileName} images ${index} orientation is ${orientation}`);
+    }
+    expectString(item.source, fileName, `images ${index} source`);
+    expectString(item.operation, fileName, `images ${index} operation`);
+    expectString(item.credit, fileName, `images ${index} credit`);
+    if ("optional" in item && typeof item.optional !== "boolean") {
+      throw new Error(`${fileName} images ${index} optional must be a boolean`);
+    }
+  });
+  const aprons = expectArray(record.aprons, `${fileName} aprons`);
+  aprons.forEach((apron, index) => {
+    const item = expectObject(apron, `${fileName} aprons ${index}`);
+    expectString(item.site_id, fileName, `aprons ${index} site_id`);
+    expectString(item.file, fileName, `aprons ${index} file`);
+    for (const field of ["rows", "columns"] as const) {
+      const size = item[field];
+      if (typeof size !== "number" || !Number.isInteger(size) || size <= 1) {
+        throw new Error(`${fileName} aprons ${index} ${field} must be an integer greater than 1`);
+      }
+    }
+    if (item.rows !== item.columns) throw new Error(`${fileName} aprons ${index} is not square`);
+    const window = expectNumber(item.window_m, fileName, `aprons ${index} window_m`);
+    if (window <= 0) throw new Error(`${fileName} aprons ${index} window_m must be positive`);
+  });
+  const layout = expectObject(record.apron, `${fileName} apron`);
+  if (layout.dtype !== "uint16" || layout.byte_order !== "little" || layout.missing !== 65535) {
+    throw new Error(`${fileName} apron encoding is not little-endian uint16 with 65535 missing`);
+  }
+  if (layout.offset_m !== 12000 || layout.scale !== 2) {
+    throw new Error(`${fileName} apron values are not (height_m + 12000) * 2`);
+  }
+  if (layout.row_order !== "north_to_south" || layout.column_order !== "west_to_east") {
+    throw new Error(`${fileName} apron axes are not north to south and west to east`);
+  }
+  return record as unknown as SceneMeta;
 }

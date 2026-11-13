@@ -8,12 +8,14 @@ export {
   SKYLINE_ARRAYS,
   SYSTEM_ARRAYS,
   TERRAIN_ARRAYS,
+  decodeApron,
   decodeLookup,
   decodeSeries,
   decodeSkyline,
   decodeSystem,
   decodeTerrain,
   lookupFraction,
+  type DecodedApron,
   type DecodedSeries,
   type DecodedSkyline,
   type DecodedSystem,
@@ -22,6 +24,7 @@ export {
   type SeriesColumnSpec,
 } from "./decode/index.ts";
 export {
+  useApron,
   useArtemisRegions,
   useCloseup,
   useFeatures,
@@ -29,6 +32,7 @@ export {
   useMapLookup,
   useMapsMeta,
   useProfiles,
+  useSceneMeta,
   useSeries,
   useSite,
   useSites,
@@ -50,7 +54,10 @@ export {
   loadManifest,
   loadMapLookup,
   loadMapsMeta,
+  loadApron,
   loadProfiles,
+  loadSceneImage,
+  loadSceneMeta,
   loadSeries,
   loadSiteMeta,
   loadSites,
@@ -60,9 +67,10 @@ export {
   loadValidation,
   loadWorkedExamples,
   mapImageUrl,
+  sceneImageUrl,
   type FetchLike,
 } from "./load.ts";
-export { KNOWN_SCHEMA_VERSION, parseManifest, parseSiteMeta } from "./parse.ts";
+export { KNOWN_SCHEMA_VERSION, parseManifest, parseSceneMeta, parseSiteMeta } from "./parse.ts";
 export { isCustomSiteId, mapFile, siteBase, siteFile } from "./paths.ts";
 export { createDataStore, dataStore } from "../state/data.ts";
 
