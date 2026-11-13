@@ -14,6 +14,7 @@ import {
   explainSun,
   formatDistance,
   formatHeight,
+  litShare,
   namedFeatureAt,
   shortReason,
   surfaceDistanceKm,
@@ -260,5 +261,18 @@ describe("shortReason", () => {
   it("says when the Sun is clear but under the operations rule", () => {
     const low: Explanation = { ...base, cause: "too_low", now: { azDeg: 90, elDeg: 0.5, frac: 1, clearDeg: 0.6 } };
     expect(shortReason(low, { ...rule, minElDeg: 2 })).toBe("Sun too low: 0.50° up, the rule needs 2°");
+  });
+});
+
+describe("the lit line states the share of the Sun's disc when part of it is hidden", () => {
+  // The unit follows a narrow no-break space, as every unit does (DESIGN.md, "Numbers and units").
+  it("names the share below a full disc, from the series' disc fraction", () => {
+    expect(litShare(0.62)).toBe("62 % of the Sun's disc is above the skyline.");
+    expect(litShare(0.9201)).toBe("92 % of the Sun's disc is above the skyline.");
+  });
+
+  it("never says 100% for a disc short of full, and says nothing at a full disc", () => {
+    expect(litShare(0.9999)).toBe("99 % of the Sun's disc is above the skyline.");
+    expect(litShare(1)).toBeNull();
   });
 });

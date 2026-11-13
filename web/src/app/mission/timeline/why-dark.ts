@@ -10,7 +10,7 @@
 import type { Feature } from "../../../contracts/generated";
 import { formatNumber } from "../../../components/format";
 import { MOON_RADIUS_M, skylineBinCentreDeg, skylineBinForAzimuth, unitVector } from "../../../lib/geo";
-import { distinctDecimals, formatLimit } from "../rules";
+import { distinctDecimals, formatLimit, formatValue } from "../rules";
 
 /** The five arrays of `skyline.bin`, as `useSkyline` returns them. */
 export type SkylineArrays = {
@@ -295,4 +295,14 @@ export function shortReason(
       return `${lead}: skyline ${angle(above, 2)} above ${sun ? "it" : "Earth"}${ground}`;
     }
   }
+}
+
+/**
+ * The lit line's share, from the series' Sun disc fraction (docs/features/site-detail.md):
+ * "62 % of the Sun's disc is above the skyline." when part of the disc is hidden, null at a
+ * full disc. Rounded down, so a disc short of full never reads 100 %.
+ */
+export function litShare(frac: number): string | null {
+  if (!(frac < 1)) return null;
+  return `${formatValue(Math.max(0, Math.floor(frac * 100)), "%")} of the Sun's disc is above the skyline.`;
 }
