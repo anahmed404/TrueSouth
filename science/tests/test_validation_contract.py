@@ -19,6 +19,7 @@ def documented_example():
 def test_documented_example_validates():
     example = Validation.model_validate(documented_example())
     assert example.gates[0].id == 'G2'
+    assert example.gates[1].passed is None and example.gates[1].measured is None
     assert example.comparisons[0].outside_mark is False
     assert example.g2_over_time[0].body == 'earth'
     assert example.sources[0].url.startswith('https://')
@@ -32,6 +33,25 @@ def test_comparison_outside_its_mark_needs_an_explanation():
     with pytest.raises(ValidationError):
         Comparison.model_validate({**outside, 'explanation': '   '})
     Comparison.model_validate({**outside, 'explanation': 'NASA averages 18.6 years; we average 6.'})
+
+
+def test_unmeasured_gate_uses_null_for_passed_and_measured():
+    example = documented_example()
+    measured = example['gates'][0]
+    Gate = Validation.model_validate(example).gates[0].__class__
+    unchecked = {**measured, 'id': 'G10', 'passed': None, 'measured': None, 'samples': 0,
+                 'detail': 'It is checked by the web tests.'}
+    gate = Gate.model_validate(unchecked)
+    assert gate.passed is None and gate.measured is None
+    for broken in (
+        {**unchecked, 'measured': 0},
+        {**unchecked, 'passed': False},
+        {**unchecked, 'samples': 3},
+        {**unchecked, 'detail': None},
+        {**unchecked, 'detail': 'checked elsewhere'},
+    ):
+        with pytest.raises(ValidationError):
+            Gate.model_validate(broken)
 
 
 def test_validation_rejects_unknown_fields_and_missing_parts():

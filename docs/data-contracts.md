@@ -247,7 +247,9 @@ The catalog grid is 161 × 161 over a 300 km square centred on the site. Points 
 ### `validation.json` and `academy/worked_examples.json`
 
 Described in [`validation.md`](validation.md) and
-[`academy/lessons.md`](academy/lessons.md).
+[`academy/lessons.md`](academy/lessons.md). A gate leaves `passed` and `measured` null
+together when `validate` did not measure it. `samples` is then 0, and `detail` says
+where that gate is checked. G10 and G11 are written that way.
 
 ## API messages
 
