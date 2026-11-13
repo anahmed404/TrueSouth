@@ -7,7 +7,7 @@ from truesouth.constants import (
     EARTH_RADIUS_KM, MOON_RADIUS_M, OBSERVER_HEIGHT_M, SUN_RADIUS_KM, TIME_GRID_COUNT,
 )
 from truesouth.contracts import SystemLayout
-from truesouth.ephemeris import load_global, topocentric, write_global
+from truesouth.ephemeris import Topocentric, compare_site, load_global, topocentric, write_global
 
 
 def test_body_overhead_has_no_parallax():
@@ -75,3 +75,15 @@ def test_system_rejects_wrong_length_and_nonfinite(tmp_path):
     columns['subsolar_lat'][0] = np.nan
     with pytest.raises(ValueError, match='finite'):
         write_global(columns, path)
+
+
+def test_sky_azimuth_comparison_handles_wrap_and_zenith():
+    predicted = Topocentric(None, np.array([359.999, 180, 90]),
+                            np.array([0, 90, 89.999]), None, None)
+    reference = {'az_deg': np.array([0.001, 0, 0]), 'el_deg': np.array([0, 90, 89.999])}
+    times = np.arange(3).astype('datetime64[h]').astype('datetime64[s]')
+    report = compare_site(predicted, reference, times)
+    assert report['az_max_deg'] == pytest.approx(0.002)
+    assert report['el_max_deg'] == 0
+    assert report['sky_max_deg'] == pytest.approx(0.002)
+    assert report['az_max_utc'] == '1970-01-01T00:00:00Z'

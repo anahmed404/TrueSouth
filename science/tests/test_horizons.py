@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from truesouth.horizons import global_request, parse_global, parse_site, site_request
+from truesouth.horizons import fetch_response, global_request, parse_global, parse_site, site_request
 
 DATA = Path(__file__).parent / 'data'
 
@@ -72,3 +72,63 @@ def test_malformed_response_and_duplicate_times_fail():
     response = (DATA / 'horizons_global.json').read_text(encoding='utf-8')
     with pytest.raises(ValueError, match='time'):
         parse_global(response.replace('2026-Jan-01 01:00,', '2026-Jan-01 00:00,'))
+
+
+def test_cached_response_replays_offline_and_missing_request_never_fetches(tmp_path, monkeypatch):
+    import truesouth.horizons as horizons
+
+    calls = []
+    sleeps = []
+    response = (DATA / 'horizons_global.json').read_text(encoding='utf-8')
+
+    class Client:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def get(self, url, params):
+            calls.append(params)
+            import httpx
+            return httpx.Response(200, text=response, request=httpx.Request('GET', url))
+
+    monkeypatch.setattr(horizons, 'raw_dir', lambda: tmp_path)
+    monkeypatch.setattr(horizons.httpx, 'Client', lambda **kwargs: Client())
+    monkeypatch.setattr(horizons.time, 'sleep', sleeps.append)
+    params = global_request()
+    assert fetch_response(params) == response
+    assert fetch_response(params, offline=True) == response
+    assert fetch_response(params) == response
+    assert len(calls) == 1
+    assert sleeps == [2]
+    with pytest.raises(FileNotFoundError):
+        fetch_response(site_request('sun', -80, 0), offline=True)
+    assert len(calls) == 1
+
+
+def test_refusal_retries_with_backoff_and_is_not_a_cache_hit(tmp_path, monkeypatch):
+    import truesouth.horizons as horizons
+    import httpx
+
+    sleeps = []
+
+    class Client:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def get(self, url, params):
+            return httpx.Response(200, json={'error': 'service busy'}, request=httpx.Request('GET', url))
+
+    monkeypatch.setattr(horizons, 'raw_dir', lambda: tmp_path)
+    monkeypatch.setattr(horizons.httpx, 'Client', lambda **kwargs: Client())
+    monkeypatch.setattr(horizons.time, 'sleep', sleeps.append)
+    with pytest.raises(RuntimeError, match='service busy'):
+        fetch_response(global_request())
+    assert sleeps == [2, 4, 8, 16]
+    assert len(list((tmp_path / 'horizons').glob('*.refused.json'))) == 1
+    with pytest.raises(FileNotFoundError):
+        fetch_response(global_request(), offline=True)

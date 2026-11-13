@@ -49,12 +49,12 @@ each integration checkpoint.
 
 ## Science
 
-#### 2026-11-13 ? S4 ? Global Horizons ephemeris; G2 in progress
+#### 2026-11-13 · S4 · Global Horizons ephemeris; G2 in progress
 - **Who:** Codex agent, for the orchestrator
-- **AI use:** Codex, gpt-6.1-sol ? wrote Horizons parser, vector geometry, pipeline and tests ? agent ran offline pytest; orchestrator and cross-provider review pending
+- **AI use:** Codex, gpt-6.1-sol — wrote Horizons parser, vector geometry, pipeline and tests — agent ran offline pytest; orchestrator and cross-provider review pending
 - **State:** built, not verified
-- **Changed:** `horizons.py`, `ephemeris.py`, `commands/fetch_ephemeris.py`, science tests and saved responses, `data/derived/system.bin`, science.md ?3
-- **Notes:** G1 and binary round trip pass. Full global response: 52,584 UTC hours; 1,262,016-byte system.bin. Headers confirm east-positive MOON_ME / MEAN_ME (high precision), the DE421 mean-Earth frame. Connecting Ridge three-day probe: Sun azimuth 0.000170?, Earth azimuth 0.005623?. Full-grid G2 in progress; no fitted corrections. Terrain height is zero plus 2 m observer height. Catalog bridge temporarily uses the documented coordinates because S1 is not on main yet.
+- **Changed:** `horizons.py`, `ephemeris.py`, `commands/fetch_ephemeris.py`, science tests and saved responses, `data/derived/system.bin`, science.md §3
+- **Notes:** G1 and binary round trip pass. Full global response: 52,584 UTC hours; 1,262,016-byte system.bin. Headers confirm east-positive MOON_ME / MEAN_ME (high precision), the DE421 mean-Earth frame. Connecting Ridge three-day probe: Sun azimuth 0.000170°, Earth azimuth 0.005623°. Full-grid G2 in progress; no fitted corrections. Terrain height is zero plus 2 m observer height. Catalog bridge temporarily uses the documented coordinates because S1 is not on main yet.
 
 #### 2026-11-13 · S3 · Site-centred frames and polar projection
 - **Who:** Codex agent, for the orchestrator
