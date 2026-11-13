@@ -1,12 +1,14 @@
 import { ArrowRight, X } from "lucide-react";
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Luna } from "../../components/luna";
+import { useWorkedExamples } from "../../data";
 import "./academy.css";
 import { LESSONS, type LessonSummary } from "./catalog";
 import { LessonScreen } from "./lesson-screen";
 import { sampleExamples, sampleLesson } from "./lessons/sample";
 import { PathMap } from "./path-map";
+import type { WorkedExamples } from "./placeholders";
 
 type AcademyRoutesProps = {
   lessonId?: string;
@@ -14,9 +16,19 @@ type AcademyRoutesProps = {
 
 /** Every Academy animation reads the reduce-motion setting itself (useLunaReducedMotion). */
 export default function AcademyRoutes({ lessonId }: AcademyRoutesProps) {
+  const worked = useWorkedExamples();
+  // The real worked examples, with the sample's own toy values on top.
+  const examples = useMemo<WorkedExamples>(() => ({ ...(worked.data ?? {}), ...sampleExamples }), [worked.data]);
   if (!lessonId) return <PathMap />;
   if (lessonId === sampleLesson.id) {
-    return <LessonScreen key={sampleLesson.id} lesson={sampleLesson} examples={sampleExamples} />;
+    return (
+      <LessonScreen
+        key={sampleLesson.id}
+        lesson={sampleLesson}
+        examples={examples}
+        examplesPending={worked.status === "loading"}
+      />
+    );
   }
   const summary = LESSONS.find((lesson) => lesson.id === lessonId);
   if (!summary) return <MissingLesson lessonId={lessonId} />;

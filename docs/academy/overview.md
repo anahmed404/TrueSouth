@@ -159,14 +159,26 @@ file differ, the file is right and this sketch should be updated.
 Each lesson has one optional card for readers who want the real math. Opening it never
 costs XP and is not part of the 10–15 minutes.
 
-Each card is a Markdown file, `cards/<id>.md`, with KaTeX math and five fixed parts:
+Each card is typed data, an `UnderTheHoodCard` from `web/src/features/academy/types.ts`, in
+`cards/<id>.ts`, so a card that misses a part does not compile, as with lessons. Its maths
+is TeX, drawn with KaTeX. It has five fixed parts:
 
 1. **The idea** in two or three sentences.
 2. **The formula,** quoted from [`../science.md`](../science.md), with the section cited.
+   Each formula has its TeX, a reading in plain words, the section it is quoted from (shown
+   as "Science notes, section 4", linked), and its symbols with their units.
 3. **A worked example** on real data, with every intermediate number. The numbers are
-   `{{example.key}}` placeholders.
+   `{{example.key}}` placeholders, in text or inside TeX.
 4. **In the code:** the function that does it, with a link to the file.
 5. **What can go wrong:** the mistakes this formula invites, including ones we made.
+
+Card text may hold `$…$` inline maths, `{{example.key}}` placeholders (a unit written right
+after one stays with its number), `[[term]]` or `[[term|label]]` for a glossary term
+explained from `web/src/lib/explain.ts`, and `` `code` ``. The exact syntax is documented
+beside the type. A filled number shows in a box, so a learner can see it is real data; a
+key that `worked_examples.json` does not have yet shows "value not built yet", never the
+raw placeholder. Numbers are rounded by one rule, in
+`web/src/features/academy/format-example.ts`.
 
 The cards hold everything an engineering-level explanation would. Nothing is left out for
 simplicity; it is moved here.

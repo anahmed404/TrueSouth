@@ -307,6 +307,48 @@ each integration checkpoint.
 
 ## Academy
 
+#### 2026-11-13 · A4 · Under the hood card renderer with KaTeX and Fill chips
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the card type, the renderer, the lazy
+  KaTeX loader, the card-text tokenizer, the one rounding rule, the sample card and 32
+  vitest tests — checked by the agent with typecheck, tests and build, the impeccable
+  detector (0 findings), and by eye in a browser at 1440 × 900 and 390 × 844 with reduce
+  motion on and off, including KaTeX held back (loading) and blocked (failed). A human has
+  not read the card yet.
+- **State:** verified (orchestrator ran typecheck, 1,310 tests and build on the merge with main and looked at the card at both sizes; Codex, gpt-6.1-terra compared the quoted formulas with science.md section 4, probed the renderer for unsafe output and ran seven mutations; its findings were fixed and the trust mutation now fails nine tests)
+- **Changed:** `web/src/features/academy/` (`card/`, `types.ts`, `format-example.ts`,
+  `placeholders.ts`, `ui/filled.tsx`, `lessons/sample.ts`, `academy.css`, and the
+  `pending` prop through `index.tsx`, `lesson-screen.tsx`, `lesson/conversation.tsx`),
+  `web/package.json` (`katex` pinned to 0.19.1), `docs/academy/overview.md`, screenshots
+  `docs/design/c2/built-academy-card*.png`
+- **Notes:**
+  - Cards are typed data (`UnderTheHoodCard` in `types.ts`), not Markdown files: the
+    overview said `cards/<id>.md` while the same doc and the A2 code made lessons and
+    cards typed. The overview now says `cards/<id>.ts`. A5 creates that folder.
+  - KaTeX is in its own chunk, loaded when the "Under the hood" tab first opens:
+    `katex-render` JS 259.45 kB (77.88 kB gzip), CSS 29.78 kB (7.98 kB gzip), 19 woff2
+    fonts 256 kB (only the ones a formula uses are fetched). First-page JS went from
+    545.69 kB to 572.54 kB (175.70 to 184.63 kB gzip): the renderer and the sample card,
+    no KaTeX. `card/bundle.test.ts` walks the static import graph to keep it that way.
+  - Numbers are rounded by key suffix in `format-example.ts` (degrees 2 decimals, km 1,
+    m 0, h 1, pct 0), trailing zeros dropped. Lesson text uses the same rule now.
+  - The sample route now merges the real `worked_examples.json` under the sample's toy
+    values, so the sample card shows lesson 3's fixture numbers.
+  - Review fixes made (same PR):
+    - An unusable value (null, NaN, Infinity, an object, empty text) shows "value not
+      built yet" and never throws.
+    - Angles keep at least one decimal, and `_pct` is matched as a segment.
+    - A test walks every worked-example key; unitless keys are listed in
+      `format-example.ts`.
+    - Compared sets gain decimals until their values print differently, and comparison
+      words come from the data (`compare.ts`).
+    - KaTeX's trust, `maxSize` (20 em) and `maxExpand` (1000) are tested.
+    - The boxed-number note says "sample values for testing, not real" on fixtures.
+    - Malformed `{{example.…}}` keys show as missing, and the worked example's title is
+      drawn as card text.
+  - The real `data/derived/` has no `academy/worked_examples.json` yet. On real data the
+    card shows every number as "value not built yet", and the browser logs that file's 404.
+
 #### 2026-11-13 · A2 · Academy screens in the picked form and the five step kinds
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — wrote the path (variant b), the lesson
