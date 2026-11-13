@@ -488,6 +488,41 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-13 · MC6 · Lander's eye: the horizon chart
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (building the
+  approved C2 chart, no redesign) — wrote `LandersEye` (the hand-built SVG chart with
+  `d3-scale` and `d3-shape`, its control row, legend, states, hover readout, marker, drag,
+  scroll zoom and keyboard use), its mount under the horizon in Mission Control, the lit
+  line's share in the shared "Why is it dark?" card, and 54 vitest tests; then fixed the
+  review of PR #78 (Gemini): the antenna mask on the chart's seam, true-size discs, the
+  legend and contrast, the lit line, label placement and the shell's measuring — checked by
+  the agent with typecheck, the vitest suite, the build and `uv run pytest`, impeccable's
+  detector (no findings) and an inline audit pass, and by eye in a browser on the real data
+  with the 3D scene behind the panel at 1440 × 900, 1024 × 768 and 390 × 844 and in a 360 px
+  lesson box (a local route, never committed); a human has not reviewed it yet
+- **State:** verified (322 Python tests, 1,691 web tests, typecheck and build pass on the merge with main, which has the 3D scene; reviewed by Gemini (no frontend science, geometry spot-checked, three mutations caught; six findings, all fixed with tests); the chart and the scene's labels agree at every hour of three fixture windows; not yet seen by the team lead)
+- **Changed:** `web/src/features/panorama/` (new: `chart.tsx`, `geometry.ts`,
+  `readings.ts`, `panorama.css`, four tests; `index.tsx`), `web/src/app/mission-screen.tsx`
+  (the foot stack mounts the chart in Lander's eye, the free space ends above it, the
+  shell reads only its own plate and remeasures on a camera change), `web/src/app/shell.css`
+  (one phone rule), `web/src/app/mission/timeline/why-dark.ts` and `why-dark-card.tsx`
+  (the lit line's share), `docs/features/panorama.md`, `docs/features/site-detail.md`,
+  `docs/design/c2/built-landers-eye*.png`, this entry
+- **Notes:**
+  - Every value drawn or read out comes from `skyline.bin`, the series and the site meta as
+    stored. The state words are the 3D scene's (in view, partly in view, behind the ridge,
+    below the horizon), from the series' disc fraction and clearance; a test checks the two
+    agree at every hour of three fixture windows.
+  - Discs are drawn at their true angular size. On Connecting Ridge the share drawn above
+    the skyline is within 0.019 of the series' disc fraction. The fixtures store a linear
+    ramp, not the §6 circle, so there the gap reaches 0.058, which is the ramp's own error.
+  - The skyline, paths and axes are one memoised layer: render-count tests (on the chart
+    and on the whole view with its data hooks) show no rebuild while the hour changes.
+  - On a dark or blackout hour the panel shows the one-line "why" with its "Why?" button.
+  - The marker is not shared with Local terrain yet: a later package wires `marker` and
+    `onMarkerChange` through the shell.
+
 #### 2026-11-13 · MC4c · The space-first shell
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (question
