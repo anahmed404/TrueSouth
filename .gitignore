@@ -1,8 +1,6 @@
-# NASA downloads and fast-read copies: rebuilt by `uv run truesouth fetch-raw` and `prepare-dem`
+# Data that is never committed (see AGENTS.md)
 data/raw/
 data/prepared/
-
-# Custom sites computed by the API
 data/cache/
 
 # Python
@@ -18,13 +16,9 @@ node_modules/
 web/dist/
 *.tsbuildinfo
 
-# Local settings and secrets
+# Local
 .env
 .env.*
 !.env.example
-
-# Editors and OS
-.vscode/
-.idea/
 .DS_Store
 Thumbs.db
