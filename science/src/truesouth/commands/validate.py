@@ -204,6 +204,10 @@ def direction_evidence(site_id, body, predicted, reference, times, step_h=24):
 def directions_gate(sites, system, times, directory):
     reports, charts, missing = [], [], []
     for site in sites:
+        # A best-lit variant has no saved Horizons response. G2 stays on the
+        # catalog sites; the variant is not a second ephemeris sample.
+        if site.variant_of is not None:
+            continue
         for body, radius in (('sun', SUN_RADIUS_KM), ('earth', EARTH_RADIUS_KM)):
             response = saved_response(directory, site_request(body, site.lat_deg, site.lon_deg), f'{site.id}-{body}')
             if response is None:

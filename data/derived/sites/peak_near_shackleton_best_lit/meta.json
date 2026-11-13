@@ -1,0 +1,59 @@
+{
+  "site_id": "peak_near_shackleton_best_lit",
+  "series": {
+    "columns": [
+      {
+        "name": "sun_az",
+        "scale": 0.01,
+        "offset": 180.0
+      },
+      {
+        "name": "sun_el",
+        "scale": 0.01,
+        "offset": 0.0
+      },
+      {
+        "name": "sun_frac",
+        "scale": 0.0001,
+        "offset": 0.0
+      },
+      {
+        "name": "sun_clear",
+        "scale": 0.01,
+        "offset": 0.0
+      },
+      {
+        "name": "earth_az",
+        "scale": 0.01,
+        "offset": 180.0
+      },
+      {
+        "name": "earth_el",
+        "scale": 0.01,
+        "offset": 0.0
+      },
+      {
+        "name": "earth_frac",
+        "scale": 0.0001,
+        "offset": 0.0
+      },
+      {
+        "name": "earth_clear",
+        "scale": 0.01,
+        "offset": 0.0
+      }
+    ]
+  },
+  "sun_radius_deg": 0.26645057568334696,
+  "earth_radius_deg": 0.9506492813105153,
+  "skyline": {
+    "bins": 1440,
+    "missing_samples": 0,
+    "max_range_km": 300.0
+  },
+  "terrain": {
+    "size": 257,
+    "window_km": 20.0
+  },
+  "closeup": null
+}

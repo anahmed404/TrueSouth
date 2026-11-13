@@ -208,6 +208,10 @@ Date__(UT)__HR:MN, , , Azimuth_(a-app), Elevation_(a-app),
     assert gate.passed and gate.samples == 8 and gate.measured < .00001
     assert {c.body for c in charts} == {'sun', 'earth'}
     assert all(len(c.max_difference_deg) == 1 for c in charts)
+    variant = site.model_copy(update={'id': 'test_site_best_lit', 'variant_of': 'test_site', 'offset_m': 80.0})
+    again, variant_charts = directions_gate([site, variant], system, times, tmp_path)
+    assert again.passed and again.samples == gate.samples and again.measured == gate.measured
+    assert len(variant_charts) == len(charts)
     with pytest.raises(ValueError, match='time grid'):
         directions_gate([site], system, times[:-1], tmp_path)
 

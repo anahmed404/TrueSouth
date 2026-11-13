@@ -192,6 +192,17 @@
     },
     {
       "id": "R1",
+      "site_id": "connecting_ridge_best_lit",
+      "ours": 0.8696149094781683,
+      "reference": 0.8642000000000001,
+      "unit": "fraction",
+      "reference_source": "https://pgda.gsfc.nasa.gov/products/69",
+      "investigate_above": 0.1,
+      "outside_mark": false,
+      "explanation": "AVGVISIB_85S_060M_201608.TIF, pixel (2732, 2340), scale=4e-05, offset=0, no-data=-32768."
+    },
+    {
+      "id": "R1",
       "site_id": "de_gerlache_rim",
       "ours": 0.6073583276281759,
       "reference": 0.6129600000000001,
@@ -200,6 +211,17 @@
       "investigate_above": 0.1,
       "outside_mark": false,
       "explanation": "AVGVISIB_85S_060M_201608.TIF, pixel (2285, 1916), scale=4e-05, offset=0, no-data=-32768."
+    },
+    {
+      "id": "R1",
+      "site_id": "de_gerlache_rim_best_lit",
+      "ours": 0.6958976741974745,
+      "reference": 0.46416,
+      "unit": "fraction",
+      "reference_source": "https://pgda.gsfc.nasa.gov/products/69",
+      "investigate_above": 0.1,
+      "outside_mark": true,
+      "explanation": "NASA's 60 m pixel is 0.464. Neighbouring pixels on that map run from 0.056 to 0.669. NASA's 120 m map is 0.529 at the same point. Ours is 0.696. NASA models an observer on the surface, 18.6 years and its own terrain grid; ours uses an observer 2 m above the ground, six years and the 80 m map."
     },
     {
       "id": "R1",
@@ -247,6 +269,17 @@
     },
     {
       "id": "R1",
+      "site_id": "malapert_peak_best_lit",
+      "ours": 0.7674534535219839,
+      "reference": 0.5076,
+      "unit": "fraction",
+      "reference_source": "https://pgda.gsfc.nasa.gov/products/69",
+      "investigate_above": 0.1,
+      "outside_mark": true,
+      "explanation": "NASA's 60 m pixel is 0.508. Neighbouring pixels on that map run from 0.487 to 0.748. NASA's 120 m map is 0.665 at the same point. Ours is 0.767. NASA models an observer on the surface, 18.6 years and its own terrain grid; ours uses an observer 2 m above the ground, six years and the 80 m map."
+    },
+    {
+      "id": "R1",
       "site_id": "peak_near_shackleton",
       "ours": 0.6017209208124144,
       "reference": 0.36128000000000005,
@@ -258,6 +291,17 @@
     },
     {
       "id": "R1",
+      "site_id": "peak_near_shackleton_best_lit",
+      "ours": 0.6378241955727979,
+      "reference": 0.5854,
+      "unit": "fraction",
+      "reference_source": "https://pgda.gsfc.nasa.gov/products/69",
+      "investigate_above": 0.1,
+      "outside_mark": false,
+      "explanation": "AVGVISIB_85S_060M_201608.TIF, pixel (2889, 3055), scale=4e-05, offset=0, no-data=-32768."
+    },
+    {
+      "id": "R1",
       "site_id": "shackleton_rim",
       "ours": 0.7468617260003042,
       "reference": 0.69564,
@@ -266,6 +310,17 @@
       "investigate_above": 0.1,
       "outside_mark": false,
       "explanation": "AVGVISIB_85S_060M_201608.TIF, pixel (2633, 2483), scale=4e-05, offset=0, no-data=-32768."
+    },
+    {
+      "id": "R1",
+      "site_id": "shackleton_rim_best_lit",
+      "ours": 0.810021348699224,
+      "reference": 0.72848,
+      "unit": "fraction",
+      "reference_source": "https://pgda.gsfc.nasa.gov/products/69",
+      "investigate_above": 0.1,
+      "outside_mark": false,
+      "explanation": "AVGVISIB_85S_060M_201608.TIF, pixel (2632, 2484), scale=4e-05, offset=0, no-data=-32768."
     },
     {
       "id": "R2",
@@ -346,6 +401,17 @@
     },
     {
       "id": "R2",
+      "site_id": "connecting_ridge_best_lit",
+      "ours": 0.5818880267762057,
+      "reference": 0.5794,
+      "unit": "fraction",
+      "reference_source": "https://pgda.gsfc.nasa.gov/products/69",
+      "investigate_above": 0.1,
+      "outside_mark": false,
+      "explanation": "AVGVISIB_85S_060M_201608_EARTH.TIF, pixel (2732, 2340), scale=4e-05, offset=0, no-data=-32768."
+    },
+    {
+      "id": "R2",
       "site_id": "de_gerlache_rim",
       "ours": 0.5817929408185,
       "reference": 0.56316,
@@ -354,6 +420,17 @@
       "investigate_above": 0.1,
       "outside_mark": false,
       "explanation": "AVGVISIB_85S_060M_201608_EARTH.TIF, pixel (2285, 1916), scale=4e-05, offset=0, no-data=-32768."
+    },
+    {
+      "id": "R2",
+      "site_id": "de_gerlache_rim_best_lit",
+      "ours": 0.610223642172524,
+      "reference": 0.50044,
+      "unit": "fraction",
+      "reference_source": "https://pgda.gsfc.nasa.gov/products/69",
+      "investigate_above": 0.1,
+      "outside_mark": true,
+      "explanation": "NASA's 60 m pixel is 0.500. Neighbouring pixels on that map run from 0.112 to 0.610. NASA's 120 m map is 0.530 at the same point. Ours is 0.610. NASA models an observer on the surface, 18.6 years and its own terrain grid; ours uses an observer 2 m above the ground, six years and the 80 m map."
     },
     {
       "id": "R2",
@@ -401,6 +478,17 @@
     },
     {
       "id": "R2",
+      "site_id": "malapert_peak_best_lit",
+      "ours": 0.771356306100715,
+      "reference": 0.6784800000000001,
+      "unit": "fraction",
+      "reference_source": "https://pgda.gsfc.nasa.gov/products/69",
+      "investigate_above": 0.1,
+      "outside_mark": false,
+      "explanation": "AVGVISIB_85S_060M_201608_EARTH.TIF, pixel (494, 2454), scale=4e-05, offset=0, no-data=-32768."
+    },
+    {
+      "id": "R2",
       "site_id": "peak_near_shackleton",
       "ours": 0.41151300775901417,
       "reference": 0.37596,
@@ -412,6 +500,17 @@
     },
     {
       "id": "R2",
+      "site_id": "peak_near_shackleton_best_lit",
+      "ours": 0.44292940818499926,
+      "reference": 0.43464,
+      "unit": "fraction",
+      "reference_source": "https://pgda.gsfc.nasa.gov/products/69",
+      "investigate_above": 0.1,
+      "outside_mark": false,
+      "explanation": "AVGVISIB_85S_060M_201608_EARTH.TIF, pixel (2889, 3055), scale=4e-05, offset=0, no-data=-32768."
+    },
+    {
+      "id": "R2",
       "site_id": "shackleton_rim",
       "ours": 0.5183896242202951,
       "reference": 0.49684000000000006,
@@ -420,6 +519,17 @@
       "investigate_above": 0.1,
       "outside_mark": false,
       "explanation": "AVGVISIB_85S_060M_201608_EARTH.TIF, pixel (2633, 2483), scale=4e-05, offset=0, no-data=-32768."
+    },
+    {
+      "id": "R2",
+      "site_id": "shackleton_rim_best_lit",
+      "ours": 0.5512513312034079,
+      "reference": 0.47864000000000007,
+      "unit": "fraction",
+      "reference_source": "https://pgda.gsfc.nasa.gov/products/69",
+      "investigate_above": 0.1,
+      "outside_mark": false,
+      "explanation": "AVGVISIB_85S_060M_201608_EARTH.TIF, pixel (2632, 2484), scale=4e-05, offset=0, no-data=-32768."
     },
     {
       "id": "R3",
@@ -500,6 +610,17 @@
     },
     {
       "id": "R3",
+      "site_id": "connecting_ridge_best_lit",
+      "ours": 0.5816590917756863,
+      "reference": 0.5256828665733337,
+      "unit": "deg",
+      "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
+      "investigate_above": 2.0,
+      "outside_mark": false,
+      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (3952, 3658), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
+    },
+    {
+      "id": "R3",
       "site_id": "de_gerlache_rim",
       "ours": 2.1549883225234923,
       "reference": 1.1228725910186768,
@@ -508,6 +629,17 @@
       "investigate_above": 2.0,
       "outside_mark": false,
       "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (3617, 3340), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
+    },
+    {
+      "id": "R3",
+      "site_id": "de_gerlache_rim_best_lit",
+      "ours": 2.693887353681419,
+      "reference": 1.7918040752410889,
+      "unit": "deg",
+      "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
+      "investigate_above": 2.0,
+      "outside_mark": false,
+      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (3618, 3341), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
     },
     {
       "id": "R3",
@@ -544,6 +676,17 @@
     },
     {
       "id": "R3",
+      "site_id": "malapert_peak_best_lit",
+      "ours": 2.4488346087377,
+      "reference": 2.6709415912628174,
+      "unit": "deg",
+      "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
+      "investigate_above": 2.0,
+      "outside_mark": false,
+      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (2274, 3744), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
+    },
+    {
+      "id": "R3",
       "site_id": "peak_near_shackleton",
       "ours": 1.8395603749256617,
       "reference": 1.8839832544326782,
@@ -555,6 +698,17 @@
     },
     {
       "id": "R3",
+      "site_id": "peak_near_shackleton_best_lit",
+      "ours": 2.666082544124815,
+      "reference": 2.7231106758117676,
+      "unit": "deg",
+      "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
+      "investigate_above": 2.0,
+      "outside_mark": false,
+      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (4070, 4194), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
+    },
+    {
+      "id": "R3",
       "site_id": "shackleton_rim",
       "ours": 1.1511636676794361,
       "reference": 2.384227752685547,
@@ -563,6 +717,17 @@
       "investigate_above": 2.0,
       "outside_mark": false,
       "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (3878, 3765), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
+    },
+    {
+      "id": "R3",
+      "site_id": "shackleton_rim_best_lit",
+      "ours": 5.799812469849449,
+      "reference": 5.988375186920166,
+      "unit": "deg",
+      "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
+      "investigate_above": 2.0,
+      "outside_mark": false,
+      "explanation": "LDSM_80S_80MPP_ADJ.TIF, pixel (3877, 3766), scale=1, offset=0, no-data=nan; file has no unit tag; NASA product 90 identifies degrees; NASA baseline not recorded in file metadata; ours is a 160 m central difference. Pixel size alone does not establish the NASA baseline."
     },
     {
       "id": "R5",
@@ -577,8 +742,8 @@
     },
     {
       "id": "R5",
-      "site_id": "de_gerlache_rim",
-      "ours": 0.01472515270239983,
+      "site_id": "connecting_ridge_best_lit",
+      "ours": 0.01225856693196476,
       "reference": 0.0,
       "unit": "deg",
       "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
@@ -588,8 +753,8 @@
     },
     {
       "id": "R5",
-      "site_id": "malapert_peak",
-      "ours": 0.03899064279062731,
+      "site_id": "de_gerlache_rim",
+      "ours": 0.01472515270239983,
       "reference": 0.0,
       "unit": "deg",
       "reference_source": "https://pgda.gsfc.nasa.gov/products/90",
