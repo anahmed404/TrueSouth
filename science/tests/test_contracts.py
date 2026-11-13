@@ -22,7 +22,7 @@ def test_invalid_values():
 
 
 def test_cli_and_schema():
-    from truesouth.cli import COMMANDS, export_schema
+    from truesouth.cli import COMMANDS, export_schema, is_built
     from truesouth.contracts import CONTRACT_MODELS
     from truesouth.cli import schema_bytes
     p = Path('web/src/contracts/schema.json')
@@ -32,7 +32,11 @@ def test_cli_and_schema():
     help_text = subprocess.check_output([sys.executable, '-m', 'truesouth.cli', '--help'], text=True)
     for command in COMMANDS:
         assert command in help_text
-        assert subprocess.run([sys.executable, '-m', 'truesouth.cli', command], capture_output=True).returncode != 0
+        if not is_built(command):
+            # A step with no module in truesouth/commands/ exits non-zero and says who builds it.
+            result = subprocess.run([sys.executable, '-m', 'truesouth.cli', command], capture_output=True, text=True)
+            assert result.returncode != 0
+            assert 'not built yet' in result.stderr
 
 def test_documented_examples():
     from truesouth.contracts import SiteMeta, MapMeta, CustomSiteQueued, SensitivityRequest, SensitivityResponse
