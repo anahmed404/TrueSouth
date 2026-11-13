@@ -77,8 +77,9 @@
 
   /*
     The landing date, at the left end of the head: the time axis starts where the mission
-    window begins. A narrow strip drops the words "Landing date" and "Slip" first (the group
-    and its buttons keep them as names); the head then wraps the play controls to a second row.
+    window begins. A narrow strip drops the words "Landing date" and the window end's time
+    first (the group keeps its name, screen readers the whole sentence); the head then wraps
+    the play controls to a second row.
   */
   .tl-landing {
     display: flex;
@@ -95,14 +96,16 @@
     visibility: hidden;
   }
 
-  @container strip (max-width: 600px) {
-    .tl-head .ldc-slip-word {
+  /* Folded, the row also holds the time, play and both countdowns. */
+  @container strip (max-width: 1100px) {
+    .tl-folded .ldc-label {
       display: none;
     }
   }
 
-  @container strip (max-width: 530px) {
-    .tl-head .ldc-label {
+  @container strip (max-width: 600px) {
+    .tl-head .ldc-label,
+    .tl-head .ldc-window-time {
       display: none;
     }
   }
@@ -796,6 +799,18 @@
 
   .tl-compact-landing .ldc-value {
     height: 42px;
+  }
+
+  /* The window's end and length take their own line under the date. */
+  .tl-compact-landing .ldc {
+    flex-wrap: wrap;
+    row-gap: var(--s1);
+  }
+
+  .tl-compact-landing .ldc-window {
+    order: 1;
+    flex-basis: 100%;
+    font-size: var(--t-sm);
   }
 
   /* "Next GO" is at the right end on the phone: its note opens leftwards. */

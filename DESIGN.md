@@ -521,7 +521,9 @@ or glow.
   time.
 - **Landing date:** the first thing in the strip's header, where the mission window
   begins: a "Landing date" label, the date in a Raised box between two day buttons, the
-  slip buttons and "Next GO" (secondary buttons). After "Next GO" a tip-style bubble (Raised,
+  window's end and length in Ink 2 with the duration's provenance tag ("→ 11 Mar · 10 d
+  [sourced]"), and "Next GO" (a secondary button). The slip buttons are in the date's
+  picker. After "Next GO" a tip-style bubble (Raised,
   Control Edge, the popover shadow) says where the landing moved, with "Undo".
 
 ## Do's and Don'ts

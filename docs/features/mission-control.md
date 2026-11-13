@@ -50,7 +50,7 @@ them.
 │ └──────────────┘       window opens over this area)           └───────────────┘   │
 │             [ view controls float at the foot of the free space ]                 │
 │ ┌──────────────────────────────────────────────────────────────────────────────┐  │
-│ │ Landing date ‹ date › Slip · Next GO             ▶ speed │ countdown cards   │  │
+│ │ Landing date ‹ date › → end · 10 d · Next GO     ▶ speed │ countdown cards   │  │
 │ │ timeline: lit/dark band, link/blackout band, scrubber    │                   │  │
 │ └──────────────────────────────────────────────────────────────────────────────┘  │
 │       Planning aid, not flight certification. Limits marked assumed are ours.     │
@@ -181,8 +181,9 @@ Mission Control may ask for a wider screen, but the layout holds at 390 px wide.
 - The sites rail is hidden and opens as a sheet from a "Sites" button.
 - The focused site is a one-line sheet (name and status) that expands.
 - The timeline is a compact strip: the landing date with its day buttons and "Next GO" on
-  one 44 px row, then play, the current time and the countdowns, then a 44 px scrubber. The
-  date's picker, with the slip buttons, opens as a sheet the width of the screen.
+  one 44 px row, the window's end and length with its tag under it, then play, the current
+  time and the countdowns, then a 44 px scrubber. The date's picker, with the slip buttons,
+  opens as a sheet the width of the screen.
 - A floating window fills the screen.
 - Every control is at least 44 px.
 - The still picture shows the same note and keeps the same layout.
@@ -222,8 +223,10 @@ Mission Control may ask for a wider screen, but the layout holds at 390 px wide.
 - It sits in the bottom strip, at the left of the timeline where the mission window begins,
   not in the app bar: the landing date sets where the window starts and the scrubber moves
   inside it, so the two controls share one place.
-- A date and hour in UTC, limited to the time grid. Arrows step by one day. "Slip" buttons
-  step by 7 and 14 days. "Next GO" moves to the next day the focused site is GO.
+- A date and hour in UTC, limited to the time grid. Arrows step by one day. After the date,
+  the window's end and length with the duration's sourced or assumed tag, at every width.
+  "Slip" buttons in the date's picker step by 7 and 14 days. "Next GO" moves to the next
+  day the focused site is GO.
 - The latest valid landing date is the end of the time grid minus the mission duration.
 - The whole control, its states and what follows a change are in
   [`site-detail.md`](site-detail.md), "The landing date". The Slip Planner's landing-date

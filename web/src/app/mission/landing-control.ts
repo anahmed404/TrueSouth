@@ -4,10 +4,12 @@
  * date"). Statuses come from the slip sweep through `nextGoDay`; nothing here scores.
  */
 
+import { formatUtc } from "../../components/format";
 import type { TimeGrid } from "../../contracts/generated";
 import type { HookResult } from "../../data/hooks";
-import { dayToHour, hourToDay, nextGoDay, type DayResult } from "../../lib/scoring";
+import { dayToHour, hourToDay, nextGoDay, windowLength, type DayResult } from "../../lib/scoring";
 import { hourIndexToUtc, utcToHourIndex } from "../../lib/time";
+import { formatLimit } from "./rules";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -16,6 +18,34 @@ export function dayText(utc: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})T/.exec(utc);
   if (!match) return utc;
   return `${match[3]} ${MONTHS[Number(match[2]) - 1] ?? ""} ${match[1]}`;
+}
+
+/**
+ * The end of the mission window that starts at `landingUtc`: the landing plus the window's
+ * hours (docs/science.md §9), the first hour after the window, as the timeline draws it.
+ * `day` carries the year only when it differs from the landing's.
+ */
+export function windowEnd(landingUtc: string, durationDays: number): { utc: string; day: string; time: string; long: string } | null {
+  const start = Date.parse(landingUtc);
+  if (Number.isNaN(start)) return null;
+  const utc = new Date(start + windowLength(durationDays) * 3_600_000).toISOString().replace(".000Z", "Z");
+  const long = dayText(utc);
+  const sameYear = utc.slice(0, 4) === landingUtc.slice(0, 4);
+  const time = utc.slice(11, 16);
+  return { utc, day: sameYear ? long.slice(0, -5) : long, time, long: `${long} ${time} UTC` };
+}
+
+/**
+ * Why the day and slip buttons do nothing at the ends of the time grid, with the real dates:
+ * the grid's first hour, and the last landing whose window still ends inside the data.
+ */
+export function endReasons(grid: TimeGrid, durationDays: number, lastLandingHour: number): { first: string; last: string } {
+  const first = formatUtc(hourIndexToUtc(grid, 0));
+  const last = formatUtc(hourIndexToUtc(grid, Math.max(0, lastLandingHour)));
+  return {
+    first: `The data starts at ${first}, so the landing cannot be earlier.`,
+    last: `A ${formatLimit(durationDays, "d")} mission cannot land later than ${last}: its window must end inside the data.`,
+  };
 }
 
 /** The first year after the time grid ends: 2032 for the six-year grid from 2026. */

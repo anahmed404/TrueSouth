@@ -448,7 +448,7 @@ const TimelineStrip = memo(function TimelineStrip({ folded, compact, onToggleFol
           compact={compact}
           onToggleFold={compact ? undefined : onToggleFold}
           onTimeChange={onTimeChange}
-          landing={<LandingDateControl density={folded || compact ? "compact" : "full"} />}
+          landing={<LandingDateControl />}
         />
       </div>
       {folded || compact ? null : (

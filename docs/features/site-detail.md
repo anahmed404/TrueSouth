@@ -14,15 +14,17 @@ Layout and folding: [`mission-control.md`](mission-control.md). Prototype:
 - A solid, floating panel with a 16 px margin, the full width of the window less the
   margins, above the footer line. 196 px tall when open.
 - **It folds to one row** (52 px) with its toggle: the toggle, the landing date with its
-  day buttons and "Next GO", the current time, play and both countdowns remain; the bands and the countdown cards are hidden. The camera's centre slides
+  day buttons, the window's end and length with its tag, and "Next GO", then the current
+  time, play and both countdowns remain; the bands and the countdown cards are hidden. The camera's centre slides
   to the new free space as the bar folds (200 ms; none under "reduce motion").
 - The folded state is view state, kept in local storage, not in the scenario or the URL.
 - **It is always on screen.** The Compare window opens above it, never
   over it, so the scrubber stays reachable. In the Slip Planner its slot holds the
   landing-date panel ([`slip-planner.md`](slip-planner.md)), which has its own slider.
 - **On a phone** it is a compact strip: a 44 px row with the landing date, its day buttons
-  and "Next GO"; then play, the current time and the countdowns on one line; then a 44 px
-  scrubber. The date opens its picker, with the slip buttons, as a sheet the width of the
+  and "Next GO", and under it a line with the window's end and length with its tag; then
+  play, the current time and the countdowns on one line; then a 44 px scrubber. The date
+  opens its picker, with the slip buttons and the window's end, as a sheet the width of the
   screen.
 
 ## Timeline
@@ -46,10 +48,12 @@ Layout and folding: [`mission-control.md`](mission-control.md). Prototype:
   "1 h per second". It is a slider with an accessible name.
 - **Context.** Faint bands extend 3 days before landing and 3 days after the window ends.
 - **The bar's header** starts with the landing date, at the left end of the time axis where
-  the mission window begins, then the play controls at the right. The title "Timeline" and
-  the window's end are read by screen readers; on screen the axis shows Day 1 to the last
-  day, and the profile in the app bar shows the window's length with its tag. See "The
-  landing date" below.
+  the mission window begins, followed by where the window ends and how long it is, with the
+  duration's sourced or assumed tag; the play controls are at the right. The title
+  "Timeline" is read by screen readers only. See "The landing date" below.
+- **The scrubber's pill** shares the row of day labels. A label the pill would cover is
+  hidden while the pill is there (the pill names that day itself), so no label shows half
+  under it, at either end of the axis.
 
 ## The landing date
 
@@ -58,7 +62,7 @@ where the mission window starts, the scrubber is the current time inside it. So 
 in the bottom strip, the landing date first.
 
 ```text
- ⌄  Landing date ⓘ  ‹ 2028-03-01 00:00 UTC ›  Slip +7 d  +14 d  Next GO        ▶  6 h per second  ◯ Clearance chart
+ ⌄  Landing date ⓘ  ‹ 2028-03-01 00:00 UTC ›  → 11 Mar · 10 d [sourced]  Next GO        ▶  6 h per second  ◯ Clearance chart
         −3 d  ─ Day 1 ─ Day 2 ─ … ─ Day 10 ─ +1 d …
  Sun    ░░░░░░████████░░░░███████████████████░░░░░░
  Earth  ░░░░░░██████████████░░░░░░░░░░░░░░░░░░░░░░░
@@ -68,18 +72,33 @@ in the bottom strip, the landing date first.
   `web/src/app/mission/landing-date-control.tsx`. It reads and writes only the scenario
   store, so the Slip Planner's landing-date panel mounts the same component in its header.
   It has a "Landing date" label with its info icon, a one-day earlier button, the date and
-  hour in UTC (a button that opens the picker), a one-day later button, "Slip +7 d" and
-  "+14 d", and "Next GO".
-- **The picker** is a date and an hour in UTC, limited to the time grid. The latest valid
-  landing date is the end of the time grid minus the mission duration. It opens above the
-  strip. In the folded strip and on the phone the slip buttons move into it.
+  hour in UTC (a button that opens the picker), a one-day later button, the window's end
+  and length, and "Next GO". It is the same in the open strip, the folded strip and on the
+  phone.
+- **The window's end and length** follow the date, which is the window's start: "→ 11 Mar
+  · 10 d" with the duration's sourced or assumed tag (the same tag as the profile's). The
+  end is the landing plus the window's hours ([`../science.md`](../science.md) §9), the
+  first hour after the window, as the timeline draws it. Its time is shown only when it
+  differs from the landing's (a duration that is not whole days), and its year only when
+  it differs. Screen readers hear the whole sentence: "Mission window ends 11 Mar 2028
+  00:00 UTC, 10 d after landing."
+- **The picker** is a date and an hour in UTC, limited to the time grid, then "Slip +7 d"
+  and "+14 d", then the sentence "The 10 d mission window ends 11 Mar 2028 00:00 UTC." The
+  latest valid landing date is the end of the time grid minus the mission duration. It
+  opens above the strip. The slip buttons live only here, at every width: with the window's
+  end on the row, the open strip's header keeps one row at 1440 px only without them.
+- **At the ends of the time grid** the day buttons and the slip buttons stay focusable but
+  do nothing (`aria-disabled`, as the Academy's options do), and say why on hover, on focus
+  and to screen readers: "The data starts at 2026-01-01 00:00 UTC, so the landing cannot
+  be earlier." or "A 10 d mission cannot land later than 2031-12-22 00:00 UTC: its window
+  must end inside the data.", with the real dates of the grid and the profile.
 - **What follows a change of landing date.** The current time keeps its offset from the
   landing (Day 2 at 06:00 stays Day 2 at 06:00), clamped to the timeline's range of the
   window and 3 days either side (`moveLandingKeepingOffset` in `state/scenario.ts`). The
   timeline's "Day N" labels, the mission window band, the stretches and the countdowns
   follow. Each change pushes one browser history entry, so Back restores the previous date.
-- **A narrow strip** first drops the word "Slip", then the words "Landing date" (both stay
-  as the buttons' and the group's names); the play controls then wrap to a second row.
+- **A narrow strip** first drops the window end's time (when shown), then the words
+  "Landing date" (the group keeps the name); the play controls then wrap to a second row.
 - **Rejected: a draggable start of the window on the timeline.** The timeline's range is
   anchored to the landing date (3 days either side of the window), so a handle there would
   move its own axis while being dragged. Moving the landing date along the calendar is the

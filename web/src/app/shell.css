@@ -1100,7 +1100,7 @@
     display: flex;
     flex: none;
     align-items: center;
-    gap: var(--s2);
+    gap: 6px;
     min-width: 0;
     white-space: nowrap;
   }
@@ -1149,6 +1149,37 @@
   .ldc-slips {
     display: inline-flex;
     gap: var(--s1);
+  }
+
+  /* The window's end and length after the date: the date is the window's start. */
+  .ldc-window {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 4px;
+    color: var(--ink-2);
+    font-size: var(--t-md);
+  }
+
+  .ldc-window-length {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* At the end of the time grid a day or slip button stays focusable but does nothing. */
+  .ldc .btn[aria-disabled="true"],
+  .date-form .btn[aria-disabled="true"],
+  .ldc .btn[aria-disabled="true"]:hover,
+  .date-form .btn[aria-disabled="true"]:hover {
+    background: transparent;
+    color: var(--ink-4);
+    cursor: default;
+  }
+
+  .ldc .btn-secondary[aria-disabled="true"],
+  .date-form .btn-secondary[aria-disabled="true"] {
+    border-color: var(--line);
   }
 
   .ldc-slip-word {
@@ -1589,6 +1620,12 @@
   .date-form-zone {
     color: var(--ink-3);
     font-size: var(--t-sm);
+  }
+
+  .date-form-window {
+    margin: 0;
+    color: var(--ink);
+    font-size: var(--t-md);
   }
 
   .date-form-hint,

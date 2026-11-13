@@ -45,8 +45,8 @@ import {
   NARROW_PLOT,
   PLOT,
   bandLayers,
-  clearanceSummary,
   coveredLabels,
+  clearanceSummary,
   plotLayout,
   rectsPath,
   segmentRects,
@@ -243,13 +243,13 @@ function SiteTimeline({ scenario, siteId, grid, hours, folded = false, compact =
         {landing ? (
           <>
             <div className="tl-landing">{landing}</div>
-            {/* The window's length and tag are on the profile in the app bar, and its days on the
-                axis, so the head says only where it ends, to screen readers, or that it runs
-                past the data. */}
-            <p className={range.fits ? "sr-only" : "tl-window tl-muted"}>
-              Mission window {windowEndText(range, gridStartMs)}
-              {range.fits ? "" : ", past the end of the data"}.
-            </p>
+            {/* The landing-date control shows the window's end and length with its tag; the
+                head adds only a warning when the window runs past the data. */}
+            {range.fits ? null : (
+              <p className="tl-window tl-muted">
+                Mission window {windowEndText(range, gridStartMs)}, past the end of the data.
+              </p>
+            )}
           </>
         ) : (
           <p className="tl-window">

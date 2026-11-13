@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import type { Manifest } from "../../contracts/generated";
 import type { DayResult } from "../../lib/scoring";
-import { dayText, gridEndYear, movedText, nextGoView, noGoText, searchFromDay, undoneText } from "./landing-control";
+import { dayText, endReasons, gridEndYear, movedText, nextGoView, noGoText, searchFromDay, undoneText, windowEnd } from "./landing-control";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 const grid = (JSON.parse(readFileSync(path.join(repoRoot, "data", "fixtures", "manifest.json"), "utf8")) as Manifest).time_grid;
@@ -83,5 +83,32 @@ describe("the landing-date words", () => {
   it("confirms a jump and an undo in plain words", () => {
     expect(movedText("2028-03-14T00:00:00Z", "Connecting Ridge")).toBe("Landing moved to 14 Mar 2028, the next GO date for Connecting Ridge.");
     expect(undoneText("2028-03-01T00:00:00Z")).toBe("Landing moved back to 01 Mar 2028.");
+  });
+});
+
+describe("the mission window's end", () => {
+  it("is the landing plus the window's hours, the first hour after the window", () => {
+    expect(windowEnd("2028-03-01T00:00:00Z", 10)).toEqual({ utc: "2028-03-11T00:00:00Z", day: "11 Mar", time: "00:00", long: "11 Mar 2028 00:00 UTC" });
+  });
+
+  it("carries the year when the window crosses into the next one", () => {
+    expect(windowEnd("2028-12-28T06:00:00Z", 10)?.day).toBe("07 Jan 2029");
+  });
+
+  it("keeps the time for a window that is not whole days", () => {
+    expect(windowEnd("2028-03-01T00:00:00Z", 6.5)?.time).toBe("12:00");
+  });
+
+  it("is null for a landing that is not a time", () => {
+    expect(windowEnd("soon", 10)).toBeNull();
+  });
+});
+
+describe("why the landing cannot move past an end of the grid", () => {
+  it("names the grid's first hour and the last landing whose window fits", () => {
+    const last = grid.count - 240;
+    const reasons = endReasons(grid, 10, last);
+    expect(reasons.first).toBe("The data starts at 2026-01-01 00:00 UTC, so the landing cannot be earlier.");
+    expect(reasons.last.replace(/ /g, " ")).toBe("A 10 d mission cannot land later than 2031-12-22 00:00 UTC: its window must end inside the data.");
   });
 });
