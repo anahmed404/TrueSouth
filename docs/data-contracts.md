@@ -261,6 +261,33 @@ Mission Control mirrors its scenario into the URL:
 | `t` | Current time, in hours after the landing date |
 | `view` | `slip`, `system`, `map`, `terrain`, `panorama` or `compare` |
 
+A preset is written as its id, for example `im2_athena`. A custom profile is the
+base preset plus only the fields that differ from it:
+
+```text
+custom:<preset>;<field>=<value>;<field>=<value>
+```
+
+```text
+custom:im2_athena;duration_days=12;max_dark_h=8;weights=0.5:0.3:0.2
+```
+
+- Field names are the value fields in [`mission-profiles.md`](mission-profiles.md):
+  `duration_days`, `min_sun_fraction`, `ops_sun_el_min_deg`, `max_dark_h`,
+  `relay_available`, `antenna_mask_deg`, `max_blackout_h`, `max_slope_deg`,
+  `slope_ideal_deg`, `landing_sun_el_min_deg`, `landing_sun_el_max_deg`, `weights`.
+- A number is a plain decimal. Booleans are `true` or `false`. An optional
+  elevation with no limit is `null`.
+- `weights` is `slope:power:comms`, three numbers, for example `0.4:0.35:0.25`.
+- An unknown field is skipped. A value that cannot be read, or that is out of
+  range, is skipped. The rest of the profile is kept.
+- The whole `profile` parameter is ignored when the base preset is unknown or a
+  piece is not `field=value`. That is a malformed custom profile.
+
+`t` is a whole number of hours after `land`, and may be negative when the
+scrubber sits in the three days before landing. The focused site is not in the
+link: opening one focuses the first site in `sites`.
+
 ## Changing a contract
 
 1. Edit `contracts.py`.
