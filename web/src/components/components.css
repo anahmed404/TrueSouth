@@ -502,6 +502,35 @@
     margin-top: var(--s3);
   }
 
+  /* ── Popover: a panel of controls under its button ─────────────────────── */
+  .popover {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    padding: 0;
+    overflow: hidden auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-md);
+    background: var(--raised);
+    color: var(--ink);
+    font-size: var(--t-md);
+    font-weight: 400;
+    line-height: 1.4;
+    text-align: left;
+    white-space: normal;
+    box-shadow: var(--shadow-popover);
+    scrollbar-width: thin;
+  }
+
+  .popover:not(:popover-open) {
+    display: none;
+  }
+
+  .popover:focus-visible {
+    outline: none;
+  }
+
   /* ── Panel placeholder ──────────────────────────────────────────────────── */
   .placeholder {
     display: flex;
