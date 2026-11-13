@@ -329,6 +329,35 @@ in the browser from the series and a mission profile.
 
 `series.py::build_series`
 
+### 7.1 How much a sunlit peak depends on where you stand
+
+A site's result is for one point. On a sharp ridge the answer changes a great deal over a
+short distance: at the catalog's five sunlit peaks, mean `sun_frac` differs by 14 to 47
+percentage points between map pixels less than 160 m apart
+([`decisions/0012`](decisions/0012-sunlit-peaks-keep-their-listed-point.md)). So for every
+catalog site in the group `sunlit_peak`, the pipeline also evaluates the centre of every
+80 m map pixel whose centre is within 160 m of the listed point, measured in map metres
+(section 2.3). Each such point gets its own skyline (section 5) and series, and the mean
+of `sun_frac` over the time grid.
+
+- **Nearby range.** The site reports the lowest and the highest of those means, the
+  number of points, and the radius.
+- **Best-lit variant.** The point with the highest mean becomes a second site with the id
+  `<id>_best_lit`. A tie goes to the point nearest the listed one. It records which site
+  it is a variant of and its distance from the listed point in metres. It is chosen by
+  TrueSouth and is not a published site.
+
+The listed point is never moved. The choice uses only our own series. It never uses NASA's
+average-sunlight map, because that map is what our results are checked against
+([`validation.md`](validation.md), R1).
+
+Picking the highest of our own estimates favours points where the estimate happens to err
+high. A best-lit variant's sunlight is therefore an upper reading, and the app says so.
+
+This is computed in Python and stored, like the series.
+
+`placement.py`
+
 ## 8. Slope
 
 Slope depends on the distance it is measured over. We always report that distance.
