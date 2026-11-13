@@ -49,6 +49,13 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-13 · S9 · Polar maps blocked on encoding and hillshade specification
+- **Who:** Codex (gpt-6.1-terra)
+- **AI use:** Codex — inspected the map contracts, specifications and raster metadata — no human review yet.
+- **State:** blocked
+- **Changed:** DEVLOG only; no map outputs generated.
+- **Notes:** The 60 m Earth-visibility raster has 152,192 valid pixels at 1.0, but the lookup contract decodes bytes as v/255 and reserves 255 for no data. It cannot encode 1.0 exactly or specify the permitted endpoint error. The specifications also give no hillshade light direction or lookup precision tolerance. Both raster scales are 0.00004, offsets 0, and nodata −32768. No downloads were started.
+
 #### 2026-11-13 · S6 · Terrain skylines and blocker geometry
 - **Who:** Codex agent, for the orchestrator
 - **AI use:** Codex, gpt-6.1-sol — wrote synthetic geometry tests first, then chunked skyline computation and interpolation — agent ran pytest and both real-map benchmarks; human and orchestrator review pending
