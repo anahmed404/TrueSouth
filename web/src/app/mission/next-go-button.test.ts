@@ -7,7 +7,8 @@ import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Manifest, MissionProfile } from "../../contracts/generated";
 import type { DayResult } from "../../lib/scoring";
-import { createScenarioStore, type ScenarioCatalog, type ScenarioStore } from "../../state/scenario";
+import { hourIndexToUtc, utcToHourIndex } from "../../lib/time";
+import { createScenarioStore, lastLandingHour, type ScenarioCatalog, type ScenarioStore } from "../../state/scenario";
 import { allNodes, buttons, click, installDocument, propsOf, textOf, type FakeNode } from "./fake-dom";
 import { NextGoButton } from "./next-go-button";
 import { ScenarioStoreProvider } from "./scenario-context";
@@ -107,10 +108,15 @@ describe("the Next GO button", () => {
   });
 
   it("shows it is working, and cannot be pressed, while the sweep runs", async () => {
-    const host = await mount(createScenarioStore(catalog, "?sites=fixture_ridge"));
+    const store = createScenarioStore(catalog, "?sites=fixture_ridge");
+    const before = store.getState().landingUtc;
+    const host = await mount(store);
     const [button] = buttons(host, "Next GO");
     expect(propsOf(button!).disabled).toBe(true);
     expect(propsOf(button!)["aria-busy"]).toBe(true);
+    // A disabled button ignores a click, as in a browser (the fake DOM honours `disabled`).
+    await act(async () => click(button!));
+    expect(store.getState().landingUtc).toBe(before);
   });
 
   it("cannot be pressed when the sweep fails, and says why", async () => {
@@ -148,6 +154,58 @@ describe("the Next GO button", () => {
     expect(store.getState().currentUtc).toBe(before.currentUtc);
     expect(buttons(host, "Undo")).toHaveLength(0);
     expect(statusLine(host)).toBe("Landing moved back to 01 Mar 2028.");
+  });
+
+  it("Undo restores a current time that the jump had to clamp, exactly", async () => {
+    // Near the end of the grid the timeline is cut short, so the current time cannot keep its
+    // offset: it is clamped by the jump, and only Undo's own restore puts it back.
+    const store = createScenarioStore(catalog, "?sites=fixture_ridge");
+    const n = 240; // the default profile, 10 d
+    const last = lastLandingHour(grid, store.getState().profile.duration_days);
+    expect(last % 24).toBe(0);
+    const start = last - 11 * 24;
+    store.getState().setLandingDate(hourIndexToUtc(grid, start));
+    store.getState().setCurrentTime(hourIndexToUtc(grid, start + n - 1 + 72), "replace");
+    const before = { landingUtc: store.getState().landingUtc, currentUtc: store.getState().currentUtc };
+    expect(utcToHourIndex(grid, before.currentUtc) - start).toBe(n - 1 + 72);
+
+    sweep.status = "ready";
+    sweep.rows = rowsWithGo(hourIndexToUtc(grid, last));
+    const host = await mount(store);
+    await act(async () => click(buttons(host, "Next GO")[0]!));
+    expect(store.getState().landingUtc).toBe(hourIndexToUtc(grid, last));
+    const offset = utcToHourIndex(grid, store.getState().currentUtc) - last;
+    expect(offset).toBeLessThan(n - 1 + 72);
+
+    await act(async () => click(buttons(host, "Undo")[0]!));
+    expect(store.getState().landingUtc).toBe(before.landingUtc);
+    expect(store.getState().currentUtc).toBe(before.currentUtc);
+  });
+
+  it("drops the note, Undo and the status line when the focused site changes", async () => {
+    sweep.status = "ready";
+    sweep.rows = rowsWithGo("2028-03-14T00:00:00Z");
+    const store = createScenarioStore(catalog, "?sites=fixture_ridge,fixture_crater&land=2028-03-01T00:00Z");
+    expect(store.getState().focusedSiteId).toBe("fixture_ridge");
+    const host = await mount(store);
+    await act(async () => click(buttons(host, "Next GO")[0]!));
+    expect(buttons(host, "Undo")).toHaveLength(1);
+    await act(async () => store.getState().focusSite("fixture_crater"));
+    expect(buttons(host, "Undo")).toHaveLength(0);
+    expect(statusLine(host)).toBe("");
+  });
+
+  it("drops the note, Undo and the status line when the mission profile changes", async () => {
+    sweep.status = "ready";
+    sweep.rows = rowsWithGo("2028-03-14T00:00:00Z");
+    const store = createScenarioStore(catalog, "?sites=fixture_ridge&land=2028-03-01T00:00Z");
+    const host = await mount(store);
+    await act(async () => click(buttons(host, "Next GO")[0]!));
+    expect(buttons(host, "Undo")).toHaveLength(1);
+    await act(async () => store.getState().choosePreset("viper"));
+    expect(store.getState().landingUtc).toBe("2028-03-14T00:00:00Z");
+    expect(buttons(host, "Undo")).toHaveLength(0);
+    expect(statusLine(host)).toBe("");
   });
 
   it("drops the note and its status line when the landing date changes another way", async () => {

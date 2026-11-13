@@ -22,7 +22,14 @@ export const NextGoButton = memo(function NextGoButton() {
   return <NextGoFor siteId={siteId} />;
 });
 
-type Moved = { toUtc: string; from: { landingUtc: string; currentUtc: string }; text: string };
+/** One jump: where it went, what Undo restores, and the site and profile it was for. */
+type Moved = {
+  toUtc: string;
+  from: { landingUtc: string; currentUtc: string };
+  text: string;
+  siteId: string;
+  profile: object;
+};
 
 function NextGoFor({ siteId }: { siteId: string }) {
   const store = useScenarioStore();
@@ -43,15 +50,23 @@ function NextGoFor({ siteId }: { siteId: string }) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const descriptionId = useId();
   const [moved, setMoved] = useState<Moved | null>(null);
-  // What the polite status line says, and the landing date it is about.
-  const [announcement, setAnnouncement] = useState({ text: "", landingUtc: "" });
+  // What the polite status line says, and the landing date, site and profile it is about.
+  const [announcement, setAnnouncement] = useState<{ text: string; landingUtc: string; siteId: string; profile: object | null }>({
+    text: "",
+    landingUtc: "",
+    siteId: "",
+    profile: null,
+  });
 
-  // The note and the status line are about one jump: any other change of the landing date
-  // ends them.
+  // The note and the status line are about one jump for one site and one profile: any other
+  // change of the landing date, the focused site or the mission profile ends them, so Undo is
+  // never offered for a site or profile it was not about.
   useEffect(() => {
-    if (moved && moved.toUtc !== landingUtc) setMoved(null);
-    if (announcement.text && announcement.landingUtc !== landingUtc) setAnnouncement({ text: "", landingUtc: "" });
-  }, [moved, announcement, landingUtc]);
+    if (moved && (moved.toUtc !== landingUtc || moved.siteId !== siteId || moved.profile !== profile)) setMoved(null);
+    if (announcement.text && (announcement.landingUtc !== landingUtc || announcement.siteId !== siteId || announcement.profile !== profile)) {
+      setAnnouncement({ text: "", landingUtc: "", siteId: "", profile: null });
+    }
+  }, [moved, announcement, landingUtc, siteId, profile]);
 
   const jump = () => {
     if (view.kind !== "ready") return;
@@ -59,8 +74,8 @@ function NextGoFor({ siteId }: { siteId: string }) {
     const from = { landingUtc: state.landingUtc, currentUtc: state.currentUtc };
     state.setLandingDate(view.targetUtc);
     const text = movedText(view.targetUtc, name);
-    setMoved({ toUtc: view.targetUtc, from, text });
-    setAnnouncement({ text, landingUtc: view.targetUtc });
+    setMoved({ toUtc: view.targetUtc, from, text, siteId, profile });
+    setAnnouncement({ text, landingUtc: view.targetUtc, siteId, profile });
   };
 
   // Closing the note never strands focus: if it was inside, it lands on "Next GO".
@@ -75,10 +90,10 @@ function NextGoFor({ siteId }: { siteId: string }) {
     const state = store.getState();
     state.setLandingDate(moved.from.landingUtc);
     // The scrubber keeps its offset from the landing, so this is usually already true; a
-    // jump near the end of the grid can clamp it, and Undo puts it back exactly.
+    // jump near the end of the grid clamps it, and Undo puts it back exactly (tested).
     state.setCurrentTime(moved.from.currentUtc, "replace");
     setMoved(null);
-    setAnnouncement({ text: undoneText(moved.from.landingUtc), landingUtc: moved.from.landingUtc });
+    setAnnouncement({ text: undoneText(moved.from.landingUtc), landingUtc: moved.from.landingUtc, siteId, profile });
     requestAnimationFrame(() => buttonRef.current?.focus());
   };
 
