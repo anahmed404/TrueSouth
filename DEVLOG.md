@@ -557,6 +557,34 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-14 · MC-sites · Custom coordinates, best-lit variant labels and the nearby range
+- **Who:** Claude Code agent (Opus 5.5), for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the custom-site client, job store,
+  the coordinates form, the rail's computing rows, the focused-site panel's notes, their
+  tests and these doc changes — checked with vitest (client against every documented
+  status and error with a mocked `fetch`; store; form; row states; labels with made-up
+  and real 25-site data), typecheck, and by eye in the browser at 1440 × 900, 1024 × 768
+  and 390 × 844, against the PR #80 server running on the real prepared maps
+- **State:** built, not verified
+- **Changed:** `web/src/data/custom-sites.ts`, `web/src/state/custom-sites.ts`,
+  `web/src/data/hooks.ts` (`useSites` merges ready custom sites; `useCatalogSites`),
+  `web/src/state/data.ts` (a custom site's files wait for its job), `web/src/app/mission/`
+  (`sites-rail.tsx`, `focused-site-panel.tsx`, `site-status.ts`, new `custom-site-*.ts(x)`,
+  `site-labels.ts`, `sites.css`), `web/src/components/Popover.tsx` (`placement="auto"`),
+  docs, screenshots `docs/design/c2/built-sites-*.png`
+- **Notes:**
+  - Real run: −88.5, 45 queued about 25 s while the server loaded its maps, then ran about
+    50 s; −87.75, 200.5 took about 40 s; 2.5, 334.75 was a smooth-Moon site in under 5 s.
+    Status, timeline, countdowns, the "why is it dark" card, the scene's pin, Local terrain
+    (own `terrain.bin`, no apron) and Lander's eye all read them.
+  - The Polar map's "Compute this site": the shell passes `useRequestCustomSite()` from
+    `custom-site-actions.ts` as `onRequestSite`.
+  - Shared wording for Compare: `web/src/app/mission/site-labels.ts` (`CHOSEN_TAG`,
+    `variantLine`, `upperReadingLine`, `nearbyRangeText`, `ARTEMIS_NOTE`).
+  - Not mine, seen while testing: Local terrain says the apron "could not be loaded" for a
+    custom site, which never has one; the timeline shows "Loading the hourly data…" while a
+    focused custom site is not computed yet.
+
 #### 2026-11-14 · MC shell feedback · No view sentence; the landing date joins the timeline; "Next GO"
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (a rearrangement

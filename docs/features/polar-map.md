@@ -72,18 +72,40 @@ map is flat, and the globe lives in the [System view](system-view.md).
 
 ## Custom sites
 
-Out of scope for the deadline. The spec stays, and nothing in the first build needs it.
+Built (web side) on branch `mc/sites-custom-and-variants`; the server is PR #80. Formats
+are in [`../data-contracts.md`](../data-contracts.md), "API messages".
 
-1. The user clicks the map, or types a latitude and east longitude.
-2. The app calls `POST /api/sites/custom` and shows "Computing terrain for your site…".
-3. When the job is ready the site joins the selection and behaves like a catalog site.
+1. The user types a latitude and east longitude under "Your own coordinates" in the
+   add-site picker, or clicks "Compute this site" on the map.
+2. The app calls `POST /api/sites/custom`. The row appears in the sites rail at once,
+   "Computing terrain for your site…", with its coordinates, its place in the queue, the
+   time so far and a moving hairline that says only that the job is alive.
+3. When the job is ready the site joins the selection and behaves like a catalog site:
+   status, focus, timeline, countdowns, the scene's pin, Local terrain (its own
+   `terrain.bin`, no apron or close-up), Lander's eye and the Slip Planner.
 
-- Typed coordinates work for anywhere on the Moon. Places with no terrain data become
-  sphere-tier sites and are ready at once.
-- A custom site is kept in the scenario link by its id.
-- Invalid coordinates show a plain message next to the field.
-- Until this is built, Proposed: the "New site here?" readout has no button. Reason: a
-  button that does nothing would mislead.
+- Latitude −90° to 90°, at least 0.001° from a pole; east longitude 0° to 360°, and −180°
+  to 0° is accepted and shown as the east value it becomes. Each field says what is wrong
+  beside it as the user types.
+- Before computing, the form says what will happen. North of 60°S (the server's tier
+  bounds, `docs/architecture.md`) it says "Outside our terrain maps: computed on a smooth
+  Moon, with no mountains", and the site is ready in seconds.
+- The id is always the one the server returns. A custom site is kept in the scenario link
+  by that id. Opening a link looks the id up once and never starts a job without a click:
+  a known site loads; an unknown one shows "Not computed on this server yet" with
+  "Compute this site"; an offline server or a 503 says so, and the other sites keep
+  working.
+- "Stop waiting" removes the row; the server may still finish the job. A failed row says
+  why in plain words, with "Try again" (held until `Retry-After` when the server sends
+  one) and "Remove".
+- When the server reports `custom_sites: "not_available"`, or no API answers, the section
+  shows one line, "Custom sites are not available on this server.", with the form
+  disabled. The check runs once, when the picker opens.
+- A custom site carries the filled tag "Your site": computed by TrueSouth at a typed
+  point, never a sourced mission site.
+- For the map: the shell passes `useRequestCustomSite()` from
+  `web/src/app/mission/custom-site-actions.ts` as `onRequestSite`; it starts the same flow
+  and the same row.
 
 ## Nudge the pin
 
