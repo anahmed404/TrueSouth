@@ -11,7 +11,7 @@ import type { Lesson, PanelId, Step, Submission } from "../types";
 import { panelName } from "../ui/panels";
 import { lessonCheck, validateLesson } from "../validate";
 import { isWritten, WRITTEN_LESSONS } from "./index";
-import { lesson1 } from "./l1";
+import { HIGHEST_SUN_TEXT, lesson1 } from "./l1";
 import { lesson2 } from "./l2";
 import { lesson3 } from "./l3";
 import { lesson4 } from "./l4";
@@ -220,11 +220,26 @@ describe("lessons 1 to 4 validate", () => {
  * The right option must be right and every wrong option clearly wrong.
  */
 describe("multiple-choice answers on the real data", () => {
+  it("lesson 1 step 4 prints the §3.4 highest Sun only as the text the real latitude gives", () => {
+    const step = lesson1.steps[3];
+    if (step?.kind !== "fill-formula") throw new Error("lesson 1 step 4 is the formula");
+    expect(step.explain).toContain(`${HIGHEST_SUN_TEXT}°`);
+    expect(step.luna.says).toContain("how far south you are");
+    expect(step.luna.says).not.toMatch(/−\s*latitude/);
+    expect(step.explain).toMatch(/23\.4° is Earth's tilt/);
+    expect(step.explain).toMatch(/5\.1° is the tilt of my orbit/);
+    expect(step.explain).toMatch(/about 1\.54°/);
+    expect(readRepo("docs/science.md")).toContain(String.raw`$$E_{max} \approx 90° - |\varphi| + 1.54°$$`);
+  });
+
+
   it("lesson 1: the Sun stays under 3° (not overhead, not 45°), even at the best-season 2.08°", () => {
     expect(num("l1.sun_el_max_deg")).toBeLessThan(3);
     expect(num("l1.sun_el_max_deg")).toBeLessThan(45 / 2);
-    expect(90 - Math.abs(num("l1.site_lat_deg")) + 1.54).toBeCloseTo(2.08, 2);
-    expect(2.08).toBeLessThan(3);
+    // docs/science.md §3.4: highest Sun ≈ 90° − |latitude| + 1.54°, from the real site latitude.
+    const highest = 90 - Math.abs(num("l1.site_lat_deg")) + 1.54;
+    expect(formatNumber(highest, { min: 1, max: 2 })).toBe(HIGHEST_SUN_TEXT);
+    expect(highest).toBeLessThan(3);
     // The tilt, not Earth's 23.4° or the orbit's 5.1°: those would put the polar Sun far higher.
     expect(90 - Math.abs(num("l1.site_lat_deg")) + 5.1).toBeGreaterThan(5);
   });

@@ -2,13 +2,13 @@ import type { UnderTheHoodCard } from "../types";
 
 /**
  * Lesson 1's card: where the Sun is, from the sub-solar point (docs/academy/lessons.md,
- * lesson 1, "Card"). Formulas are quoted from docs/science.md §14 and §3.2. §3.1 has no
- * formula: it is the Horizons pull that gives the sub-solar point, named in the text.
+ * lesson 1, "Card"). Formulas are quoted from docs/science.md §14, §3.4 and §3.2. §3.1 has
+ * no formula: it is the Horizons pull that gives the sub-solar point, named in the text.
  */
 export const l1Card: UnderTheHoodCard = {
   id: "l1_sun",
   idea:
-    "The [[sub_solar_point|sub-solar point]] is the place on me where the Sun is straight overhead. TrueSouth asks JPL Horizons for it at every hour of the time grid (science notes, section 3.1). My spin axis leans only a little, so that point always stays near my equator, and seen from my south pole the Sun sits near the horizon all year. As I turn, the point goes round my equator, so the Sun circles Pip's horizon instead of climbing.",
+    "The [[sub_solar_point|sub-solar point]] is the place on me where the Sun is straight overhead. TrueSouth asks JPL Horizons for it at every hour of the time grid (science notes, section 3.1). My equator is tilted only a little to my path around the Sun (science notes, section 3.4), so that point always stays near my equator, and seen from my south pole the Sun sits near the horizon all year. As I turn, the point goes round my equator, so the Sun circles Pip's horizon instead of climbing.",
   formulas: [
     {
       id: "one-line",
@@ -24,6 +24,19 @@ export const l1Card: UnderTheHoodCard = {
         { tex: String.raw`\varphi_S`, meaning: "The sub-solar point's latitude", unit: "rad" },
         { tex: String.raw`\lambda`, meaning: "The site's [[east_longitude|east longitude]]", unit: "rad" },
         { tex: String.raw`\lambda_S`, meaning: "The sub-solar point's east longitude", unit: "rad" },
+      ],
+    },
+    {
+      id: "highest",
+      lead: "A rule of thumb for the most the Sun's centre can rise, in the best season, on a smooth sphere. It ignores the terrain, the observer's height and the Sun's disc:",
+      tex: String.raw`E_{max} \approx 90° - |\varphi| + 1.54°`,
+      display: "block",
+      reading:
+        "The highest the Sun gets is about 90 degrees, minus how far the site is from the equator, plus the tilt of my equator to my path around the Sun.",
+      section: { number: "3.4", title: "Two rules of thumb the Academy quotes" },
+      symbols: [
+        { tex: "E_{max}", meaning: "The most the Sun's centre can rise above level, in the best season", unit: "°" },
+        { tex: String.raw`\varphi`, meaning: "The site's [[latitude]]", unit: "°" },
       ],
     },
     {
@@ -50,6 +63,10 @@ export const l1Card: UnderTheHoodCard = {
       {
         label: "Putting them into the one-line formula",
         tex: String.raw`\sin e = \sin({{example.l1.site_lat_deg}}^\circ)\sin({{example.l1.example_subsolar_lat}}^\circ) + \cos({{example.l1.site_lat_deg}}^\circ)\cos({{example.l1.example_subsolar_lat}}^\circ)\cos(\lambda - {{example.l1.example_subsolar_lon}}^\circ)`,
+      },
+      {
+        label: "The rule of thumb at Pip's latitude, for the best season",
+        tex: String.raw`E_{max} \approx 90° - |{{example.l1.site_lat_deg}}°| + 1.54°`,
       },
       { label: "The Sun's [[azimuth]], as stored", value: "{{example.l1.example_sun_az}}°" },
       { label: "The Sun's elevation, as stored, $e$", value: "{{example.l1.example_sun_el}}°" },

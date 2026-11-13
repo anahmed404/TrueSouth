@@ -4,7 +4,7 @@ const section32 = { number: "3.2", title: "From the global pull to any site" } a
 
 /**
  * Lesson 4's card: Earth bobs at the horizon, and a link needs clearance (docs/academy/
- * lessons.md, lesson 4, "Card"). Formulas are quoted from docs/science.md §3.2; the link
+ * lessons.md, lesson 4, "Card"). Formulas are quoted from docs/science.md §3.2 and §3.4; the link
  * rule of §9 is code, not TeX, so it is quoted as code in the worked example.
  */
 export const l4Card: UnderTheHoodCard = {
@@ -14,7 +14,7 @@ export const l4Card: UnderTheHoodCard = {
   formulas: [
     {
       id: "direction",
-      lead: "Earth's direction from Pip: Earth's position above the sub-Earth point, take away Pip's own position. Pip stands on my surface, not at my centre, so Earth's direction shifts a little from the sub-Earth point's.",
+      lead: "Earth's direction from Pip: Earth's position above the sub-Earth point, take away Pip's own position.",
       tex: String.raw`\hat d = \frac{\vec b - \vec r}{|\vec b - \vec r|}`,
       display: "block",
       reading: "The direction d is Earth's position b take away Pip's position r, divided by the length of that difference.",
@@ -23,6 +23,18 @@ export const l4Card: UnderTheHoodCard = {
         { tex: String.raw`\hat d`, meaning: "The direction from Pip to Earth, of length one", unit: null },
         { tex: String.raw`\vec b`, meaning: "Earth's position, measured from my centre", unit: "m" },
         { tex: String.raw`\vec r`, meaning: "Pip's position, measured from my centre", unit: "m" },
+      ],
+    },
+    {
+      id: "shift",
+      lead: "Pip stands on my surface, not at my centre, so Earth's direction from Pip differs from its direction from my centre by at most about",
+      tex: String.raw`\arcsin\left(\frac{R}{D}\right) \approx 0.26°`,
+      display: "block",
+      reading: "The angle whose sine is my radius divided by Earth's distance: about a quarter of a degree. It is largest when Earth sits at the horizon, as it does for the polar sites.",
+      section: { number: "3.4", title: "Two rules of thumb the Academy quotes" },
+      symbols: [
+        { tex: "R", meaning: "My radius", unit: "m" },
+        { tex: "D", meaning: "Earth's distance from me", unit: "m" },
       ],
     },
     {

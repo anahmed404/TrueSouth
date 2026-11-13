@@ -11,8 +11,15 @@ const flatMonth = storyScene("flat", oneMonth("{{example.l1.example_utc}}"));
 
 const highestLuna =
   "This month the Sun climbs only to {{example.l1.sun_el_max_deg}}°, and sinks to {{example.l1.sun_el_min_deg}}°. It skims my horizon.";
+/**
+ * The highest-Sun rule of thumb, docs/science.md §3.4: 90° − |latitude| + 1.54°. The 2.08° is
+ * that rule at the story site; a test recomputes it from `l1.site_lat_deg` and fails if the
+ * site's latitude is rebuilt to something that no longer prints 2.08.
+ */
+export const HIGHEST_SUN_TEXT = "2.08";
+
 const formulaLuna =
-  "At Pip's latitude that gives 2.08°, the most my Sun can reach here in the best season. This month it only gets to {{example.l1.sun_el_max_deg}}°; both numbers are true.";
+  "My tilt is about 1.54°; 23.4° is Earth's tilt, and 5.1° is the tilt of my orbit. At Pip's latitude that gives 2.08°, the most my Sun can reach here in the best season; this month it only gets to {{example.l1.sun_el_max_deg}}°.";
 
 export const lesson1 = {
   id: "l1_sun",
@@ -70,11 +77,11 @@ export const lesson1 = {
     },
     {
       id: "l1-formula",
-      luna: { mood: "thinking", says: "Highest Sun ≈ 90° − latitude + ( ? )" },
-      hint: "The missing piece is a small angle of my own: how far my spin axis leans.",
+      luna: { mood: "thinking", says: "Highest Sun ≈ (90° − how far south you are) + ( ? )" },
+      hint: "The missing piece is a small angle of my own: how far my equator tilts from my path around the Sun.",
       explain: formulaLuna,
       kind: "fill-formula",
-      tex: "90° − latitude + ( ? )",
+      tex: "(90° − how far south you are) + ( ? )",
       options: ["1.54°, my tilt", "23.4°", "5.1°"],
       answer: 0,
     },

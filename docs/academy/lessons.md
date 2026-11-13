@@ -30,7 +30,7 @@ Ridge, in 2028. Lesson 2 states its exception: Pip looks from `{{l2.site_name}}`
 | 1 | `choice` | "At my equator the midday Sun is almost overhead. How high does it get at my south pole?" | Overhead / About 45° / **Under 3°** |
 | 2 | `drag-body` (Sun) | "Drag the Sun through a whole month. Find its highest moment." | Lander's eye view with a flat skyline. The best the learner can find is {{l1.sun_el_max_deg}}°. Luna: "This month the Sun climbs only to {{l1.sun_el_max_deg}}°, and sinks to {{l1.sun_el_min_deg}}°. It skims my horizon." |
 | 3 | `predict` | "Over that month, which directions does the Sun visit?" | Only east and west / **All the way round** / Only north. Reveal: the System view plays one month. |
-| 4 | `fill-formula` | "Highest Sun ≈ 90° − latitude + ( ? )" | **1.54°, my tilt** / 23.4° / 5.1°. At Pip's latitude that gives 2.08°. Luna: "That 2.08° is the most my Sun can reach here, in the best season. This month it only gets to {{l1.sun_el_max_deg}}°. Both numbers are true." |
+| 4 | `fill-formula` | "Highest Sun ≈ (90° − how far south you are) + ( ? )" | **1.54°, my tilt** / 23.4° / 5.1°. The rule is science.md §3.4's highest Sun: 90°, minus how far south the site is, plus 1.54°. At Pip's latitude it gives 2.08°, computed from `l1.site_lat_deg` and checked by a test. Luna: "My tilt is about 1.54°; 23.4° is Earth's tilt, and 5.1° is the tilt of my orbit. At Pip's latitude that gives 2.08°, the most my Sun can reach here in the best season; this month it only gets to {{l1.sun_el_max_deg}}°." |
 | 5 | `choice` | "If you stood exactly on my south pole, which way is north?" | East / Up / **Every direction**. Luna: "That is why this tool is called TrueSouth." |
 
 **Words.** The lines the table does not quote, as the app shows them. A hint follows a
@@ -42,15 +42,13 @@ XP and does not count for the stars.
 1. Hint: "My south pole is as far from my equator as you can go. Picture the Sun near the edge of the sky." Explanation: "At my south pole the Sun stays low, skimming the horizon. Pip sees it side-on, never overhead."
 2. Hint: "The Sun's height changes slowly. Drag back and forth near the top of its path." Explanation: Luna's line in the table. Until it is ready, Luna: "Soon you'll drag the Sun through a whole month here, to find its highest moment. For now, here's what you would find." Reveal: Luna's line in the table.
 3. Hint: "This month the Sun stays low the whole time. Where can a low Sun go?" Explanation: "All the way round. This month the Sun's direction circles the whole horizon; it stays low, and for part of the month it is just below level." Reveal caption: "Over the month the Sun's direction goes all the way round Pip's compass. Its height stays between {{l1.sun_el_min_deg}}° and {{l1.sun_el_max_deg}}°, so for part of the month it is just below level."
-4. Hint: "The missing piece is a small angle of my own: how far my spin axis leans." Explanation: "At Pip's latitude that gives 2.08°, the most my Sun can reach here in the best season. This month it only gets to {{l1.sun_el_max_deg}}°; both numbers are true." (the table's description and Luna's line, in one bubble).
+4. Hint: "The missing piece is a small angle of my own: how far my equator tilts from my path around the Sun." Explanation: Luna's line in the table: it says what the two wrong options really are.
 5. Hint: "Stand on the very point I spin around. Every step you take leads away from it." Explanation: "Every step away from my south pole is a step north. That is why this tool is called TrueSouth."
 
-**Card:** sub-solar point and the Moon's 1.54° tilt (§3.1); direction to the Sun from any
-site (§3.2); the one-line elevation formula (§14). Worked example: one hour at Pip's site,
+**Card:** sub-solar point (§3.1) and the Moon's 1.54° tilt (§3.4); direction to the Sun from any
+site (§3.2); the one-line elevation formula (§14); the highest-Sun rule of thumb (§3.4). Worked example: one hour at Pip's site,
 from sub-solar point to azimuth and elevation. What can go wrong: mixing east and west
 longitudes; assuming the pole has 14 days of light then 14 of dark.
-The 1.54° tilt is not in `docs/science.md` (§3.1 is the Horizons pull, with no tilt
-formula), so the card names the tilt in words and quotes no number for it.
 
 **Keys:** `l1.sun_el_max_deg`, `l1.sun_el_min_deg`, `l1.site_lat_deg`,
 `l1.example_utc`, `l1.example_subsolar_lat`, `l1.example_subsolar_lon`,
@@ -162,12 +160,11 @@ XP and does not count for the stars.
 **Exact settings:** Step 4 slides the margin from 0° to 10° in steps of 0.5°. The slider is labelled "Margin", in °, and its readout "Link time", in whole percent. The goal is any margin at or above `{{l4.mask_for_15pct_deg}}`, the first at which link time is under 15%; a lower margin is a miss, because link time there is still 15% or more. Link time at each step is read from `l4.link_pct_by_mask`. Pip's link meter follows that readout. The lesson unlocks both the timeline and the countdowns.
 
 **Card:** sub-Earth point, libration and distance (§3.1); the exact direction to Earth,
-including the 0.26° shift from standing off-centre (§3.2); link and antenna mask (§9).
+and the 0.26° shift from standing off-centre (§3.2, §3.4); link and antenna mask (§9).
 Worked example: one hour, from sub-Earth point to clearance to link. What can go wrong:
 fixed thresholds copied from another latitude; measuring the mask from the wrong line.
-The 0.26° shift is not in `docs/science.md`, and there is no sub-Earth key for the example
-hour, so the card describes the shift in words and starts its worked example at Earth's
-azimuth and elevation. The link rule of §9 is quoted as code, not TeX.
+There is no sub-Earth key for the example hour, so the card starts its worked example at
+Earth's azimuth and elevation. The link rule of §9 is quoted as code, not TeX.
 
 **Keys:** `l4.earth_el_max_deg`, `l4.earth_el_min_deg`, `l4.earth_up_pct`,
 `l4.link_pct_mask0`, `l4.link_pct_mask1`, `l4.link_pct_mask5`, `l4.link_pct_by_mask`,
