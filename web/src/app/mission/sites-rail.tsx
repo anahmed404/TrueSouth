@@ -11,7 +11,7 @@ import { Tip } from "../../components/Tip";
 import { useSites } from "../../data/hooks";
 import { MAX_SITES } from "../../state/scenario";
 import { dropIndex, moveById, moveItem } from "./reorder";
-import { moreBroken, railFact } from "./rules";
+import { moreBroken, railFact, scoreTitle, worstBrokenVeto } from "./rules";
 import { useScenario, useScenarioStore } from "./scenario-context";
 import { SHELL_SHORTCUTS } from "./shell-layout";
 import { NO_RESULT_TEXT, isSphere, siteName, useSiteStatus, type SiteStatus } from "./site-status";
@@ -308,7 +308,9 @@ function RowLine({ status }: { status: SiteStatus }) {
   return (
     <span className="site-line">
       <StatusBadge status={status.evaluation.status} />
-      <span className="site-fact">{railFact(status.evaluation)}</span>
+      <span className="site-fact" title={worstBrokenVeto(status.evaluation) ? undefined : scoreTitle(status.evaluation.score)}>
+        {railFact(status.evaluation)}
+      </span>
     </span>
   );
 }

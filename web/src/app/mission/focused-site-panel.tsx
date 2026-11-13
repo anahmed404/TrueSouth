@@ -7,13 +7,13 @@ import { Explain } from "../../components/Explain";
 import { cx, formatNumber } from "../../components/format";
 import { NumberUnit } from "../../components/NumberUnit";
 import { Card, Panel } from "../../components/Panel";
-import { ProvenanceTag } from "../../components/ProvenanceTag";
 import { StatusBadge, StatusLamp } from "../../components/StatusLamp";
 import { Tip } from "../../components/Tip";
 import { useSites } from "../../data/hooks";
 import type { Evaluation } from "../../lib/scoring";
 import { windowLength } from "../../lib/scoring";
-import { describeEvaluation, describeMetrics, describeUtilities, provenanceOf, type RuleView } from "./rules";
+import { describeEvaluation, describeMetrics, describeUtilities, scoreText, scoreTitle, type RuleView } from "./rules";
+import { SettingsTag } from "./settings-tag";
 import { useScenario } from "./scenario-context";
 import { SHELL_SHORTCUTS } from "./shell-layout";
 import { NO_RESULT_TEXT, isSphere, siteName, useSiteStatus, type SiteStatus } from "./site-status";
@@ -189,7 +189,7 @@ function EvaluationDetail({ evaluation, profile }: { evaluation: Evaluation; pro
                   <Explain term={rule.term}>{rule.name}</Explain> <RuleValue rule={rule} />
                   {rule.limitText ? `, ${rule.limitText}` : null}
                 </span>
-                {rule.provenance ? <ProvenanceTag provenance={rule.provenance} /> : <span />}
+                <SettingsTag settings={rule.provenance} />
               </li>
             ))}
           </ul>
@@ -228,12 +228,7 @@ function EvaluationDetail({ evaluation, profile }: { evaluation: Evaluation; pro
 }
 
 function RuleValue({ rule }: { rule: RuleView }) {
-  if (rule.value === null) return <b>{rule.valueText}</b>;
-  return (
-    <b>
-      <NumberUnit value={rule.value} unit={rule.unit} decimals={rule.decimals} />
-    </b>
-  );
+  return <b className="tabular whitespace-nowrap">{rule.valueLabel}</b>;
 }
 
 function BrokenRule({ rule }: { rule: RuleView }) {
@@ -261,7 +256,7 @@ function BrokenRule({ rule }: { rule: RuleView }) {
       ) : null}
       <p className="broken-limit">
         {rule.limitText ? <span>{rule.limitText.charAt(0).toUpperCase() + rule.limitText.slice(1)}</span> : null}
-        {rule.provenance ? <ProvenanceTag provenance={rule.provenance} /> : null}
+        <SettingsTag settings={rule.provenance} />
       </p>
     </Card>
   );
@@ -270,15 +265,14 @@ function BrokenRule({ rule }: { rule: RuleView }) {
 
 function ScoreSection({ evaluation, profile, unused }: { evaluation: Evaluation; profile: MissionProfile; unused: boolean }) {
   const utilities = describeUtilities(evaluation, profile);
-  const weightsTag = provenanceOf(profile, "weights");
   return (
     <section aria-labelledby="score-h" className={cx("focus-section score", unused && "score-unused")}>
       <div className="score-head">
         <h3 id="score-h" className="score-title">
           <Explain term="score">Score</Explain>
         </h3>
-        <span className="score-value tabular">
-          {unused ? <s>{formatNumber(evaluation.score)}</s> : formatNumber(evaluation.score)}
+        <span className="score-value tabular" title={scoreTitle(evaluation.score)}>
+          {unused ? <s>{scoreText(evaluation.score)}</s> : scoreText(evaluation.score)}
           <span className="unit"> of 100</span>
         </span>
       </div>
@@ -294,9 +288,10 @@ function ScoreSection({ evaluation, profile, unused }: { evaluation: Evaluation;
               Rating
             </th>
             <th scope="col" className="num">
-              <span className="explain">
-                Weight {weightsTag ? <ProvenanceTag provenance={weightsTag} /> : null}
-              </span>
+              Weight
+            </th>
+            <th scope="col">
+              <span className="sr-only">Source</span>
             </th>
           </tr>
         </thead>
@@ -309,6 +304,9 @@ function ScoreSection({ evaluation, profile, unused }: { evaluation: Evaluation;
               <td className="num tabular">{u.value === null ? "not assessed" : formatNumber(u.value, 2)}</td>
               <td className="num tabular">
                 {u.share === null ? "left out" : `${formatNumber(u.share * 100)} %`}
+              </td>
+              <td className="tag-cell">
+                <SettingsTag settings={u.provenance} />
               </td>
             </tr>
           ))}
@@ -352,7 +350,9 @@ function GroundSection({ site }: { site: Site }) {
         </div>
         {site.elevation_m !== null ? (
           <div className="metrics-row">
-            <dt>Ground height</dt>
+            <dt>
+              <Explain term="ground_height">Ground height</Explain>
+            </dt>
             <dd>
               <NumberUnit value={site.elevation_m} unit="m" />
             </dd>

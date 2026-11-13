@@ -5,7 +5,17 @@ import { describe, expect, it } from "vitest";
 import type { MissionProfile } from "../../contracts/generated";
 import type { Evaluation, VetoId } from "../../lib/scoring";
 import {
+  VETO_META,
   brokenVetoes,
+  distinctDecimals,
+  railFact as railFactOf,
+  ruleFields,
+  scoreText,
+  scoreTitle,
+  settingsProvenance,
+  severity,
+  utilityFields,
+  valueAndLimit,
   describeEvaluation,
   describeMetrics,
   describeUtilities,
@@ -105,6 +115,31 @@ describe("the worst broken rule", () => {
     expect(railFact(e)).toBe("Dark at landing");
   });
 
+  it("ranks by the true share of a limit under 1: 0.75 against 0.5 outranks 1.4 against 1", () => {
+    const e = evaluation(
+      {
+        slope: { triggered: true, measured: 1.4, limit: 1 }, // 40 % over
+        darkness: { triggered: true, measured: 0.75, limit: 0.5 }, // 50 % over
+      },
+      { status: "NO-GO" },
+    );
+    expect(severity(e, "darkness")).toBeCloseTo(0.5);
+    expect(severity(e, "slope")).toBeCloseTo(0.4);
+    expect(brokenVetoes(e)).toEqual(["darkness", "slope"]);
+  });
+
+  it("uses the absolute excess only when the limit is exactly 0", () => {
+    const e = evaluation(
+      {
+        darkness: { triggered: true, measured: 5, limit: 0 }, // 5 over, no share
+        blackout: { triggered: true, measured: 40, limit: 12 }, // 2.33 of the limit
+      },
+      { status: "NO-GO" },
+    );
+    expect(severity(e, "darkness")).toBe(5);
+    expect(brokenVetoes(e)).toEqual(["darkness", "blackout"]);
+  });
+
   it("does not divide by a zero limit", () => {
     const e = evaluation({ darkness: { triggered: true, measured: 5, limit: 0 } }, { status: "NO-GO" });
     expect(worstBrokenVeto(e)).toBe("darkness");
@@ -145,7 +180,8 @@ describe("the focused-site panel's rules", () => {
     expect(rule?.value).toBe(31);
     expect(rule?.limit).toBe(12);
     expect(rule?.limitText).toBe("limit 12 h");
-    expect(rule?.provenance).toEqual(profile.provenance.max_blackout_h);
+    expect(rule?.provenance.parts.map((part) => part.field)).toEqual(["max_blackout_h", "relay_available", "antenna_mask_deg"]);
+    expect(rule?.provenance.parts[0]?.provenance).toEqual(profile.provenance.max_blackout_h);
     expect(rule?.sentence).toMatch(/31 h in a row/);
     expect(view.statusSentence).toBe("One rule is broken, so this landing date fails.");
   });
@@ -194,4 +230,152 @@ describe("the focused-site panel's rules", () => {
     expect(metrics.find((m) => m.term === "link_fraction")?.value).toBeCloseTo(87.1);
     expect(metrics.filter((m) => m.broken).map((m) => m.term)).toEqual(["longest_blackout_h"]);
   });
+});
+
+describe("rounding never contradicts the verdict", () => {
+  it("adds decimals until a value and its limit print differently", () => {
+    expect(distinctDecimals(10.01, 10, 1)).toBe(2);
+    expect(valueAndLimit(10.01, 10, "°", 1)).toEqual({ value: "10.01°", limit: "10°", decimals: 2 });
+    expect(valueAndLimit(9.999, 10, "°", 1)).toEqual({ value: "9.999°", limit: "10°", decimals: 3 });
+    expect(valueAndLimit(12.4, 12, "h", 0)).toEqual({ value: "12.4\u202fh", limit: "12\u202fh", decimals: 1 });
+    expect(valueAndLimit(12.5, 12, "h", 0)).toEqual({ value: "13\u202fh", limit: "12\u202fh", decimals: 0 });
+    expect(valueAndLimit(10.00001, 10, "°", 1).decimals).toBe(4);
+  });
+
+  it("prints truly equal numbers the same", () => {
+    expect(valueAndLimit(10, 10, "°", 1)).toEqual({ value: "10.0°", limit: "10.0°", decimals: 1 });
+    expect(valueAndLimit(6, 6, "h", 0)).toEqual({ value: "6\u202fh", limit: "6\u202fh", decimals: 0 });
+  });
+
+  it("keeps the rule's own precision when the numbers already differ", () => {
+    expect(valueAndLimit(12, 10, "°", 1)).toEqual({ value: "12.0°", limit: "10°", decimals: 1 });
+  });
+
+  it("applies to every veto, in the panel and in the rail", () => {
+    const profile = preset("im2_athena");
+    const slope = evaluation({ slope: { triggered: true, measured: 10.01, limit: 10 } }, { status: "NO-GO" });
+    expect(describeEvaluation(slope, profile).broken[0]?.valueLabel).toBe("10.01°");
+    expect(railFactOf(slope)).toBe("Slope: 10.01°, limit 10°");
+
+    const passing = evaluation({ slope: { measured: 9.999, limit: 10 } });
+    const row = describeEvaluation(passing, profile).passing.find((r) => r.id === "slope");
+    expect(row?.valueLabel).toBe("9.999°");
+    expect(row?.limitText).toBe("limit 10°");
+
+    const sunLow = evaluation({ landing_sun_low: { triggered: true, measured: 5.999, limit: 6 } }, { status: "NO-GO" });
+    expect(railFactOf(sunLow)).toBe("Sun at landing: 5.999°, at least 6°");
+
+    const dark = evaluation({ darkness: { triggered: true, measured: 6.4, limit: 6 } }, { status: "NO-GO" });
+    expect(railFactOf(dark)).toBe("Dark: 6.4\u202fh, limit 6\u202fh");
+  });
+
+  it("rounds the score down, so it never prints across the GO threshold", () => {
+    expect(scoreText(69.6)).toBe("69");
+    expect(scoreText(69.999)).toBe("69");
+    expect(scoreText(70.0)).toBe("70");
+    expect(scoreText(100)).toBe("100");
+    expect(scoreTitle(69.999)).toBe("Score 69.999 of 100, shown rounded down");
+    expect(scoreTitle(69.99999)).toMatch(/^Score 69\.999 /);
+    expect(railFactOf(evaluation({}, { score: 69.6, status: "CAUTION" }))).toBe("Score 69");
+  });
+});
+
+describe("sourced only if every setting that feeds a row is sourced", () => {
+  function withKinds(kinds: Partial<Record<string, "sourced" | "assumed">>): MissionProfile {
+    const profile = preset("im2_athena");
+    const record = profile.provenance as unknown as Record<string, unknown>;
+    for (const [field, kind] of Object.entries(kinds)) {
+      record[field] =
+        kind === "sourced"
+          ? { kind: "sourced", source_url: `https://example.org/${field}`, quote: `quote for ${field}` }
+          : { kind: "assumed", reason: `reason for ${field}` };
+    }
+    return profile;
+  }
+
+  it("is sourced when one sourced setting feeds the row", () => {
+    const profile = withKinds({ max_slope_deg: "sourced" });
+    expect(settingsProvenance(profile, ["max_slope_deg"]).kind).toBe("sourced");
+  });
+
+  it("makes a dark landing assumed when the operations Sun limit is assumed, and names both", () => {
+    const profile = { ...withKinds({ min_sun_fraction: "sourced", ops_sun_el_min_deg: "assumed" }), ops_sun_el_min_deg: 6 };
+    const tag = settingsProvenance(profile, ruleFields(profile, "landing_dark"));
+    expect(tag.kind).toBe("assumed");
+    expect(tag.parts.map((part) => part.label)).toEqual(["Sun disc needed to be lit", "Lowest Sun to operate"]);
+    const row = describeEvaluation(evaluation({ landing_dark: { triggered: true, measured: false } }, { status: "NO-GO" }), profile)
+      .broken[0];
+    expect(row?.provenance.kind).toBe("assumed");
+  });
+
+  it("keeps a dark landing sourced only when both lit settings are sourced", () => {
+    const both = { ...withKinds({ min_sun_fraction: "sourced", ops_sun_el_min_deg: "sourced" }), ops_sun_el_min_deg: 6 };
+    expect(settingsProvenance(both, ruleFields(both, "landing_dark")).kind).toBe("sourced");
+    const noOps = withKinds({ min_sun_fraction: "sourced", ops_sun_el_min_deg: "assumed" });
+    expect(ruleFields(noOps, "landing_dark")).toEqual(["min_sun_fraction"]);
+    expect(settingsProvenance(noOps, ruleFields(noOps, "landing_dark")).kind).toBe("sourced");
+  });
+
+  it("checks every setting behind the darkness and blackout rows", () => {
+    const profile = { ...preset("im2_athena"), ops_sun_el_min_deg: 6 };
+    expect(ruleFields(profile, "darkness")).toEqual(["max_dark_h", "min_sun_fraction", "ops_sun_el_min_deg"]);
+    expect(ruleFields(profile, "blackout")).toEqual(["max_blackout_h", "relay_available", "antenna_mask_deg"]);
+    expect(ruleFields(profile, "landing_sun_low")).toEqual(["landing_sun_el_min_deg"]);
+    expect(ruleFields(profile, "landing_sun_high")).toEqual(["landing_sun_el_max_deg"]);
+    const viper = withKinds({ max_blackout_h: "sourced", relay_available: "sourced", antenna_mask_deg: "assumed" });
+    expect(settingsProvenance(viper, ruleFields(viper, "blackout")).kind).toBe("assumed");
+  });
+
+  it("checks every setting behind each utility, weights included", () => {
+    const profile = preset("im2_athena");
+    expect(utilityFields(profile, "slope")).toEqual(["max_slope_deg", "slope_ideal_deg", "weights"]);
+    expect(utilityFields(profile, "power")).toEqual(["min_sun_fraction", "max_dark_h", "weights"]);
+    expect(utilityFields(profile, "comms")).toEqual(["relay_available", "antenna_mask_deg", "max_blackout_h", "weights"]);
+    expect(utilityFields({ ...profile, relay_available: true }, "comms")).toEqual(["relay_available", "weights"]);
+    const all = withKinds({ max_slope_deg: "sourced", slope_ideal_deg: "sourced", weights: "assumed" });
+    expect(describeUtilities(evaluation(), all)[0]?.provenance.kind).toBe("assumed");
+    const sourced = withKinds({ max_slope_deg: "sourced", slope_ideal_deg: "sourced", weights: "sourced" });
+    expect(describeUtilities(evaluation(), sourced)[0]?.provenance.kind).toBe("sourced");
+  });
+});
+
+describe("every row's label and unit", () => {
+  // A wrong unit or label fails here by name.
+  const VETO_ROWS: [VetoId, string, string, string][] = [
+    // id, name when broken, name when it passes, unit
+    ["landing_dark", "Dark at landing", "Lit at landing", ""],
+    ["slope", "Slope", "Slope", "°"],
+    ["darkness", "Longest dark stretch", "Dark stretch", "h"],
+    ["blackout", "Longest blackout", "Blackout", "h"],
+    ["landing_sun_low", "Sun at landing", "Sun at landing", "°"],
+    ["landing_sun_high", "Sun at landing", "Sun at landing", "°"],
+  ];
+  for (const [id, name, passName, unit] of VETO_ROWS) {
+    it(`veto ${id}: "${name}" / "${passName}" in ${unit === "" ? "no unit" : unit}`, () => {
+      expect(VETO_META[id].name).toBe(name);
+      expect(VETO_META[id].passName).toBe(passName);
+      expect(VETO_META[id].unit).toBe(unit);
+    });
+  }
+
+  const METRIC_ROWS: [string, string, string][] = [
+    ["sun_fraction_mean", "Mean Sun disc fraction", ""],
+    ["lit_fraction", "Lit", "%"],
+    ["longest_dark_h", "Longest dark stretch", "h"],
+    ["link_fraction", "Earth link", "%"],
+    ["longest_blackout_h", "Longest blackout", "h"],
+    ["landing_sun_el_deg", "Sun at landing", "°"],
+    ["landing_lit", "Lit at landing", ""],
+  ];
+  const metrics = describeMetrics(evaluation());
+  it("lists exactly these mission-window metrics, in this order", () => {
+    expect(metrics.map((m) => m.term)).toEqual(METRIC_ROWS.map(([term]) => term));
+  });
+  for (const [term, name, unit] of METRIC_ROWS) {
+    it(`metric ${term}: "${name}" in ${unit === "" ? "no unit" : unit}`, () => {
+      const row = metrics.find((m) => m.term === term);
+      expect(row?.name).toBe(name);
+      expect(row?.unit).toBe(unit);
+    });
+  }
 });

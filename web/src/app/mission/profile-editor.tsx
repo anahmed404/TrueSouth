@@ -58,8 +58,8 @@ export const ProfileEditor = memo(function ProfileEditor({ onChosen }: { onChose
         {presets.map((preset) => {
           const checked = preset.id === basePresetId && changed.length === 0;
           return (
+            <div key={preset.id} className="pe-preset-row">
             <button
-              key={preset.id}
               type="button"
               role="radio"
               aria-checked={checked}
@@ -78,6 +78,10 @@ export const ProfileEditor = memo(function ProfileEditor({ onChosen }: { onChose
               </span>
               {checked ? <Check className="pe-preset-check" size={16} strokeWidth={2.2} aria-hidden="true" /> : null}
             </button>
+            <span className="pe-preset-tag">
+              <ProvenanceTag provenance={preset.provenance.duration_days} />
+            </span>
+            </div>
           );
         })}
       </div>

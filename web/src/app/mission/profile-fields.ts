@@ -65,7 +65,7 @@ export const FIELD_GROUPS: readonly FieldGroup[] = [
   {
     title: "Score",
     fields: [
-      { field: "weights", label: "Weights", unit: "", kind: "weights", step: 0.05, accepts: "numbers of 0 or more; power and comms must not both be 0" },
+      { field: "weights", label: "Weights", unit: "", kind: "weights", step: 0.05, accepts: "a number from 0 to 1,000 each, and power and comms must not both be 0" },
     ],
   },
 ];

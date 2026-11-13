@@ -24,7 +24,7 @@ step.
 | `max_slope_deg` | Slope limit at the landing site |
 | `slope_ideal_deg` | Slope at or below which the slope utility is 1 |
 | `landing_sun_el_min_deg`, `landing_sun_el_max_deg` | Optional. Allowed Sun elevation at touchdown. |
-| `weights` | `{ slope, power, comms }`, any non-negative numbers; they are normalised |
+| `weights` | `{ slope, power, comms }`, any non-negative numbers; they are normalised. A weight is a number from 0 to 1,000. |
 | `provenance` | Per field: `sourced` with `source_url` and `quote`, or `assumed` with `reason` |
 
 Observer height is not a profile field. It is fixed at 2 m in the pipeline because

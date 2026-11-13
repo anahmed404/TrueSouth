@@ -190,6 +190,14 @@ each integration checkpoint.
   - The store refuses invalid profile edits silently, except "power and comms both zero",
     which adds a notice. The editor detects a refusal and says what range is accepted.
   - The shell now stacks on a phone (under 760 px) instead of scrolling sideways.
+  - Review fixes were made: each weight is a number from 0 to 1,000 (store, link reader,
+    editor, `docs/mission-profiles.md`); a value and its limit never round to the same
+    text when a rule compares them strictly, and the score is rounded down; the mission
+    duration carries its tag; a row fed by several profile settings is sourced only if
+    every one is; units and labels of every row are pinned by a test; the worst broken
+    rule uses the true share of a limit above 0; `ground_height` added to `explain.ts`;
+    the stale chip lines removed from `DESIGN.md`. On the real data, Connecting Ridge
+    loads with no errors: NO-GO for IM-2 Athena landing 2028-03-01 00:00 UTC, score 0.
 
 #### 2026-11-13 · MC3 · Scenario store, shareable link and evaluation hooks
 - **Who:** Cursor agent, for the orchestrator

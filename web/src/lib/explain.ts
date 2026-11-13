@@ -81,6 +81,9 @@ const entries = {
   sphere: {
     text: "The terrain tier for a site with no terrain data. TrueSouth treats the Moon as perfectly smooth there and says so with the note \"terrain not modelled\".",
   },
+  ground_height: {
+    text: "How high the ground at the site stands, in metres, above the Moon's reference sphere, a smooth ball with a radius of 1,737,400 metres. It is not the same as elevation, which here means an angle above the horizon.",
+  },
   close_up_dem: {
     text: "A very sharp DEM, with squares 5 metres across, that exists for only a few sites. It is used for slope and for the close-up 3D view.",
     lesson: "l5_slope",

@@ -6,6 +6,7 @@ import { Button, IconButton } from "../../components/Button";
 import { Explain } from "../../components/Explain";
 import { formatUtc } from "../../components/format";
 import { Popover } from "../../components/Popover";
+import { ProvenanceTag } from "../../components/ProvenanceTag";
 import { hourIndexToUtc, utcToHourIndex } from "../../lib/time";
 import { lastLandingHour } from "../../state/scenario";
 import { joinUtc, splitUtc, utcDay } from "./landing";
@@ -54,21 +55,26 @@ function ProfilePicker() {
   const duration = formatLimit(profile.duration_days, "d");
 
   return (
-    <Popover
-      label="Mission profile"
-      width={440}
-      align="end"
-      trigger={(props) => (
-        <button {...props} type="button" className="field field-button" aria-label={`Mission profile: ${title}, ${duration}. Change`}>
-          <span className="field-label">Mission profile</span>
-          <span className="field-value field-value-clip">{title}</span>
-          <span className="field-sub tabular">{duration}</span>
-          <ChevronDown className="field-icon" size={14} strokeWidth={1.8} aria-hidden="true" />
-        </button>
-      )}
-    >
-      {(close) => <ProfileEditor onChosen={close} />}
-    </Popover>
+    <div className="field field-profile">
+      <Popover
+        label="Mission profile"
+        width={440}
+        align="end"
+        trigger={(props) => (
+          <button {...props} type="button" className="field-trigger" aria-label={`Mission profile: ${title}. Change`}>
+            <span className="field-label">Mission profile</span>
+            <span className="field-value field-value-clip">{title}</span>
+            <ChevronDown className="field-icon" size={14} strokeWidth={1.8} aria-hidden="true" />
+          </button>
+        )}
+      >
+        {(close) => <ProfileEditor onChosen={close} />}
+      </Popover>
+      <span className="field-sub tabular" aria-label={`Duration ${duration}`}>
+        {duration}
+      </span>
+      <ProvenanceTag provenance={profile.provenance.duration_days} />
+    </div>
   );
 }
 

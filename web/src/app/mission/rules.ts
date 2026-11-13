@@ -10,7 +10,10 @@ import type { MissionProfile } from "../../contracts/generated";
 import type { Evaluation, VetoId } from "../../lib/scoring";
 import { GO_SCORE_THRESHOLD } from "../../lib/scoring";
 import { formatNumber } from "../../components/format";
+import type { Assumed, Sourced } from "../../contracts/generated";
 import type { Provenance } from "../../components/ProvenanceTag";
+import type { ProfileField } from "../../state/scenario";
+import { fieldDef } from "./profile-fields";
 
 /** A no-break space narrower than a word space, as `NumberUnit` uses. */
 const UNIT_SPACE = " ";
@@ -28,6 +31,124 @@ export function formatLimit(value: number, unit: string): string {
   const rounded = Math.round(value * 100) / 100;
   const decimals = Number.isInteger(rounded) ? 0 : Number.isInteger(rounded * 10) ? 1 : 2;
   return formatValue(rounded, unit, decimals);
+}
+
+/** Never print more than this many decimals to tell a value from its limit. */
+const MAX_DECIMALS = 4;
+
+/**
+ * The decimals at which a value and its limit print differently. A rule compares them
+ * strictly, so 10.01° against a 10° limit must not print as "10.0°, limit 10°". Starting
+ * at the rule's own precision, add decimals (up to 4) until the two differ. Equal numbers
+ * keep the rule's precision.
+ */
+export function distinctDecimals(value: number, limit: number, base: number): number {
+  if (value === limit) return base;
+  for (let d = base; d < MAX_DECIMALS; d++) {
+    if (formatNumber(value, d) !== formatNumber(limit, d)) return d;
+  }
+  return Math.max(base, MAX_DECIMALS);
+}
+
+/** Without trailing zeros: 10.000 → "10", 12.50 → "12.5". */
+function trimmed(value: number, unit: string, decimals: number): string {
+  const text = formatNumber(value, decimals);
+  const short = text.includes(".") ? text.replace(/\.?0+$/, "") : text;
+  if (unit === "") return short;
+  return TIGHT_UNITS.has(unit) ? `${short}${unit}` : `${short}${UNIT_SPACE}${unit}`;
+}
+
+/**
+ * A rule's value and limit, printed so the rounding never contradicts the verdict.
+ * The limit is written as typed (no trailing zeros); an equal limit prints like the value.
+ */
+export function valueAndLimit(
+  value: number,
+  limit: number,
+  unit: string,
+  base: number,
+): { value: string; limit: string; decimals: number } {
+  const decimals = distinctDecimals(value, limit, base);
+  return {
+    value: formatValue(value, unit, decimals),
+    limit: value === limit ? formatValue(limit, unit, decimals) : trimmed(limit, unit, Math.max(decimals, 2)),
+    decimals,
+  };
+}
+
+/**
+ * A score as printed: rounded down to a whole number, so a score under the GO threshold
+ * never prints as the threshold (69.6 prints as 69).
+ */
+export function scoreText(score: number): string {
+  return formatNumber(Math.floor(score));
+}
+
+/** The exact score for a tooltip, cut (not rounded) at three decimals. */
+export function scoreTitle(score: number): string {
+  return `Score ${formatNumber(Math.floor(score * 1000) / 1000, 3)} of 100, shown rounded down`;
+}
+
+/** Which profile settings feed a row, and whether all of them are sourced. */
+export type SettingsProvenance = {
+  kind: "sourced" | "assumed";
+  parts: { field: ProfileField; label: string; provenance: Provenance }[];
+};
+
+/**
+ * The tag for a row that one or more profile settings feed. It is sourced only if every
+ * setting is sourced; one assumed setting makes the whole row assumed, because an assumed
+ * setting can have caused the result.
+ */
+export function settingsProvenance(profile: MissionProfile, fields: readonly ProfileField[]): SettingsProvenance {
+  const parts = fields.flatMap((field) => {
+    const provenance = provenanceOf(profile, field);
+    return provenance ? [{ field, label: fieldDef(field).label, provenance }] : [];
+  });
+  const kind = parts.length > 0 && parts.every((part) => part.provenance.kind === "sourced") ? "sourced" : "assumed";
+  return { kind, parts };
+}
+
+/** The settings that decide whether an hour is lit (docs/science.md §9). */
+function litFields(profile: MissionProfile): ProfileField[] {
+  return profile.ops_sun_el_min_deg === null ? ["min_sun_fraction"] : ["min_sun_fraction", "ops_sun_el_min_deg"];
+}
+
+/** The settings that decide whether an hour has a link (docs/science.md §9). */
+function linkFields(profile: MissionProfile): ProfileField[] {
+  return profile.relay_available ? ["relay_available"] : ["relay_available", "antenna_mask_deg"];
+}
+
+/** Every profile setting that feeds a rule's measurement or its limit. */
+export function ruleFields(profile: MissionProfile, id: VetoId | "relay"): ProfileField[] {
+  switch (id) {
+    case "landing_dark":
+      return litFields(profile);
+    case "slope":
+      return ["max_slope_deg"];
+    case "darkness":
+      return ["max_dark_h", ...litFields(profile)];
+    case "blackout":
+      return ["max_blackout_h", ...linkFields(profile)];
+    case "landing_sun_low":
+      return ["landing_sun_el_min_deg"];
+    case "landing_sun_high":
+      return ["landing_sun_el_max_deg"];
+    case "relay":
+      return ["relay_available"];
+  }
+}
+
+/** Every profile setting that feeds a utility and its weight (docs/science.md §10). */
+export function utilityFields(profile: MissionProfile, id: "slope" | "power" | "comms"): ProfileField[] {
+  switch (id) {
+    case "slope":
+      return ["max_slope_deg", "slope_ideal_deg", "weights"];
+    case "power":
+      return [...litFields(profile), "max_dark_h", "weights"];
+    case "comms":
+      return profile.relay_available ? ["relay_available", "weights"] : [...linkFields(profile), "max_blackout_h", "weights"];
+  }
 }
 
 type RuleMeta = {
@@ -136,9 +257,12 @@ export type RuleView = {
   decimals: number;
   /** The limit as a number, or null for a yes/no rule. */
   limit: number | null;
+  /** The measured value as printed, with its unit. Never contradicts the limit. */
+  valueLabel: string;
   /** The limit as words: "limit 12 h", "at least 6°", "needs sunlight". */
   limitText: string;
-  provenance: Provenance | null;
+  /** The tag: sourced only if every setting that feeds the rule is sourced. */
+  provenance: SettingsProvenance;
   broken: boolean;
   /** One plain sentence on what happened. Only for a broken rule. */
   sentence: string;
@@ -147,7 +271,7 @@ export type RuleView = {
 };
 
 /** A profile field's sourced or assumed tag. Every value field has one. */
-export function provenanceOf(profile: MissionProfile, field: string): Provenance | null {
+export function provenanceOf(profile: MissionProfile, field: string): Sourced | Assumed | null {
   const record = profile.provenance as unknown as Record<string, Provenance | undefined>;
   return record[field] ?? null;
 }
@@ -168,8 +292,7 @@ function isChecked(evaluation: Evaluation, profile: MissionProfile, id: VetoId):
   }
 }
 
-function brokenSentence(id: VetoId, value: number | null, limit: number | null, unit: string, decimals: number): string {
-  const v = value === null ? "" : formatValue(value, unit, decimals);
+function brokenSentence(id: VetoId, v: string, limit: number | null): string {
   switch (id) {
     case "landing_dark":
       return "The site is dark at the landing hour, so the lander would touch down in shadow.";
@@ -193,7 +316,7 @@ function brokenSentence(id: VetoId, value: number | null, limit: number | null, 
 function ruleView(evaluation: Evaluation, profile: MissionProfile, id: VetoId): RuleView {
   const meta = VETO_META[id];
   const veto = evaluation.vetoes[id];
-  const provenance = provenanceOf(profile, meta.limitField);
+  const provenance = settingsProvenance(profile, ruleFields(profile, id));
   if (id === "landing_dark") {
     const lit = veto.measured === true;
     return {
@@ -202,40 +325,50 @@ function ruleView(evaluation: Evaluation, profile: MissionProfile, id: VetoId): 
       name: veto.triggered ? meta.name : meta.passName,
       value: null,
       valueText: lit ? "yes" : "dark",
+      valueLabel: lit ? "yes" : "dark",
       unit: "",
       decimals: 0,
       limit: null,
       limitText: lit ? "" : "needs sunlight",
       provenance,
       broken: veto.triggered,
-      sentence: veto.triggered ? brokenSentence(id, null, null, "", 0) : "",
+      sentence: veto.triggered ? brokenSentence(id, "", null) : "",
       scaleMax: 1,
     };
   }
   const value = typeof veto.measured === "number" ? veto.measured : null;
   const limit = typeof veto.limit === "number" ? veto.limit : null;
-  const limitText = limit === null ? "" : `${meta.limitWord} ${formatLimit(limit, meta.unit)}`;
+  const printed =
+    value !== null && limit !== null
+      ? valueAndLimit(value, limit, meta.unit, meta.decimals)
+      : {
+          value: value === null ? "" : formatValue(value, meta.unit, meta.decimals),
+          limit: limit === null ? "" : formatLimit(limit, meta.unit),
+          decimals: meta.decimals,
+        };
   return {
     id,
     term: meta.term,
     name: veto.triggered ? meta.name : meta.passName,
     value,
     valueText: null,
+    valueLabel: printed.value,
     unit: meta.unit,
-    decimals: meta.decimals,
+    decimals: printed.decimals,
     limit,
-    limitText,
+    limitText: limit === null ? "" : `${meta.limitWord} ${printed.limit}`,
     provenance,
     broken: veto.triggered,
-    sentence: veto.triggered ? brokenSentence(id, value, limit, meta.unit, meta.decimals) : "",
+    sentence: veto.triggered ? brokenSentence(id, printed.value, limit) : "",
     scaleMax: Math.max(value ?? 0, limit ?? 0, 1),
   };
 }
 
 /**
  * How badly a broken rule is broken, so the worst one leads. A dark landing is always
- * worst. Otherwise: how far past the limit the value is, as a share of the limit (a limit
- * under 1 counts as 1, so a 0 h limit does not divide by zero).
+ * worst. Otherwise: how far past the limit the value is, as a share of the limit when the
+ * limit is above 0 (0.75 against 0.5 is 50 % over). A limit of 0 or below has no share,
+ * so the absolute excess is used.
  */
 export function severity(evaluation: Evaluation, id: VetoId): number {
   const veto = evaluation.vetoes[id];
@@ -243,7 +376,7 @@ export function severity(evaluation: Evaluation, id: VetoId): number {
   if (id === "landing_dark") return Infinity;
   if (typeof veto.measured !== "number" || typeof veto.limit !== "number") return 0;
   const over = id === "landing_sun_low" ? veto.limit - veto.measured : veto.measured - veto.limit;
-  return over / Math.max(Math.abs(veto.limit), 1);
+  return veto.limit > 0 ? over / veto.limit : over;
 }
 
 /** The broken vetoes, worst first. Ties keep `VETO_ORDER`. */
@@ -293,11 +426,12 @@ export function describeEvaluation(evaluation: Evaluation, profile: MissionProfi
       name: "Relay",
       value: null,
       valueText: "available",
+      valueLabel: "available",
       unit: "",
       decimals: 0,
       limit: null,
       limitText: "so there are no blackouts",
-      provenance: provenanceOf(profile, "relay_available"),
+      provenance: settingsProvenance(profile, ruleFields(profile, "relay")),
       broken: false,
       sentence: "",
       scaleMax: 1,
@@ -314,13 +448,14 @@ export function describeEvaluation(evaluation: Evaluation, profile: MissionProfi
 export function railFact(evaluation: Evaluation): string {
   const broken = brokenVetoes(evaluation);
   const worst = broken[0];
-  if (!worst) return `Score ${formatNumber(evaluation.score)}`;
+  if (!worst) return `Score ${scoreText(evaluation.score)}`;
   const meta = VETO_META[worst];
   const veto = evaluation.vetoes[worst];
   let text: string;
   if (worst === "landing_dark") text = meta.short;
   else if (typeof veto.measured === "number" && typeof veto.limit === "number") {
-    text = `${meta.short}: ${formatValue(veto.measured, meta.unit, meta.decimals)}, ${meta.limitWord} ${formatLimit(veto.limit, meta.unit)}`;
+    const printed = valueAndLimit(veto.measured, veto.limit, meta.unit, meta.decimals);
+    text = `${meta.short}: ${printed.value}, ${meta.limitWord} ${printed.limit}`;
   } else text = meta.short;
   return text;
 }
@@ -341,6 +476,8 @@ export type UtilityView = {
   weight: number;
   /** The weight's share of the assessed weights, 0–1. Weights are normalised. */
   share: number | null;
+  /** Sourced only if every setting that feeds the utility and its weight is sourced. */
+  provenance: SettingsProvenance;
 };
 
 /** The three utilities with their weights and each weight's share of the score. */
@@ -357,6 +494,7 @@ export function describeUtilities(evaluation: Evaluation, profile: MissionProfil
       value: evaluation.utilities.slope,
       weight: weights.slope,
       share: share(weights.slope, evaluation.utilities.slope),
+      provenance: settingsProvenance(profile, utilityFields(profile, "slope")),
     },
     {
       id: "power",
@@ -365,6 +503,7 @@ export function describeUtilities(evaluation: Evaluation, profile: MissionProfil
       value: evaluation.utilities.power,
       weight: weights.power,
       share: share(weights.power, evaluation.utilities.power),
+      provenance: settingsProvenance(profile, utilityFields(profile, "power")),
     },
     {
       id: "comms",
@@ -373,6 +512,7 @@ export function describeUtilities(evaluation: Evaluation, profile: MissionProfil
       value: evaluation.utilities.comms,
       weight: weights.comms,
       share: share(weights.comms, evaluation.utilities.comms),
+      provenance: settingsProvenance(profile, utilityFields(profile, "comms")),
     },
   ];
 }
