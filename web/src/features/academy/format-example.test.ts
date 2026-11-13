@@ -22,9 +22,14 @@ describe("the rounding rule for worked-example numbers", () => {
   });
 
   it("finds a _pct segment, not only a _pct ending", () => {
-    for (const key of ["l4.link_pct_mask0", "l4.link_pct_mask1", "l4.link_pct_mask5"]) {
+    for (const key of ["l4.link_pct_mask0", "l4.link_pct_mask1", "l4.link_pct_mask5", "l4.link_pct_by_mask"]) {
       expect(unitRuleFor(key)?.unit, key).toBe("pct");
     }
+    expect(formatExample("l4.link_pct_by_mask", [55.694, 15, 6.5])).toBe("56, 15, 7");
+    expect(formatExample("l2.site_id", "shackleton_rim")).toBe("shackleton_rim");
+    expect(formatExample("l2.site_name", "Shackleton Rim")).toBe("Shackleton Rim");
+    expect(formatExample("story.landing_utc", "2028-01-01T00:00:00Z")).toBe("2028-01-01T00:00:00Z");
+    expect(unitRuleFor("l4.mask_for_15pct_deg")?.unit).toBe("deg");
     expect(formatExample("l4.link_pct_mask1", 40.4)).toBe("40");
     expect(unitRuleFor("l4.pctile_x")).toBeNull();
   });
@@ -113,8 +118,10 @@ describe("every worked-example key has a unit rule", () => {
 
   it("gives every numeric key in the fixture and the contract a unit, or lists it as unitless", () => {
     const numeric = new Set([
-      ...Object.entries(fixture).flatMap(([key, value]) => (typeof value === "number" ? [key] : [])),
-      ...contract.flatMap(([key, type]) => (type === "number" ? [key] : [])),
+      ...Object.entries(fixture).flatMap(([key, value]) =>
+        typeof value === "number" || (Array.isArray(value) && value.every((item) => typeof item === "number")) ? [key] : [],
+      ),
+      ...contract.flatMap(([key, type]) => (type === "number" || type === "number[]" ? [key] : [])),
     ]);
     expect(numeric.size).toBeGreaterThan(40);
     const fallsThrough = [...numeric].filter((key) => unitRuleFor(key) === null);

@@ -1,6 +1,7 @@
 /* Charts drawn in SVG from the mock series: the timeline, the Lander's eye panorama,
    the Slip Planner heatmap and the Compare table. Restaged from the approved C2 pages. */
-import { series, sky, SUN_R, EARTH_R, LANDING0, WINDOW_H, SITES, status, detail, fmtDay, fmtDayY, MONTHS, pad, STATUS_WORD, TIME_GRID, siteById } from './data.js';
+import { vAt } from './slip.js';
+import { series, sky, SUN_R, EARTH_R, LANDING0, WINDOW_H, SITES, detail, fmtDay, fmtDayY, MONTHS, pad, STATUS_WORD, TIME_GRID, siteById } from './data.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 export function E(tag, a, p) { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; }
@@ -143,7 +144,7 @@ export function drawHeat(host, { off, focus, span, onPick, onHover }) {
   const g0 = Date.UTC(2026, 0, 1), gDays = Math.round((TIME_GRID.end - g0) / 864e5), ow = gw, ox = left, ok = ow / gDays, base0 = Math.round((g0 - LANDING0) / 864e5);
   E('text', { x: 12, y: 24, 'font-size': 12, fill: C.ink3 }, svg).textContent = '2026 → 2031';
   let od = '';
-  for (let i = 0; i < gDays; i += 3) { let v = 0; for (const s of SITES) { const q = status(s.id, base0 + i).st; if (q === 'go' || q === 'caution') v++; } const h = v / SITES.length * 22; od += `M${(ox + i * ok).toFixed(1)},${(30 - h).toFixed(1)}h${(ok * 3).toFixed(2)}v${h.toFixed(1)}h${(-ok * 3).toFixed(2)}Z`; }
+  for (let i = 0; i < gDays; i += 3) { let v = 0; for (const s of SITES) { const q = vAt(s.id, base0 + i).st; if (q === 'go' || q === 'caution') v++; } const h = v / SITES.length * 22; od += `M${(ox + i * ok).toFixed(1)},${(30 - h).toFixed(1)}h${(ok * 3).toFixed(2)}v${h.toFixed(1)}h${(-ok * 3).toFixed(2)}Z`; }
   E('path', { d: od, fill: C.ink3, 'fill-opacity': .55 }, svg);
   for (let y = 2026; y <= 2031; y++) { const x = ox + Math.round((Date.UTC(y, 0, 1) - g0) / 864e5) * ok; E('text', { x: x + 4, y: 44, 'font-size': 11, fill: C.ink3 }, svg).textContent = y; E('line', { x1: x, x2: x, y1: 6, y2: 34, stroke: C.line }, svg); }
   const wx = ox + (d0 - base0) * ok;
@@ -171,7 +172,7 @@ export function drawHeat(host, { off, focus, span, onPick, onHover }) {
       else if (run.st === 'nogo') E('rect', { x, y, width: w, height: h, fill: 'url(#hatch)' }, svg);
       else E('line', { x1: x, x2: x + w, y1: y + h / 2, y2: y + h / 2, stroke: C.ink3, 'stroke-dasharray': '1 3' }, svg);
       run = null; };
-    for (let dd = d0; dd < d0 + n; dd++) { const q = status(s.id, dd), sc = q.score > 85 ? 2 : q.score > 75 ? 1 : 0;
+    for (let dd = d0; dd < d0 + n; dd++) { const q = vAt(s.id, dd), sc = q.score > 85 ? 2 : q.score > 75 ? 1 : 0;
       if (q.st !== 'none') { total++; if (q.st !== 'nogo') { viable++; if (next == null && dd >= off) next = dd; } }
       if (!run || run.st !== q.st || (q.st === 'go' && run.k !== sc)) { flush(dd); run = { d: dd, st: q.st, sc: q.score, k: sc }; } }
     flush(d0 + n);

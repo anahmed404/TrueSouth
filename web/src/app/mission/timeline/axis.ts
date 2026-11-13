@@ -306,3 +306,19 @@ export function sliderValueText({ range, hour, gridStartMs, lit, link, relay }: 
 export function pillText(range: Pick<TimelineRange, "landing" | "windowEnd">, hour: number, gridStartMs: number): string {
   return `${dayLabel(range, hour)} · ${shortStamp(gridStartMs, hour)}`;
 }
+
+/**
+ * The phone strip's one row of text: the time, which already ends with its zone, and both
+ * countdowns on one line ("Sunrise in 18 d 23 h · Earthrise in 14 d 1 h").
+ */
+export function compactRowText(
+  range: Pick<TimelineRange, "landing" | "windowEnd">,
+  hour: number,
+  gridStartMs: number,
+  countdowns: { sun: string; earth: string } | null,
+): { time: string; counts: string } {
+  return {
+    time: pillText(range, hour, gridStartMs),
+    counts: countdowns ? `${countdowns.sun} · ${countdowns.earth}` : "Countdowns load with the site's data…",
+  };
+}

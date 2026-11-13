@@ -273,7 +273,7 @@ const entries = {
 
   // ── Views ──────────────────────────────────────────────────────────────────
   slip_planner: {
-    text: "A flat colour grid of sites against landing dates: each square shows whether a mission landing that day at that site would be GO, CAUTION or NO-GO. Use it to see how far a launch can slip, or which other site works on the new date.",
+    text: "Your sites at the south pole, each showing whether a landing on the date below would be GO, CAUTION or NO-GO, with a strip for every site across six years of landing dates. Use it to see how far a launch can slip, or which other site works on the new date.",
     lesson: "l7_slip",
   },
   system_view: {

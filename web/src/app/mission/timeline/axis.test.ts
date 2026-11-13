@@ -15,6 +15,7 @@ import {
   labelStep,
   longestOffRun,
   pillText,
+  compactRowText,
   runAround,
   sliderValueText,
   timelineRange,
@@ -252,5 +253,20 @@ describe("placeLabels", () => {
     const placed = placeLabels([200, 210], [300, 300], 400, 48);
     expect(placed.rows).toBe(2);
     expect(placed.row).toEqual([0, 1]);
+  });
+});
+
+describe("compactRowText", () => {
+  const range = timelineRange(COUNT, MARCH_1, 10);
+
+  it("names the zone once: the phone strip's time is the scrubber pill's text", () => {
+    const row = compactRowText(range, MARCH_1 + 150, GRID_START, null);
+    expect(row.time).toBe("Day 7 · 07 Mar 06:00 UTC");
+    expect(row.time).not.toMatch(/UTC\s+UTC/);
+  });
+
+  it("puts both countdowns on one line", () => {
+    const row = compactRowText(range, MARCH_1, GRID_START, { sun: "Sunrise in 18 d 23 h", earth: "Earthrise in 14 d 1 h" });
+    expect(row.counts).toBe("Sunrise in 18 d 23 h · Earthrise in 14 d 1 h");
   });
 });

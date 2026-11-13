@@ -1932,6 +1932,14 @@ export interface WorkedExamples {
    */
   "l2.ridge_rise_m": number;
   /**
+   * l2.site_id: site identifier.
+   */
+  "l2.site_id": string;
+  /**
+   * l2.site_name: text.
+   */
+  "l2.site_name": string;
+  /**
    * l2.sun_az_deg: degrees.
    */
   "l2.sun_az_deg": number;
@@ -2004,6 +2012,35 @@ export interface WorkedExamples {
    */
   "l4.example_utc": string;
   /**
+   * l4.link_pct_by_mask: percent, one share for each mask from 0 degrees to 10 degrees in steps of 0.5 degrees.
+   *
+   * @minItems 21
+   * @maxItems 21
+   */
+  "l4.link_pct_by_mask": [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number
+  ];
+  /**
    * l4.link_pct_mask0: percent.
    */
   "l4.link_pct_mask0": number;
@@ -2016,25 +2053,29 @@ export interface WorkedExamples {
    */
   "l4.link_pct_mask5": number;
   /**
+   * l4.mask_for_15pct_deg: degrees.
+   */
+  "l4.mask_for_15pct_deg": number;
+  /**
    * l5.example_site: text.
    */
   "l5.example_site": string;
   /**
-   * l5.plane_a: dimensionless.
+   * l5.plane_a: dimensionless, or null when the close-up fit is absent.
    */
-  "l5.plane_a": number;
+  "l5.plane_a": number | null;
   /**
-   * l5.plane_b: dimensionless.
+   * l5.plane_b: dimensionless, or null when the close-up fit is absent.
    */
-  "l5.plane_b": number;
+  "l5.plane_b": number | null;
   /**
-   * l5.slope_100m_deg: degrees.
+   * l5.slope_100m_deg: degrees, or null when the close-up fit is absent.
    */
-  "l5.slope_100m_deg": number;
+  "l5.slope_100m_deg": number | null;
   /**
-   * l5.slope_10m_deg: degrees.
+   * l5.slope_10m_deg: degrees, or null when the 10 m method is not defined.
    */
-  "l5.slope_10m_deg": number;
+  "l5.slope_10m_deg": number | null;
   /**
    * l5.slope_160m_deg: degrees.
    */
@@ -2044,9 +2085,9 @@ export interface WorkedExamples {
    */
   "l6.a_score": number;
   /**
-   * l6.b_score: dimensionless.
+   * l6.b_score: dimensionless, or null when site B was not selected.
    */
-  "l6.b_score": number;
+  "l6.b_score": number | null;
   /**
    * l6.example_metrics.landing_lit: boolean.
    */
@@ -2096,13 +2137,13 @@ export interface WorkedExamples {
    */
   "l6.site_a": string;
   /**
-   * l6.site_b: text.
+   * l6.site_b: text, or null when no second site passes every veto.
    */
-  "l6.site_b": string;
+  "l6.site_b": string | null;
   /**
-   * l7.alt_site: text.
+   * l7.alt_site: text, or null when no polar catalog site is GO on the slipped date.
    */
-  "l7.alt_site": string;
+  "l7.alt_site": string | null;
   /**
    * l7.go_date: UTC timestamp.
    */
@@ -2128,15 +2169,35 @@ export interface WorkedExamples {
    */
   "l8.candidates": string[];
   /**
-   * l8.region_overlap.overlaps: boolean.
+   * l8.region_overlap.overlaps: boolean, or null when official region outlines are absent.
    */
-  "l8.region_overlap.overlaps": boolean;
+  "l8.region_overlap.overlaps": boolean | null;
   /**
-   * l8.region_overlap.region_name: text.
+   * l8.region_overlap.region_name: text, or null when official region outlines are absent.
    */
-  "l8.region_overlap.region_name": string;
+  "l8.region_overlap.region_name": string | null;
   /**
    * l8.region_overlap.site_id: text.
    */
   "l8.region_overlap.site_id": string;
+  /**
+   * story.landing_utc: UTC timestamp.
+   */
+  "story.landing_utc": string;
+  /**
+   * story.month_end_utc: UTC timestamp, exclusive end of the story month.
+   */
+  "story.month_end_utc": string;
+  /**
+   * story.profile_id: profile identifier.
+   */
+  "story.profile_id": string;
+  /**
+   * story.site_id: site identifier.
+   */
+  "story.site_id": string;
+  /**
+   * story.window_end_utc: UTC timestamp, exclusive end of the mission window.
+   */
+  "story.window_end_utc": string;
 }

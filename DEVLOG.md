@@ -42,8 +42,8 @@ each integration checkpoint.
 | Milestone | State |
 | :--- | :--- |
 | M0 Foundations | complete, 2026-11-13: S0 to S2, MC0 to MC2, T0, A0 and A1 verified; 151 Python and 1,058 web tests pass; the app loads all five fixture sites |
-| M1 Thin slice | in progress: S3 to S7, S8 part 1, S9, MC3, MC4a, MC4b, the sweep worker, A2 and A7 verified; Mission Control's panels run on real Connecting Ridge data; the timeline (MC5), all catalog sites (S8 part 2) and the Academy card (A4) are being built; the centre views wait on the space-first design |
-| M2 Mission Control complete on catalog data | not started |
+| M1 Thin slice | done in substance: the panels and the timeline run on real data for all 20 catalog sites (S3 to S9, MC3 to MC5 verified); validation against NASA is published (S12) |
+| M2 Mission Control complete on catalog data | in progress: the space-first shell (MC4c) is in review and the 3D scene (T1, T2) is being built; the Polar map, Local terrain, Lander's eye, Slip Planner and Compare follow it |
 | M3 Everything | not started |
 | M4 Tuned and submitted | not started |
 
@@ -114,6 +114,100 @@ The 20 existing sites' `series.bin`, `skyline.bin` and `terrain.bin` are byte-id
 IM-2 Athena, landing at 00:00 UTC, from `scoring.py`. Both points are GO on 2028-01-01 (score 100, fully lit). On 2028-03-01 both are NO-GO (score 40, darkness and blackout); the listed point has mean Sun 0.417 and a 130 h dark stretch, the variant 0.551 and 78 h, and both land in light. On 2028-03-08 both are NO-GO (score 40, darkness, blackout and a dark landing hour). The listed point is dark for the whole window (240 h). The variant still has mean Sun 0.714 and a longest dark stretch of 26 h, but the landing hour itself is dark.
 
 `--only connecting_ridge` builds the listed site and `connecting_ridge_best_lit`. `--only connecting_ridge_best_lit` does the same, by selecting the catalog parent. `--only apollo11_best_lit` raises before any write, because Apollo 11 is not a core80 sunlit peak. The site picker lists each variant as an ordinary site in Sunlit peaks. The default selection for a new visitor is still Connecting Ridge plus three Artemis sites, and does not include a variant. Showing the nearby range and a variant label in the panels is another package.
+
+#### 2026-11-13 · S12b · Worked examples from the stored series
+- **Who:** Cursor implementation agent
+- **AI use:** Cursor, grok-4.7 — wrote the selection tests first, then the worked-example command, the contract keys and the smallest Academy wiring — human and orchestrator review pending.
+- **State:** verified (322 Python tests and 1,581 web tests, typecheck, build and schema regeneration pass on the merge with main; the orchestrator recomputed lessons 1 to 4 from the stored series with its own script and every value matches, including all 21 link shares)
+- **Changed:** `WorkedExamples` in `contracts.py` (story keys, lesson 2 site, the 21 mask shares, nullable lessons 5–8 keys), `worked_examples.py`, `commands/build_worked_examples.py`, the synthetic fixture, regenerated schema and TypeScript types, parser and lesson wiring for those keys, `data/derived/academy/worked_examples.json`, this entry.
+- **Checks:** `uv run pytest`: 308 passed, exit 0. `pnpm --dir web typecheck`: exit 0. `pnpm --dir web test`: 1,507 passed, exit 0. `pnpm --dir web build`: exit 0. A second `build-worked-examples` on the real derived tree was byte-identical. Regenerating the schema and types after the contract edit left no further diff.
+- **Notes:** The story is `connecting_ridge` with `im2_athena`, landing 2028-01-01T00:00:00Z (GO, score 100). The story month is the 720 hours through 2028-01-31T00:00:00Z, exclusive. The mission window ends 2028-01-11T00:00:00Z, exclusive. Lesson 2 looks from `malapert_peak` (Malapert Massif peak) at 2028-01-04T17:00:00Z. Connecting Ridge has no 2028 hour that passes the rule: the 345 hours with the Sun up and clearance from −0.5° to −0.1° are blocked by ground 0.08–0.12 km away. de Gerlache Rim and the peak near Shackleton also have none, so Malapert is the first site in the search order that has one. The spot checks agree, including Shackleton's own first hour 2028-01-21T19:00:00Z and the first mask below 15 percent at 6.5°.
+
+| Key | Value | Null |
+| :--- | :--- | :--- |
+| `l1.sun_el_max_deg` | 0.63° | no |
+| `l1.sun_el_min_deg` | −0.25° | no |
+| `l1.site_lat_deg` | −89.4555° | no |
+| `l1.example_utc` | 2028-01-01T00:00:00Z | no |
+| `l1.example_subsolar_lat` | −0.63° | no |
+| `l1.example_subsolar_lon` | 133.23° | no |
+| `l1.example_sun_az` | 270.60° | no |
+| `l1.example_sun_el` | 0.63° | no |
+| `l2.site_id` | malapert_peak | no |
+| `l2.site_name` | Malapert Massif peak | no |
+| `l2.example_utc` | 2028-01-04T17:00:00Z | no |
+| `l2.sun_el_deg` | 0.54° | no |
+| `l2.sun_az_deg` | 90.25° | no |
+| `l2.ridge_dist_km` | 9.0 km | no |
+| `l2.ridge_rise_m` | 179 m | no |
+| `l2.ridge_el_deg` | 1.0° | no |
+| `l2.ridge_feature` | Unnamed terrain | no |
+| `l2.sun_frac` | 0 | no |
+| `l3.drop_at_20km_m` | 115 m | no |
+| `l3.drop_at_60km_m` | 1,036 m | no |
+| `l3.drop_at_130km_m` | 4,864 m | no |
+| `l3.example_bin_az` | 259.00° | no |
+| `l3.example_dist_km` | 89.3 km | no |
+| `l3.example_height_m` | −1,578 m | no |
+| `l3.example_el_flat_deg` | −1.01° | no |
+| `l3.example_el_true_deg` | −2.48° | no |
+| `l4.earth_el_max_deg` | 6.22° | no |
+| `l4.earth_el_min_deg` | −7.53° | no |
+| `l4.earth_up_pct` | 60% | no |
+| `l4.link_pct_by_mask` | 56, 54, 52, 49, 47, 45, 42, 38, 34, 30, 26, 21, 16, 11, 0, 0, 0, 0, 0, 0, 0 | no |
+| `l4.link_pct_mask0` | 56% | no |
+| `l4.link_pct_mask1` | 52% | no |
+| `l4.link_pct_mask5` | 26% | no |
+| `l4.mask_for_15pct_deg` | 6.5° | no |
+| `l4.example_utc` | 2028-01-26T23:00:00Z | no |
+| `l4.example_earth_az` | 138.61° | no |
+| `l4.example_earth_el` | 0.28° | no |
+| `l4.example_earth_clear` | 1.01° | no |
+| `l5.slope_10m_deg` | — | yes |
+| `l5.slope_100m_deg` | — | yes |
+| `l5.slope_160m_deg` | 4.05° | no |
+| `l5.example_site` | connecting_ridge | no |
+| `l5.plane_a` | — | yes |
+| `l5.plane_b` | — | yes |
+| `l6.site_a` | connecting_ridge | no |
+| `l6.site_b` | — | yes |
+| `l6.a_score` | 100 | no |
+| `l6.b_score` | — | yes |
+| `l6.example_metrics.sun_fraction_mean` | 1 | no |
+| `l6.example_metrics.lit_fraction` | 1 | no |
+| `l6.example_metrics.longest_dark_h` | 0 h | no |
+| `l6.example_metrics.link_fraction` | 1 | no |
+| `l6.example_metrics.longest_blackout_h` | 0 h | no |
+| `l6.example_metrics.landing_sun_el_deg` | 0.63° | no |
+| `l6.example_metrics.landing_lit` | true | no |
+| `l6.example_utilities.slope` | 1 | no |
+| `l6.example_utilities.power` | 1 | no |
+| `l6.example_utilities.comms` | 1 | no |
+| `l6.example_score` | 100 | no |
+| `l7.go_date` | 2028-01-01T00:00:00Z | no |
+| `l7.slip_date` | 2028-01-22T00:00:00Z | no |
+| `l7.slip_vetoes` | darkness, blackout, landing_dark | no |
+| `l7.slip_blackout_h` | 119 h | no |
+| `l7.next_go_date` | 2028-01-27T00:00:00Z | no |
+| `l7.alt_site` | — | yes |
+| `l8.candidates` | artemis_de_gerlache_rim_2, artemis_haworth, artemis_malapert, artemis_nobile_rim_2 | no |
+| `l8.region_overlap.site_id` | artemis_nobile_rim_2 | no |
+| `l8.region_overlap.region_name` | — | yes |
+| `l8.region_overlap.overlaps` | — | yes |
+| `story.site_id` | connecting_ridge | no |
+| `story.profile_id` | im2_athena | no |
+| `story.landing_utc` | 2028-01-01T00:00:00Z | no |
+| `story.month_end_utc` | 2028-01-31T00:00:00Z | no |
+| `story.window_end_utc` | 2028-01-11T00:00:00Z | no |
+
+#### 2026-11-13 · S13 · Docker build, with a minimal API
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote the catalog API, Dockerfile, compose file and tests — checked with pytest, a local web build, and a real container run
+- **State:** verified (308 Python tests and the web tests pass on the merge with main; reviewed by Gemini (approve): non-root, healthy, traversal refused, 199 MB image; follow-ups applied: data files revalidate, dot names refused, health lists aprons)
+- **Changed:** `api/src/truesouth_api/` (health, static files, SPA fallback, one 501 stub), `api/tests/test_app.py`, `Dockerfile`, `compose.yaml`, `.dockerignore`, the Production and catalog-only API sections of `docs/architecture.md`.
+- **Out of scope:** custom sites, date jobs, rate limits, the sensitivity grid. `GET` and `HEAD /api/custom/…` return 501 with "Custom sites are not available in this version." `POST /api/sites/custom`, `GET /api/sites/custom/{id}` and `POST /api/sensitivity` are not registered: nothing in `web/src` calls them, so they 404 as JSON. No init service, because it would download NASA maps for custom-site terrain. The science package is not installed in the image.
+- **Numbers:** build context 53.03 MB. Successful `docker compose -p truesouth-s13 build` 58.8 s (the Python virtualenv layer was already cached; `uv sync` itself took 23.3 s when it ran). Image `truesouth-s13:catalog` 187,491,888 bytes. Startup to healthy 8.3 s. Live health `status` ok. `sites/connecting_ridge/series.bin` 841,344 bytes, matches disk. `maps/hillshade_4k.webp` 1,279,620 bytes, matches disk. `/mission` and `/academy/sample` return the app HTML. A missing data file is `text/plain` 404 `Not found`. Mission console had no errors. Academy console had one 404 for `/data/academy/worked_examples.json`, which is not in the derived tree (`worked_examples: false`). Removed container `truesouth-s13-truesouth-1`, network `truesouth-s13_default`, and image `truesouth-s13:catalog`.
+- **Checks:** `uv run pytest` 263 passed, 1 warning, exit 0, 44.47 s. `pnpm --dir web build` exit 0 (run outside Docker). Merged `origin/main` before the final checks. Did not touch the glossary test fixed on main.
 
 #### 2026-11-13 · S12 · Validation comparisons and worked-example definition proposal
 - **Who:** Codex implementation agent, for the orchestrator
@@ -460,6 +554,58 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-13 · MC4c · The space-first shell
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (question
+  round skipped, as briefed) — wrote the floating layout, the scene slot and its contract
+  (`SceneProps`), the free-space calculation and hook, the view bar and view sentence, the
+  floating-window frame with its focus and Escape rules, folding with announcements, the
+  phone layout (sites sheet, focused-site sheet, compact timeline with a 44 px scrubber),
+  and vitest tests for the views, the free space, the window focus rules, the still
+  picture, the link round trip of every view and the contrast of panels and plates —
+  checked by the agent with typecheck, the vitest suite and the build, impeccable's
+  detector (no findings), and by eye in a browser on the real data and the fixtures at
+  1440 × 900, 1024 × 768 and 390 × 844; a human has not reviewed it yet
+- **State:** verified (1,577 web tests, 308 Python tests, typecheck and build pass on the merge with main; reviewed (11 findings, all fixed); opened by the orchestrator at 1440, 1024 and 390 px on real data: no console errors, no sideways scroll, dark-hour plate and Why? popover, Slip Planner window opens and Escape returns focus)
+- **Changed:** `web/src/app/mission-screen.tsx`, `web/src/app/shell.css`,
+  `web/src/app/scene.ts` (new), `web/src/app/mission/` (new: `free-space.ts`,
+  `shell-hooks.ts`, `view-bar.tsx`, `floating-window.tsx`, `window-focus.ts`,
+  `scene-slot.tsx`, `scene-status.ts`, and their tests; changed: `views.ts`,
+  `shell-layout.ts`, `focused-site-panel.tsx`, `top-bar.tsx`, `timeline/timeline.tsx`,
+  `timeline/timeline.css`, `timeline/why-dark-card.tsx`), `web/src/app/theme.css` (tokens
+  `--space`, `--float-gap`, `--plate`), `web/src/components/` (`Panel.tsx` comment, the
+  3D badge's CSS removed), `web/src/state/scenario.ts` (the first-visit view is now the
+  System view), `DESIGN.md`, `docs/design/c2/built-space-shell*.png`, this entry
+- **Notes:**
+  - The scene is a placeholder: a near-black background and one line in the free space. T1
+    plugs in by passing its component to `<SceneSlot Scene={…}>` in `mission-screen.tsx`;
+    the props are `SceneProps` in `web/src/app/scene.ts`. The scene is never unmounted for a
+    slow or missing WebGL: it is told `mode: "flat"`.
+  - The link keeps one `view`: a camera view, or the open window (`slip`, `compare`). A
+    window in a link or on reload opens over the System view; the camera view under a
+    window opened in the page is kept in the page only.
+  - The free space is the measured gap cell of the layout grid, less an open window or phone
+    sheet (the largest uncovered strip). It can be empty while a window is open; the spec
+    keeps the camera still then.
+  - Dev only: `sessionStorage["truesouth.scene.status"] = "slow"` (or `"no-webgl"`) makes
+    the placeholder report that status, to see the still picture and "Try 3D anyway".
+  - The "why is it dark" card floats at the foot of the free space only on a dark or
+    blackout hour, with "See it from Lander's eye"; it is hidden while a window is open and
+    on the phone.
+  - Review fixes were made (still built, not verified): "UTC" once on the phone strip; every
+    provenance tag a 44 px target on the phone; "Try 3D anyway" announced in the status
+    region with focus on the current view, and the still note names the current view;
+    `[` and `]` do nothing inside a window, popover, menu or listbox; `SceneProps` gained
+    `onAddSite`, `mode` ("3d" or "flat") and an optional `SceneReport` on `onStatus`, so the
+    scene stays mounted when WebGL is slow or missing (additive only); the "why" card is one
+    plate with "Why?" opening the full card above it (free space on a dark hour: 792 × 392 px
+    at 1440 × 900, 376 × 249 px at 1024 × 768, up from 376 × 83 px); windows sit between the
+    open side panels when there are 720 px or more; the view bar no longer re-renders on a
+    scrub (render-count test); `freeSpaceInput` turns the shell's layout state into the
+    free space and is tested (a mutation that ignores the left fold fails it); the unused
+    `--shell-top` and `--shell-foot` tokens are gone; the folded sites rail has a 44 px
+    "Add site".
+
 #### 2026-11-13 · specs · Mission Control specs rewritten for the space-first layout
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-sonnet-5-5 — rewrote the Mission Control, System view, Polar map, Local terrain, Lander's eye, Slip Planner, Compare and site-detail specs, `DESIGN.md`, the build plan and two track guides, and wrote decision 0013, from the team lead's decision and the designer's notes and prototype — read back against the prototype's code and notes; the "Proposed:" items are listed in the pull request for the team lead to accept or change; no human has reviewed it yet
@@ -788,6 +934,22 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   live, or a `reduceMotion` prop.
 
 ## Planning
+
+#### 2026-11-13 · MC7 (spec) · The Slip Planner spec rewritten as a view on the Moon
+- **Who:** team lead
+- **AI use:** Claude Code (Sonnet 5.5) — rewrote `docs/features/slip-planner.md` and the
+  places that called the Slip Planner a window, from `design/variants/c2-slip-on-moon.md` and
+  the team lead's picks — not yet read by the team lead; links checked by script
+- **State:** verified (308 Python tests and 1,578 web tests pass on the merge with main; read by the orchestrator against the design note and the prototype's code)
+- **Changed:** `docs/features/slip-planner.md`, `CONTEXT.md`, `DESIGN.md`,
+  `docs/decisions/0013-space-first-mission-control.md`, `docs/build-plan.md`,
+  `docs/challenge.md`, and the Slip Planner wording in `docs/features/` and `docs/tracks/`
+- **Notes:** Variant a (lamp and ring) is picked; variant b and the window of squares are
+  rejected. The orchestrator closed the open points: the shading is on when the view opens;
+  strips are landings at 00:00 UTC and a landing at another hour gets a note; picking a
+  camera view closes Compare. Spot and Landing-date panel are in the glossary test as layout
+  words, and the `slip_planner` explanation in `web/src/lib/explain.ts` now describes the
+  view. The shell still shows a Slip Planner window button until MC7 is built.
 
 #### 2026-11-13 · planning · One orchestrator runs all four tracks
 - **Who:** team lead

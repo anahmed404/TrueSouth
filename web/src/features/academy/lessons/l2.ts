@@ -1,12 +1,25 @@
-import type { Lesson } from "../types";
-import { hoursAround, storyScene, todo } from "./story";
+import type { Lesson, SceneSpec, SkylineKind, TimeRange } from "../types";
+import { hoursAround, storyScenario, todo } from "./story";
 
 /**
  * Lesson 2, "Mountains steal sunlight". Typed skeleton. Not in the catalog yet.
  * Quoted lines are copied from docs/academy/lessons.md. `TODO(words):` marks a description.
+ * The view looks from the lesson 2 site, which is not always the story site.
  */
-const terrain = storyScene("terrain", null);
-const sunDrag = storyScene("terrain", hoursAround("{{example.l2.example_utc}}", 24));
+function lesson2Scene(skyline: SkylineKind, timeRange: TimeRange | null): SceneSpec {
+  return {
+    scenario: {
+      ...storyScenario,
+      siteIds: ["{{example.l2.site_id}}"],
+      focusedSiteId: "{{example.l2.site_id}}",
+    },
+    skyline,
+    timeRange,
+  };
+}
+
+const terrain = lesson2Scene("terrain", null);
+const sunDrag = lesson2Scene("terrain", hoursAround("{{example.l2.example_utc}}", 24));
 
 const shadow =
   "Sunlight / **Shadow**. Reveal: the Lander's eye view at that hour. The ridge looks {{l2.ridge_el_deg}}° tall.";
@@ -71,6 +84,7 @@ export const lesson2 = {
       panel: "LandersEye",
       scene: sunDrag,
       goal: { metric: "sun_frac", op: "<", value: 0.5 },
+      readout: ["{{example.l2.site_name}}"],
       follow: { power: "sun-fraction" },
     },
     {

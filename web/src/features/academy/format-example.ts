@@ -14,6 +14,9 @@
  * | has a `_pct` segment (`_pct` or `_pct_…`)          | percent | none            |
  * | listed in `UNITLESS_KEYS` below                   | none    | as listed       |
  *
+ * A list of numbers uses the same rule on every entry. `_utc` keys, `site_id` and
+ * `site_name` are text, so they are written unchanged.
+ *
  * Angles always show at least one decimal (2.0°, 90.0°, 1.86°), as docs/tracks/README.md
  * asks. Other trailing zeros are dropped, so the data's own precision shows. Thousands are
  * grouped with a comma (4,864), a negative number takes a true minus sign (−0.5), and a

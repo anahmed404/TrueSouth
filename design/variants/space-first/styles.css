@@ -332,6 +332,129 @@ input[type=range]{accent-color:var(--accent);width:90px}
 .loading{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:none}
 .loading.on{display:block}
 
+/* ── the Slip Planner on the Moon ── */
+/* new: --dt-h and --dt-g (strip height and gap), --spot-r (15px); the "chosen by TrueSouth" tag is dotted */
+:root{--dt-h:14px;--dt-g:7px;--spot-r:15px}
+.dates{position:absolute;left:var(--float-gap);right:var(--float-gap);bottom:calc(var(--foot-h) + var(--float-gap));padding:var(--s3) var(--s4);
+  transition:background-color 200ms linear}
+body.stacktl .dates{bottom:calc(var(--foot-h) + 2 * var(--float-gap) + 52px)}
+body.stacktl .strip{height:52px}
+.dates.collapsed{height:52px;overflow:hidden}
+.dates.collapsed .dt-grid{display:none}
+.dt-key{display:inline-flex;gap:var(--s3);font-size:var(--t-sm);color:var(--ink-3)}
+.dt-key span{display:inline-flex;align-items:flex-end;gap:5px}
+.dt-key i{width:14px;height:10px;background:var(--plot);position:relative;display:inline-block}
+.dt-key i::after{content:"";position:absolute;left:0;right:0;bottom:0}
+.dt-key .k-go::after{top:0;background:var(--status-go)}
+.dt-key .k-cau::after{top:50%;background:var(--status-caution)}
+.dt-key .k-nogo::after{height:2px;background:var(--status-nogo)}
+.dates{overflow:hidden}
+.dt-bar{position:absolute;left:0;right:0;top:0;height:2px;background:var(--line)}
+.dt-bar i{display:block;height:100%;background:var(--ink-3);transition:width 200ms linear}
+.dt-grid{display:grid;grid-template-columns:208px minmax(0,1fr) 136px;column-gap:var(--s3);row-gap:var(--dt-g);margin-top:var(--s2);position:relative}
+body.n8 .dt-grid{--dt-h:12px;--dt-g:5px}
+body.n1 .dt-grid{--dt-h:18px}
+body.n1 .dt-grid>.any{display:none}
+.dt-pillrow{grid-row:1;grid-column:1 / -1}
+.dt-lab{grid-column:1;display:flex;align-items:center;gap:var(--s2);min-width:0;font-size:var(--t-md);color:var(--ink-2);text-align:left;white-space:nowrap;border-radius:var(--r-sm)}
+.dt-lab .nm{overflow:hidden;text-overflow:ellipsis}
+.dt-lab .lamp{width:14px;height:14px}
+.dt-lab .lamp svg{width:9px;height:9px}
+.dt-lab .lampslot{display:inline-grid;flex:none}
+.dt-lab.any{color:var(--ink);font-weight:500}
+.dt-lab[aria-current="true"]{color:var(--ink);font-weight:600}
+.dt-lab:hover{color:var(--ink)}
+.dt-lab.var{padding-left:12px}
+.dt-lab .tag{flex:none;font-weight:400}
+.site .ln.lbl{white-space:normal;flex-wrap:wrap;row-gap:2px}
+.dt-s{grid-column:2;position:relative;border-radius:var(--r-sm);overflow:hidden;min-width:0}
+.dt-s svg{display:block;width:100%;height:100%}
+.dt-s.foc{box-shadow:0 0 0 1px var(--ink-3)}
+.dt-s:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dt-s .pending{animation:dt-wait 1.2s linear infinite alternate}
+@keyframes dt-wait{from{opacity:.35}to{opacity:.8}}
+.dt-next{grid-column:3;display:flex;align-items:center;font-size:var(--t-sm);color:var(--ink-3);white-space:nowrap;overflow:hidden}
+.dt-axis{grid-column:2;height:18px}
+.dt-axis svg{display:block;width:100%;height:18px;overflow:visible}
+.dt-over{grid-column:2;position:relative;z-index:2;cursor:ew-resize;touch-action:none}
+.dt-win{position:absolute;top:28px;bottom:22px;background:color-mix(in srgb,var(--accent) 14%,transparent);box-shadow:inset 1px 0 0 var(--ink-3),inset -1px 0 0 var(--ink-3);pointer-events:none}
+.dt-was{position:absolute;top:24px;bottom:0;border-left:1.5px dashed var(--ink-2);pointer-events:none}
+.dt-was span{position:absolute;bottom:0;right:3px;font-size:var(--t-sm);line-height:16px;color:var(--ink-2);background:var(--surface);padding:0 4px;white-space:nowrap}
+.dt-probe{position:absolute;border:1.5px solid var(--ink);border-radius:var(--r-sm);pointer-events:none;min-width:3px;transform:translateX(-1px)}
+.dt-knob{position:absolute;top:0;bottom:22px;width:0;outline:none}
+.dt-knob i{position:absolute;top:20px;bottom:0;left:-1px;width:2px;background:var(--accent)}
+.dt-knob .pill{position:absolute;top:0;left:0;transform:translateX(-50%);height:20px;line-height:20px;padding:0 10px;border-radius:var(--r-pill);background:var(--accent);color:var(--accent-ink);font-size:var(--t-sm);font-weight:500;white-space:nowrap;cursor:grab}
+.dt-knob:focus-visible .pill{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
+.dt-knob.edge-l i,.dt-knob.edge-r i{display:none}
+.dt-knob.edge-l .pill,.dt-knob.edge-r .pill{cursor:pointer}
+.dt-tip{width:280px}
+.dt-tip p{margin-top:4px;color:var(--ink-2);font-size:var(--t-md)}
+.dt-tip p s{color:var(--ink-3)}
+.dt-tip p.lbl{font-size:var(--t-sm);color:var(--ink-3)}
+.dt-tip .t-st{margin-top:4px}
+.tag.var{border:1px dotted var(--ink-3)}
+
+/* spots: a. a lamp with a ring for the score; b. a lit patch on the ground */
+.ovsvg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.ovsvg .patches{mix-blend-mode:screen;filter:blur(7px)}
+.ovsvg .ld{stroke:var(--ink-2);stroke-width:1.2}
+.ovsvg .ldot{fill:var(--ink);stroke:var(--space);stroke-width:1.5}
+.spot{position:absolute;left:0;top:0;width:32px;height:32px;transform:translate(-50%,-50%);pointer-events:auto;border-radius:50%;padding:0}
+.spot .sg{display:block;width:32px;height:32px;overflow:visible}
+.spot.go{--c:var(--status-go)} .spot.caution{--c:var(--status-caution)} .spot.nogo{--c:var(--status-nogo)} .spot.none{--c:var(--ink-3)}
+.sg .back{fill:var(--space);fill-opacity:.85}
+.sg .trk{fill:none;stroke:var(--line-strong);stroke-width:2}
+.sg .arc{fill:none;stroke:var(--ink);stroke-width:2}
+.sg .disc{fill:var(--c)}
+.sg .gl{stroke:#0b0b0c;stroke-width:3.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.sg .foc{fill:none;stroke:var(--accent);stroke-width:1.6}
+.spot.vb .sg .core{fill:var(--space);fill-opacity:.88}
+.spot.vb .sg .gl{stroke:var(--c);stroke-width:3.2}
+.spot:focus-visible{outline:none}
+.spot:focus-visible .sg .back,.spot:focus-visible .sg .core{stroke:var(--accent);stroke-width:2}
+.spot .pl{position:absolute;pointer-events:none;text-align:left}
+.spot[data-side="r"] .pl{left:calc(50% + var(--spot-r) + 4px);top:50%;transform:translateY(-50%)}
+.spot[data-side="l"] .pl{right:calc(50% + var(--spot-r) + 4px);top:50%;transform:translateY(-50%)}
+.spot[data-side="t"] .pl{bottom:calc(50% + var(--spot-r) + 4px);left:50%;transform:translateX(-50%)}
+.spot[data-side="b"] .pl{top:calc(50% + var(--spot-r) + 4px);left:50%;transform:translateX(-50%)}
+.spot[data-side="c"] .pl{left:calc(50% + var(--cx));top:calc(50% + var(--cy))}
+.ovsvg .ldh{stroke:var(--space);stroke-opacity:.7;stroke-width:3.4}
+.ovsvg .ld.co{stroke:var(--ink-2);stroke-width:1.2}
+.spot .pl[hidden]{display:none}
+.spot .l1{display:flex;align-items:baseline;gap:6px}
+.spot .l1 b{font-weight:500}
+.spot .l1 .status,.spot .pl small .status{font-size:var(--t-sm)}
+.spot.on .l1 b{font-weight:600}
+.best{display:inline-flex;align-items:center;gap:4px;font-size:var(--t-sm);color:var(--ink)}
+.best::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink)}
+.offview{position:absolute;left:0;top:0;display:flex;align-items:flex-start;gap:8px;text-align:left;pointer-events:auto;white-space:normal}
+.offview .lamp{margin-top:2px}
+.offview b{font-weight:500}
+.offview .status{font-size:var(--t-sm)}
+.offview small.inl{display:inline;color:var(--ink-2)}
+.offview.on{box-shadow:inset 0 0 0 1px var(--accent)}
+
+/* the controls row and the before and after */
+.ramp{display:inline-flex;gap:2px}
+.ramp i{width:10px;height:8px;background:color-mix(in srgb,var(--sun) var(--v),#0b0b0c);box-shadow:inset 0 0 0 1px var(--line)}
+.vctl .vr{height:16px}
+body.slipview .vctl{flex-wrap:nowrap;white-space:nowrap}
+.key-a{width:20px;height:20px;flex:none;overflow:visible}
+.key-a .trk{fill:none;stroke:var(--line-strong);stroke-width:2.4}
+.key-a .arc{fill:none;stroke:var(--ink);stroke-width:2.4}
+.key-a .disc{fill:var(--status-go)}
+.key-b{display:inline-flex;gap:4px}
+.key-b i{width:12px;height:12px;border-radius:50%;background:var(--status-go)}
+.key-b i:first-child{opacity:.4}
+.slipsum{display:flex;align-items:center;gap:var(--s2);max-width:min(78ch,100%);padding:5px 6px 5px 12px;font-size:var(--t-md);color:var(--ink-2);white-space:normal;text-align:left}
+.slipsum b{color:var(--ink);font-weight:500}
+.slipsum .status{font-size:var(--t-md)}
+.slipsum .was{color:var(--ink-3)}
+.slipsum:not(.on){padding:4px 12px}
+.slipsum .ib{flex:none}
+.stage.fallback.flatok #map{display:block;opacity:1;pointer-events:auto}
+.stage.fallback.flatok .still{display:none}
+
 /* the phone: one column, the scene behind, the focused site as a sheet */
 .phone-only{display:none}
 @media (max-width:700px){
@@ -391,6 +514,34 @@ input[type=range]{accent-color:var(--accent);width:90px}
   details.dis summary{min-height:44px}
   .links a{display:inline-flex;align-items:center;min-height:44px}
   .dopt-b,.proto{height:44px;line-height:42px;min-height:44px}
+  /* the Slip Planner on the phone */
+  .dates{left:var(--float-gap);right:var(--float-gap);padding:var(--s2) var(--s3)}
+  .dates .tl-h{height:44px}
+  .dates .tl-h h2,.dates .tl-h .tl-win,.dates .tl-h .dt-prog,.dates #tgl-d{display:none}
+  .dates .tl-h .ctl{margin-left:0;width:100%}
+  .dates .mseg{width:100%}
+  .dates .mseg button{flex:1}
+  .dt-grid{grid-template-columns:100px minmax(0,1fr) 0;column-gap:var(--s2);--dt-h:12px;--dt-g:4px}
+  body.n8 .dt-grid{--dt-h:10px;--dt-g:4px}
+  .dt-next{display:none}
+  .dt-lab{font-size:var(--t-sm);pointer-events:none}
+  .dt-lab .tag,.dt-key{display:none}
+  .dt-knob{width:44px;margin-left:-22px}
+  .dt-knob i{left:21px}
+  .dt-knob .pill{left:22px}
+  body.slipview .focus{bottom:calc(var(--foot-h) + var(--float-gap) + var(--dates-h) + 8px)}
+  body.slipview .rail.sheet-open{bottom:calc(var(--foot-h) + var(--float-gap) + var(--dates-h) + 8px)}
+  body.slipview .bot-c{bottom:calc(var(--foot-h) + var(--float-gap) + var(--dates-h) + 80px)}
+  .spot{width:44px;height:44px}
+  .spot .sg{margin:6px}
+  .spot .pl{font-size:var(--t-sm)}
+  .offview{min-height:44px;align-items:center}
+  .slipsum{font-size:var(--t-sm)}
+  .vctl .ramp,.vctl .ramp+.lbl,.vctl .key-a,.vctl .key-b{display:none}
+  body.slipview .vctl{flex-wrap:wrap;white-space:normal;row-gap:0;padding:4px 10px 6px}
+  body.slipview .vctl .vr{display:none}
+  .slipsum:not(.on){display:none}
+  .dt-s{pointer-events:none}
   :root{--foot-h:74px}
 }
 @media (prefers-reduced-motion:reduce){

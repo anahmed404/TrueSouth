@@ -98,7 +98,7 @@ describe("scenario store", () => {
     expect(state.focusedSiteId).toBe("fixture_ridge");
     expect(state.landingUtc).toBe(DEFAULT_LANDING_UTC);
     expect(state.currentUtc).toBe(DEFAULT_LANDING_UTC);
-    expect(state.view).toBe("slip");
+    expect(state.view).toBe("system");
     expect(state.notices).toEqual([]);
     expect(DEFAULT_SITE_IDS.every((id) => !catalog.sites.some((site) => site.id === id))).toBe(true);
   });
@@ -286,6 +286,20 @@ describe("scenario store", () => {
 });
 
 describe("shareable scenario link", () => {
+  it("round-trips every view: the four camera views and the two windows", () => {
+    for (const view of ["system", "map", "terrain", "panorama", "slip", "compare"] as const) {
+      const store = createScenarioStore(catalog);
+      store.getState().setView(view);
+      const query = writeScenarioQuery(store.getState());
+      expect(query).toContain(`view=${view}`);
+      const read = readScenarioQuery(query, catalog);
+      expect(read.view).toBe(view);
+      expect(read.notices).toEqual([]);
+      // Reloading the link gives the same view.
+      expect(createScenarioStore(catalog, `?${query}`).getState().view).toBe(view);
+    }
+  });
+
   it("round-trips a preset scenario", () => {
     const store = createScenarioStore(catalog);
     store.getState().setView("compare");
@@ -369,7 +383,7 @@ describe("shareable scenario link", () => {
     expect(offGrid.notices).toEqual(['Ignored the landing date "1999-01-01T00:00Z" because it is outside the time grid.']);
 
     const badView = readScenarioQuery("?sites=fixture_ridge&land=2028-03-14T00:00Z&view=nope", catalog);
-    expect(badView.view).toBe("slip");
+    expect(badView.view).toBe("system");
     expect(badView.landingUtc).toBe("2028-03-14T00:00:00Z");
     expect(badView.siteIds).toEqual(["fixture_ridge"]);
     expect(badView.notices).toEqual(['Ignored unknown view "nope".']);
@@ -416,7 +430,7 @@ describe("shareable scenario link", () => {
     expect(store.getState().view).toBe("map");
 
     history.back();
-    expect(store.getState().view).toBe("slip");
+    expect(store.getState().view).toBe("system");
     expect(store.getState().currentUtc).toBe(hourIndexToUtc(grid, landingHour + 3));
 
     const before = history.index;

@@ -5,39 +5,50 @@ The prompt that drives the orchestrator is [`orchestrator-prompt.md`](orchestrat
 
 ## Now
 
-- **Milestone:** M0 is complete. **M1, the thin slice, is close:** Mission Control's
-  panels run on real Connecting Ridge data; the timeline (MC5) is being built; the
-  Lander's eye (MC6) waits on the space-first design. Checkpoint C2 is owed when MC5
-  merges and the space-first prototype is back.
-- **On `main` (2026-11-13):** S0 to S7, S8 part 1 (slope, terrain mesh), S9 (polar map
-  images and lookup grids); MC0 to MC3, MC4a, MC4b, MC7a (sweep worker); T0; A0, A1, A2,
-  A7. `uv run pytest` passes 207 tests; `pnpm --dir web test` passes 1,230; typecheck
-  and build are clean.
-- **Gates verified:** G1 to G11 (G2 as a direction on the sky, decision 0011).
-- **Real derived data on `main`:** `data/derived/system.bin`, `maps/` (16 MB), and one
-  site, `sites/connecting_ridge/`. S8 part 2 is building the other 19.
-- **Real data on this machine** (`C:\Users\abdal\TrueSouth\data`, never committed): both
-  terrain maps, raw and prepared; all four NASA average sunlight and Earth-visibility
-  maps; 128 MB of saved Horizons responses. Not downloaded: NASA's slope map, the 5 m
-  close-up DEMs, the Moon and Earth textures.
-- **The team lead redirected Mission Control's layout on 2026-11-13** ("space-first", see
-  "Design choices"). A working prototype is being made; no centre view is built in its
-  final form until the team lead has seen it.
-- **Codex** hit its usage limit at about 18:30 local time on 2026-11-13; the team lead
-  used a banked reset and it is available again.
+- **Milestone:** M0 complete. M1 (the thin slice) is done in substance: the panels and the
+  timeline run on real data for all 20 catalog sites. Mission Control is "space-first"
+  (decision 0013): **the shell is merged (#66)**; the 3D scene behind it is being built.
+  Checkpoint C2 is owed when the scene merges.
+- **The challenge statement was read in full on 2026-11-13** and is recorded, with a map
+  from each objective to a feature, in [`../challenge.md`](../challenge.md). It is about
+  the stay on the surface only. Read it before proposing a feature.
+- **On `main` (a389a40):** S0 to S9, S10 (minimal: health and static files), S12
+  (validation), S13 (Docker), S15a (placement, part A), S16 (scene image files); MC0 to
+  MC5, MC4c (the space-first shell) and MC7a (the sweep worker); T0; A0, A1, A2, A4, A5a
+  (lesson types and skeletons for lessons 1 to 4), A7; decisions 0011 to 0013; the
+  space-first prototype with the Slip Planner on the Moon. `uv run pytest` passes 308
+  tests; `pnpm --dir web test` passes 1,577; typecheck, build and schema export are clean.
+- **Gates:** G1 to G9 measured by `validate`; G10 and G11 are checked in the web tests and
+  recorded as "not measured here". Validation: sunlight within 6 points of NASA's map at 13
+  of 14 polar sites, Earth visibility within 4 points at all 14, slope within 1.3° at all
+  13. Two results are outside their marks and are published with explanations.
+- **Real derived data on `main`:** 20 sites, `maps/`, `scene/`, `validation.json`, about
+  60 MB. Not built yet: `academy/worked_examples.json` (S12b is computing it; its
+  definitions are final for lessons 1 to 4, in docs/academy/lessons.md, "Decided on
+  2026-11-13").
+- **Docker works:** `docker compose -p truesouth-s13 up -d --build`, then
+  `http://localhost:8080`. One image, 199 MB, non-root, catalog data only. Data files are
+  served with `Cache-Control: no-cache` and answered with a 304 when unchanged, so a
+  rebuilt file is never masked by a browser's copy.
+- **Codex is logged out** ("Codex CLI is not authenticated") since about 21:00 local time
+  on 2026-11-13. The team lead said they would run `codex login`; the last attempt still
+  failed. Until it works its rows go to Cursor, and reviews of Cursor's work go to
+  Antigravity or are done by the orchestrator. Try Codex once before each routing choice.
+- **Task ids:** `task_status` needs the full id, which starts
+  `node:delegated-task:command%3Amcp%3A…`. The short `delegate-task%3A…` form is refused
+  after a session is resumed.
 
 ## Running now
 
-Each child works in its own worktree and opens a pull request. Five is the limit; the
-team lead allowed a sixth once, for the space-first design.
+Each child works in its own worktree and opens a pull request. Five is the limit.
 
 | Task | Branch | Provider, model, effort | State |
 | :--- | :--- | :--- | :--- |
-| C2 design: space-first Mission Control | `design/c2-space-first` | Claude Code, `claude-opus-5-5`, high | running since about 19:00 |
-| MC5: timeline, scrubber, countdowns, "why is it dark" card | `mc/mc5-timeline` | Claude Code, `claude-opus-5-5`, high | running |
-| Review of S8 part 2 (#56, all 20 catalog sites) | — | Antigravity, `gemini-4-hydrogen`, high | running |
-| Academy lesson types for lessons 1 to 8, typed skeletons for lessons 1 to 4 | `academy/a5a-lesson-types` | Cursor, `grok-4.7`, high | running |
-| Sunlit-peak placement, part A: contract fields and `placement.py` | `science/s15a-placement` | Codex, `gpt-6.1-sol`, high | running |
+| T1 and T2: the 3D scene, with a code-built lander ("Pip") in Local terrain | `three/t1-scene` (was stacked on #66; told to merge `main` and open against `main`) | Claude Code, `claude-opus-5-5`, high | running |
+| MC6: the Lander's eye horizon chart | `mc/mc6-landers-eye` | Claude Code, `claude-opus-5-5`, high | running |
+| Docs: the Slip Planner spec rewritten to the picked design | `docs/slip-planner-on-moon` | Claude Code, `claude-sonnet-5-5`, high | running |
+| S15b: nearby range and best-lit variants in `build-sites` | `science/s15b-placement-build` | Cursor, `grok-4.7`, high | running; about an hour of computing |
+| S12b: `build-worked-examples` for lessons 1 to 4 | `science/s12b-worked-examples` | Cursor, `grok-4.7`, high | running |
 
 ## Site placement: decided
 
@@ -56,41 +67,64 @@ for the listed point and the variant, including the large gaps at `de_gerlache_r
 
 ## What to do next
 
-1. **Space-first prototype:** when it arrives, look at it in a browser, merge, show the
-   team lead the screenshots and the two live choices (solid or see-through panels; a
-   continuous flight or a cross-fade to the pole). After the pick: update
-   docs/features/mission-control.md and the view specs, then build on Opus: the scene
-   (T1, T2) first, then the floating shell, then the Polar map (T7), Local terrain (T3 to
-   T5), Lander's eye (MC6), Slip Planner (MC7 UI) and Compare as that design says.
-2. **MC5:** when its pull request arrives: checks on the merge with `main`, open it on the
-   fixtures and on the real site, review by Codex or Antigravity, merge. Then send
-   checkpoint C2.
-3. **Academy:** A4 is merged (#54). The lesson types are being widened on Cursor, with
-   typed skeletons for lessons 1 to 4. Next: lesson text on Claude Sonnet; then A3 and A5
-   on Opus once the panels they embed exist. Lessons 5 to 8 are out of scope for the
-   deadline.
-4. **S8 part 2:** when its pull request arrives: check the site table, that Connecting
-   Ridge's series is byte-identical, the total size of `data/derived/`; heavy review by a
-   provider other than Codex (Antigravity `gemini-4-hydrogen`, or `gemini-4-argon` if the
-   numbers look odd); merge. Then S12 (validation and worked examples) on Codex
-   `gpt-6.1-sol`, and a minimal S10 (health and static mounts) for Docker (S13).
-5. **Site placement is decided** (decision 0012, #57): listed coordinates stay; each
-   sunlit-peak site reports a nearby range and gets a labelled best-lit variant. Part A
-   (contract fields and `placement.py`) is running on Codex `gpt-6.1-sol`. After it and
-   S8 part 2 merge: part B on Codex (wire into `build-sites`, cache the candidate
-   skylines, build the five variants, fix the catalog wording for Connecting Ridge), then
-   a small Opus task to show the range and the variant label in the panels.
-6. **Scope is decided** (2026-11-13): submit at M2 plus the validation page, Docker and
-   the submission text. Dropped for the deadline: custom sites and "compute for my
-   dates" (S10's job queue, T8), the sensitivity grid (S11), lessons 5 to 8 (A6). The
-   API shrinks to health and static mounts for Docker.
-7. **Update the status board in `DEVLOG.md`** at each checkpoint.
+1. **MC4c (#66): merged.** Its seam for the scene (`SceneProps`): `mode: "3d" | "flat"`
+   (the scene stays mounted), `onStatus(status, report?: { flatViews })`, `onAddSite`,
+   `ignoreSlow`, and `view`, `scenario`, `freeSpace`, `reduceMotion`, `onFocusSite`,
+   `onViewChange`. Small things left for a polish pass: on the phone the "About System
+   view" button is 24 × 24 px; the scrubber's pill covers the "Day 1" label at the start
+   of the timeline.
+2. **T1 and T2:** when the pull request arrives: both test suites on the merge with
+   `main`; open it in a browser with a graphics card (the automated browser falls back to
+   the still picture); a review by Antigravity; merge. Then send checkpoint C2 with
+   screenshots, and tell the team lead how to run it.
+3. **After the scene, on Opus, in parallel:** T7 (Polar map: overlays, labels, the nudge
+   readout, on the flat map the camera ends on), T3 to T5 (Local terrain: overlays, the
+   skyline wall or what replaces it, blockers), MC9 (the Compare window). Each takes the
+   scene's seam as given. MC6 (the Lander's eye horizon chart) is already running; it
+   touches `mission-screen.tsx` in a few lines, so expect a small conflict with T1.
+4. **The Slip Planner: design picked 2026-11-13** (see Design choices). The spec rewrite
+   is running on Sonnet; review it against `design/variants/c2-slip-on-moon.md`, run both
+   test suites (a new CONTEXT.md term can break the glossary test in the web suite), merge.
+   Then build it on Opus after the scene merges, as a fifth camera view, with `useSweeps`;
+   remove the worker's build input from `web/vite.config.ts` then. The shell today still
+   has a "Slip Planner" window button; that build replaces it.
+5. **Custom coordinates (agreed 2026-11-13, after reading the challenge):** a small
+   version, started once the scene and the Polar map are in. The API computes one polar or
+   equatorial point's skyline and series from the prepared maps (about 45 s), no job queue,
+   no "compute for my dates", no sensitivity grid; the web app adds it as a site. It needs
+   the prepared maps at run time, so say what Docker ships or downloads: today's image has
+   only `truesouth_api` and the derived files, not the science package or the prepared
+   maps, and `/api/custom/…` answers 501. Science part on Cursor or Codex; the entry form
+   on Opus.
+6. **Sunlit-peak variants (S15b):** when the pull request arrives, check the table against
+   decision 0012 to three decimals and that the 20 existing sites are byte-identical;
+   review; merge. Then a small Opus task: show the nearby range, the variant label ("chosen
+   by TrueSouth, an upper reading") and the Artemis "map centre, not a chosen landing
+   point" note in the sites rail and the focused-site panel.
+7. **Academy lessons 1 to 4:** the worked-example definitions are final (#70). When
+   S12b's pull request arrives: check its numbers against the readings in
+   docs/academy/lessons.md ("Decided on 2026-11-13"), review by a provider other than
+   Cursor, merge. Then the lesson wording on Claude Sonnet (the list "Lesson text that
+   must change to match" is in that section); A3 (the three panel step kinds) and A5 on
+   Opus once the panels exist.
+8. **A8, the validation page** (Opus): `validation.json` is ready. A gate with a null
+   `passed` reads "checked in the web tests", never "failed".
+9. **Docker (S13): merged (#71).** Left from its review, none urgent: no gzip
+   compression of responses; `/assets/` with a trailing slash returns the app's page;
+   base images are pinned by tag, not by digest. Rebuild and try the image again before
+   the submission, once the scene is in.
+10. **A11, submission materials**, last: [`../challenge.md`](../challenge.md) is the
+    objective-to-feature map.
+11. **Update the status board in `DEVLOG.md`** at each checkpoint.
 
 ## How to brief and check agents: lessons so far
 
 - **Completions do not always wake you.** A child that finishes while you are mid-turn is
   not announced, or is announced late. At the start of every turn run `gh pr list`, and
   call `task_status` on anything that has run longer than expected.
+- **Say where a child may not write.** The Docker child wrote two context files under
+  `~/.docker/contexts/meta/`, outside the repo and outside its brief. A brief that touches
+  Docker, a global tool or a user profile says: change nothing outside the worktree.
 - **Read each check's exit code directly.** Piping a check into `grep` or `tail` hid a
   typecheck failure and a broken change was merged (#18, fixed by #19). Use
   `cmd > log 2>&1; echo exit=$?`.
@@ -145,6 +179,22 @@ for the listed point and the variant, including the large gaps at `de_gerlache_r
   main checkout.** Write `cd <path> || exit 1`.
 - **Test a rule at more than one site before recommending it.** The placement rule came
   from one site and failed at another.
+
+- **Run both test suites before every merge, documents included.** Two docs-only merges
+  broke `main`: a test ties the catalog document to the catalog file, and another ties
+  CONTEXT.md's glossary to `explain.ts`.
+- **`pnpm --dir web gen:types` reads `schema.json`; it does not rebuild it.** Run
+  `uv run truesouth export-schema` first, or gate G11's "no diff" proves nothing.
+- **A finished child does not always wake the orchestrator.** The team lead noticed only
+  two of five were running. Check `task_status` whenever a task has gone quiet for longer
+  than its kind usually takes, and after every merge.
+- **The automated browser has no graphics card.** It shows the scene's still-picture
+  fallback. 3D must be judged from the author's captures or by the team lead.
+- **The browser tool can read pages the command-line tools cannot** (it validates
+  certificates with its own root store). That is how the challenge page was read. Never
+  disable a certificate check.
+- **Read the source of a requirement before cutting scope.** Custom coordinates were cut
+  before anyone had read the challenge statement, which lists them.
 
 ## Follow-ups to put in later briefs
 
@@ -205,6 +255,14 @@ for the listed point and the variant, including the large gaps at `de_gerlache_r
 | 2026-11-13 | A sixth child ran for a time (the space-first design). | The team lead asked for it to start at once. |
 | 2026-11-13 | Numbers on screen never contradict a verdict: a value and its limit gain decimals until they differ, and scores round down. Angles from data show at least one decimal. | From the MC4b and A4 reviews. |
 | 2026-11-13 | **The team lead: "Go with your recommendations till now."** That settled: site placement (decision 0012); the scope for the deadline; solid panels as the default for the space-first design unless the prototype changes their mind; Pip's power meter carries no provenance tag; the unused confetti is removed; weights stay number boxes; the "worst broken rule" order; the orchestrator's own review of S9. | Unanswered questions were holding up nothing yet, but the placement question blocked honest results at five sites. |
+| 2026-11-13 | **Space-first Mission Control** (decision 0013): the team lead's direction; prototype approved with "No objections" (solid panels, one continuous flight to the pole, the 4K Moon by default). | See "Design choices". |
+| 2026-11-13 | The Slip Planner becomes a view over the pole: spots at the sites that change with a landing-date slider, and thin status strips below. No colour on the ground between sites; NASA's long-term average sunlight may shade the ground, in one warm tone, labelled as an average. | The team lead's idea; results exist only at sites, and red and amber already mean NO-GO and CAUTION. The team lead: "we don't need to compute each and every pixel". |
+| 2026-11-13 | A code-built lander ("Pip") stands at the site in Local terrain, larger than life and labelled so; its panel faces the Sun and its dish Earth. No landing animation. | The team lead asked whether the lander would appear as a spacecraft. |
+| 2026-11-13 | Custom coordinates return to scope in a small form. | The challenge's first objective lists them; the cut was made before anyone had read the full statement. Agreed by the team lead. |
+| 2026-11-13 | `Gate.passed` and `Gate.measured` may be null: "not measured by this command". | G10 and G11 are checked in the web tests; writing them as failed would mislead the validation page. |
+| 2026-11-13 | The scene build fingerprints its inputs by content hash, not modification time. | `scene/meta.json` is committed, and modification times differ on every checkout. |
+| 2026-11-13 | The orchestrator reviewed S16 (#67) itself, as it had S9. | Codex was logged out and Antigravity's plan is small; the outputs matched the prototype's files pixel for pixel and an independent check of the aprons agreed within the encoding step. |
+| 2026-11-13 | Lesson settings the lesson document left open were decided and written into it as "Exact settings" lines (the sketch window, the drag range, two sliders, lesson 4's unlocks). | The skeleton had quietly picked values. |
 
 ## Model tiers
 
@@ -230,11 +288,15 @@ Ids are from [`../build-plan.md`](../build-plan.md). Anything not listed is not 
 
 | Track | Verified | In review | In progress |
 | :--- | :--- | :--- | :--- |
-| Science (S0–S14) | S0 to S7, S8 part 1, S9 | S8 part 2 (#56) | placement part A (decision 0012) |
-| Mission Control (MC0–MC7, MC9, MC11) | MC0 to MC3, MC4a, MC4b, MC7a (the sweep worker) | — | MC5 |
-| 3D and Map (T0–T8) | T0 | — | — (waits on the space-first design) |
-| Academy (A0–A11) | A0, A1, A2, A4, A7 (first draft) | — | lesson types for A5 |
-| Design | C1: the approved look (C2), the Mission Control flow. C2: the Academy screens and flow (picked and built); four Mission Control views (superseded by space-first; their content carries over) | — | C2: space-first Mission Control |
+| Science (S0–S16) | S0 to S9, S10 (minimal), S12 (validation), S13 (Docker), S15a, S16 | — | S15b (variants), S12b (worked examples) |
+| Mission Control (MC0–MC7, MC9, MC11) | MC0 to MC5, MC4c (the space-first shell), MC7a (the sweep worker) | — | MC6 (the Lander's eye horizon chart) |
+| 3D and Map (T0–T8) | T0 | — | T1 and T2 (the scene) |
+| Academy (A0–A11) | A0, A1, A2, A4, A5a (lesson types and skeletons), A7 (first draft) | — | — |
+| Design | The approved look (C2); the Academy screens (built); space-first Mission Control (approved, decision 0013); the Slip Planner on the Moon (picked; #69) | — | — |
+| Docs | The challenge map (#68); final worked-example definitions (#70) | — | The Slip Planner spec |
+
+Out of scope for the deadline: T8's "compute for my dates", S10's job queue, S11 (the
+sensitivity grid), A6 (lessons 5 to 8).
 
 ## Waiting on the team lead
 
@@ -242,8 +304,10 @@ An unanswered question takes the orchestrator's recommendation.
 
 | Question | Asked at | Blocks | Running meanwhile |
 | :--- | :--- | :--- | :--- |
-| Space-first Mission Control: solid or see-through panels, and a continuous camera flight or a cross-fade to the polar map? | to be asked with the prototype | every centre view in its final form (T1 to T7, MC6, MC7 UI, Compare) | panels, timeline, sweep worker, science, the Academy |
+| Run `codex login` in a terminal (Codex is logged out). | 2026-11-13, twice; the team lead said "give me 5 mins", and it still failed afterwards | nothing outright; Cursor carries Codex's work | everything |
+| Delete the stray `default` file a Docker child wrote under `~/.docker/contexts/meta/`? It makes `docker context ls` show `default` twice. The orchestrator will not touch `~/.docker` without a yes. | 2026-11-13 | nothing | — |
 | Links for the five retagged profile values | 2026-11-13 | nothing; they show as assumed until a link arrives | — |
+| The 12 terms the spec rewrite added to CONTEXT.md, and the "Proposed:" items in the space-first specs and in MC4c (#66) | listed in #64 and #66 | nothing; built as proposed | — |
 
 ## Design choices
 
@@ -260,6 +324,8 @@ An unanswered question takes the orchestrator's recommendation.
 | C2 | Academy lesson complete | **Variant a:** the patch as the hero in one column, then stars, XP, the recap and the panel the learner built. Picked 2026-11-13. | The team lead's pick. |
 | C2 | A correct answer | **A green check.** It replaces the designer's moonlight-white mark: GO green with the check glyph and the word "Correct", kept off status lamps. A miss is still never red. | The team lead: "we can do a green check its fine". |
 | C2 | Mission Control's core layout | **Space-first, directed by the team lead on 2026-11-13.** The System view (a 3D Sun, Earth and Moon) is the home of Mission Control and fills the window. The interface floats above it in the same layout, panels still collapsible. A floating top bar picks the view and the camera does the switching: it flies to the south pole and the flat Polar map takes over; it continues down for Local terrain and the Lander's eye. The Slip Planner and Compare open as floating windows. Earth gets a real texture, the Sun must look good, and the Moon must be sharp: an 8K or 4K NASA globe with our 80 m shaded relief over the polar cap. Local terrain must read as part of the Moon, not a disc. A prototype is being made before anything final is built. | The team lead: "I want the main view to be the system view... the UI elements to kind of float above the space view". This replaces the a-or-b question for the four views; the a variants' content carries over. |
+| C2 | The Slip Planner | **A camera view on the Moon, not a window; spots are variant a, the lamp and ring.** Picked 2026-11-13: "For the slip planner go with your recommendations". The camera stops above the south pole; each selected site is a status lamp with a ring that fills to the score; the bottom panel swaps to landing dates (a strip per site, an "Any site" line, a date slider); the ground's light is fixed; NASA's average sunlight is an optional dark-to-bright shading with its label; the ground between sites is never coloured by date. Prototype and note: `design/variants/c2-slip-on-moon.md` (#69). | The team lead asked for the Moon's surface with a slider instead of rectangles of colour, then took the designer's recommendations. |
+| C2 | A lander in the 3D view | **Yes: a small code-built lander ("Pip") at the site in Local terrain.** Asked for by the team lead on 2026-11-13; part of T1. | "will we have the lander in the 3d view as a spaceship?" |
 | C2 | Skyline sketch XP | **Scored on closeness:** a closer sketch earns more XP. docs/academy/overview.md needs the rule written down beside the 10/5/2 rule for answers. | The team lead took the recommendation on 2026-11-13. |
 
 The shell, start screen and shared components are built in this look (MC4a, #34).
@@ -334,11 +400,34 @@ One line per delegated task: date, work package, provider, model, effort, outcom
 | 2026-11-13 | A4 review fixes | Claude Code | `claude-opus-5-5` | high | merged (#54) |
 | 2026-11-13 | Academy lesson types and skeletons for lessons 1 to 4 | Cursor | `grok-4.7` | high | running |
 | 2026-11-13 | Sunlit-peak placement, part A (decision 0012) | Codex | `gpt-6.1-sol` | high | running |
+| 2026-11-13 | MC5 and its review fixes | Claude Code | `claude-opus-5-5` | high | merged (#59) |
+| 2026-11-13 | Review of MC5 | Antigravity | `gemini-4-hydrogen` | high | six must-fix findings, found by using it in a browser |
+| 2026-11-13 | Lesson types (A5a) and review fixes | Cursor | `grok-4.7` | high | merged (#61) |
+| 2026-11-13 | Review of A5a | Codex | `gpt-6.1-terra` | high | five findings, mostly quiet guesses where the lesson document was vague |
+| 2026-11-13 | Placement part A (S15a) | Codex | `gpt-6.1-sol` | high | merged (#60); two review fixes made by the orchestrator |
+| 2026-11-13 | Review of S15a | Cursor | `grok-4.7` | high | two findings; reproduced two sites on real data |
+| 2026-11-13 | S12, validation | Codex | `gpt-6.1-sol` | high | stopped once, correctly, on undefined lesson numbers; merged (#63) after fixes by Cursor |
+| 2026-11-13 | Review of S12 | Antigravity | `gemini-4-hydrogen` | high | reproduced every row; three surviving mutations |
+| 2026-11-13 | S12 review fixes | Cursor | `grok-4.7` | high | all closed in one run |
+| 2026-11-13 | C2 design, space-first Mission Control | Claude Code | `claude-opus-5-5` | high | merged (#62); approved |
+| 2026-11-13 | Specs for space-first (decision 0013) | Claude Code | `claude-sonnet-5-5` | high | merged (#64); it added glossary terms that broke a web test (fixed in #65) |
+| 2026-11-13 | S16, scene image files | Cursor | `grok-4.7` | high | merged (#67); the orchestrator reviewed it and replaced modification times with hashes |
+| 2026-11-13 | MC4c, the space-first shell | Claude Code | `claude-opus-5-5` | high | merged (#66) after the review fixes |
+| 2026-11-13 | Review of MC4c | Antigravity | `gemini-4-hydrogen` | high | eleven findings |
+| 2026-11-13 | MC4c review fixes | Claude Code | `claude-opus-5-5` | high | all eleven closed in one run |
+| 2026-11-13 | T1 and T2, the 3D scene | Claude Code | `claude-opus-5-5` | high | running |
+| 2026-11-13 | C2 design, the Slip Planner on the Moon | Claude Code | `claude-opus-5-5` | high | merged (#69); variant a picked |
+| 2026-11-13 | S10 minimal and S13, Docker | Cursor | `grok-4.7` | high | merged (#71); it wrote two context files under `~/.docker`, outside its brief |
+| 2026-11-13 | Review of S13 | Antigravity | `gemini-4-hydrogen` | high | approve; six follow-ups, four fixed by the orchestrator |
+| 2026-11-13 | S15b, variants in build-sites | Cursor | `grok-4.7` | high | running |
+| 2026-11-13 | S12b, worked examples | Cursor | `grok-4.7` | high | running |
+| 2026-11-13 | Slip Planner spec rewrite | Claude Code | `claude-sonnet-5-5` | high | running |
+| 2026-11-13 | MC6, the Lander's eye horizon chart | Claude Code | `claude-opus-5-5` | high | running |
 
-Totals so far: Claude Code 15 (14 Opus, 1 Sonnet), Codex 23 (19 terra, 4 sol), Cursor 15
-(14 `grok-4.7`, 1 `grok-4.6`), Antigravity 10 (3 flash, 5 hydrogen, 2 argon). Codex hit its
-usage limit once (about 18:30 local time on 2026-11-13); the team lead reset it. Three
-Opus tasks often run at once because every screen goes to Opus; watch for its limit.
+Totals so far: Claude Code 24 (21 Opus, 3 Sonnet), Codex 26 (21 terra, 5 sol), Cursor 23
+(22 `grok-4.7`, 1 `grok-4.6`), Antigravity 15 (3 flash, 10 hydrogen, 2 argon). Codex hit its
+usage limit once and was reset by the team lead; later the same evening it was logged
+out. Three Opus tasks often run at once because every screen goes to Opus.
 
 ## Open questions for the team lead
 

@@ -4,7 +4,7 @@ A 3D scene of the Sun, Earth and Moon at the scrubber's time. It is the home of 
 Control: it fills the window and is always behind the interface. It shows the whole
 geometry of a mission at once: where the site is, where daylight is, and where Earth is.
 
-The other camera views (the Polar map, Local terrain and Lander's eye) are not separate
+The other camera views (the Polar map, the Slip Planner, Local terrain and Lander's eye) are not separate
 screens. They are camera moves in this same scene. Why:
 [`../decisions/0013`](../decisions/0013-space-first-mission-control.md). How the interface
 sits on top of it: [`mission-control.md`](mission-control.md).

@@ -1,7 +1,7 @@
 # Polar map
 
 A flat map of the south polar region. It is where users see their sites on the ground and
-see how much a small move matters. It is one of the four camera views of Mission Control:
+see how much a small move matters. It is one of the five camera views of Mission Control:
 the camera flies to the pole, and the flat map takes over.
 
 Owner: 3D and Map track. Folder: `web/src/features/polar-map/`.

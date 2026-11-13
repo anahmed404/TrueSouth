@@ -68,11 +68,14 @@ export const SitesRail = memo(function SitesRail({ collapsed, onToggle, regionRe
 
       <div id={`${REGION_ID}-body`} className="rail-body">
         {collapsed ? (
-          <ul className="rail-lamps" aria-label="Site status">
-            {siteIds.map((id) => (
-              <RailLamp key={id} siteId={id} name={siteName(byId(id), id)} profile={profile} landingUtc={landingUtc} focused={id === focusedSiteId} />
-            ))}
-          </ul>
+          <>
+            <ul className="rail-lamps" aria-label="Site status">
+              {siteIds.map((id) => (
+                <RailLamp key={id} siteId={id} name={siteName(byId(id), id)} profile={profile} landingUtc={landingUtc} focused={id === focusedSiteId} />
+              ))}
+            </ul>
+            <AddSite selected={siteIds} compact />
+          </>
         ) : (
           <SiteList siteIds={siteIds} focusedSiteId={focusedSiteId} profile={profile} landingUtc={landingUtc} byId={byId} />
         )}
@@ -358,20 +361,31 @@ const GROUP_NAMES: Record<Site["group"], string> = {
 };
 
 /** "Add site": the catalog sites not yet selected, grouped, up to eight in all. */
-function AddSite({ selected }: { selected: readonly string[] }) {
+/**
+ * "Add site": the catalog sites not yet selected. In the folded rail (`compact`) the button
+ * is a 44 px square with only the plus, named "Add site" for screen readers.
+ */
+function AddSite({ selected, compact = false }: { selected: readonly string[]; compact?: boolean }) {
   const store = useScenarioStore();
   const sites = useSites();
   const full = selected.length >= MAX_SITES;
+  const name = full ? `Add site (${MAX_SITES} is the most)` : "Add site";
 
   return (
     <Popover
       label="Add a site"
       width={320}
-      trigger={(props) => (
-        <Button {...props} size="md" className="rail-add" icon={<Plus size={16} strokeWidth={1.8} aria-hidden="true" />} disabled={full}>
-          {full ? `Add site (${MAX_SITES} is the most)` : "Add site"}
-        </Button>
-      )}
+      trigger={(props) =>
+        compact ? (
+          <button {...props} type="button" className="btn btn-quiet rail-add-compact" aria-label={name} title={name} disabled={full}>
+            <Plus size={18} strokeWidth={1.8} aria-hidden="true" />
+          </button>
+        ) : (
+          <Button {...props} size="md" className="rail-add" icon={<Plus size={16} strokeWidth={1.8} aria-hidden="true" />} disabled={full}>
+            {name}
+          </Button>
+        )
+      }
     >
       {(close) => {
         if (sites.status === "loading") return <p className="pick-note">Loading the site catalog…</p>;
