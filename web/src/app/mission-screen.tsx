@@ -14,8 +14,8 @@ import { ScenarioProvider, useScenario, useScenarioStore } from "./mission/scena
 import { windowPlacement, type Rect, type ShellState } from "./mission/free-space";
 import { SceneSlot } from "./mission/scene-slot";
 import { SpaceScene } from "../features/three/scene";
-import { LandingDatePanel, SlipPlannerScene, slipStore, type LandingWrite } from "../features/mission-control/slip-planner";
-import type { SceneProjector } from "./scene";
+import { LandingDatePanel, SLIP_PLANNER_LAYER, slipStore, type LandingWrite } from "../features/mission-control/slip-planner";
+import { POLAR_MAP_LAYER } from "../features/polar-map";
 import { useStore } from "zustand";
 import { TRY_AGAIN_ANNOUNCEMENT } from "./mission/scene-status";
 import {
@@ -85,6 +85,9 @@ export function MissionScreen() {
  * any floating window float above it. The floating layout is a CSS grid over the whole
  * window; the empty cell in its middle is the free space the scene reads.
  */
+/** The flat layers over the scene: the Polar map's flat map, and the Slip Planner's spots. */
+const FLAT_LAYERS = [POLAR_MAP_LAYER, SLIP_PLANNER_LAYER] as const;
+
 function MissionShell() {
   const store = useScenarioStore();
   const [layout, setLayout] = useShellLayout();
@@ -273,7 +276,6 @@ function MissionShell() {
 
   // ── The Slip Planner: spots over the scene, landing dates in the timeline's slot ──
   const slip = state.camera === "slip";
-  const [projector, setProjector] = useState<SceneProjector | null>(null);
   const slipShading = useStore(slipStore, (s) => s.shading);
   useEffect(() => {
     if (!slip) slipStore.getState().leave();
@@ -307,6 +309,7 @@ function MissionShell() {
 
       <SceneSlot
         Scene={SpaceScene}
+        flat={FLAT_LAYERS}
         view={state.camera}
         scenario={scenario}
         freeSpace={freeSpace}
@@ -315,24 +318,9 @@ function MissionShell() {
         onViewChange={setCameraView}
         onAddSite={addSite}
         onTryAgain={tryAgain}
-        onProjector={setProjector}
+        onProjector={slipStore.getState().setProjector}
         slipShading={slipShading}
-      >
-        {slip
-          ? (scene) => (
-              <SlipPlannerScene
-                projector={projector}
-                mode={scene.mode}
-                canTryAgain={scene.canTryAgain}
-                onTryAgain={scene.tryAgain}
-                freeSpace={freeSpace}
-                scenario={scenario}
-                phone={phone}
-                onFocusSite={focusSite}
-              />
-            )
-          : undefined}
-      </SceneSlot>
+      />
 
       <FootStack
         ref={footRef}

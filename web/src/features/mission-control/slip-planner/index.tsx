@@ -7,3 +7,4 @@
 export { LandingDatePanel, type LandingDatePanelProps, type LandingWrite } from "./landing-date-panel";
 export { SlipPlannerScene, SHADING_LABEL, FLAT_NOTE, type SlipPlannerSceneProps } from "./spots-layer";
 export { slipStore } from "./slip-store";
+export { SLIP_PLANNER_LAYER } from "./layer";

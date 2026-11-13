@@ -5,7 +5,6 @@ import { DAY_CAUTION, DAY_GO, DAY_NOGO, DAY_NONE } from "../../../lib/scoring/sl
 import { anyReadout } from "./readout";
 import { nextGo, nextGoWords } from "./next-go-words";
 import { MOON_RADIUS_M } from "../../../lib/geo";
-import { flatProjection } from "./flat";
 import {
   DAY_PENDING,
   anyNextGo,
@@ -343,7 +342,7 @@ describe("the best-lit variant", () => {
     expect(variantOf(variant)).toBe("connecting_ridge");
     expect(variantOf(parent)).toBeNull();
     expect(Math.round(metresApart(variant, parent, MOON_RADIUS_M))).toBe(149);
-    expect(variantLine(metresApart(variant, parent, MOON_RADIUS_M), parent.name)).toBe("Best-lit variant, 149 m from Connecting Ridge");
+    expect(variantLine(metresApart(variant, parent, MOON_RADIUS_M), parent.name)).toBe("Best-lit map pixel, 149 m from Connecting Ridge");
   });
 
   it("comes last in the spots' priority", () => {
@@ -362,24 +361,6 @@ describe("sites outside the view and the flat fallback", () => {
     expect(offViewWhere(-69.4)).toBe("at 69°S");
   });
 
-  it("with 3D off, every site with 16 km around it fits the free space, north up", () => {
-    const space = { x: 272, y: 120, width: 824, height: 520, viewport: { width: 1440, height: 900 }, windowOpen: false };
-    const sites = [
-      { latDeg: -89.45, lonDeg: 222.69 },
-      { latDeg: -85.99, lonDeg: 0.97 },
-      { latDeg: -84.79, lonDeg: 1.39 },
-    ];
-    const flat = flatProjection(sites, space);
-    for (const s of sites) {
-      const p = flat.project(s.latDeg, s.lonDeg);
-      expect(p.x).toBeGreaterThan(space.x + 90);
-      expect(p.x).toBeLessThan(space.x + space.width - 90);
-      expect(p.y).toBeGreaterThan(space.y);
-      expect(p.y).toBeLessThan(space.y + space.height);
-    }
-    // 0° E (map north) is up the screen from the pole.
-    expect(flat.project(-85, 0).y).toBeLessThan(flat.project(-90, 0).y);
-  });
 });
 
 describe("the shading is never on without its label", () => {

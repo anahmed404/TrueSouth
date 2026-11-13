@@ -13,13 +13,10 @@ export function sceneMode(status: SceneStatus | null, ignoreSlow: boolean): Scen
 
 /**
  * Whether the shell shows its still picture over the scene: in flat mode, for a camera view
- * the scene has not said it can draw flat. Never in the Slip Planner: with 3D off it draws
- * its own flat ground under the same spots (docs/features/slip-planner.md, "When 3D is off"),
- * in place of the still picture for this view only.
+ * the scene has not said it can draw flat.
  */
 export function showStill(mode: SceneMode, report: SceneReport | null, view: CameraViewId): boolean {
   if (mode === "3d") return false;
-  if (view === "slip") return false;
   return !(report?.flatViews ?? []).includes(view);
 }
 

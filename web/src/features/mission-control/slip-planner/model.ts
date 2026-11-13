@@ -300,9 +300,18 @@ export function metresApart(a: Pick<Site, "lat_deg" | "lon_deg">, b: Pick<Site, 
   return 2 * radiusM * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-/** "Best-lit variant, 149 m from Connecting Ridge". */
+/** What a best-lit variant is called, as on the Polar map (polar-map/readout.ts). */
+export const VARIANT_NAME = "Best-lit map pixel";
+
+/** "Best-lit map pixel, 149 m from Connecting Ridge": the Polar map's words. */
 export function variantLine(metres: number, parentName: string): string {
-  return `Best-lit variant, ${Math.round(metres)} m from ${parentName}`;
+  return `${VARIANT_NAME}, ${Math.round(metres)} m from ${parentName}`;
+}
+
+/** How far a variant is from its parent: the catalog's `offset_m` when given, else measured. */
+export function variantMetres(site: Site, parent: Site, radiusM: number): number {
+  const offset = (site as Site & { offset_m?: number | null }).offset_m;
+  return typeof offset === "number" && Number.isFinite(offset) ? offset : metresApart(site, parent, radiusM);
 }
 
 /** Where an off-view site is, for its note: "near the equator", "at 69°S". */

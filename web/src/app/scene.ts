@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import type { FreeSpace } from "./mission/free-space";
 import type { CameraViewId } from "./mission/views";
 import type { Scenario } from "./panel";
@@ -123,4 +124,27 @@ export type ScreenPoint = {
 export type SceneProjector = {
   project: (latDeg: number, lonDeg: number) => ScreenPoint;
   subscribe: (onFrame: () => void) => () => void;
+};
+
+/**
+ * What a flat layer over the scene gets: the scene's props, how the scene draws (`mode`), and
+ * the last flight's arrival (null before the first one lands).
+ */
+export type FlatLayerProps = Omit<SceneProps, "onStatus" | "ignoreSlow" | "onArrive"> & {
+  arrival: SceneArrival | null;
+  /** True when 3D is off only because it was slow, so "Try 3D anyway" can help. */
+  canTryAgain: boolean;
+  /** "Try 3D anyway", as on the still picture. */
+  onTryAgain: () => void;
+};
+
+/**
+ * A 2D layer the shell draws over the scene for some camera views, such as the Polar map's
+ * flat map (work package T7). It needs no WebGL, so for its `views` the shell never puts the
+ * still picture up, in flat mode too: it counts them as views that can be drawn flat, together
+ * with the scene's own `SceneReport.flatViews`.
+ */
+export type FlatLayer = {
+  views: readonly CameraViewId[];
+  Layer: ComponentType<FlatLayerProps>;
 };

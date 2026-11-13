@@ -894,29 +894,10 @@
     width: calc(100% - 16px);
   }
 
-  /* ── 3D off: the dimmed polar relief, and the average sunlight in Sun cream ── */
-  .slip-flat {
+  /* ── 3D off: the flat Polar map under the spots; it takes the drags and the zoom ── */
+  .slip-flat-map {
     position: absolute;
     inset: 0;
-    overflow: hidden;
-    background: var(--space);
-  }
-
-  .slip-flat-relief,
-  .slip-flat-sunlight {
-    position: absolute;
-    max-width: none;
-  }
-
-  .slip-flat-relief {
-    opacity: 0.32;
-  }
-
-  .slip-flat-sunlight {
-    background: var(--sun);
-    opacity: 0.45;
-    mask-mode: luminance;
-    mask-size: 100% 100%;
-    mask-repeat: no-repeat;
+    pointer-events: auto;
   }
 }

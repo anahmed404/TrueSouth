@@ -163,7 +163,10 @@ function Spots() {
   const scenario = useScenario(selectScenario);
   return createElement(SlipPlannerScene, {
     projector: null,
-    mode: "flat",
+    // 3D with no projector yet: the spots are rendered (unplaced); flat mode would mount the
+    // real Polar map, which this fake DOM cannot draw.
+    mode: "3d",
+    reduceMotion: true,
     canTryAgain: false,
     onTryAgain: () => undefined,
     freeSpace: { x: 0, y: 0, width: 800, height: 500, viewport: { width: 1440, height: 900 }, windowOpen: false },

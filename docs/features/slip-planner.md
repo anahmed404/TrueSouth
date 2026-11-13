@@ -88,8 +88,9 @@ it, which is under one pixel
 - **Labels never overlap.** Each label tries right, left, below and above. If none is free,
   it moves out as a callout with a hairline back to its spot. Only when no callout fits does
   a site show its lamp alone, with its name on hover.
-- **The best-lit variant** keeps its own spot. Its label says "Best-lit variant, 149 m from
-  Connecting Ridge" with a dotted "chosen by TrueSouth" tag. The sites rail, its strip row and
+- **The best-lit variant** keeps its own spot. Its label says "Best-lit map pixel, 149 m from
+  Connecting Ridge" (the Polar map's words; the distance is the catalog's `offset_m`) with a
+  dotted "chosen by TrueSouth" tag. The sites rail, its strip row and
   the focused-site panel say the same. The focused-site panel adds "Its sunlight is an upper
   reading".
 
@@ -290,18 +291,20 @@ At 390 × 844:
 The Slip Planner does not need WebGL. With no WebGL, or when the first flight is too slow,
 the view uses the flat Polar map with the same spots.
 
-- The map is dimmed. NASA's average sunlight, when the shading is on, is drawn on it with the
-  same label.
+- The map is the Polar map's own (`MapCore`, features/polar-map/) with no pins of its own
+  (the spots are the Slip Planner's, placed through the map's projector) and none of its
+  readouts (no "New site here?", no nudge, no hover readout: its `readouts` prop is off).
+  NASA's average sunlight, when the shading is on, is its "sunlight" overlay, with the same
+  label. Its zoom and drag move the map, and the spots follow.
 - Crater names are hidden, so they do not collide with the labels.
 - The same slider, strips, before-and-after and panels all work, and the bottom panel is
   unchanged: it still shows landing dates.
 - A note says: "3D is off, so your sites are shown on the flat Polar map. The spots, the
   landing dates and the panels work as in 3D."
 
-This replaces the still picture for this view only. Until the flat Polar map (work package
-T7) can draw under the spots, the Slip Planner draws a stand-in: the polar relief image,
-dimmed, placed by the same projection, with the average sunlight on it when the shading is
-on.
+This replaces the still picture for this view only: the Slip Planner is a flat layer of the
+scene slot (`SLIP_PLANNER_LAYER`, the same mechanism as the Polar map's `POLAR_MAP_LAYER`), so
+the shell counts its view as drawable flat.
 
 ## Done when
 

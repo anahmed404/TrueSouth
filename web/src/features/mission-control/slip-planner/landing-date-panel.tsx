@@ -37,12 +37,13 @@ import {
   followStart,
   isWholeDay,
   lastLandingDay,
-  metresApart,
   panStart,
   sliderKey,
   stripKey,
   stripMetrics,
+  VARIANT_NAME,
   variantLine,
+  variantMetres,
   variantOf,
   zoomDays,
   type SiteResult,
@@ -665,7 +666,7 @@ const RowLabel = memo(function RowLabel({ row, top, rowHeight, status, missing, 
   const parentId = site ? variantOf(site) : null;
   const parent = parentId ? (catalog?.find((s) => s.id === parentId) ?? null) : null;
   const name = site?.name ?? row.siteId;
-  const variantText = parent && site ? variantLine(metresApart(site, parent, MOON_RADIUS_M), parent.name) : null;
+  const variantText = parent && site ? variantLine(variantMetres(site, parent, MOON_RADIUS_M), parent.name) : null;
   const Tag = compact ? "span" : "button";
   return (
     <Tag
@@ -679,7 +680,7 @@ const RowLabel = memo(function RowLabel({ row, top, rowHeight, status, missing, 
       onClick={compact ? undefined : () => onFocusSite(row.siteId)}
     >
       {lamp}
-      <span className="ldp-name">{parentId ? "Best-lit variant" : name}</span>
+      <span className="ldp-name">{parentId ? VARIANT_NAME : name}</span>
       {parentId ? <span className="tag tag-chosen">chosen by TrueSouth</span> : null}
       {site?.terrain_tier === "sphere" ? <span className="ldp-note">terrain not modelled</span> : null}
     </Tag>

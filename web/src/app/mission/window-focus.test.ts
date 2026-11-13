@@ -86,8 +86,6 @@ describe("the scene's mode and the shell's still picture", () => {
     expect(showStill("flat", { flatViews: [] }, "map")).toBe(true);
     expect(showStill("flat", { flatViews: ["map"] }, "map")).toBe(false);
     expect(showStill("flat", { flatViews: ["map"] }, "terrain")).toBe(true);
-    // The Slip Planner draws its own flat ground and spots instead of the still picture.
-    expect(showStill("flat", { flatViews: [] }, "slip")).toBe(false);
   });
 
   it("says why, names the current view, and says the rest still works", () => {

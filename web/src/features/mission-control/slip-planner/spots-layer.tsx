@@ -7,23 +7,25 @@ import { scoreText } from "../../../app/mission/rules";
 import { Button, IconButton } from "../../../components/Button";
 import { GLYPH, StatusLamp, type Status } from "../../../components/StatusLamp";
 import type { Site } from "../../../contracts/generated";
-import { sceneImageUrl, useManifest, useSites } from "../../../data";
+import { useManifest, useSites } from "../../../data";
+import { MapCore } from "../../polar-map/map";
+import type { MapProjector } from "../../polar-map";
 import { MOON_RADIUS_M } from "../../../lib/geo";
 import { utcToHourIndex } from "../../../lib/time";
 import { inSlipView } from "../../three/scene/slip";
 import {
   bestSite,
   changed as changedResult,
-  metresApart,
   offViewWhere,
   resultStatus,
   slipSummary,
   spotPriority,
+  VARIANT_NAME,
   variantLine,
+  variantMetres,
   variantOf,
   type SiteResult,
 } from "./model";
-import { flatProjection } from "./flat";
 import { placeLabels, placeSpots, type Box } from "./placement";
 import { spotReason } from "./readout";
 import { comparisonHour, slipStore } from "./slip-store";
@@ -48,9 +50,13 @@ export function footFor(freeSpace: Pick<FreeSpace, "width" | "height">, shading:
 export const FLAT_NOTE =
   "3D is off, so your sites are shown on the flat Polar map. The spots, the landing dates and the panels work as in 3D.";
 
+/** The flat map places none of its own pins here: the spots are the Slip Planner's. */
+const NO_SITES: readonly Site[] = [];
+
 export type SlipPlannerSceneProps = {
   /** The scene's projector while it draws in 3D; null without it. */
   projector: SceneProjector | null;
+  reduceMotion: boolean;
   mode: SceneMode;
   /** True when 3D is slow and "Try 3D anyway" can help. */
   canTryAgain: boolean;
@@ -91,7 +97,9 @@ function statusClass(result: SiteResult): string {
  * selected site, its status and score for the landing date read from the slip sweep, the
  * close-sites rules, the off-view notes, the before-and-after plate and the view's controls.
  * In 3D the spots follow the scene's camera through its projector; with 3D off they sit on
- * a flat polar picture.
+ * the flat Polar map (features/polar-map, `MapCore`) through the map's projector: no pins or
+ * crater names of its own, none of its readouts, and NASA's average sunlight following the
+ * shading switch.
  */
 export function SlipPlannerScene(props: SlipPlannerSceneProps) {
   const { scenario, freeSpace, phone, mode, projector, onFocusSite } = props;
@@ -112,7 +120,10 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
     }
   }
   const fromHour = landingHour >= 0 ? comparisonHour(ui, landingHour) : null;
-  const flat = mode === "flat" || !projector;
+  const flat = mode === "flat";
+  const [mapProjector, setMapProjector] = useState<MapProjector | null>(null);
+  // What the spots follow: the scene's camera in 3D, the flat map with 3D off.
+  const source: SceneProjector | MapProjector | null = flat ? mapProjector : projector;
 
   const selected = useMemo(
     () => scenario.siteIds.map((id) => catalog?.find((s) => s.id === id)).filter((s): s is Site => Boolean(s)),
@@ -142,7 +153,7 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
         best: isBest,
         focused,
         parent,
-        variantText: parent ? variantLine(metresApart(site, parent, MOON_RADIUS_M), parent.name) : null,
+        variantText: parent ? variantLine(variantMetres(site, parent, MOON_RADIUS_M), parent.name) : null,
         priority: spotPriority({ focused, best: isBest, changed, variant: Boolean(parentId) }),
       };
     });
@@ -171,18 +182,18 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
   const labelRefs = useRef(new Map<string, HTMLDivElement>());
   const [hover, setHover] = useState<string | null>(null);
   const hoverRef = useRef<HTMLDivElement>(null);
-  const latest = useRef({ onMap, freeSpace, phone, flat, projector });
-  latest.current = { onMap, freeSpace, phone, flat, projector };
+  const latest = useRef({ onMap, freeSpace, phone, source });
+  latest.current = { onMap, freeSpace, phone, source };
 
-  const flatProject = useMemo(
-    () => flatProjection(onMap.map((m) => ({ latDeg: m.site.lat_deg, lonDeg: m.site.lon_deg })), freeSpace),
-    // Only the sites' places and the free space move the flat picture.
-    [onMap.map((m) => m.site.id).join("|"), freeSpace],
+  const mapFrame = useMemo(
+    () => ({ x: freeSpace.x, y: freeSpace.y, width: freeSpace.width, height: freeSpace.height }),
+    [freeSpace.x, freeSpace.y, freeSpace.width, freeSpace.height],
   );
 
   const place = useCallback(() => {
-    const { onMap: list, freeSpace: fs, phone: onPhone, flat: isFlat, projector: proj } = latest.current;
-    const project = (lat: number, lon: number): ScreenPoint => (isFlat || !proj ? flatProject.project(lat, lon) : proj.project(lat, lon));
+    const { onMap: list, freeSpace: fs, phone: onPhone, source: from } = latest.current;
+    // Until the scene or the map gives its projector, no spot is placed.
+    const project = (lat: number, lon: number): ScreenPoint => (from ? from.project(lat, lon) : { x: 0, y: 0, visible: false });
     const scale = onPhone ? 44 / 32 : 1;
     const radius = 15 * scale;
     const inside = (p: ScreenPoint) => p.visible && p.x >= fs.x - 4 && p.x <= fs.x + fs.width + 4 && p.y >= fs.y - 4 && p.y <= fs.y + fs.height + 4;
@@ -267,7 +278,7 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
         tip.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
       }
     }
-  }, [flatProject]);
+  }, []);
   const hoverId = useRef<string | null>(null);
   hoverId.current = hover;
 
@@ -275,9 +286,10 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
     place();
   });
   useLayoutEffect(() => {
-    if (!projector || flat) return;
-    return projector.subscribe(place);
-  }, [projector, flat, place]);
+    if (!source) return;
+    place();
+    return source.subscribe(place);
+  }, [source, place]);
 
   const hovered = hover ? models.find((m) => m.site.id === hover) : null;
   const fsFoot: CSSProperties = {
@@ -290,7 +302,23 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
 
   return (
     <div ref={layerRef} className="slip-layer" data-phone={phone} data-flat={flat}>
-      {flat ? <FlatGround project={flatProject} shading={ui.shading} /> : null}
+      {flat ? (
+        <div className="slip-flat-map">
+          <MapCore
+            scenario={scenario}
+            mode="mission"
+            frame={mapFrame}
+            openAt={null}
+            active={!freeSpace.windowOpen}
+            reduceMotion={props.reduceMotion}
+            sites={NO_SITES}
+            showFeatureNames={false}
+            overlay={ui.shading ? "sunlight" : "none"}
+            readouts={false}
+            onProjector={setMapProjector}
+          />
+        </div>
+      ) : null}
       <svg ref={leadersRef} className="slip-leaders" aria-hidden="true" />
       {onMap.map((m) => (
         <Spot
@@ -435,13 +463,13 @@ const SpotLabel = memo(function SpotLabel({ model, refFor }: { model: SpotModel;
   return (
     <div ref={refFor} className="plate slip-label" data-focused={focused} aria-hidden="true" hidden>
       <span className="slip-label-main">
-        <b>{model.parent ? "Best-lit variant" : site.name}</b>
+        <b>{model.parent ? VARIANT_NAME : site.name}</b>
         {loud && status ? <span className={`slip-word is-${statusClass(now)}`}>{status}</span> : null}
         {best ? <span className="slip-best">best</span> : null}
       </span>
       {model.variantText ? (
         <small>
-          {model.variantText.replace("Best-lit variant, ", "")} <span className="tag tag-chosen">chosen by TrueSouth</span>
+          {model.variantText.replace(`${VARIANT_NAME}, `, "")} <span className="tag tag-chosen">chosen by TrueSouth</span>
         </small>
       ) : null}
       {focused || changed ? <small>{spotReason(now)}</small> : null}
@@ -498,28 +526,5 @@ function OffViewNote({ model, onFocus }: { model: SpotModel; onFocus: (siteId: s
         </small>
       </span>
     </button>
-  );
-}
-
-/**
- * The ground when 3D is off: the polar relief, dimmed, and NASA's average sunlight in Sun
- * cream when the shading is on, both placed with the polar stereographic projection. A plain
- * stand-in until the flat Polar map (work package T7) can take this place.
- */
-function FlatGround({ project, shading }: { project: ReturnType<typeof flatProjection>; shading: boolean }) {
-  const half = 304_000;
-  const a = project.toScreen(-half, half);
-  const size = project.metresToPx(2 * half);
-  const style: CSSProperties = { left: a.x, top: a.y, width: size, height: size };
-  return (
-    <div className="slip-flat" aria-hidden="true">
-      <img className="slip-flat-relief" src={sceneImageUrl("maps/hillshade_4k.webp")} alt="" style={style} />
-      {shading ? (
-        <span
-          className="slip-flat-sunlight"
-          style={{ ...style, maskImage: `url(${sceneImageUrl("scene/sunlight_2k.webp")})` }}
-        />
-      ) : null}
-    </div>
   );
 }

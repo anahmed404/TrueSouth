@@ -1,4 +1,5 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
+import type { SceneProjector } from "../../../app/scene";
 import type { Zoom } from "./model";
 
 /**
@@ -29,6 +30,9 @@ export type SlipUiState = {
   /** Bumped by "Retry" on a site that could not be computed: the panel's sweeps start again. */
   retries: number;
   retry: () => void;
+  /** The 3D scene's projector while it draws (SceneProps `onProjector`), for the spots. */
+  projector: SceneProjector | null;
+  setProjector: (projector: SceneProjector | null) => void;
 };
 
 export function createSlipStore(): StoreApi<SlipUiState> {
@@ -50,6 +54,8 @@ export function createSlipStore(): StoreApi<SlipUiState> {
     leave: () => set({ baselineHour: null, fromHour: null, start: null }),
     retries: 0,
     retry: () => set({ retries: get().retries + 1 }),
+    projector: null,
+    setProjector: (projector) => set({ projector }),
   }));
 }
 
