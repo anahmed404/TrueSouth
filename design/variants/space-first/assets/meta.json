@@ -1,0 +1,26 @@
+{
+  "projection": "south_polar_stereographic",
+  "half_width_m": 304000.0,
+  "layers": {
+    "hillshade": {
+      "files": [
+        "hillshade_4k.webp",
+        "hillshade_8k.webp"
+      ]
+    },
+    "sunlight": {
+      "files": [
+        "sunlight_4k.webp"
+      ],
+      "lookup": "sunlight_u8.bin",
+      "lookup_size": 2048
+    },
+    "earthvis": {
+      "files": [
+        "earthvis_4k.webp"
+      ],
+      "lookup": "earthvis_u8.bin",
+      "lookup_size": 2048
+    }
+  }
+}
