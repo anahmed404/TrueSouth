@@ -49,6 +49,13 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-13 ? S5 ? Prepared terrain maps and downloads
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-terra ? wrote terrain preparation, sampling, downloads and synthetic tests ? agent ran pytest; orchestrator review pending
+- **State:** built, not verified
+- **Changed:** `science/src/truesouth/dem.py`, `science/src/truesouth/commands/`, `science/tests/`, this entry
+- **Notes:** All 28 raw URLs passed size checks. NASA product 90 confirms the 240 m filename. Both terrain maps total 408,119,431 bytes; measured download speed about 154,000 B/s, exceeding the 40-minute budget. The 80 m partial reached 20,971,520 bytes; resume with `uv run truesouth fetch-raw --group terrain` after setting `TRUESOUTH_DATA_ROOT`. Its TIFF header reports 7,600 ? 7,600, 80 m pixels, lunar south polar stereographic (radius 1,737,400 m, central meridian 0?, true scale at the pole), NaN nodata, scale 1 and offset 0. Full-map statistics and sampling timings await completion.
+
 #### 2026-11-13 · S3 · Site-centred frames and polar projection
 - **Who:** Codex agent, for the orchestrator
 - **AI use:** Codex, gpt-6.1-terra — wrote geometry tests and `frames.py` — agent ran pytest; the orchestrator has not checked it yet
