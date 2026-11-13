@@ -28,6 +28,11 @@ export type WorldSite = {
 };
 
 export type WorldInputs = {
+  /**
+   * True when the current hour's row of system.bin is in. Without it the Sun and Earth are
+   * not drawn, the Moon gets an even light, and nothing below means anything.
+   */
+  bodies: boolean;
   /** From the sub-solar and sub-Earth points (science.md §14). */
   sunDir: V3;
   earthDir: V3;
@@ -51,6 +56,8 @@ const HIDE_RADIUS = 140_000 / MOON_RADIUS_M;
 
 export type Anchors = {
   near: number;
+  /** False when the Sun and Earth are not drawn (no system.bin). */
+  bodies: boolean;
   sun: THREE.Vector3 | null;
   /** The Sun's true direction from the Moon, for the edge marker at true scale. */
   sunDirection: THREE.Vector3;
@@ -166,12 +173,12 @@ export class World {
     this.sightLines = { sun: line(), earth: line() };
     this.root.add(this.sightGroup);
 
-    this.groundMat = groundMaterial(this.moon.uniforms.uMap, this.moon.uniforms.uLoaded, this.moon.uniforms.uSun);
+    this.groundMat = groundMaterial(this.moon.uniforms.uMap, this.moon.uniforms.uLoaded, this.moon.uniforms.uSun, this.moon.uniforms.uNoSun);
     this.own(this.groundMat.material);
     this.ground.visible = false;
     this.root.add(this.ground);
 
-    this.landerMat = this.own(landerMaterial(this.moon.uniforms.uSun, this.landerUp));
+    this.landerMat = this.own(landerMaterial(this.moon.uniforms.uSun, this.landerUp, this.moon.uniforms.uNoSun));
     this.lander = createLander(this.landerMat, {
       grey: new THREE.Color(css("--terrain-rim", "#a8a8af")),
       sun: new THREE.Color(css("--sun", "#ffe2a0")),
@@ -333,8 +340,9 @@ export class World {
     site: WorldSite | null,
     terrain: { data: DecodedTerrain; size: number; windowKm: number } | null,
     apron: { data: DecodedApron; grid: ApronGrid } | null,
+    smooth = false,
   ): void {
-    const key = site ? `${site.id}|${terrain ? "t" : ""}|${apron ? "a" : ""}` : null;
+    const key = site ? `${site.id}|${terrain ? "t" : ""}|${apron ? "a" : ""}|${smooth ? "s" : ""}` : null;
     if (key === this.groundFor) return;
     this.clearGround();
     if (!site) {
@@ -343,7 +351,9 @@ export class World {
     }
     const g: GroundSite = { latDeg: site.latDeg, lonDeg: site.lonDeg, groundHeightM: site.groundHeightM };
     const meshes: THREE.Object3D[] = [];
-    if (site.sphere) {
+    if (site.sphere || smooth) {
+      // A sphere-tier site, or a site whose terrain file failed: the smooth Moon.
+      // It sits at the site's own height, where Pip and the camera stand.
       meshes.push(new THREE.Mesh(smoothGroundGeometry(g), this.groundMat.material));
     } else if (terrain) {
       const patch = patchGeometry(terrain.data, terrain.size, terrain.windowKm, g);
@@ -380,6 +390,7 @@ export class World {
 
   setInputs(inputs: WorldInputs): void {
     this.inputs = inputs;
+    this.moon.uniforms.uNoSun.value = inputs.bodies ? 0 : 1;
     this.moon.uniforms.uSun.value.set(...inputs.sunDir);
     this.earth.uniforms.uSun.value.set(...inputs.sunDir);
     const site = inputs.site;
@@ -408,6 +419,7 @@ export class World {
     const near = site ? smooth(0.06, 0.012, alt) : 0;
     const anchors: Anchors = {
       near,
+      bodies: inputs?.bodies ?? false,
       sun: null,
       sunDirection: new THREE.Vector3(...(inputs?.sunDir ?? [1, 0, 0])),
       sunRadius: 0,
@@ -429,6 +441,7 @@ export class World {
     const sunNear = nearCentre.clone().add(sunNearDir.multiplyScalar(sunNearDistance));
 
     const earthFar = new THREE.Vector3(...inputs.earthCentre);
+    this.earthMesh.visible = inputs.bodies;
     this.earthMesh.position.lerpVectors(earthFar, earthNear, near);
     const earthRadius = lerp(inputs.earthRadius, earthNearDistance * (EARTH_RADIUS_KM / inputs.earthDistKm), near);
     this.earthMesh.scale.setScalar(earthRadius);
@@ -444,7 +457,7 @@ export class World {
     this.sunMesh.scale.setScalar(sunRadius * this.sun.uniforms.uExt.value);
     this.sunMesh.quaternion.copy(camera.quaternion);
     // At true scale the Sun is only a direction, marked at the screen's edge.
-    this.sunMesh.visible = !(inputs.trueScale && near < 0.5);
+    this.sunMesh.visible = inputs.bodies && !(inputs.trueScale && near < 0.5);
     anchors.sun = this.sunMesh.visible ? this.sunMesh.position.clone() : null;
     anchors.sunRadius = sunRadius;
 
@@ -452,6 +465,7 @@ export class World {
     const far = 1 - smooth(0.5, 0.15, alt);
     for (const { material, opacity } of this.guideMaterials) material.opacity = opacity * far;
     this.guides.visible = far > 0.01 && inputs.view !== "map";
+    this.terminator.visible = inputs.bodies;
     this.terminator.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(...inputs.sunDir));
 
     // The ground dissolves in between 52 and 28 km altitude: only during flights, since the

@@ -1,4 +1,4 @@
-import { memo, useLayoutEffect, useRef, type ReactNode } from "react";
+import { memo, useLayoutEffect, useRef } from "react";
 import * as THREE from "three";
 import type { CameraViewId, FreeSpace } from "../../../app/scene";
 import { BodyIcon } from "../../../components/BodyIcon";
@@ -9,6 +9,7 @@ import type { MissionProfile, Site } from "../../../contracts/generated";
 import { surfacePointScene } from "../../../lib/geo";
 import { useEvaluation } from "../../../lib/scoring";
 import { groupPins, moreSitesLine, type ScreenPin } from "./pins";
+import type { Plate } from "./plates";
 import { sightGood, sightLabel, type SightState } from "./sight";
 import type { Anchors, WorldSite } from "./world";
 
@@ -41,7 +42,10 @@ type OverlayProps = {
   landingUtc: string;
   sight: SightInfo;
   trueScale: boolean;
-  sunDistKm: number;
+  /** The Sun's distance at the current hour, or null when system.bin is not in. */
+  sunDistKm: number | null;
+  /** The plates at the top of the free space, from `sceneContent` (plates.ts). */
+  plates: readonly Plate[];
   preset: Preset;
   onPreset: (preset: Preset) => void;
   onTrueScale: (on: boolean) => void;
@@ -49,7 +53,6 @@ type OverlayProps = {
   onMoon8k: (on: boolean) => void;
   lookToward: LookToward;
   onLookToward: (toward: LookToward) => void;
-  groundLoading: boolean;
   onFocusSite: (siteId: string) => void;
   onViewChange: (view: CameraViewId) => void;
 };
@@ -196,7 +199,7 @@ export function Overlay(props: OverlayProps) {
         const el = bodyRefs[key].current;
         const centre = key === "earth" ? anchors.earth : anchors.sun;
         const radius = key === "earth" ? anchors.earthRadius : anchors.sunRadius;
-        const on = !small && Boolean(centre) && (p.view === "system" || p.view === "panorama");
+        const on = !small && anchors.bodies && Boolean(centre) && (p.view === "system" || p.view === "panorama");
         if (!on || !centre || !el) {
           show(el, false);
           continue;
@@ -214,7 +217,7 @@ export function Overlay(props: OverlayProps) {
       const marker = markerRef.current;
       if (marker) {
         let on = false;
-        if (!small && p.view === "system") {
+        if (!small && anchors.bodies && p.view === "system") {
           const sunPoint = anchors.sun ?? cam.clone().add(anchors.sunDirection.clone().multiplyScalar(1_000));
           const s = project(sunPoint, camera, W, H);
           const inside = s.front && s.x > fs.x && s.x < fs.x + fs.width && s.y > fs.y && s.y < fs.y + fs.height;
@@ -269,24 +272,21 @@ export function Overlay(props: OverlayProps) {
   const fsStyleTop = { left: freeSpace.x + freeSpace.width / 2, top: freeSpace.y + 8, maxWidth: Math.min(room, 640) };
   const fsStyleFoot = { left: freeSpace.x + freeSpace.width / 2, top: freeSpace.y + freeSpace.height - 8, ...fit };
   const small = tooSmall(freeSpace) || freeSpace.windowOpen;
-  const sphere = Boolean(focusedSite?.sphere);
-  const ground = view === "terrain" || view === "panorama";
-
-  let topPlate: ReactNode = null;
-  if (view === "system") {
-    topPlate = <p className="plate scene-plate scene-plate-top">{trueScale ? "True scale. Every direction is true." : "Distances not to scale. Every direction is true."}</p>;
-  } else if (ground && !focusedSite) {
-    topPlate = <p className="plate scene-plate scene-plate-top">Pick a site in the sites panel to see its ground.</p>;
-  } else if (ground && sphere && focusedSite) {
-    topPlate = (
-      <div className="plate scene-plate scene-plate-top scene-plate-interactive">
-        <p>No terrain data for {focusedSite.name}. This is the smooth Moon.</p>
-        <Button onClick={() => props.onViewChange("system")}>Show it in the System view</Button>
+  const topPlates =
+    props.plates.length > 0 ? (
+      <div className="scene-plate-stack">
+        {props.plates.map((plate) => (
+          <div
+            key={plate.id}
+            className={plate.action ? "plate scene-plate scene-plate-top scene-plate-interactive" : "plate scene-plate scene-plate-top"}
+            role={plate.status ? "status" : undefined}
+          >
+            <p>{plate.text}</p>
+            {plate.action === "show-system" ? <Button onClick={() => props.onViewChange("system")}>Show it in the System view</Button> : null}
+          </div>
+        ))}
       </div>
-    );
-  } else if (ground && props.groundLoading && focusedSite) {
-    topPlate = <p className="plate scene-plate scene-plate-top" role="status">Loading the ground around {focusedSite.name}…</p>;
-  }
+    ) : null;
 
   const state = sight?.state ?? null;
   const focusedName = props.sites.find((s) => s.id === focusedId)?.name ?? focusedId ?? "";
@@ -342,7 +342,7 @@ export function Overlay(props: OverlayProps) {
       </div>
       <div ref={markerRef} className="plate scene-label scene-label-row scene-marker" aria-hidden="true">
         <BodyIcon body="sun" size={14} />
-        <span className="scene-label-main">{trueScale ? `Sun, ${formatDistance(props.sunDistKm)} away` : "Sun"}</span>
+        <span className="scene-label-main">{trueScale && props.sunDistKm !== null ? `Sun, ${formatDistance(props.sunDistKm)} away` : "Sun"}</span>
         <svg ref={arrowRef} className="scene-marker-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
           <path d="M3 8h9M9 4.5 12.5 8 9 11.5" />
         </svg>
@@ -353,9 +353,9 @@ export function Overlay(props: OverlayProps) {
 
       {small ? null : (
         <>
-          {topPlate ? (
+          {topPlates ? (
             <div className="scene-anchor scene-anchor-top" style={fsStyleTop}>
-              {topPlate}
+              {topPlates}
             </div>
           ) : null}
           <div ref={footRef} className="scene-anchor scene-anchor-foot" style={fsStyleFoot}>

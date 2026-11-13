@@ -36,6 +36,7 @@ import {
   type SiteFrame,
 } from "./camera";
 import { Overlay, type OverlayBus, type Preset, type LookToward } from "./overlay";
+import { sceneContent, type LoadState } from "./plates";
 import { Rig } from "./rig";
 import { sightState, type SightState } from "./sight";
 import { mul, type V3 } from "./vec";
@@ -111,7 +112,13 @@ type FocusData = {
   flags: HourFlags | null;
   terrain: { data: DecodedTerrain; size: number; windowKm: number } | null | "loading";
   apron: DecodedApron | null | "loading";
+  /** How each file stands, for the plates (plates.ts). */
+  states: { series: LoadState; terrain: LoadState; apron: LoadState };
 };
+
+function loadState(status: "loading" | "ready" | "error"): LoadState {
+  return status;
+}
 
 function FocusedSiteData({
   siteId,
@@ -138,9 +145,23 @@ function FocusedSiteData({
   const apronValue = apron.status === "loading" ? "loading" : apron.status === "ready" && apron.data !== "not available" ? apron.data : null;
   const seriesValue = series.status === "ready" ? series.data : null;
   const flagsValue = flags.status === "ready" ? flags.data : null;
+  // The series counts as failed when either it or its hour flags failed: no state without data.
+  const seriesState: LoadState =
+    series.status === "error" || flags.status === "error" ? "error" : series.status === "ready" && flags.status === "ready" ? "ready" : "loading";
+  const terrainState = terrainValue === "loading" ? "loading" : loadState(terrain.status);
+  // A missing apron file ("not available") is a load that failed for this purpose.
+  const apronState: LoadState =
+    apron.status === "ready" ? (apron.data === "not available" ? "error" : "ready") : loadState(apron.status);
   useEffect(() => {
-    onData({ siteId, series: seriesValue, flags: flagsValue, terrain: terrainValue, apron: apronValue });
-  }, [siteId, seriesValue, flagsValue, terrainValue, apronValue, onData]);
+    onData({
+      siteId,
+      series: seriesValue,
+      flags: flagsValue,
+      terrain: terrainValue,
+      apron: apronValue,
+      states: { series: seriesState, terrain: terrainState, apron: apronState },
+    });
+  }, [siteId, seriesValue, flagsValue, terrainValue, apronValue, seriesState, terrainState, apronState, onData]);
   return null;
 }
 
@@ -156,14 +177,17 @@ function systemHour(system: DecodedSystem, hour: number): SystemHour | null {
   };
 }
 
-/** Before system.bin arrives: the Sun and Earth on the prime meridian, so the grey Moon is lit. */
-const PLACEHOLDER_HOUR: SystemHour = {
+/**
+ * Geometry only, while system.bin is not in (loading or failed): the Sun and Earth are then
+ * not drawn and the Moon gets an even light, so none of these numbers is ever shown.
+ */
+const NO_HOUR: SystemHour = {
   subsolarLatDeg: 0,
-  subsolarLonDeg: 300,
+  subsolarLonDeg: 0,
   subearthLatDeg: 0,
   subearthLonDeg: 0,
-  earthDistKm: 384_400,
-  sunDistKm: 149_600_000,
+  earthDistKm: 1,
+  sunDistKm: 1,
 };
 
 function shrink(space: FreeSpace, top: number, bottom: number): FreeSpace {
@@ -261,11 +285,36 @@ function Scene3D(props: SceneProps) {
     };
   }, [worldSite, focusReady?.series, focusReady?.flags, hourIndex]);
 
+  // What may be drawn, and the plates that say what is missing (plates.ts).
+  const systemState: LoadState =
+    system.status === "error" || manifest.status === "error"
+      ? "error"
+      : system.status === "ready" && manifest.status === "ready"
+        ? hour
+          ? "ready"
+          : "error"
+        : "loading";
+  const content = useMemo(
+    () =>
+      sceneContent({
+        view,
+        trueScale,
+        system: systemState,
+        site: worldSite ? { name: worldSite.name, sphere: worldSite.sphere } : null,
+        series: focusReady?.states.series ?? "loading",
+        terrain: focusReady?.states.terrain ?? "loading",
+        apron: focusReady?.states.apron ?? "loading",
+      }),
+    [view, trueScale, systemState, worldSite, focusReady?.states.series, focusReady?.states.terrain, focusReady?.states.apron],
+  );
+
   const inputs = useMemo((): WorldInputs => {
-    const h = hour ?? PLACEHOLDER_HOUR;
+    const bodies = hour !== null;
+    const h = hour ?? NO_HOUR;
     const { sun, earth } = bodyDirections(h);
-    const placement = earthPlacement(h, trueScale);
+    const placement = bodies ? earthPlacement(h, trueScale) : { centre: [0, 0, 0] as const, radius: 0 };
     return {
+      bodies,
       sunDir: sun,
       earthDir: earth,
       earthCentre: placement.centre,
@@ -290,7 +339,6 @@ function Scene3D(props: SceneProps) {
 
   const terrainReady = focusReady && focusReady.terrain !== "loading" ? focusReady.terrain : null;
   const apronReady = focusReady && focusReady.apron !== "loading" ? focusReady.apron : null;
-  const groundLoading = Boolean(worldSite && !worldSite.sphere && (!focusReady || focusReady.terrain === "loading"));
 
   const bus = useRef<OverlayBus>({ overlay: null, controls: null });
   const sceneSpace = useMemo(() => capture ? freeSpace : shrink(freeSpace, view === "system" ? PLATE_TOP : 0, view === "system" ? SYSTEM_FOOT : CONTROLS_FOOT), [freeSpace, view, capture]);
@@ -419,7 +467,8 @@ function Scene3D(props: SceneProps) {
           bus={bus}
           dip={dip}
           capture={capture}
-          dataReady={hour !== null || system.status === "error"}
+          dataReady={systemState !== "loading"}
+          smoothGround={content.ground === "smooth"}
           onStatus={onStatus}
           onArrive={props.onArrive}
         />
@@ -436,7 +485,8 @@ function Scene3D(props: SceneProps) {
           landingUtc={scenario.landingUtc}
           sight={sight}
           trueScale={trueScale}
-          sunDistKm={(hour ?? PLACEHOLDER_HOUR).sunDistKm}
+          sunDistKm={hour ? hour.sunDistKm : null}
+          plates={content.plates}
           preset={preset}
           onPreset={setPreset}
           onTrueScale={setTrueScale}
@@ -444,7 +494,6 @@ function Scene3D(props: SceneProps) {
           onMoon8k={setMoon8k}
           lookToward={lookToward}
           onLookToward={setLookToward}
-          groundLoading={groundLoading}
           onFocusSite={onFocusSite}
           onViewChange={onViewChange}
         />
@@ -479,6 +528,8 @@ type DirectorProps = {
   dip: (ms: number, cut: () => void) => void;
   capture: boolean;
   dataReady: boolean;
+  /** Draw the smooth Moon at the site: a sphere-tier site, or its terrain file failed. */
+  smoothGround: boolean;
   onStatus: SceneProps["onStatus"];
   onArrive?: SceneProps["onArrive"];
 };
@@ -525,8 +576,8 @@ function Director(props: DirectorProps) {
   }, [world, rig, props.inputs, props.trueScale]);
 
   useEffect(() => {
-    world.setGround(props.inputs.site, props.terrain, props.apron);
-  }, [world, props.inputs.site, props.terrain, props.apron]);
+    world.setGround(props.inputs.site, props.smoothGround ? null : props.terrain, props.smoothGround ? null : props.apron, props.smoothGround);
+  }, [world, props.inputs.site, props.terrain, props.apron, props.smoothGround]);
 
   // The controls the overlay's pointer and key handlers call.
   useEffect(() => {
@@ -554,7 +605,7 @@ function Director(props: DirectorProps) {
       const i = p.inputs;
       const subjects = {
         earth: { centre: i.earthCentre, radius: i.earthRadius },
-        sun: i.trueScale ? null : { dir: i.sunDir, centre: mul(i.sunDir, SQUEEZED_DISTANCE), radius: SQUEEZED_SUN_RADIUS },
+        sun: i.trueScale || !i.bodies ? null : { dir: i.sunDir, centre: mul(i.sunDir, SQUEEZED_DISTANCE), radius: SQUEEZED_SUN_RADIUS },
       };
       const site = i.site;
       if (view === "map") return polarPose(space);

@@ -44,7 +44,7 @@ void main() {
  */
 const moonFragment = `${LOGDEPTH_F}${SRGB_TO_LINEAR}
 uniform sampler2D uMap, uMapE, uH, uCap, uCore, uCapN, uCoreN;
-uniform float uLoaded, uCapLoaded, uSplit, uDraw, uHideCos, uGain, uBump;
+uniform float uLoaded, uCapLoaded, uSplit, uDraw, uHideCos, uGain, uBump, uNoSun;
 uniform vec3 uSun, uHideDir;
 varying vec3 vP;
 const float HW = ${HW};
@@ -102,6 +102,8 @@ void main() {
 
   float ndl = dot(n, uSun);
   float light = max(ndl, 0.) * smoothstep(-.06, .02, dot(p, uSun));
+  // Without the Sun's position (system.bin not in), an even light: no made-up day/night line.
+  light = mix(light, .5, uNoSun);
   float detail = mix(1., hs / .707, capW * .2);
   // A soft roll-off: a face-on Moon never clips to white.
   vec3 real = vec3(1.) - exp(-(alb * detail * light * uGain + alb * .012));
@@ -125,6 +127,7 @@ export type MoonUniforms = {
   uHideCos: { value: number };
   uGain: { value: number };
   uBump: { value: number };
+  uNoSun: { value: number };
   uSun: { value: THREE.Vector3 };
   uHideDir: { value: THREE.Vector3 };
 };
@@ -145,6 +148,7 @@ export function moonMaterial(blank: THREE.Texture, flat: THREE.Texture, flatSlop
     uHideCos: { value: 2 },
     uGain: { value: 2.6 },
     uBump: { value: 1.6 },
+    uNoSun: { value: 1 },
     uSun: { value: new THREE.Vector3(1, 0, 0) },
     uHideDir: { value: new THREE.Vector3(0, -1, 0) },
   };
@@ -255,7 +259,7 @@ void main() {
 }`;
 
 const groundFragment = `${LOGDEPTH_F}
-uniform sampler2D uMap; uniform float uLoaded, uGain, uFade;
+uniform sampler2D uMap; uniform float uLoaded, uGain, uFade, uNoSun;
 uniform vec3 uSun, uUp;
 varying vec3 vN; varying vec3 vM;
 float bayer(vec2 p) {
@@ -271,7 +275,7 @@ void main() {
   float lat = asin(clamp(m.z, -1., 1.)), lon = atan(m.y, m.x);
   vec3 alb = mix(vec3(.16), texture(uMap, vec2(lon / (2. * PI) + .5, lat / PI + .5)).rgb, uLoaded);
   vec3 n = normalize(vN);
-  float light = max(dot(n, uSun), 0.);
+  float light = mix(max(dot(n, uSun), 0.), .5, uNoSun);
   float fill = .012 + .05 * pow(max(dot(n, uUp), 0.), 3.);
   // The globe's soft roll-off, so sunlit slopes never clip to white.
   vec3 real = vec3(1.) - exp(-(alb * light * uGain + alb * fill * 3.));
@@ -279,11 +283,17 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-export function groundMaterial(map: { value: THREE.Texture }, loaded: { value: number }, sun: { value: THREE.Vector3 }) {
+export function groundMaterial(
+  map: { value: THREE.Texture },
+  loaded: { value: number },
+  sun: { value: THREE.Vector3 },
+  noSun: { value: number },
+) {
   const uniforms = {
     uMap: map,
     uLoaded: loaded,
     uSun: sun,
+    uNoSun: noSun,
     uGain: { value: 2.6 },
     uFade: { value: 1 },
     uUp: { value: new THREE.Vector3(0, -1, 0) },
@@ -305,20 +315,20 @@ void main() {
 }`;
 
 const landerFragment = `${LOGDEPTH_F}
-uniform vec3 uSun, uUp;
+uniform vec3 uSun, uUp; uniform float uNoSun;
 varying vec3 vN; varying vec3 vC;
 void main() {
   #include <logdepthbuf_fragment>
   vec3 n = normalize(vN);
   if (!gl_FrontFacing) n = -n;
-  float light = max(dot(n, uSun), 0.);
+  float light = mix(max(dot(n, uSun), 0.), .5, uNoSun);
   float fill = .05 + .07 * max(dot(n, uUp), 0.);
   gl_FragColor = vec4(vC * (light * 1.6 + fill), 1.);
   #include <colorspace_fragment>
 }`;
 
-export function landerMaterial(sun: { value: THREE.Vector3 }, up: { value: THREE.Vector3 }) {
-  const uniforms = { uSun: sun, uUp: up };
+export function landerMaterial(sun: { value: THREE.Vector3 }, up: { value: THREE.Vector3 }, noSun: { value: number }) {
+  const uniforms = { uSun: sun, uUp: up, uNoSun: noSun };
   return new THREE.ShaderMaterial({
     uniforms,
     vertexShader: landerVertex,
