@@ -456,6 +456,9 @@ export class World {
     this.ground.visible = true;
     this.groundLook.fade = 1;
     this.ground.updateMatrixWorld(true);
+    // The shader as the screen draws it (three.js compiles a separate variant for a render
+    // target), then one draw off-screen to upload the meshes and height textures.
+    renderer.compile(this.ground, camera);
     renderer.setRenderTarget(this.prepTarget);
     renderer.render(this.ground, camera);
     renderer.setRenderTarget(previous);
