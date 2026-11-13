@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import type { Manifest, MissionProfile, Sites } from "../../../contracts/generated";
 import { SERIES_COLUMNS, decodeSeries } from "../../../data/decode/index";
 import { cachedEvaluation, evaluationsAtUtcMidnight, siteSlopeDeg, slipSweep } from "../../../lib/scoring";
-import { DAY_GO, cachedSlipDays, codeStatus, statusCode, vetoMaskOf, type SlipDays } from "../../../lib/scoring/slip-days";
+import { DAY_GO, cachedSlipDays, codeStatus, statusCode, vetoMaskOf } from "../../../lib/scoring/slip-days";
 import { nextGo, nextGoWords } from "./next-go-words";
 import { utcToHourIndex } from "../../../lib/time";
 import { anySiteDays, dayOfHour, isWholeDay, rank } from "./model";
@@ -236,34 +236,8 @@ function countingContext(): StripContext & { fills: number } {
 }
 
 describe("moving the landing date is cheap", () => {
-  it("dragging across days never rebuilds the day table and draws the canvas at most once per change", () => {
-    const profile = chosen[0]!;
-    const list = entries.get(profile.id)!;
-    const tables: SlipDays[] = list.map((e) => e.days!);
-    const ctx = countingContext();
-    const strips = new StripCanvas();
-    const colours = { plot: "a", go: "b", caution: "c", nogo: "d", none: "e", pending: "f" };
-    const rows = tables.map((t) => t.status);
-    let starts = new Set<number>();
-    // A drag over 120 landing days, with the visible range following the landing day.
-    let start: number | null = null;
-    for (let day = 800; day < 920; day += 1) {
-      // What the panel and the spots read on each change: another entry of the same arrays.
-      for (const entry of list) {
-        expect(cachedSlipDays(entry.sweep!, profile)).toBe(entry.days); // no rebuild, no new sweep
-        nextGo(entry.days!, day);
-      }
-      const span = 548;
-      const fresh = Math.max(0, day - Math.round(span * 0.25));
-      start = start === null || day < start + span * 0.04 || day > start + span * 0.86 ? fresh : start;
-      starts = new Set([...starts, start]);
-      strips.update(ctx, { rows, start, span, width: 800, rowHeight: 14, gap: 7, dpr: 1, colours });
-    }
-    // One draw for each visible range shown, never one per day dragged.
-    expect(strips.draws).toBe(starts.size);
-    expect(strips.draws).toBeLessThan(5);
-  });
-
+  // Moving the date with the panel mounted (no new sweep, no redraw while the range holds)
+  // is tested in panel-mount.test.ts, with the real hooks.
   it("a new sweep or a new range draws again", () => {
     const ctx = countingContext();
     const strips = new StripCanvas();
