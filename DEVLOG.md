@@ -720,6 +720,36 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Academy
 
+#### 2026-11-13 · A8 · Validation page, "How we know it's right"
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the page at `/validation`, its model,
+  number formatting, the two hand-built SVG charts and 24 vitest tests — checked by the
+  agent with tests, typecheck and build, the impeccable detector (0 findings), and by eye
+  at 1440 × 900, 1024 × 768 and 390 × 844 on the real data and on `VITE_DATA=fixtures`
+  (no console errors, no sideways page scroll, every control at least 44 px, keyboard
+  focus visible). A human has not read the page yet.
+- **State:** built, not verified
+- **Changed:** `web/src/features/validation/` (all new except `index.tsx`), screenshots
+  `docs/design/c2/built-validation*.png`
+- **Notes:**
+  - Every number on the page comes from `validation.json`. Derived display values (a
+    difference of the file's two numbers, row counts, the largest daily value) are marked
+    in code comments. A gate with `passed: null` reads "Checked in the web tests". A
+    failed gate is a NO-GO cross with "Failed"; a comparison outside its mark is a CAUTION
+    "!" with "Outside the mark", its explanation in a card above its table.
+  - Missing or unreadable file: "Validation has not been run on this build", no numbers.
+  - Sections 3 and 5 also show every gate and comparison the brief did not place: G1, G3,
+    G9, G10 and G11 under "Other checks"; R5 (and R6 on the fixture) under Slope.
+  - Gaps in the real file: no R4 (the page says so), the raw compass-azimuth difference
+    of decision 0011 exists only inside G2's `detail` text (shown verbatim behind a
+    disclosure), and in-mark R1 to R3 `explanation` fields hold pixel notes, not
+    explanations (shown behind "Notes from the pipeline").
+  - No method box links to the Academy: lessons 1 to 8 are not playable yet.
+    `isPlayableLesson` in `Method.tsx` turns the links on when they are.
+  - The section 6 citation links to the private GitHub repo; it opens only when signed in.
+  - The fixture already has a failing comparison (R1) and a failing gate (G6). The test
+    for an outside self-comparison is built from the fixture's R5 row.
+
 #### 2026-11-13 · A5a · Lesson types for lessons 1 to 8, skeletons for 1 to 4
 - **Who:** Cursor agent, for the orchestrator
 - **AI use:** Cursor, grok-4.7 — widened the lesson types, the runner and the evaluator,
