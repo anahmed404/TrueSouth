@@ -49,6 +49,13 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-13 · S1 · Catalog inputs and validated loaders
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-terra — built catalog inputs, contracts, loaders and document comparison tests — automated checks run; human review pending
+- **State:** built, not verified
+- **Changed:** data/catalog, science catalog and tests, contracts, schema, data-contract documentation
+- **Notes:** 20 sites, 5 presets, 15 named features and 9 Artemis regions; 14 sourced and 46 assumed profile values. Region centres and sizes are null where unpublished; representative DEM points are sites.
+
 #### 2026-11-13 · S3 · Site-centred frames and polar projection
 - **Who:** Codex agent, for the orchestrator
 - **AI use:** Codex, gpt-6.1-terra — wrote geometry tests and `frames.py` — agent ran pytest; the orchestrator has not checked it yet

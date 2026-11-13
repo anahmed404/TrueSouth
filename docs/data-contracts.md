@@ -9,6 +9,13 @@ generated into `web/src/contracts/generated.ts`.
 All angles are degrees. All timestamps are UTC ISO-8601 ending in `Z`. Binary files are
 little-endian.
 
+## Catalog input
+
+`data/catalog/sites.json` is an array of `CatalogSite` entries: `id`, `name`, `group`,
+`lat_deg`, `lon_deg`, `description`, `source_url`, and `outcome`. The pipeline adds the
+terrain tier, close-up availability, elevation, slope, Quickmap URL and Moon Trek URL
+when it produces the derived `Site`; those fields are not catalog input guesses.
+
 ## Derived files
 
 Served under `/data/`. The same tree exists in `data/fixtures/` with synthetic content.

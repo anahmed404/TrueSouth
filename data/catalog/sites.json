@@ -1,0 +1,202 @@
+[
+  {
+    "id": "artemis_haworth",
+    "name": "Haworth",
+    "group": "artemis",
+    "lat_deg": -86.7639,
+    "lon_deg": 337.223,
+    "description": "Centre of close-up DEM \"Haworth\"; representative point, not an official centre.",
+    "source_url": "https://pgda.gsfc.nasa.gov/products/78",
+    "outcome": null
+  },
+  {
+    "id": "artemis_malapert",
+    "name": "Malapert Massif",
+    "group": "artemis",
+    "lat_deg": -85.9948,
+    "lon_deg": 359.7642,
+    "description": "Centre of close-up DEM \"Site23\"; representative point, not an official centre.",
+    "source_url": "https://pgda.gsfc.nasa.gov/products/78",
+    "outcome": null
+  },
+  {
+    "id": "artemis_mouton",
+    "name": "Mons Mouton",
+    "group": "artemis",
+    "lat_deg": -85.4266,
+    "lon_deg": 31.7428,
+    "description": "Centre of close-up DEM \"Site20v2\"; representative point, not an official centre.",
+    "source_url": "https://pgda.gsfc.nasa.gov/products/78",
+    "outcome": null
+  },
+  {
+    "id": "artemis_nobile_rim_1",
+    "name": "Nobile Rim 1",
+    "group": "artemis",
+    "lat_deg": -85.4381,
+    "lon_deg": 37.3667,
+    "description": "Centre of close-up DEM \"Site06\"; representative point, not an official centre.",
+    "source_url": "https://pgda.gsfc.nasa.gov/products/78",
+    "outcome": null
+  },
+  {
+    "id": "artemis_nobile_rim_2",
+    "name": "Nobile Rim 2",
+    "group": "artemis",
+    "lat_deg": -83.954,
+    "lon_deg": 58.8221,
+    "description": "Centre of close-up DEM \"DM2\"; representative point, not an official centre.",
+    "source_url": "https://pgda.gsfc.nasa.gov/products/78",
+    "outcome": null
+  },
+  {
+    "id": "artemis_de_gerlache_rim_2",
+    "name": "de Gerlache Rim 2",
+    "group": "artemis",
+    "lat_deg": -88.23,
+    "lon_deg": 295.3716,
+    "description": "Centre of close-up DEM \"SL2\"; representative point, not an official centre.",
+    "source_url": "https://pgda.gsfc.nasa.gov/products/78",
+    "outcome": null
+  },
+  {
+    "id": "connecting_ridge",
+    "name": "Connecting Ridge",
+    "group": "sunlit_peak",
+    "lat_deg": -89.4555,
+    "lon_deg": 222.6192,
+    "description": "Gläser et al. 2014, point CR1.; sunlight in the source: 92.27% at 2 m above ground, over 19 years.",
+    "source_url": "https://www.sciencedirect.com/science/article/abs/pii/S0019103514004278",
+    "outcome": null
+  },
+  {
+    "id": "shackleton_rim",
+    "name": "Shackleton rim",
+    "group": "sunlit_peak",
+    "lat_deg": -89.7742,
+    "lon_deg": 203.4952,
+    "description": "Gläser et al. 2014, point SR1 (same paper); sunlight in the source: not stated for this point.",
+    "source_url": "https://www.sciencedirect.com/science/article/abs/pii/S0019103514004278",
+    "outcome": null
+  },
+  {
+    "id": "de_gerlache_rim",
+    "name": "de Gerlache rim",
+    "group": "sunlit_peak",
+    "lat_deg": -88.6952,
+    "lon_deg": 291.7154,
+    "description": "De Rosa et al. 2012, region GR1.; sunlight in the source: not stated.",
+    "source_url": "https://arxiv.org/abs/1208.5587",
+    "outcome": null
+  },
+  {
+    "id": "peak_near_shackleton",
+    "name": "Peak near Shackleton",
+    "group": "sunlit_peak",
+    "lat_deg": -88.74,
+    "lon_deg": 124.5,
+    "description": "Bussey et al. 2010.; sunlight in the source: \"86% of the year\" (2020).",
+    "source_url": "https://www.sciencedirect.com/science/article/abs/pii/S0019103510001375",
+    "outcome": null
+  },
+  {
+    "id": "malapert_peak",
+    "name": "Malapert Massif peak",
+    "group": "sunlit_peak",
+    "lat_deg": -85.9756,
+    "lon_deg": 357.8876,
+    "description": "De Rosa et al. 2012, region MP1 (same preprint); sunlight in the source: not stated.",
+    "source_url": "https://arxiv.org/abs/1208.5587",
+    "outcome": null
+  },
+  {
+    "id": "chandrayaan3",
+    "name": "Chandrayaan-3 (Shiv Shakti)",
+    "group": "polar_lander",
+    "lat_deg": -69.3741,
+    "lon_deg": 32.32,
+    "description": "Landed 23 August 2023",
+    "source_url": "https://www.lroc.asu.edu/images/1314",
+    "outcome": "Landed 23 August 2023"
+  },
+  {
+    "id": "im1_odysseus",
+    "name": "IM-1 Odysseus",
+    "group": "polar_lander",
+    "lat_deg": -80.13,
+    "lon_deg": 1.44,
+    "description": "Landed leaning, 22 February 2024, in a worn 1 km crater on a 12° slope",
+    "source_url": "https://lroc.im-ldi.com/images/1360",
+    "outcome": "Landed leaning, 22 February 2024, in a worn 1 km crater on a 12° slope"
+  },
+  {
+    "id": "im2_athena",
+    "name": "IM-2 Athena",
+    "group": "polar_lander",
+    "lat_deg": -84.7906,
+    "lon_deg": 29.1957,
+    "description": "Landed on its side in a 20 m crater, 6 March 2025",
+    "source_url": "https://www.lroc.asu.edu/images/1401",
+    "outcome": "Landed on its side in a 20 m crater, 6 March 2025"
+  },
+  {
+    "id": "luna25_target",
+    "name": "Luna 25 target",
+    "group": "polar_lander",
+    "lat_deg": -69.545,
+    "lon_deg": 43.544,
+    "description": "Never reached: the lander crashed about 400 km short on 19 August 2023",
+    "source_url": "https://lroc.im-ldi.com/images/1311",
+    "outcome": "Never reached: the lander crashed about 400 km short on 19 August 2023"
+  },
+  {
+    "id": "apollo11",
+    "name": "Apollo 11",
+    "group": "contrast",
+    "lat_deg": 0.67416,
+    "lon_deg": 23.47314,
+    "description": "Near the equator: the Sun climbs high and Earth stays up",
+    "source_url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1969-059C",
+    "outcome": null
+  },
+  {
+    "id": "apollo17",
+    "name": "Apollo 17",
+    "group": "contrast",
+    "lat_deg": 20.1911,
+    "lon_deg": 30.7723,
+    "description": "A second Apollo site, further north",
+    "source_url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html",
+    "outcome": null
+  },
+  {
+    "id": "blue_ghost1",
+    "name": "Blue Ghost Mission 1",
+    "group": "contrast",
+    "lat_deg": 18.5623,
+    "lon_deg": 61.8103,
+    "description": "A recent commercial landing",
+    "source_url": "https://www.lroc.asu.edu/images/1407",
+    "outcome": null
+  },
+  {
+    "id": "change4",
+    "name": "Chang'e 4",
+    "group": "contrast",
+    "lat_deg": -45.4561,
+    "lon_deg": 177.5885,
+    "description": "Far side: Earth never rises, so it needed a relay",
+    "source_url": "https://lroc.im-ldi.com/images/1100",
+    "outcome": null
+  },
+  {
+    "id": "change6",
+    "name": "Chang'e 6",
+    "group": "contrast",
+    "lat_deg": -41.6385,
+    "lon_deg": 206.0148,
+    "description": "Far side, southern mid-latitude",
+    "source_url": "https://lroc.im-ldi.com/images/1374",
+    "outcome": null
+  }
+]

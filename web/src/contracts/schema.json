@@ -128,6 +128,90 @@
       "title": "BinaryLayouts",
       "type": "object"
     },
+    "CatalogSite": {
+      "additionalProperties": false,
+      "description": "Hand-entered site information, before pipeline processing.",
+      "properties": {
+        "description": {
+          "description": "Plain-language site description.",
+          "title": "Description",
+          "type": "string"
+        },
+        "group": {
+          "description": "Catalog group.",
+          "enum": [
+            "artemis",
+            "sunlit_peak",
+            "polar_lander",
+            "contrast"
+          ],
+          "title": "Group",
+          "type": "string"
+        },
+        "id": {
+          "description": "Stable site identifier.",
+          "pattern": "^(?:[a-z][a-z0-9]*(?:_[a-z0-9]+)*|c_-?\\d+\\.\\d{4}_\\d+\\.\\d{4})$",
+          "title": "Id",
+          "type": "string"
+        },
+        "lat_deg": {
+          "description": "Latitude in degrees north.",
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Lat Deg",
+          "type": "number"
+        },
+        "lon_deg": {
+          "description": "East longitude in degrees.",
+          "exclusiveMaximum": 360,
+          "minimum": 0,
+          "title": "Lon Deg",
+          "type": "number"
+        },
+        "name": {
+          "description": "Display name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Mission outcome, or null.",
+          "title": "Outcome"
+        },
+        "source_url": {
+          "description": "Source of site coordinates.",
+          "title": "Source Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "group",
+        "lat_deg",
+        "lon_deg",
+        "description",
+        "source_url",
+        "outcome"
+      ],
+      "title": "CatalogSite",
+      "type": "object"
+    },
+    "CatalogSites": {
+      "description": "Array of hand-entered catalog sites.",
+      "items": {
+        "$ref": "#/$defs/CatalogSite"
+      },
+      "title": "CatalogSites",
+      "type": "array"
+    },
     "ColumnEarthAz": {
       "additionalProperties": false,
       "description": "Documented earth_az column.",
