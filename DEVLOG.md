@@ -42,8 +42,8 @@ each integration checkpoint.
 | Milestone | State |
 | :--- | :--- |
 | M0 Foundations | complete, 2026-11-13: S0 to S2, MC0 to MC2, T0, A0 and A1 verified; 151 Python and 1,058 web tests pass; the app loads all five fixture sites |
-| M1 Thin slice | in progress: S3 to S7, S8 part 1, S9, MC3, MC4a, MC4b, the sweep worker, A2 and A7 verified; Mission Control's panels run on real Connecting Ridge data; the timeline (MC5), all catalog sites (S8 part 2) and the Academy card (A4) are being built; the centre views wait on the space-first design |
-| M2 Mission Control complete on catalog data | not started |
+| M1 Thin slice | done in substance: the panels and the timeline run on real data for all 20 catalog sites (S3 to S9, MC3 to MC5 verified); validation against NASA is published (S12) |
+| M2 Mission Control complete on catalog data | in progress: the space-first shell (MC4c) is in review and the 3D scene (T1, T2) is being built; the Polar map, Local terrain, Lander's eye, Slip Planner and Compare follow it |
 | M3 Everything | not started |
 | M4 Tuned and submitted | not started |
 
