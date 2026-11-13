@@ -346,6 +346,11 @@ $$g_x = \frac{z_{r,c+1} - z_{r,c-1}}{2p} \qquad g_y = \frac{z_{r-1,c} - z_{r+1,c
 
 The baseline is $2p$: 160 m or 480 m. $k$ is the scale factor from section 2.3.
 
+The pixel $(r, c)$ is the one whose centre is nearest the site, chosen separately in row and in
+column; an exact half-way tie goes to the even index. The differences are taken at that pixel
+and are not interpolated, and $k$ is evaluated at the site's latitude. So this slope changes in
+steps as a site moves from one pixel to the next.
+
 A site reports `slope: { deg, baseline_m, source }` as defined in
 [`data-contracts.md`](data-contracts.md). A sphere-tier site reports no slope.
 
@@ -474,6 +479,16 @@ $\gamma = s/R$ its true local position is
 $$\text{east} = (R+z)\sin\gamma\,\sin A \qquad \text{north} = (R+z)\sin\gamma\,\cos A \qquad \text{up} = (R+z)\cos\gamma - (R+z_0)$$
 
 So the mesh includes the Moon's curvature, and sight-lines in the scene are straight.
+
+Each vertex also stores a slope for the slope overlay:
+$\arctan\sqrt{(\partial z/\partial E)^2 + (\partial z/\partial N)^2}$ in degrees, from the
+sampled heights $z$ in metres on the offset grid $(E, N)$ in metres, with no projection scale
+factor. With grid spacing $\Delta = 1000 \times \text{window\_km} / (\text{size} - 1)$ metres,
+interior vertices use central differences over $2\Delta$ and rim vertices use one-sided
+differences over $\Delta$. That is a baseline of 156.25 m for the terrain mesh (78.125 m at the
+rim) and 15.625 m for a close-up mesh. A vertex is NaN if its height, or any height its
+differences need, is missing. This is a different baseline from the site's own slope in section
+8, and the overlay's legend must say so.
 
 The 3D scene uses kilometres with $x = \text{east}$, $y = \text{up}$, $z = -\text{north}$.
 A direction with azimuth $A$ and elevation $e$ is
