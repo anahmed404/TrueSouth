@@ -286,6 +286,8 @@ data types and series scaling for decoders.
 Fixture map images and lookup grids are 64 × 64 pixels, despite their production file
 names; map metadata gives the actual lookup size. The scoring cases refer to a fixture
 `series.bin` and a half-open range of global hour indices. Landing and current hours are
-global indices; subtract the range start before scoring the referenced slice. Each run
-of `build-fixtures` rewrites the files. Fixture validation results and worked examples
-are synthetic demonstrations, not measurements from NASA data.
+global indices; subtract the range start before scoring the referenced slice. The cases
+file has `format`, `generated_by`, and `cases` keys; a case's `expected` is null when
+its window does not fit. Each run of `build-fixtures` rewrites the files. Fixture
+validation results and worked examples are synthetic demonstrations, not measurements
+from NASA data.

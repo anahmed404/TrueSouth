@@ -73,7 +73,7 @@
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
     "slope": {
       "baseline_m": 100.0,
-      "deg": 5.0,
+      "deg": 9.0,
       "source": "synthetic fixture"
     },
     "source_url": "",

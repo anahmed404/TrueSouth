@@ -111,7 +111,9 @@ def test_cases_match_reference_and_cover_edges():
     from truesouth.constants import TIME_GRID_COUNT
     from truesouth.contracts import MissionProfile
     from truesouth.paths import fixtures_dir, repo_root
-    cases = json.loads((repo_root() / 'web/src/lib/scoring/__fixtures__/scoring_cases.json').read_text(encoding='utf-8'))
+    document = json.loads((repo_root() / 'web/src/lib/scoring/__fixtures__/scoring_cases.json').read_text(encoding='utf-8'))
+    assert set(document) == {'format', 'generated_by', 'cases'}
+    cases = document['cases']
     assert len(cases) >= 40
     labels = set(label for case in cases for label in case['labels'])
     assert {'relay','max_dark_h_zero','slope_not_assessed','operations_sun_elevation','weights_nonunit_zero','half_hour_window_tie','first_hour','last_landing_that_fits','one_hour_too_late','im2_go','im2_caution'} <= labels
@@ -125,10 +127,14 @@ def test_cases_match_reference_and_cover_edges():
         series = {k:v[start:end] for k,v in cache[path].items()}
         profile = MissionProfile.model_validate(case['profile'])
         expected = case['expected']
-        assert expected['window_length'] == scoring.window_length(profile.duration_days)
         result = scoring.evaluate(series, profile, case['landing_hour']-start, case['slope_deg'])
-        assert expected['evaluation'] == (None if result is None else asdict(result))
-        assert expected['countdowns'] == asdict(scoring.countdowns(series, profile, case['current_hour']-start))
+        assert case['countdowns'] == asdict(scoring.countdowns(series, profile, case['current_hour']-start))
+        if result is None:
+            assert expected is None
+            continue
+        assert expected['window_length'] == scoring.window_length(profile.duration_days)
+        assert expected['evaluation'] == asdict(result)
+        assert expected['countdowns'] == case['countdowns']
         lit, link = scoring.hour_flags(series, profile)
         i = case['landing_hour']-start
         assert expected['lit'] == lit[i:i+expected['window_length']].tolist()
@@ -137,7 +143,47 @@ def test_cases_match_reference_and_cover_edges():
             if label.startswith('veto_'):
                 name = label[len('veto_'):-len('_alone')]
                 assert [k for k,v in expected['evaluation']['vetoes'].items() if v['triggered']] == [name]
-    assert {x['expected']['evaluation']['status'] for x in cases if x['expected']['evaluation'] and 'preset_im2_athena' in x['labels']} >= {'NO-GO'}
+    assert {x['expected']['evaluation']['status'] for x in cases if x['expected'] and 'preset_im2_athena' in x['labels']} >= {'NO-GO'}
     assert next(x for x in cases if 'im2_go' in x['labels'])['expected']['evaluation']['status'] == 'GO'
     assert next(x for x in cases if 'im2_caution' in x['labels'])['expected']['evaluation']['status'] == 'CAUTION'
-    assert next(x for x in cases if 'one_hour_too_late' in x['labels'])['expected']['evaluation'] is None
+    assert next(x for x in cases if 'one_hour_too_late' in x['labels'])['expected'] is None
+    high = next(x for x in cases if 'high_score_with_veto' in x['labels'])['expected']['evaluation']
+    assert high['score'] >= 70 and high['status'] == 'NO-GO'
+
+
+def test_daily_site_variety():
+    from truesouth import scoring, catalog, derived_io as io
+    from truesouth.constants import TIME_GRID_COUNT
+    from truesouth.paths import fixtures_dir
+    profile = next(p for p in catalog.load_profiles() if p.id == 'im2_athena')
+    results = {}
+    elevations = []
+    skylines = []
+    for site, slope in [('fixture_ridge',3), ('fixture_crater',8), ('fixture_edge',12), ('fixture_wide',9), ('fixture_sphere',None)]:
+        folder = fixtures_dir() / 'sites' / site
+        series = io.read_series(folder / 'series.bin', TIME_GRID_COUNT)
+        sky = io.read_skyline(folder / 'skyline.bin', 1440)
+        results[site] = [e for e in scoring.slip_sweep(series, profile, slope)[::24] if e is not None]
+        elevations.append((series['sun_el'].min(), series['sun_el'].max()))
+        skylines.append((sky['el_deg'].min(), sky['el_deg'].max()))
+        if site in ('fixture_crater', 'fixture_edge', 'fixture_wide'):
+            assert np.any(series['earth_clear'] < 0)
+    assert len(set(elevations)) == len(elevations)
+    assert len(set(skylines)) == len(skylines)
+    for site in ('fixture_ridge', 'fixture_crater', 'fixture_wide'):
+        assert len({e.status for e in results[site]}) >= 2
+    ridge = results['fixture_ridge']
+    assert sum(e.status == 'GO' for e in ridge) > len(ridge) / 2
+    assert any(ridge[i].status == 'NO-GO' and ridge[i+14].status == 'GO' for i in range(len(ridge)-14))
+    assert any(ridge[i].status == 'GO' and ridge[i+14].status == 'NO-GO' for i in range(len(ridge)-14))
+    crater = results['fixture_crater']
+    assert sum(e.status == 'NO-GO' for e in crater) > len(crater) / 2
+    wide = results['fixture_wide']
+    assert sum(e.status == 'CAUTION' for e in wide) > 100
+    assert any({k for k,v in e.vetoes.items() if v.triggered} == {'slope'} for e in results['fixture_edge'])
+    assert any(len({e.status for e in row}) == 3 for row in results.values())
+    assert all(any(not e.vetoes[veto].triggered for site in ('fixture_ridge','fixture_crater','fixture_edge','fixture_wide') for e in results[site]) for veto in profile_veto_names())
+
+
+def profile_veto_names():
+    return ('slope', 'darkness', 'blackout', 'landing_dark', 'landing_sun_low', 'landing_sun_high')

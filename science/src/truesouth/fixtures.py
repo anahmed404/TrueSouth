@@ -51,7 +51,10 @@ def _skyline(site, index):
     if site['terrain_tier'] == 'sphere':
         flat = -np.degrees(np.arccos(C.MOON_RADIUS_M / (C.MOON_RADIUS_M + C.OBSERVER_HEIGHT_M)))
         return dict(el_deg=np.full(len(az), flat), **{k: np.full(len(az), np.nan) for k in ('dist_km','lat_deg','lon_deg','height_m')})
-    rim = 0.5 + 1.3 * (0.5 + 0.5 * np.cos(np.radians(az - 45 - index*30)))**8
+    # Each synthetic site has its own rim height and angular shape.
+    base, height, direction, power = [(0.10, .65, 70, 12), (1.0, .65, 180, 3),
+                                       (.35, .8, 35, 6), (.35, .9, 110, 8)][index]
+    rim = base + height * (0.5 + 0.5 * np.cos(np.radians(az - direction)))**power
     return dict(el_deg=rim, dist_km=np.full(len(az), 3.0), lat_deg=np.full(len(az), site['lat_deg']),
                 lon_deg=np.full(len(az), site['lon_deg']), height_m=np.full(len(az), 100.0))
 
@@ -60,8 +63,12 @@ def _series(sky, index):
     t = np.arange(N, dtype=float)
     az = np.round((t * 360 / 708.7 + index*57) % 360, 2) % 360
     earth_az = np.round((45 + 7*np.sin(2*np.pi*t/655.7) + index*22) % 360, 2) % 360
-    el = np.round(1.5 + 2.4*np.sin(2*np.pi*t/708.7 + index*.8) + 0.5*np.sin(2*np.pi*t/(24*365.25)), 2)
-    earth_el = np.round(1.3 + 2.0*np.sin(2*np.pi*t/655.7 + index*1.2), 2)
+    sun_centre, sun_amplitude, seasonal = [(1.15, .95, .35), (1.35, 1.5, .3),
+                                           (1.5, 1.05, .25), (1.4, 1.2, .3),
+                                           (1.15, 1.6, .4)][index]
+    el = np.round(sun_centre + sun_amplitude*np.sin(2*np.pi*t/708.7 + index*.8) + seasonal*np.sin(2*np.pi*t/(24*365.25)), 2)
+    earth_centre, earth_amplitude = [(4.0, 2.0), (3.1, 2.3), (3.2, 2.8), (3.0, 2.0), (2.5, 2.0)][index]
+    earth_el = np.round(earth_centre + earth_amplitude*np.sin(2*np.pi*t/655.7 + index*1.2), 2)
     elevation = np.asarray(sky['el_deg'], dtype='<f4').astype(float)
     def clear(a, e):
         pos = a * 4
@@ -148,19 +155,21 @@ def _cases(root, sites, profiles):
         local = landing-start
         result = scoring.evaluate(part, profile, local, slope)
         flags = scoring.hour_flags(part, profile)
+        countdowns = asdict(scoring.countdowns(part,profile,current-start))
+        expected = None if result is None else dict(window_length=n, lit=flags[0][local:local+n].tolist(),
+                         link=flags[1][local:local+n].tolist(), evaluation=asdict(result), countdowns=countdowns)
         cases.append(dict(labels=label if isinstance(label,list) else [label], site_id=sid,
             series_file=f'sites/{sid}/series.bin', hour_range=[start,end], profile=profile.model_dump(mode='json'),
             landing_hour=landing, landing_utc=_utc(landing), slope_deg=slope, current_hour=current,
-            expected=dict(window_length=n, lit=flags[0][local:local+n].tolist(), link=flags[1][local:local+n].tolist(),
-                          evaluation=None if result is None else asdict(result), countdowns=asdict(scoring.countdowns(part,profile,current-start)))))
+            countdowns=countdowns, expected=expected))
     base = profiles['im2_athena']
     for j in range(30):
         site = sites[j % len(sites)]
         add(['preset_im2_athena', 'sample'],site['id'],base, j*113, None if site['slope'] is None else site['slope']['deg'])
     for name,p in profiles.items():
         add('preset_'+name,'fixture_ridge',p,100,3)
-    add(['im2_go','slope_not_assessed'],'fixture_sphere',base,270,None)
-    add(['im2_caution','slope_not_assessed'],'fixture_sphere',base,5370,None)
+    add('im2_go','fixture_ridge',base,0,3)
+    add(['im2_caution','slope_not_assessed'],'fixture_sphere',base,2016,None)
     common = dict(duration_days=2/24, min_sun_fraction=0, max_dark_h=10000,
                   relay_available=True, max_blackout_h=10000, landing_sun_el_min_deg=None,
                   landing_sun_el_max_deg=None, ops_sun_el_min_deg=None)
@@ -177,11 +186,13 @@ def _cases(root, sites, profiles):
     add('operations_sun_elevation','fixture_ridge',p.model_copy(update={'ops_sun_el_min_deg':2}),0,3)
     add('weights_nonunit_zero','fixture_ridge',p.model_copy(update={'weights':Weights(slope=0,power=2,comms=3)}),0,3)
     add('score_go_threshold','fixture_ridge',p.model_copy(update={'weights':Weights(slope=1,power=0,comms=0), 'max_slope_deg':10, 'slope_ideal_deg':0}),0,3)
+    add('high_score_with_veto','fixture_ridge',p.model_copy(update={'weights':Weights(slope=0,power=1,comms=1)}),0,p.max_slope_deg+1)
     add('half_hour_window_tie','fixture_ridge',p.model_copy(update={'duration_days':2.5/24}),0,3)
     add('first_hour','fixture_ridge',p,0,3)
     add('last_landing_that_fits','fixture_ridge',p,N-2,3)
     add('one_hour_too_late','fixture_ridge',p,N-1,3)
-    return cases
+    return {'format': 'series_file is relative to data/fixtures; hour_range is a half-open slice of the full time grid. landing_hour and current_hour are full-grid indices. expected is null when the window has no result.',
+            'generated_by': 'uv run truesouth build-fixtures', 'cases': cases}
 
 
 def build_fixtures(root=None, cases_path=None):
@@ -191,7 +202,7 @@ def build_fixtures(root=None, cases_path=None):
     sites = [_site('fixture_ridge','Fixture Ridge',-89.4,222,'core80',3,True),
              _site('fixture_crater','Fixture Crater',-85,20,'core80',8),
              _site('fixture_edge','Fixture Edge',-80.01,4,'core80',12),
-             _site('fixture_wide','Fixture Wide',-69,30,'wide240',5),
+             _site('fixture_wide','Fixture Wide',-69,30,'wide240',9),
              _site('fixture_sphere','Fixture Sphere',0,20,'sphere',None)]
     _json(root/'manifest.json', Manifest(schema_version=1, generated_utc=STAMP, time_grid=dict(start_utc=STAMP,step_s=3600,count=N), observer_height_m=C.OBSERVER_HEIGHT_M, skyline_bins=C.SKYLINE_BINS, moon_radius_m=C.MOON_RADIUS_M).model_dump())
     _json(root/'sites.json', Sites.model_validate(sites).model_dump())

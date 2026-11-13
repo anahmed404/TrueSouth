@@ -54,7 +54,7 @@ each integration checkpoint.
 - **AI use:** Codex, gpt-6.1-terra — built fixture pipeline and tests — automated checks run; human review pending
 - **State:** built, not verified
 - **Changed:** Science fixture encoding, binary I/O, pipeline, tests, `data/fixtures/`, shared scoring cases and data-contract notes.
-- **Notes:** G9 sampled maximum errors 0.004999907384558355° and 0.00004999858055221296. Fixtures total 5,873,749 bytes; 52 scoring cases total 554,036 bytes. Synthetic data is not a validation measurement.
+- **Notes:** G9 sampled maximum errors 0.004999907384558355° and 0.00004999858055221296. Fixtures total 5,873,749 bytes; 53 scoring cases total 619,120 bytes. Daily IM-2 windows: ridge 1,732 GO / 450 NO-GO; crater 103 GO / 18 CAUTION / 2,061 NO-GO; wide 504 CAUTION / 1,678 NO-GO; edge 2,182 NO-GO; sphere 569 GO / 21 CAUTION / 1,592 NO-GO. Synthetic data is not a validation measurement.
 
 #### 2026-11-13 · S5 · Prepared terrain maps and downloads
 - **Who:** Codex agent, for the orchestrator
