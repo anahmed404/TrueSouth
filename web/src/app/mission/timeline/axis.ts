@@ -210,6 +210,17 @@ export function windowText(range: Pick<TimelineRange, "landing" | "windowEnd">, 
   return `${shortDate(gridStartMs, range.landing)} ${a.year} ${a.hh}:${a.mm} → ${shortDate(gridStartMs, range.windowEnd)}${year} ${b.hh}:${b.mm} UTC`;
 }
 
+/**
+ * The mission window's end, after the landing-date control that sets its start:
+ * "to 11 Mar 00:00 UTC", with the year when it differs from the landing's.
+ */
+export function windowEndText(range: Pick<TimelineRange, "landing" | "windowEnd">, gridStartMs: number): string {
+  const a = utcParts(gridStartMs, range.landing);
+  const b = utcParts(gridStartMs, range.windowEnd);
+  const year = a.year === b.year ? "" : ` ${b.year}`;
+  return `to ${shortDate(gridStartMs, range.windowEnd)}${year} ${b.hh}:${b.mm} UTC`;
+}
+
 /** "03 March 2028 15:00 UTC", for screen readers. */
 export function longStamp(gridStartMs: number, hour: number): string {
   const p = utcParts(gridStartMs, hour);

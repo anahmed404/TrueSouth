@@ -48,8 +48,8 @@ The Timeline CSV, the Slip Planner CSV and the PNG export are not built yet (not
 ## Links to NASA tools
 
 Each site has "Quickmap" and "Moon Trek" links in the Compare table's last row; each opens
-the tool centred on the site, in a new tab. They are not yet in the focused-site panel: that
-is a follow-up once the panel's pending changes (#83) land.
+the tool centred on the site, in a new tab. They are not yet in the focused-site panel; that
+is a follow-up.
 
 MC9 confirmed both formats by opening each link and reading the tool's own coordinate
 readout at the map centre, for Apollo 11 (0.674° N, 23.473° E) and Connecting Ridge
