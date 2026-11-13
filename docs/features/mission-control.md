@@ -36,9 +36,9 @@ them.
 ```text
  The whole window is the 3D scene: the Moon, with Earth and the Sun beyond it.
 ┌───────────────────────────────────────────────────────────────────────────────────┐
-│ ┌──────────────────────┐ ┌─────────────┐ ┌────────────────────┐ ┌───────┐         │
-│ │ TrueSouth [MC|Acad.] │ │ Profile ▾   │ │ Landing date  Slip │ │ Share │         │
-│ └──────────────────────┘ └─────────────┘ └────────────────────┘ └───────┘         │
+│ ┌──────────────────────┐                             ┌─────────────┐ ┌───────┐    │
+│ │ TrueSouth [MC|Acad.] │                             │ Profile ▾   │ │ Share │    │
+│ └──────────────────────┘                             └─────────────┘ └───────┘    │
 │  ┌───────────────────────────────────────────────────────────────────────────┐    │
 │  │ System · Polar map · Slip Planner · Terrain · Lander's eye │ Compare ▭    │    │
 │  └───────────────────────────────────────────────────────────────────────────┘    │
@@ -50,7 +50,8 @@ them.
 │ └──────────────┘       window opens over this area)           └───────────────┘   │
 │             [ view controls float at the foot of the free space ]                 │
 │ ┌──────────────────────────────────────────────────────────────────────────────┐  │
-│ │ timeline: lit/dark band, link/blackout band, scrubber    │ countdown cards   │  │
+│ │ Landing date ‹ date › Slip · Next GO             ▶ speed │ countdown cards   │  │
+│ │ timeline: lit/dark band, link/blackout band, scrubber    │                   │  │
 │ └──────────────────────────────────────────────────────────────────────────────┘  │
 │       Planning aid, not flight certification. Limits marked assumed are ours.     │
 └───────────────────────────────────────────────────────────────────────────────────┘
@@ -58,12 +59,12 @@ them.
 
 | Element | What it is |
 | :--- | :--- |
-| **App bar** | Mode switch, profile picker, landing-date picker, share menu. Four floating blocks along the top, 44 px tall. |
+| **App bar** | Mode switch, profile picker, share. Three floating blocks along the top, 44 px tall. The landing date is in the bottom strip. |
 | **View bar** | A floating bar under the app bar that picks the view. See "The view bar". |
 | **About the view** | The current view's tab carries a small info button, "About System view" and so on. Its tip holds the plain-language text from `explain.ts`, whose first sentence says what the view shows. Nothing is drawn under the view bar, so the scene keeps that room. The same first sentence is the current tab's accessible description and is read out politely when the view changes. |
 | **Sites rail** | Selected sites, each with a status chip for the current landing date. Click to focus. Up to 8 sites. 256 px wide, or 48 px folded. |
 | **Focused-site panel** | Status, the broken rule, passing rules, metrics, slope with its baseline, links out to Quickmap and Moon Trek. 328 px wide, or 48 px folded. Content below. |
-| **Timeline** | A floating bar along the bottom with the countdowns. 196 px tall, or one row (52 px) folded. Spec: [`site-detail.md`](site-detail.md). In the Slip Planner its slot holds the landing-date panel instead (see [`slip-planner.md`](slip-planner.md)). |
+| **Timeline** | A floating bar along the bottom with the countdowns. Its header starts with the landing date, where the mission window begins, and "Next GO". 196 px tall, or one row (52 px) folded. Spec: [`site-detail.md`](site-detail.md). In the Slip Planner its slot holds the landing-date panel instead (see [`slip-planner.md`](slip-planner.md)). |
 | **View controls** | The current view's controls (presets, overlays, exaggeration, and so on), in a small panel at the foot of the free space. Each view's spec lists them. |
 | **Footer line** | "Planning aid, not flight certification. Limits marked assumed are our estimates." Always on screen, on a plate. |
 
@@ -175,13 +176,13 @@ threshold and the details are in [`system-view.md`](system-view.md).
 Mission Control may ask for a wider screen, but the layout holds at 390 px wide.
 
 - One column, with an 8 px margin. The scene stays behind everything.
-- The app bar shows the brand, a landing-date field and share; the mode switch and the
-  profile's full text are hidden.
+- The app bar shows the brand and share; the mode switch and the profile are hidden.
 - The view bar scrolls sideways.
 - The sites rail is hidden and opens as a sheet from a "Sites" button.
 - The focused site is a one-line sheet (name and status) that expands.
-- The timeline is a 100 px strip: play, the current time, and a 44 px scrubber. The
-  countdown cards become one line.
+- The timeline is a compact strip: the landing date with its day buttons and "Next GO" on
+  one 44 px row, then play, the current time and the countdowns, then a 44 px scrubber. The
+  date's picker, with the slip buttons, opens as a sheet the width of the screen.
 - A floating window fills the screen.
 - Every control is at least 44 px.
 - The still picture shows the same note and keeps the same layout.
@@ -189,7 +190,8 @@ Mission Control may ask for a wider screen, but the layout holds at 390 px wide.
 ## Keyboard use
 
 - **Tab order,** Proposed: app bar, view bar, sites rail, the scene, focused-site panel,
-  timeline, then the footer. Reason: it follows the reading order, and the prototype's
+  timeline (the landing date first, then the play controls and the scrubber), then the
+  footer. Reason: it follows the reading order, and the prototype's
   notes list "the scene is the first Tab stop" as a defect to fix.
 - The scene canvas takes the arrow keys to turn and `+` and `−` to zoom. Pins are not in the
   tab order: the sites rail is the keyboard path to every site.
@@ -215,11 +217,17 @@ Mission Control may ask for a wider screen, but the layout holds at 390 px wide.
   1" error.
 - Every change updates statuses, metrics and the Slip Planner at once.
 
-## Landing-date picker
+## Landing date
 
-- A date and hour in UTC, limited to the time grid.
-- Arrows step by one day. "Slip" buttons step by 7 and 14 days.
+- It sits in the bottom strip, at the left of the timeline where the mission window begins,
+  not in the app bar: the landing date sets where the window starts and the scrubber moves
+  inside it, so the two controls share one place.
+- A date and hour in UTC, limited to the time grid. Arrows step by one day. "Slip" buttons
+  step by 7 and 14 days. "Next GO" moves to the next day the focused site is GO.
 - The latest valid landing date is the end of the time grid minus the mission duration.
+- The whole control, its states and what follows a change are in
+  [`site-detail.md`](site-detail.md), "The landing date". The Slip Planner's landing-date
+  panel mounts the same component.
 
 ## Sites rail and the sunlit peaks
 

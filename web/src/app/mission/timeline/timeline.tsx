@@ -34,6 +34,7 @@ import {
   pillText,
   sliderValueText,
   timelineRange,
+  windowEndText,
   windowText,
   xToHour,
   type HourScale,
@@ -67,6 +68,12 @@ export type TimelineProps = PanelProps & {
    */
   compact?: boolean;
   onToggleFold?: () => void;
+  /**
+   * The landing-date control, drawn at the left end of the head, where the mission window
+   * begins: the landing date sets where the window starts, the scrubber moves inside it.
+   * With it, the head's "Timeline" title is for screen readers only.
+   */
+  landing?: ReactNode;
   /**
    * Sets the scenario's current time. "push" adds one history entry; "replace" does not, for
    * the steps of a drag or of play after the first. Without it, `onScenarioChange` is used.
@@ -111,7 +118,7 @@ export function Timeline(props: TimelineProps) {
 
 type SiteTimelineProps = TimelineProps & { siteId: string; grid: TimeGrid; hours: NonNullable<Hours> };
 
-function SiteTimeline({ scenario, siteId, grid, hours, folded = false, compact = false, onToggleFold, onTimeChange, onScenarioChange }: SiteTimelineProps) {
+function SiteTimeline({ scenario, siteId, grid, hours, folded = false, compact = false, onToggleFold, onTimeChange, onScenarioChange, landing }: SiteTimelineProps) {
   const profile = scenario.profile;
   const range = useMemo(() => timelineRange(grid.count, hours.landing, profile.duration_days), [grid.count, hours.landing, profile.duration_days]);
   const gridStartMs = useMemo(() => Date.parse(grid.start_utc), [grid.start_utc]);
@@ -170,6 +177,7 @@ function SiteTimeline({ scenario, siteId, grid, hours, folded = false, compact =
     return (
       <div className="tl tl-compact">
         <h2 className="sr-only">Timeline</h2>
+        {landing ? <div className="tl-landing tl-compact-landing">{landing}</div> : null}
         {playButton}
         <p className="tl-compact-now">
           <span className="tl-compact-time tabular">{compactRow.time}</span>
@@ -199,8 +207,9 @@ function SiteTimeline({ scenario, siteId, grid, hours, folded = false, compact =
   if (folded) {
     return (
       <div className="tl tl-folded">
-        <h2 className="tl-title">Timeline</h2>
+        <h2 className={landing ? "sr-only" : "tl-title"}>Timeline</h2>
         {foldButton}
+        {landing ? <div className="tl-landing">{landing}</div> : null}
         <span className="tl-folded-time tabular">{pillText(range, current, gridStartMs)}</span>
         {playButton}
         <span className="tl-folded-counts">
@@ -222,19 +231,36 @@ function SiteTimeline({ scenario, siteId, grid, hours, folded = false, compact =
   return (
     <div className="tl">
       <div className="tl-head">
-        <h2 className="tl-title">
-          <Explain term="timeline">Timeline</Explain>
-        </h2>
+        {landing ? (
+          <h2 className="sr-only">Timeline</h2>
+        ) : (
+          <h2 className="tl-title">
+            <Explain term="timeline">Timeline</Explain>
+          </h2>
+        )}
         {foldButton}
-        <p className="tl-window">
-          <span className="tl-window-dates tabular">
-            <Explain term="mission_window">Mission window</Explain> {windowText(range, gridStartMs)}
-            {range.fits ? "" : " (past the end of the data)"},
-          </span>{" "}
-          <span className="whitespace-nowrap">
-            {formatLimit(profile.duration_days, "d")} <SettingsTag settings={durationTag} />
-          </span>
-        </p>
+        {landing ? (
+          <>
+            <div className="tl-landing">{landing}</div>
+            {/* The window's length and tag are on the profile in the app bar, and its days on the
+                axis, so the head says only where it ends, to screen readers, or that it runs
+                past the data. */}
+            <p className={range.fits ? "sr-only" : "tl-window tl-muted"}>
+              Mission window {windowEndText(range, gridStartMs)}
+              {range.fits ? "" : ", past the end of the data"}.
+            </p>
+          </>
+        ) : (
+          <p className="tl-window">
+            <span className="tl-window-dates tabular">
+              <Explain term="mission_window">Mission window</Explain> {windowText(range, gridStartMs)}
+              {range.fits ? "" : " (past the end of the data)"},
+            </span>{" "}
+            <span className="whitespace-nowrap">
+              {formatLimit(profile.duration_days, "d")} <SettingsTag settings={durationTag} />
+            </span>
+          </p>
+        )}
         <div className="tl-controls">
           {playButton}
           <Button onClick={playback.changeSpeed} aria-label={`Play speed: ${speedLabel(playback.speed)}. Change speed`}>
@@ -285,11 +311,14 @@ function FoldedCount({ view }: { view: CountdownView }) {
   );
 }
 
-function TimelineMessage({ children, folded, onToggleFold }: TimelineProps & { children: ReactNode }) {
+function TimelineMessage({ children, folded, onToggleFold, landing }: TimelineProps & { children: ReactNode }) {
   return (
     <div className={cx("tl", folded && "tl-folded")}>
-      <h2 className="tl-title">Timeline</h2>
-      {onToggleFold ? <FoldButton folded={folded ?? false} onToggle={onToggleFold} /> : null}
+      <div className={folded ? "tl-message-head" : "tl-head"}>
+        <h2 className={landing ? "sr-only" : "tl-title"}>Timeline</h2>
+        {onToggleFold ? <FoldButton folded={folded ?? false} onToggle={onToggleFold} /> : null}
+        {landing ? <div className="tl-landing">{landing}</div> : null}
+      </div>
       <p className="tl-message">{children}</p>
     </div>
   );

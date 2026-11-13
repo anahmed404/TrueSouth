@@ -13,15 +13,17 @@ Layout and folding: [`mission-control.md`](mission-control.md). Prototype:
 
 - A solid, floating panel with a 16 px margin, the full width of the window less the
   margins, above the footer line. 196 px tall when open.
-- **It folds to one row** (52 px) with its toggle: play, speed, the current time and the
-  toggle remain; the bands and the countdown cards are hidden. The camera's centre slides
+- **It folds to one row** (52 px) with its toggle: the toggle, the landing date with its
+  day buttons and "Next GO", the current time, play and both countdowns remain; the bands and the countdown cards are hidden. The camera's centre slides
   to the new free space as the bar folds (200 ms; none under "reduce motion").
 - The folded state is view state, kept in local storage, not in the scenario or the URL.
 - **It is always on screen.** The Compare window opens above it, never
   over it, so the scrubber stays reachable. In the Slip Planner its slot holds the
   landing-date panel ([`slip-planner.md`](slip-planner.md)), which has its own slider.
-- **On a phone** it is a 100 px strip: play, the current time, and a 44 px scrubber. The
-  countdown cards become one line.
+- **On a phone** it is a compact strip: a 44 px row with the landing date, its day buttons
+  and "Next GO"; then play, the current time and the countdowns on one line; then a 44 px
+  scrubber. The date opens its picker, with the slip buttons, as a sheet the width of the
+  screen.
 
 ## Timeline
 
@@ -43,8 +45,71 @@ Layout and folding: [`mission-control.md`](mission-control.md). Prototype:
   mission window. A play button animates time at a chosen speed; the prototype's speed is
   "1 h per second". It is a slider with an accessible name.
 - **Context.** Faint bands extend 3 days before landing and 3 days after the window ends.
-- **The bar's header** holds the title "Timeline", the mission window's dates in UTC, and
-  the controls.
+- **The bar's header** starts with the landing date, at the left end of the time axis where
+  the mission window begins, then the play controls at the right. The title "Timeline" and
+  the window's end are read by screen readers; on screen the axis shows Day 1 to the last
+  day, and the profile in the app bar shows the window's length with its tag. See "The
+  landing date" below.
+
+## The landing date
+
+The landing date and the scrubber are two controls on one time axis: the landing date is
+where the mission window starts, the scrubber is the current time inside it. So both sit
+in the bottom strip, the landing date first.
+
+```text
+ ⌄  Landing date ⓘ  ‹ 2028-03-01 00:00 UTC ›  Slip +7 d  +14 d  Next GO        ▶  6 h per second  ◯ Clearance chart
+        −3 d  ─ Day 1 ─ Day 2 ─ … ─ Day 10 ─ +1 d …
+ Sun    ░░░░░░████████░░░░███████████████████░░░░░░
+ Earth  ░░░░░░██████████████░░░░░░░░░░░░░░░░░░░░░░░
+```
+
+- **The control** is one component, `LandingDateControl` in
+  `web/src/app/mission/landing-date-control.tsx`. It reads and writes only the scenario
+  store, so the Slip Planner's landing-date panel mounts the same component in its header.
+  It has a "Landing date" label with its info icon, a one-day earlier button, the date and
+  hour in UTC (a button that opens the picker), a one-day later button, "Slip +7 d" and
+  "+14 d", and "Next GO".
+- **The picker** is a date and an hour in UTC, limited to the time grid. The latest valid
+  landing date is the end of the time grid minus the mission duration. It opens above the
+  strip. In the folded strip and on the phone the slip buttons move into it.
+- **What follows a change of landing date.** The current time keeps its offset from the
+  landing (Day 2 at 06:00 stays Day 2 at 06:00), clamped to the timeline's range of the
+  window and 3 days either side (`moveLandingKeepingOffset` in `state/scenario.ts`). The
+  timeline's "Day N" labels, the mission window band, the stretches and the countdowns
+  follow. Each change pushes one browser history entry, so Back restores the previous date.
+- **A narrow strip** first drops the word "Slip", then the words "Landing date" (both stay
+  as the buttons' and the group's names); the play controls then wrap to a second row.
+- **Rejected: a draggable start of the window on the timeline.** The timeline's range is
+  anchored to the landing date (3 days either side of the window), so a handle there would
+  move its own axis while being dragged. Moving the landing date along the calendar is the
+  Slip Planner's slider.
+
+### Next GO
+
+- **What it does.** It moves the landing date to the next landing day on which the focused
+  site is GO for the current mission profile, searching forward from the day after the
+  current landing date's day. It uses the slip sweep's results for that site (`useSweep`)
+  and `nextGoDay` in `web/src/lib/scoring/next-go.ts`, the same function as the Slip
+  Planner's "next GO" column. It adds no scoring.
+- **Whole days.** The sweep's entries are landings at 00:00 UTC
+  ([`slip-planner.md`](slip-planner.md), "Whole days"), so the button sets the landing to
+  00:00 UTC on that day. Its description says so.
+- **States,** each in words:
+  - While the sweep is computing, the button shows a turning ring, is `aria-busy` and cannot
+    be pressed. Its description: "Working out the GO dates for Connecting Ridge…".
+  - If the sweep fails, it cannot be pressed, and its description says why.
+  - With no later GO day in the time grid, a plain line replaces it: "No GO date before
+    2032", the year the grid ends.
+  - With no focused site, it is not shown.
+- **After a jump** a small bubble over the button says "Landing moved to 14 Mar 2028, the
+  next GO date for Connecting Ridge." with "Undo", and a polite status line says the same to
+  screen readers. Undo restores the previous landing date and current time exactly, and
+  says "Landing moved back to 01 Mar 2028."; Back in the browser does the same. The bubble
+  goes after 15 s (not while the pointer or focus is in it), on Escape, or when the landing
+  date changes another way.
+- The label is "Next GO". It is a planning result, not a guarantee: the provenance tags
+  and the footer line stay as they are.
 
 A small chart above the bands, shown on demand, plots `sun_clear` and `earth_clear` in
 degrees against time, with a line at zero and a line at the antenna mask.
@@ -105,6 +170,10 @@ For a sphere-tier site the sentence is "Sun is below the horizon" with no blocke
   near terrain, blocked by far terrain, and below the horizon.
 - The bar folds to one row and unfolds with its toggle, and the scrubber works at every
   state, including on a phone at 390 px with a 44 px target.
+- The landing date can be changed from the strip in every state (open, folded, phone), and
+  a scrub of the current time does not re-render the landing-date control.
+- "Next GO" finds the same day as the Slip Planner's "next GO" column for the day after the
+  landing date, and shows each of its states in words.
 - The bar stays visible and usable while the Compare window is open. In the Slip Planner the
   landing-date panel takes its place.
 - Moving the scrubber moves the Sun and Earth in the scene.

@@ -281,11 +281,11 @@ view and fills the whole window. Every panel floats above it:
 | Element | Size |
 | :--- | :--- |
 | Scene | the whole window |
-| App bar: four floating blocks, 12px from the top | 44px tall |
+| App bar: three floating blocks (brand and mode, profile, share), 12px from the top | 44px tall |
 | View bar, under the app bar (nothing is drawn under it but a notice about the link) | 44px tall |
 | Sites rail | 256px open, 48px collapsed |
 | Focused-site panel | 328px open, 48px collapsed |
-| Timeline strip, along the bottom | 196px open, 52px folded |
+| Timeline strip, along the bottom, its header starting with the landing date | 196px open, 52px folded |
 | Footer line | 20px |
 | Floating window (Compare) | at most 1120px wide, between the view bar and the timeline |
 | Landing-date panel (Slip Planner), in the timeline's slot | as tall as its content |
@@ -519,6 +519,10 @@ or glow.
   solid 2px NO-GO Red, labelled with a NO-GO lamp, when it breaks one.
 - **Scrubber:** a Moonlight line and knob, with a pill showing the mission day and UTC
   time.
+- **Landing date:** the first thing in the strip's header, where the mission window
+  begins: a "Landing date" label, the date in a Raised box between two day buttons, the
+  slip buttons and "Next GO" (secondary buttons). After "Next GO" a tip-style bubble (Raised,
+  Control Edge, the popover shadow) says where the landing moved, with "Undo".
 
 ## Do's and Don'ts
 
