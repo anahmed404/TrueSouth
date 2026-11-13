@@ -75,3 +75,12 @@ export const CATALOG_IDS: readonly string[] = LESSONS.map((lesson) => lesson.id)
 
 /** Mission patch earned for finishing all eight lessons. */
 export const ALL_EIGHT_PATCH_ID = "all-eight";
+
+/** The ninth mission patch's name, for finishing all eight lessons. */
+export const ALL_EIGHT_PATCH_NAME = "True South";
+
+/** All nine patches in shelf order: the eight lessons', then True South. */
+export const PATCH_SHELF: readonly { id: string; name: string }[] = [
+  ...LESSONS.map((lesson) => ({ id: lesson.id, name: lesson.patchName })),
+  { id: ALL_EIGHT_PATCH_ID, name: ALL_EIGHT_PATCH_NAME },
+];

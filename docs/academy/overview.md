@@ -67,13 +67,16 @@ the unlocked panel, and buttons for "Next lesson" and "Open in Mission Control".
 | Rule | Detail |
 | :--- | :--- |
 | XP | 10 for a step answered correctly first time, 5 on the second try, 2 after the answer is shown |
+| Predict steps | One guess. 10 XP if it is right; 2 XP if it is wrong, the same as an answer that had to be shown. "Show me" then plays out the real answer. There is no hint and no second guess. |
+| Draw-skyline steps | One attempt, and every sketch passes. XP is earned by closeness. The gap is the mean absolute difference in degrees between the sketch and the real skyline over the step's azimuth range. XP = round(10 − 8 × clamp((gap − 0.25) / 1.75, 0, 1)): 10 XP at 0.25° or closer, 2 XP at 2° or worse. The step counts as right first time for stars when the gap is 1.0° or less. |
 | Wrong answers | No lives. First miss: Luna gives a hint and the learner tries again. Second miss: the answer is shown and explained, then the lesson moves on. |
 | Stars | 3 if every step was right first time; 2 if at least 60% were; 1 otherwise |
-| Mission patch | One per lesson, earned on completion; a ninth for finishing all eight |
+| Mission patch | One per lesson, earned on completion; a ninth, named "True South", for finishing all eight |
 | Replays | Allowed. The best star count is kept. |
-| Progress | Saved in the browser's local storage under `truesouth.academy.v1`. A "Reset progress" button clears it. |
+| Progress | Saved in the browser's local storage under `truesouth.academy.v1`. A "Reset progress" button clears it, after asking. |
+| Leaving part-way | Drops that lesson's progress. XP, stars and patches are saved only when a lesson is completed. Closing a lesson part-way asks "Leave the lesson?" first. |
 | Sound | Off by default, with a toggle |
-| Celebration | A short burst of confetti and Luna cheering on each correct answer; a bigger one at lesson end |
+| Celebration | A short puff of moondust and Luna cheering on each correct answer; a bigger one at lesson end. None with "reduce motion". |
 
 There are no hearts, no streaks and no timers.
 
@@ -135,7 +138,19 @@ type Step = StepBase & (
 
 - `SceneSpec` names a site, a landing date and a profile: a scenario.
 - `GoalSpec` is a small typed condition on a metric, such as
-  `{ metric: "longest_blackout_h", op: "<=", value: 12 }`.
+  `{ metric: "longest_blackout_h", op: "<=", value: 12 }`. Its value may be a number, text,
+  a UTC date-time (ISO-8601 ending in `Z`), or a `{{example.key}}` placeholder filled from
+  `worked_examples.json`. Numbers compare as numbers, UTC times as moments, and text only
+  with `==`. A placeholder whose key is missing never meets its goal.
+- `drop-pin`: the learner's attempt is a catalog site id or coordinates in degrees, and the
+  goal is optional. With no goal, any pin passes.
+- `RevealSpec`, a predict step's reveal, is either a panel with a caption or plain text.
+- A `choice` or `predict` step may name a `StageSpec`: the illustration on the stage, such
+  as Pip under a sky ruler whose angles come from lesson data or placeholders. It is a
+  drawing, never a computed Sun position.
+
+The exact types are in `web/src/features/academy/types.ts`. Where this sketch and that
+file differ, the file is right and this sketch should be updated.
 - Lesson text may contain `{{example.key}}` placeholders. They are filled from
   `worked_examples.json`, so the numbers in the story always match the real data.
 
