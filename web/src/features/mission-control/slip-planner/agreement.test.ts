@@ -4,20 +4,9 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import type { Manifest, MissionProfile, Sites } from "../../../contracts/generated";
 import { SERIES_COLUMNS, decodeSeries } from "../../../data/decode/index";
-import {
-  DAY_GO,
-  cachedEvaluation,
-  cachedSlipDays,
-  codeStatus,
-  evaluationsAtUtcMidnight,
-  nextGoDay,
-  nextGoWords,
-  siteSlopeDeg,
-  slipSweep,
-  statusCode,
-  vetoMaskOf,
-  type SlipDays,
-} from "../../../lib/scoring";
+import { cachedEvaluation, evaluationsAtUtcMidnight, siteSlopeDeg, slipSweep } from "../../../lib/scoring";
+import { DAY_GO, cachedSlipDays, codeStatus, statusCode, vetoMaskOf, type SlipDays } from "../../../lib/scoring/slip-days";
+import { nextGo, nextGoWords } from "./next-go-words";
 import { utcToHourIndex } from "../../../lib/time";
 import { anySiteDays, dayOfHour, isWholeDay, rank } from "./model";
 import { siteReadout } from "./readout";
@@ -144,7 +133,7 @@ describe("Any site and next GO on the fixture", () => {
     for (const entry of entries.get(chosen[0]!.id)!) {
       const status = entry.days!.status;
       for (const from of [0, 400, 1200, lastDay]) {
-        const next = nextGoDay(entry.days!, from);
+        const next = nextGo(entry.days!, from);
         if (next === null) {
           for (let d = from; d < status.length; d += 1) expect(status[d]).not.toBe(DAY_GO);
           expect(nextGoWords(next, from, start, 2031)).toBe("no GO before 2032");
@@ -197,7 +186,7 @@ describe("moving the landing date is cheap", () => {
       for (const entry of list) {
         expect(cachedSlipDays(entry.sweep!, profile)).toBe(entry.days); // no rebuild, no new sweep
         resultAt(entry, day * 24);
-        nextGoDay(entry.days!, day);
+        nextGo(entry.days!, day);
       }
       const span = 548;
       const fresh = Math.max(0, day - Math.round(span * 0.25));

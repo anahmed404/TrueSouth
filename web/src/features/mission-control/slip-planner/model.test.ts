@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Site } from "../../../contracts/generated";
-import { DAY_CAUTION, DAY_GO, DAY_NOGO, DAY_NONE, nextGoDay, nextGoWords, type Evaluation } from "../../../lib/scoring";
+import type { Evaluation } from "../../../lib/scoring";
+import { DAY_CAUTION, DAY_GO, DAY_NOGO, DAY_NONE } from "../../../lib/scoring/slip-days";
+import { nextGo, nextGoWords } from "./next-go-words";
 import { MOON_RADIUS_M } from "../../../lib/geo";
 import { flatProjection } from "./flat";
 import {
@@ -52,7 +54,7 @@ describe("Any site", () => {
     const a = { status: new Uint8Array(30).fill(DAY_NOGO) };
     const any = anySiteDays([a], 30);
     expect([...any].every((c) => c === DAY_NOGO)).toBe(true);
-    expect(nextGoDay(a, 0)).toBeNull();
+    expect(nextGo(a, 0)).toBeNull();
     expect(nextGoWords(null, 0, GRID_START, 2031)).toBe("no GO before 2032");
   });
 });
@@ -79,10 +81,10 @@ describe("strip marks: status by height as well as colour", () => {
 describe("next GO", () => {
   const status = new Uint8Array([DAY_NOGO, DAY_CAUTION, DAY_GO, DAY_NOGO, DAY_GO]);
   it("is the first GO on or after the day", () => {
-    expect(nextGoDay({ status }, 0)).toBe(2);
-    expect(nextGoDay({ status }, 2)).toBe(2);
-    expect(nextGoDay({ status }, 3)).toBe(4);
-    expect(nextGoDay({ status }, 5)).toBeNull();
+    expect(nextGo({ status }, 0)).toBe(2);
+    expect(nextGo({ status }, 2)).toBe(2);
+    expect(nextGo({ status }, 3)).toBe(4);
+    expect(nextGo({ status }, 5)).toBeNull();
   });
 
   it("says so in words, with the year only when it changes", () => {

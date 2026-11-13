@@ -25,7 +25,8 @@ import { SegmentedControl } from "../../../components/SegmentedControl";
 import { StatusLamp } from "../../../components/StatusLamp";
 import type { Site } from "../../../contracts/generated";
 import { useManifest, useSites } from "../../../data";
-import { codeStatus, nextGoDay, nextGoWords, utcMidnightHours, windowLength, type Status } from "../../../lib/scoring";
+import { utcMidnightHours, windowLength, type Status } from "../../../lib/scoring";
+import { codeStatus } from "../../../lib/scoring/slip-days";
 import { utcToHourIndex } from "../../../lib/time";
 import {
   DAY_PENDING,
@@ -52,7 +53,7 @@ import { anyReadout, readoutText, siteReadout, type Readout } from "./readout";
 import { comparisonHour, slipStore } from "./slip-store";
 import { StripCanvas, stripsHeight, type StripColours } from "./strips-canvas";
 import { resultAt, useSlipDays, type SiteDays } from "./use-slip-days";
-import { shortDay } from "../../../lib/scoring/next-go";
+import { nextGo, nextGoWords, shortDay } from "./next-go-words";
 import { MOON_RADIUS_M } from "../../../lib/geo";
 import "./slip-planner.css";
 
@@ -560,7 +561,7 @@ function Dates(props: DatesProps) {
               const codes = row.codes;
               const text =
                 codes && !(row.kind === "site" && row.entry.state === "loading" && !row.entry.days)
-                  ? nextGoWords(nextGoDay({ status: codes }, landingDay), landingDay, gridStartMs, gridEndYear)
+                  ? nextGoWords(nextGo({ status: codes }, landingDay), landingDay, gridStartMs, gridEndYear)
                   : "";
               const pendingAny = row.kind === "any" && codes ? hasPendingBefore(codes, landingDay) : false;
               return (

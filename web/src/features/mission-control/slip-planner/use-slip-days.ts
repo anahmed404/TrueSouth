@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import type { MissionProfile } from "../../../contracts/generated";
-import { cachedSlipDays, evaluationAt, useSweeps, type SlipDays, type SlipSweep } from "../../../lib/scoring";
+import { evaluationAt, useSweeps, type SlipSweep } from "../../../lib/scoring";
+import { cachedSlipDays, type SlipDays } from "../../../lib/scoring/slip-days";
 import type { SiteResult } from "./model";
 
 /**

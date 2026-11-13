@@ -4,17 +4,9 @@
  */
 
 import type { Site } from "../../../contracts/generated";
-import {
-  DAY_CAUTION,
-  DAY_GO,
-  DAY_NOGO,
-  DAY_NONE,
-  codeStatus,
-  type Evaluation,
-  type SlipDays,
-  type Status,
-} from "../../../lib/scoring";
-import { shortDay } from "../../../lib/scoring/next-go";
+import type { Evaluation, Status } from "../../../lib/scoring";
+import { DAY_CAUTION, DAY_GO, DAY_NOGO, DAY_NONE, codeStatus, type SlipDays } from "../../../lib/scoring/slip-days";
+import { shortDay } from "./next-go-words";
 
 /** A strip mark for a day not yet worked out: it pulses grey. */
 export const DAY_PENDING = 255;

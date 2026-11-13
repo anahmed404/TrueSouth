@@ -36,19 +36,4 @@ export {
 
 export { useCountdowns, useEvaluation, useHourFlags, useSweep, useSweeps } from "./hooks";
 
-export {
-  DAY_CAUTION,
-  DAY_GO,
-  DAY_NOGO,
-  DAY_NONE,
-  VETO_BITS,
-  cachedSlipDays,
-  codeStatus,
-  slipDays,
-  statusCode,
-  vetoMaskOf,
-  type DayCode,
-  type SlipDays,
-} from "./slip-days";
-
-export { nextGoDay, nextGoWords, shortDay } from "./next-go";
+export { dayToHour, hourToDay, nextGoDay, type DayResult } from "./next-go";

@@ -1,4 +1,4 @@
-import { DAY_CAUTION, DAY_GO, DAY_NOGO } from "../../../lib/scoring";
+import { DAY_CAUTION, DAY_GO, DAY_NOGO } from "../../../lib/scoring/slip-days";
 import { DAY_PENDING, markRect } from "./model";
 
 /**
