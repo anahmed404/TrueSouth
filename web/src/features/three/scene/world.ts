@@ -537,6 +537,10 @@ export class World {
     }
     u.uDraw.value = this.draw;
     u.uSlip.value = this.slip;
+    // The Slip Planner: while `slip > 0`, uSun blends to the fixed drawing light, so the ground
+    // never changes with the landing date (slip-planner.md, "Honesty"). Any material that reads
+    // uSun, such as the ground look (three/t3-ground-look), must light this view by this fixed
+    // vector too, never by the real Sun.
     if (this.slip > 0) u.uSun.value.set(...slerp(inputs.sunDir, this.slipLight, this.slip));
     else u.uSun.value.set(...inputs.sunDir);
     if (this.slipShading && this.sunlight === "none") this.loadSunlight();

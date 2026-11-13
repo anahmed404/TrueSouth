@@ -836,6 +836,18 @@
     transform: translate(-50%, -100%);
   }
 
+  /* The shading's short label when the free space has no room for the controls. */
+  .slip-shading-short {
+    position: absolute;
+    margin: 0;
+    padding: 4px 8px;
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+    text-align: center;
+    transform: translate(-50%, -100%);
+    pointer-events: none;
+  }
+
   .slip-summary {
     display: flex;
     align-items: center;

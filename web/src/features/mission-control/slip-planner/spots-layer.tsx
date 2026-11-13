@@ -32,6 +32,19 @@ import "./slip-planner.css";
 
 /** The shading's label, whenever it is on (slip-planner.md, "Honesty"). */
 export const SHADING_LABEL = "NASA's average sunlight over 18.6 years, not for your date";
+/** The same, when the free space is too small for the view's controls. */
+export const SHADING_LABEL_SHORT = "NASA's long-term average sunlight, not for your date";
+
+/**
+ * What the foot of the free space shows: the view's controls (the switch and, with the
+ * shading on, its label), or, when the free space is under 220 × 48 px, no controls but
+ * still the short label while the shading is on. The shading is never on without words.
+ */
+export function footFor(freeSpace: Pick<FreeSpace, "width" | "height">, shading: boolean): { controls: boolean; label: string | null } {
+  const small = freeSpace.width < 220 || freeSpace.height < 48;
+  if (!small) return { controls: true, label: shading ? SHADING_LABEL : null };
+  return { controls: false, label: shading ? SHADING_LABEL_SHORT : null };
+}
 export const FLAT_NOTE =
   "3D is off, so your sites are shown on the flat Polar map. The spots, the landing dates and the panels work as in 3D.";
 
@@ -272,7 +285,8 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
     top: freeSpace.y + freeSpace.height - 8,
     maxWidth: Math.max(0, Math.min(freeSpace.width - 16, 720)),
   };
-  const tiny = freeSpace.width < 220 || freeSpace.height < 48;
+  const foot = footFor(freeSpace, ui.shading);
+  const tiny = !foot.controls;
 
   return (
     <div ref={layerRef} className="slip-layer" data-phone={phone} data-flat={flat}>
@@ -343,11 +357,16 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
                 <span className="tl-switch-track" aria-hidden="true" />
                 Average sunlight
               </button>
-              {ui.shading ? <span className="slip-shading-label">{SHADING_LABEL}</span> : null}
+              {foot.label ? <span className="slip-shading-label">{foot.label}</span> : null}
             </div>
           </div>
         </>
       )}
+      {tiny && foot.label ? (
+        <p className="plate slip-shading-short" style={fsFoot}>
+          {foot.label}
+        </p>
+      ) : null}
     </div>
   );
 }

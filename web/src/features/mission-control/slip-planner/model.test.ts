@@ -381,3 +381,19 @@ describe("sites outside the view and the flat fallback", () => {
     expect(flat.project(-85, 0).y).toBeLessThan(flat.project(-90, 0).y);
   });
 });
+
+describe("the shading is never on without its label", () => {
+  it("keeps a label at every free-space size, short when the controls do not fit", async () => {
+    const { footFor, SHADING_LABEL } = await import("./spots-layer");
+    for (const width of [0, 100, 219, 220, 1200]) {
+      for (const height of [0, 30, 47, 48, 600]) {
+        const on = footFor({ width, height }, true);
+        expect(on.label).not.toBeNull();
+        expect(on.label).toMatch(/NASA's .*not for your date/);
+        expect(footFor({ width, height }, false).label).toBeNull();
+        if (width >= 220 && height >= 48) expect(on).toEqual({ controls: true, label: SHADING_LABEL });
+        else expect(on.controls).toBe(false);
+      }
+    }
+  });
+});
