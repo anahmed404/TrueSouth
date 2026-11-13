@@ -180,6 +180,41 @@ each integration checkpoint.
 
 ## Mission Control
 
+#### 2026-11-13 · MC5 · Timeline, scrubber, countdowns and the "why is it dark" card
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (question
+  round skipped, as briefed) — wrote the timeline with its scrubber, play and clearance
+  chart, the Sun and Earth countdown cards, the "why is it dark" card, the timeline fold,
+  the history throttle and the store change that keeps `t` on a slip, with vitest tests —
+  checked by the agent with typecheck, 1,277 vitest tests and the build, impeccable's
+  detector (no findings), and by eye in a browser on the fixtures and the real Connecting
+  Ridge data at 1440 × 900, 1024 × 768 and 390 × 844; a human has not reviewed it yet
+- **State:** built, not verified
+- **Changed:** `web/src/app/mission/timeline/` (new), `web/src/app/mission/throttled-history.ts`,
+  `web/src/app/mission/shell-layout.ts`, `web/src/app/mission/scenario-context.tsx`,
+  `web/src/app/mission-screen.tsx`, `web/src/app/shell.css`, `web/src/components/BodyIcon.tsx`,
+  `web/src/state/scenario.ts` (slip and landing keep `t`), `web/src/lib/explain.ts`
+  (`blocker_height`), `docs/design/c2/built-timeline*.png`, this entry
+- **Notes:**
+  - The timeline draws in SVG: the bands are built once per site, profile, landing and width,
+    and only the scrubber line and pill move (CSS transforms), so a drag re-renders no band.
+    Measured in Chromium: a 120-step drag ran at a median frame of 4.2 ms, p95 16.6 ms.
+  - A drag, a held arrow key and play each add one history entry and replace it after. The
+    address bar is written at most four times a second (`throttled-history.ts`), because
+    browsers ignore more than about 200 history updates in 10 seconds.
+  - The "why is it dark" card reads the skyline height at the body's azimuth as elevation
+    minus clearance from the series, and the blocker from the nearest skyline bin. A named
+    feature is given only when the blocker lies within 0.6 × the feature's diameter of its
+    centre (the smallest such feature wins). Checked by hand on Connecting Ridge at
+    2028-03-07 06:00 UTC against the raw files: Sun azimuth 184.74°, elevation −1.64°,
+    skyline −0.67° (bin 739), blocker 0.560 km away, 1,945.8 m high, bearing 184.75°; no
+    named feature.
+  - Where the spec and the prototype differ, the spec won: the stretch labels sit under the
+    bands with their tags, and with a relay there is no Earth countdown.
+  - The spec names `web/src/features/mission-control/site-detail/` as the folder; the brief
+    kept this work in `web/src/app/`, so that folder's placeholder is no longer used by the
+    shell. Clicking the card to open the Lander's eye waits for MC6.
+
 #### 2026-11-13 · MC4b · Mission Control panels on the scenario store and real data
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill — wrote the

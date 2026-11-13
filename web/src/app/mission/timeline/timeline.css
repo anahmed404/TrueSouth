@@ -1,0 +1,770 @@
+/*
+  Timeline, countdown cards and the "Why is it dark?" card (MC5, direction C2).
+  Reference: design/variants/timeline-countdowns/c2/ and DESIGN.md "Timeline".
+  Tokens only. Each block has its own solid surface and assumes nothing about the grid
+  around it, so the shell can dock it or float it.
+*/
+
+@layer components {
+  /* ── Body icons ─────────────────────────────────────────────────────────── */
+  .body-icon {
+    flex: none;
+  }
+
+  .body-icon-sun .body-icon-disc {
+    fill: var(--sun);
+  }
+
+  .body-icon-sun .body-icon-rays {
+    fill: none;
+    stroke: var(--sun);
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  .body-icon-earth .body-icon-disc {
+    fill: var(--earth);
+  }
+
+  .body-icon-earth .body-icon-land {
+    fill: none;
+    stroke: var(--earth-land);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+  }
+
+  /* ── Timeline: head ─────────────────────────────────────────────────────── */
+  .tl {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--s2);
+    min-width: 0;
+  }
+
+  .tl-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: var(--s3);
+    row-gap: var(--s1);
+    min-height: 30px;
+  }
+
+  .tl-title {
+    margin: 0;
+    color: var(--ink);
+    font-size: var(--t-lg);
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .tl-window {
+    flex: 1 1 18rem;
+    min-width: 0;
+    margin: 0;
+    color: var(--ink-2);
+    font-size: var(--t-md);
+  }
+
+  .tl-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    margin-left: auto;
+  }
+
+  /* Play: a moonlight circle with a dark triangle, the one filled control here. */
+  .tl .tl-play,
+  .tl .tl-play:hover:not(:disabled) {
+    width: 30px;
+    height: 30px;
+    border-radius: var(--r-pill);
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .tl .tl-play:active:not(:disabled) {
+    background: var(--ink-2);
+  }
+
+  .tl-play svg {
+    fill: currentColor;
+  }
+
+  .tl-fold {
+    color: var(--ink-3);
+  }
+
+  /* A two-state switch: a small track and knob, then its label. */
+  .tl-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s2);
+    height: 30px;
+    padding: 0 var(--s1);
+    border: 0;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: var(--t-sm);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .tl-switch:hover {
+    color: var(--ink);
+  }
+
+  .tl-switch-track {
+    position: relative;
+    width: 26px;
+    height: 16px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-pill);
+    background: var(--raised);
+  }
+
+  .tl-switch-track::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--ink-3);
+  }
+
+  .tl-switch[aria-pressed="true"] {
+    color: var(--ink);
+  }
+
+  .tl-switch[aria-pressed="true"] .tl-switch-track {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+
+  .tl-switch[aria-pressed="true"] .tl-switch-track::after {
+    left: 12px;
+    background: var(--accent-ink);
+  }
+
+  .tl-message {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    min-height: 96px;
+    margin: 0;
+    color: var(--ink-3);
+    font-size: var(--t-md);
+  }
+
+  .tl-muted {
+    color: var(--ink-3);
+  }
+
+  /* ── Folded: one thin row ───────────────────────────────────────────────── */
+  .tl-folded {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: var(--s4);
+    row-gap: var(--s1);
+    min-height: 40px;
+  }
+
+  .tl-folded .tl-message {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .tl-folded-time {
+    padding: 3px 10px;
+    border-radius: var(--r-pill);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-size: var(--t-sm);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .tl-folded-counts {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: var(--s5);
+    row-gap: var(--s1);
+    min-width: 0;
+    color: var(--ink-2);
+    font-size: var(--t-md);
+  }
+
+  .tl-folded-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .tl-folded-count.is-soon {
+    color: var(--status-caution);
+  }
+
+  .tl-folded .tl-fold-slot {
+    margin-left: auto;
+  }
+
+  /* ── Plot ───────────────────────────────────────────────────────────────── */
+  .tl-plot-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+    min-width: 0;
+  }
+
+  .tl-plot {
+    position: relative;
+    min-width: 0;
+    border-radius: var(--r-sm);
+    cursor: ew-resize;
+    touch-action: pan-y;
+    user-select: none;
+  }
+
+  .tl-plot:focus-visible {
+    outline-offset: 4px;
+  }
+
+  .tl-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: block;
+    overflow: visible;
+  }
+
+  .tl-svg text {
+    font-family: var(--font);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tl-row-label {
+    fill: var(--ink);
+    font-size: var(--t-md);
+  }
+
+  .tl-axis-note,
+  .tl-axis {
+    fill: var(--ink-3);
+    font-size: var(--t-xs);
+  }
+
+  .tl-day {
+    fill: var(--ink-3);
+    font-size: var(--t-sm);
+  }
+
+  .tl-day.is-window {
+    fill: var(--ink);
+    font-weight: 500;
+  }
+
+  .tl-date {
+    fill: var(--ink-3);
+    font-size: var(--t-xs);
+  }
+
+  .tl-date.is-window {
+    fill: var(--ink-2);
+  }
+
+  .tl-well {
+    fill: var(--plot);
+    stroke: var(--line);
+  }
+
+  .tl-band-sun {
+    fill: var(--sun);
+  }
+
+  .tl-band-earth {
+    fill: var(--earth);
+  }
+
+  /* The three days either side: the same bands, faint. */
+  .tl-context {
+    fill-opacity: 0.22;
+  }
+
+  .tl-day-line {
+    stroke: var(--bg);
+    stroke-opacity: 0.6;
+    stroke-width: 1.2;
+  }
+
+  /* Landing and the end of the mission window. */
+  .tl-edge {
+    stroke: var(--ink-2);
+    stroke-opacity: 0.7;
+  }
+
+  /* Longest stretches: dashed grey within the limit, solid 2 px red when it breaks it. */
+  .tl-stretch {
+    fill: none;
+    stroke: var(--ink-2);
+    stroke-width: 1.4;
+    stroke-dasharray: 4 3;
+  }
+
+  .tl-stretch.is-broken {
+    stroke: var(--status-nogo);
+    stroke-width: 2;
+    stroke-dasharray: none;
+  }
+
+  /* ── Scrubber: a moonlight line, knob and pill ──────────────────────────── */
+  .tl-scrub {
+    position: absolute;
+    top: 0;
+    left: -1px;
+    width: 2px;
+    background: var(--accent);
+    pointer-events: none;
+    will-change: transform;
+  }
+
+  .tl-scrub-knob {
+    position: absolute;
+    bottom: -6px;
+    left: -5px;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--surface);
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .tl-pill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 20px;
+    padding: 0 10px;
+    border-radius: var(--r-pill);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-size: var(--t-sm);
+    font-weight: 500;
+    line-height: 20px;
+    white-space: nowrap;
+    pointer-events: none;
+    will-change: transform;
+  }
+
+  /* ── Stretch labels under the bands ─────────────────────────────────────── */
+  .tl-stretches {
+    position: relative;
+    min-height: 22px;
+    margin: 0;
+    font-size: var(--t-sm);
+  }
+
+  p.tl-stretches {
+    display: flex;
+    align-items: center;
+  }
+
+  .tl-stretch-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 22px;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+
+  .tl-stretch-label.is-broken {
+    color: var(--status-nogo);
+    font-weight: 500;
+  }
+
+  .tl-stretches.is-flow {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+  }
+
+  .tl-stretches.is-flow .tl-stretch-label {
+    position: static;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 22px;
+    white-space: normal;
+  }
+
+  .tl-stretch-verdict {
+    color: var(--ink-3);
+    font-weight: 400;
+  }
+
+  .tl-stretch-label.is-broken .tl-stretch-verdict {
+    color: var(--status-nogo);
+  }
+
+  /* ── Clearance chart ────────────────────────────────────────────────────── */
+  .tl-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: var(--s4);
+    row-gap: 2px;
+    margin: 0;
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+  }
+
+  .tl-key {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .tl-key-line {
+    width: 18px;
+    height: 0;
+    border-top: 2px solid var(--ink-2);
+  }
+
+  .tl-key-sun {
+    border-top-color: var(--sun);
+  }
+
+  .tl-key-earth {
+    border-top-color: var(--earth);
+  }
+
+  .tl-key-mask {
+    border-top: 1.5px dashed var(--earth);
+  }
+
+  .tl-chart-well {
+    fill: var(--plot);
+    stroke: var(--line);
+  }
+
+  .tl-grid {
+    stroke: var(--grid);
+  }
+
+  .tl-zero {
+    stroke: var(--ink-3);
+  }
+
+  .tl-mask {
+    stroke: var(--earth);
+    stroke-dasharray: 6 4;
+    stroke-opacity: 0.85;
+  }
+
+  .tl-line-sun,
+  .tl-line-earth {
+    fill: none;
+    stroke-width: 1.6;
+    stroke-linejoin: round;
+  }
+
+  .tl-line-sun {
+    stroke: var(--sun);
+  }
+
+  .tl-line-earth {
+    stroke: var(--earth);
+  }
+
+  /* ── Countdown cards ────────────────────────────────────────────────────── */
+  .cd-row {
+    display: grid;
+    flex: 1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s2);
+    min-width: 0;
+  }
+
+  .cd {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    min-width: 0;
+    padding: var(--s3) 14px;
+  }
+
+  .cd-head {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+  }
+
+  .cd-name {
+    margin: 0;
+    color: var(--ink);
+    font-size: var(--t-lg);
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  .cd-state {
+    margin-left: auto;
+    color: var(--ink-2);
+    font-size: var(--t-md);
+  }
+
+  .cd-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--s1) var(--s2);
+  }
+
+  .cd-event {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+  }
+
+  .cd-num {
+    display: block;
+    color: var(--ink);
+    font-size: var(--t-2xl);
+    font-weight: 500;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+
+  .cd-num-words {
+    font-size: var(--t-lg);
+  }
+
+  .cd.is-soon .cd-num {
+    color: var(--status-caution);
+  }
+
+  .cd-none {
+    display: block;
+    color: var(--ink-2);
+    font-size: var(--t-lg);
+    line-height: 1.6;
+  }
+
+  .cd-flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 3px;
+    color: var(--status-caution);
+    font-size: var(--t-sm);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .cd-relay {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+    line-height: 1.5;
+  }
+
+  .cd-vals {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s2);
+    margin: 0;
+  }
+
+  .cd-vals dt {
+    color: var(--ink-3);
+    font-size: var(--t-sm);
+    white-space: nowrap;
+  }
+
+  .cd-vals dd {
+    margin: 0;
+    color: var(--ink);
+    font-size: var(--t-md);
+    font-weight: 500;
+  }
+
+  .cd-stretch {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin: 0;
+    padding-top: var(--s2);
+    border-top: 1px solid var(--line);
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+    line-height: 1.5;
+  }
+
+  .cd-stretch .lamp {
+    align-self: flex-start;
+    margin-top: 3px;
+  }
+
+  .cd-stretch.is-broken .cd-stretch-value {
+    color: var(--status-nogo);
+    font-weight: 500;
+  }
+
+  .cd-message {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: var(--s3);
+    border: 1px dashed var(--line);
+    border-radius: var(--r-md);
+    color: var(--ink-3);
+    font-size: var(--t-md);
+    text-align: center;
+  }
+
+  /* ── "Why is it dark?" ──────────────────────────────────────────────────── */
+  .why {
+    display: grid;
+    gap: var(--s3) var(--s5);
+    padding: var(--s3) var(--s4);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--raised);
+  }
+
+  .why-two {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  }
+
+  .why-ok {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    padding-block: var(--s2);
+  }
+
+  .why-ok p {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: var(--t-md);
+  }
+
+  .why-ok-word {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .why-reason {
+    min-width: 0;
+  }
+
+  .why-title {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    margin: 0 0 var(--s1);
+    color: var(--ink);
+    font-size: var(--t-md);
+    font-weight: 600;
+  }
+
+  .why-sentence {
+    max-width: 68ch;
+    margin: 0;
+    color: var(--ink);
+    font-size: var(--t-md);
+    line-height: 1.5;
+    text-wrap: pretty;
+  }
+
+  .why-verdict {
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+
+  .why-blocker {
+    max-width: 80ch;
+    margin: var(--s1) 0 0;
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+    line-height: 1.5;
+  }
+
+  .why-blocker b {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* ── Phone: one column, and every control at least 44 px ────────────────── */
+  @media (max-width: 760px) {
+    .tl-controls {
+      flex-wrap: wrap;
+      width: 100%;
+      margin-left: 0;
+    }
+
+    .tl .tl-play,
+    .tl .tl-play:hover:not(:disabled) {
+      width: 44px;
+      height: 44px;
+    }
+
+    .tl-switch {
+      min-height: 44px;
+    }
+
+    /* The fold button stays beside the title. */
+    .tl-head .tl-title {
+      flex: 1;
+    }
+
+    .tl-head .tl-fold-slot {
+      order: -1;
+      margin-left: auto;
+    }
+
+    .tl-head .tl-title {
+      order: -2;
+    }
+
+    /* Tags and info icons keep their look; their touch target grows to 44 px. */
+    .tl .tag,
+    .cd .tag,
+    .why .tag,
+    .tl .explain-button,
+    .cd .explain-button,
+    .why .explain-button {
+      position: relative;
+    }
+
+    .tl .tag::after,
+    .cd .tag::after,
+    .why .tag::after,
+    .tl .explain-button::after,
+    .cd .explain-button::after,
+    .why .explain-button::after {
+      content: "";
+      position: absolute;
+      inset: 50% auto auto 50%;
+      width: 44px;
+      height: 44px;
+      transform: translate(-50%, -50%);
+    }
+  }
+}

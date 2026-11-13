@@ -11,6 +11,7 @@ import {
   type ScenarioState,
   type ScenarioStore,
 } from "../../state/scenario";
+import { throttledHistory } from "./throttled-history";
 
 const ScenarioContext = createContext<ScenarioStore | null>(null);
 
@@ -63,7 +64,17 @@ function BoundStore({ catalog, children }: { catalog: ScenarioCatalog; children:
   // Read the link once, on load. Back and Forward are applied by `bindScenarioUrl`.
   const [store] = useState(() => createScenarioStore(catalog, window.location.search));
 
-  useEffect(() => bindScenarioUrl(store, browserScenarioHistory()), [store]);
+  useEffect(() => {
+    const history = throttledHistory(browserScenarioHistory());
+    const unbind = bindScenarioUrl(store, history);
+    // Leaving the page writes the last waiting replace, so the link is never behind.
+    window.addEventListener("pagehide", history.flush);
+    return () => {
+      window.removeEventListener("pagehide", history.flush);
+      history.flush();
+      unbind();
+    };
+  }, [store]);
 
   // A router navigation inside the app (the "Mission Control" mode link, or a link from
   // the Academy) changes the address without a popstate. A bare /mission keeps the

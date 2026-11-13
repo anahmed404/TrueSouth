@@ -1,12 +1,12 @@
 import { Box } from "lucide-react";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState, type Ref } from "react";
 import { Explain } from "../components/Explain";
 import { firstSentence } from "../components/format";
 import { Panel } from "../components/Panel";
 import { TabPanel, Tabs, type TabItem } from "../components/Tabs";
 import { explanations } from "../lib/explain";
 import { selectScenario, selectView } from "../state/scenario";
-import { Countdowns, Timeline } from "../features/mission-control/site-detail";
+import { Countdowns, Timeline, WhyDarkCard, type TimeWrite } from "./mission/timeline";
 import { FocusedSitePanel } from "./mission/focused-site-panel";
 import { NoticeStrip } from "./mission/notice-strip";
 import { ScenarioProvider, useScenario, useScenarioStore } from "./mission/scenario-context";
@@ -17,7 +17,7 @@ import {
   shortcutPanel,
   toggleShellPanel,
   type ShellLayout,
-  type ShellPanel,
+  type SidePanel,
 } from "./mission/shell-layout";
 import { SitesRail } from "./mission/sites-rail";
 import { TopBar } from "./mission/top-bar";
@@ -92,7 +92,7 @@ function MissionShell() {
   // Fold or unfold a panel. If focus was inside it, it lands on the panel's own toggle,
   // which stays on screen in both states, so focus is never lost.
   const toggle = useCallback(
-    (panel: ShellPanel) => {
+    (panel: SidePanel) => {
       const hadFocus = regions[panel].current?.contains(document.activeElement) ?? false;
       setLayout((current) => toggleShellPanel(current, panel));
       if (hadFocus) requestAnimationFrame(() => toggles[panel].current?.focus());
@@ -102,6 +102,13 @@ function MissionShell() {
   );
   const toggleRail = useCallback(() => toggle("sitesRail"), [toggle]);
   const toggleFocus = useCallback(() => toggle("focusPanel"), [toggle]);
+  const strip = useRef<HTMLElement>(null);
+  // Folding swaps the strip's content; if focus was in it, it lands on the new fold button.
+  const toggleTimeline = useCallback(() => {
+    const hadFocus = strip.current?.contains(document.activeElement) ?? false;
+    setLayout((current) => toggleShellPanel(current, "timeline"));
+    if (hadFocus) requestAnimationFrame(() => strip.current?.querySelector<HTMLButtonElement>(".tl-fold")?.focus());
+  }, [setLayout]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -126,6 +133,7 @@ function MissionShell() {
       style={{ gridTemplateColumns: shellColumns(layout) }}
       data-rail={layout.sitesRail.collapsed ? "collapsed" : "open"}
       data-focus={layout.focusPanel.collapsed ? "collapsed" : "open"}
+      data-timeline={layout.timeline.collapsed ? "folded" : "open"}
     >
       <h1 className="sr-only">Mission Control</h1>
       <TopBar />
@@ -146,7 +154,7 @@ function MissionShell() {
         toggleRef={toggles.focusPanel}
       />
 
-      <TimelineStrip />
+      <TimelineStrip folded={layout.timeline.collapsed} onToggleFold={toggleTimeline} regionRef={strip} />
 
       <footer className="shell-foot">
         <p>{FOOTER_LINE}</p>
@@ -155,7 +163,10 @@ function MissionShell() {
   );
 }
 
-/** The view tabs and the open view. The views are still placeholders (MC5 onwards). */
+/**
+ * The view tabs and the open view, with the "Why is it dark?" card docked under it (in the
+ * view's own column, as in the C2 shell). The views are still placeholders.
+ */
 const MainView = memo(function MainView() {
   const store = useScenarioStore();
   const view = useScenario(selectView);
@@ -177,20 +188,41 @@ const MainView = memo(function MainView() {
           </div>
         </TabPanel>
       ) : null}
+      <WhyDarkSlot />
     </Panel>
   );
 });
 
-const TimelineStrip = memo(function TimelineStrip() {
+/** The card re-renders with the current time; the views above it do not. */
+const WhyDarkSlot = memo(function WhyDarkSlot() {
   const scenario = useScenario(selectScenario);
   return (
-    <Panel as="section" className="shell-strip" aria-label="Timeline and countdowns">
+    <div className="view-why">
+      <WhyDarkCard scenario={scenario} mode="mission" />
+    </div>
+  );
+});
+
+type TimelineStripProps = { folded: boolean; onToggleFold: () => void; regionRef: Ref<HTMLElement> };
+
+/** The bottom strip: the timeline and the two countdown cards. Folded, one row. */
+const TimelineStrip = memo(function TimelineStrip({ folded, onToggleFold, regionRef }: TimelineStripProps) {
+  const store = useScenarioStore();
+  const scenario = useScenario(selectScenario);
+  const onTimeChange = useCallback(
+    (utc: string, write: TimeWrite) => store.getState().setCurrentTime(utc, write),
+    [store],
+  );
+  return (
+    <Panel as="section" ref={regionRef} className="shell-strip" data-folded={folded} aria-label="Timeline and countdowns">
       <div className="strip-timeline">
-        <Timeline scenario={scenario} mode="mission" />
+        <Timeline scenario={scenario} mode="mission" folded={folded} onToggleFold={onToggleFold} onTimeChange={onTimeChange} />
       </div>
-      <div className="strip-countdowns">
-        <Countdowns scenario={scenario} mode="mission" />
-      </div>
+      {folded ? null : (
+        <div className="strip-countdowns">
+          <Countdowns scenario={scenario} mode="mission" />
+        </div>
+      )}
     </Panel>
   );
 });
