@@ -496,7 +496,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   by the agent with typecheck, the vitest suite, the build and `uv run pytest`, and by eye
   with hardware WebGL at 1440 × 900, 1024 × 768 and 390 × 844, folded and open, lit and dark
   hours, Apollo 11, keyboard only and reduced motion; a human has not reviewed it yet
-- **State:** built, not verified
+- **State:** verified (322 Python tests, 1,756 web tests, typecheck and build pass on the merge with main; reviewed by Gemini (approve with fixes; two mutations caught); the orchestrator made the two small fixes: no aria-controls while the chart is unmounted, and the foot stack is left out of the free space while a window is open; asked for by the team lead, not yet seen by them)
 - **Changed:** `web/src/features/panorama/` (new `fold.ts`, `fold.test.ts`,
   `collapse.test.ts`; `index.tsx`, `panorama.css`), `web/src/app/mission-screen.tsx` (the
   free space ends at the foot stack's top), `docs/features/panorama.md`,

@@ -238,7 +238,8 @@ function MissionShell() {
     // The foot stack is measured, not the panel: the panel rises as the chart opens, while the
     // stack is already where the panel ends up, so the camera reframes once, with no jump.
     const foot = footRef.current;
-    if (foot?.querySelector(".pano-panel")) belowTops.push(rectOf(foot).y);
+    // While a window is open the foot stack is hidden and measures as zero: leave it out.
+    if (!open && foot?.querySelector(".pano-panel")) belowTops.push(rectOf(foot).y);
     if (onPhone && !focusOpen && focusNode) belowTops.push(rectOf(focusNode).y);
     return {
       viewport: { width: window.innerWidth, height: window.innerHeight },

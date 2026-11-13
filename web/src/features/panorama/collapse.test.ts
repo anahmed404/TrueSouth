@@ -252,7 +252,8 @@ describe("folding the horizon chart", () => {
     expect(toggle).not.toBeNull();
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
     expect(toggle.getAttribute("aria-label")).toBe("Show the horizon chart");
-    expect(toggle.getAttribute("aria-controls")).toMatch(/^pano-body-/);
+    // Folded, the body is unmounted, so the toggle must not point at an id that is not there.
+    expect(toggle.getAttribute("aria-controls")).toBeNull();
     expect(text(toggle)).toContain("Horizon chart");
     expect(byClass(container, "pano-body")).toBeNull();
     expect(byClass(container, "pano-chart")).toBeNull();

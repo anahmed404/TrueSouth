@@ -118,7 +118,8 @@ function ChartToggle({ open, controls, onToggle }: { open: boolean; controls: st
     <Button
       className="pano-toggle"
       aria-expanded={open}
-      aria-controls={controls}
+      // The chart's body is not in the page while folded, so there is nothing to point at.
+      aria-controls={open ? controls : undefined}
       aria-label={toggleName(open)}
       icon={<Icon size={16} strokeWidth={1.8} aria-hidden="true" />}
       onClick={onToggle}
