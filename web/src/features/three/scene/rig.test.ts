@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import type { FreeSpace } from "../../../app/scene";
 import { homePose, polarPose, type Pose, type Subjects } from "./camera";
-import { POLE_LIMIT_Y, Rig } from "./rig";
+import { Rig } from "./rig";
 
 const space: FreeSpace = { x: 336, y: 120, width: 728, height: 560, viewport: { width: 1440, height: 900 }, windowOpen: false };
 const subjects: Subjects = {
@@ -10,7 +10,7 @@ const subjects: Subjects = {
   sun: { dir: [-1, 0, 0], centre: [-2.5, 0, 0], radius: 0.12 },
 };
 
-/** The scene's keys: ArrowUp is orbit(0, −24), ArrowDown is orbit(0, 24). */
+/** A key step, in pixels of drag (the up arrow is orbit(0, 24), the down arrow orbit(0, −24)). */
 const KEY_STEP = 24;
 
 function systemRig(): Rig {
@@ -42,32 +42,15 @@ describe("orbiting the System view", () => {
     expect(rig.camera.position.distanceTo(before)).toBeGreaterThan(1e-3);
   });
 
-  it("repeated steps back toward the pole stop at the limit and never flip over it", () => {
-    const rig = systemRig();
-    rig.beginDrag();
-    for (let i = 0; i < 6; i += 1) rig.orbit(0, -KEY_STEP);
-    const away = rig.camera.position.clone().normalize();
-    expect(Math.abs(away.y)).toBeLessThan(POLE_LIMIT_Y);
-    const side = new THREE.Vector2(away.x, away.z).normalize();
-    for (let i = 0; i < 40; i += 1) {
-      rig.orbit(0, KEY_STEP);
-      const now = rig.camera.position.clone().normalize();
-      // Never past the limit, and never across the pole to the other side.
-      expect(Math.abs(now.y)).toBeLessThanOrEqual(POLE_LIMIT_Y + 1e-9);
-      expect(new THREE.Vector2(now.x, now.z).normalize().dot(side)).toBeGreaterThan(0);
-    }
-    expect(Math.abs(unitY(rig))).toBeCloseTo(POLE_LIMIT_Y, 6);
-  });
-
-  it("a fast drag past the pole does not flip the camera to the other side", () => {
+  it("a fast drag carries the camera straight over the pole, with no limit (the System view turns freely)", () => {
     const rig = systemRig();
     rig.beginDrag();
     for (let i = 0; i < 6; i += 1) rig.orbit(0, -KEY_STEP);
     const side = new THREE.Vector2(rig.camera.position.x, rig.camera.position.z).normalize();
     rig.orbit(0, 400);
-    const now = rig.camera.position.clone().normalize();
-    expect(Math.abs(now.y)).toBeLessThanOrEqual(POLE_LIMIT_Y + 1e-9);
-    expect(new THREE.Vector2(now.x, now.z).normalize().dot(side)).toBeGreaterThan(0);
+    const now = rig.camera.position.clone();
+    expect(new THREE.Vector2(now.x, now.z).normalize().dot(side)).toBeLessThan(0);
+    expect(Number.isFinite(now.x + now.y + now.z)).toBe(true);
   });
 
   it("keeps the camera's distance from the Moon", () => {

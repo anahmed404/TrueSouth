@@ -9,33 +9,36 @@ import { clamp, smooth } from "./vec";
  * (docs/features/system-view.md, "Camera"). Scene units are Moon radii; the Moon is the unit
  * sphere at the origin.
  *
- * The rule for every drag is "grab the globe": the surface under the pointer moves with the
- * pointer. Keys move the camera the arrow's way, so the picture moves the other way, as on a
- * map.
+ * **The turn is a free trackball.** A horizontal drag turns the camera about its own up axis,
+ * a vertical drag about its own right axis, both through the pivot; so the surface in front
+ * of the pivot always moves the way the pointer moves, whatever the camera's orientation,
+ * with no limit at the poles and no world "up" (the team lead's request, 2026-11-14: the Moon
+ * turns freely in every direction). Over a pole the Moon may end up upside down; the presets
+ * fly back to a level view. Keys move the camera the arrow's way, so the picture moves the
+ * other way, as on a map.
  *
- * **The pivot.** Far out, a drag turns the camera about the Moon's centre, around the Moon's
- * axis. Close in, it turns about the point of interest on the surface (the south pole after
- * the "South pole" preset, the site after "Follow site", otherwise the point at the centre of
- * the free space), around that point's local vertical. Between NEAR_DISTANCE and
+ * **The pivot.** Far out, the camera turns about the Moon's centre. Close in, it turns about
+ * the point of interest: the preset's point (the south pole, the followed site, a
+ * double-clicked spot) while it faces the camera, fading to the point at the centre of the
+ * free space as it turns away; otherwise that centre point. Between NEAR_DISTANCE and
  * FAR_DISTANCE (the camera's distance from that point) the pivot slides along the line from
- * the Moon's centre to the point, and the axis turns from one to the other, so nothing jumps.
+ * the Moon's centre to the point. Every part of this is a continuous function of the camera's
+ * pose, so the pivot never jumps.
+ *
+ * **The floor.** A turn never takes the camera below the 60 km zoom limit: it slides along it.
  */
 
 /**
- * The System view's orbit stops short of the axis it turns about: |y| of the camera's
- * direction at most this (about 9.9° from the pole), so the view never flips over a pole.
+ * The old System view turntable stopped |y| of the camera's direction at this (about 9.9°
+ * from the pole). The System view no longer has a pole limit; kept for other views' rigs.
  */
 export const POLE_LIMIT_Y = 0.985;
-/** Closer than this to the point of interest (in Moon radii, about 2,800 km), the pivot is on the surface. */
-export const NEAR_DISTANCE = 1.6;
-/** Further than this (about 7,000 km), the pivot is the Moon's centre. */
-export const FAR_DISTANCE = 4;
-/** Close in, the camera tilts at most this far from the point's vertical, so it stays above the horizon. */
-export const MAX_TILT_DEG = 80;
+/** Closer than this to the point of interest (in Moon radii, about 870 km), the pivot is on the surface. */
+export const NEAR_DISTANCE = 0.5;
+/** Further than this (about 3,500 km), the pivot is the Moon's centre. */
+export const FAR_DISTANCE = 2;
 /** Close in, a drag turns the view 0.005 rad (0.29°) per CSS pixel. */
 const NEAR_RATE = 0.005;
-
-const Y = new THREE.Vector3(0, 1, 0);
 
 export function lookOf(camera: THREE.Camera): THREE.Vector3 {
   return new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
@@ -78,12 +81,26 @@ export function nearness(distance: number): number {
   return 1 - smooth(NEAR_DISTANCE, FAR_DISTANCE, distance);
 }
 
+/**
+ * How much a preset's point of interest still counts, 0 to 1, never switching: it fades out
+ * as it nears its own horizon seen from the camera (gone at the horizon, full from about 17°
+ * above it), and as it leaves the centre of the view (full within 4° of the look direction,
+ * gone beyond 12°), for example after a pan or a zoom toward another spot.
+ */
+export function focusWeight(focus: THREE.Vector3, position: THREE.Vector3, look: THREE.Vector3): number {
+  const toCamera = position.clone().sub(focus);
+  const distance = toCamera.length();
+  if (distance < 1e-12) return 1;
+  toCamera.divideScalar(distance);
+  const facing = smooth(0, 0.3, focus.clone().normalize().dot(toCamera));
+  const centred = smooth(Math.cos(THREE.MathUtils.degToRad(12)), Math.cos(THREE.MathUtils.degToRad(4)), -toCamera.dot(look.clone().normalize()));
+  return facing * centred;
+}
+
 export type Pivot = {
   /** The point the drag turns about. */
   point: THREE.Vector3;
-  /** The axis it turns about (unit), pointing out of the surface being looked at. */
-  axis: THREE.Vector3;
-  /** The surface point of interest. */
+  /** The point of interest (on or just inside the surface). */
   surface: THREE.Vector3;
   /** The camera's distance from it, in Moon radii. */
   distance: number;
@@ -93,22 +110,14 @@ export type Pivot = {
 
 /**
  * Where a drag turns about, for a camera at `position` looking along `look`. `focus` is the
- * preset's point of interest (the pole, or the followed site), if one is set and faces the
- * camera; otherwise the surface point at the centre of the view.
+ * preset's point of interest, or null.
  */
 export function systemPivot(position: THREE.Vector3, look: THREE.Vector3, focus: THREE.Vector3 | null = null): Pivot {
-  const facing = focus && focus.clone().normalize().dot(position.clone().sub(focus)) > 0;
-  const surface = facing && focus ? focus.clone() : centrePoint(position, look);
+  const centre = centrePoint(position, look);
+  const surface = focus ? centre.clone().lerp(focus, focusWeight(focus, position, look)) : centre;
   const distance = surface.distanceTo(position);
   const w = nearness(distance);
-  const vertical = surface.clone().normalize();
-  // The Moon's axis, pointed into the hemisphere being looked at, so it never cancels the
-  // vertical it blends into.
-  const far = Y.clone().multiplyScalar(vertical.y >= 0 ? 1 : -1);
-  const axis = far.multiplyScalar(1 - w).addScaledVector(vertical, w);
-  if (axis.lengthSq() < 1e-12) axis.copy(vertical);
-  axis.normalize();
-  return { point: surface.clone().multiplyScalar(w), axis, surface, distance, w };
+  return { point: surface.clone().multiplyScalar(w), surface, distance, w };
 }
 
 /** World size of one CSS pixel at `distance` from the camera, for a vertical lens `fovDeg` over `viewportHeight`. */
@@ -125,32 +134,6 @@ export function orbitRate(pivot: Pivot, fovDeg: number, viewportHeight: number):
   return grab * (1 - pivot.w) + NEAR_RATE * pivot.w;
 }
 
-export type DragFrame = {
-  /** The turning axis, fixed for the whole drag. */
-  axis: THREE.Vector3;
-  /** +1 or −1: which way a rightward drag turns the camera about `axis`. */
-  sense: number;
-  focus: THREE.Vector3 | null;
-};
-
-/**
- * Fixes a drag's axis and direction when it starts. The direction is set so that the surface
- * just below the centre of the view (a quarter of the way to the foot of the screen, the
- * part nearest the viewer when the view is tilted) follows a sideways drag. Far out that is
- * the surface at the centre; looking straight at a pole it is the turn's front edge.
- */
-export function beginDragFrame(camera: THREE.PerspectiveCamera, focus: THREE.Vector3 | null): DragFrame {
-  const look = lookOf(camera);
-  const pivot = systemPivot(camera.position, look, focus);
-  const up = upOf(camera);
-  const right = rightOf(camera);
-  const below = pixelSize(pivot.distance, camera.fov, 2) * 0.25; // a quarter of the half-height
-  const front = pivot.surface.clone().addScaledVector(up, -below).sub(pivot.point);
-  // A camera turn by +a moves the world by −a about the axis.
-  const motion = -new THREE.Vector3().crossVectors(pivot.axis, front).dot(right);
-  return { axis: pivot.axis.clone(), sense: motion >= 0 ? -1 : 1, focus };
-}
-
 /** Turns the camera rigidly (position, orientation and up) by `q` about `point`. */
 export function turnCamera(camera: THREE.Camera, point: THREE.Vector3, q: THREE.Quaternion): void {
   camera.position.sub(point).applyQuaternion(q).add(point);
@@ -158,86 +141,33 @@ export function turnCamera(camera: THREE.Camera, point: THREE.Vector3, q: THREE.
   camera.up.applyQuaternion(q);
 }
 
-type Limits = { axis: THREE.Vector3; point: THREE.Vector3; w: number };
-
-/**
- * Whether a camera position is allowed, given where the step started: not within the pole
- * limit of the turning axis, not across it to the other side, not tilted past the horizon
- * close in, not below the zoom limit, and close in not upside down. A step that does not make
- * a broken limit worse is always allowed (the home pose starts straight below the pole).
- */
-function acceptable(
-  start: THREE.Vector3,
-  next: THREE.Vector3,
-  limits: Limits,
-  upBefore: THREE.Vector3 | null = null,
-  upAfter: THREE.Vector3 | null = null,
-): boolean {
-  const { axis, point, w } = limits;
-  const a = start.clone().sub(point);
-  const b = next.clone().sub(point);
-  const ay = a.clone().normalize().dot(axis);
-  const by = b.clone().normalize().dot(axis);
-  const sideA = a.clone().addScaledVector(axis, -a.dot(axis));
-  const sideB = b.clone().addScaledVector(axis, -b.dot(axis));
-  // Straight on the axis (the home pose, the South pole preset) any side may be taken.
-  const onAxis = 1e-6 * a.length();
-  if (sideA.length() > onAxis && sideB.length() > onAxis && sideA.dot(sideB) < 0) return false;
-  if (Math.abs(by) > POLE_LIMIT_Y && Math.abs(by) > Math.abs(ay) + 1e-12) return false;
-  // Close in, the camera stays above the point's horizon: the tilt limit eases from none far
-  // out to MAX_TILT_DEG close in.
-  const maxTilt = THREE.MathUtils.degToRad(180 * (1 - w) + MAX_TILT_DEG * w);
-  const tiltA = Math.acos(clamp(ay, -1, 1));
-  const tiltB = Math.acos(clamp(by, -1, 1));
-  if (tiltB > maxTilt && tiltB > tiltA + 1e-12) return false;
-  const altA = start.length() - 1;
-  const altB = next.length() - 1;
-  if (altB < MIN_SPACE_ALTITUDE && altB < altA - 1e-15) return false;
-  // Close in, the sky stays at the top of the screen: the camera's up never points into the
-  // ground. From straight overhead a drag up tilts the view; a drag down does nothing.
-  if (w > 0.5 && upAfter && upBefore) {
-    const before = upBefore.dot(axis);
-    const after = upAfter.dot(axis);
-    if (after < -1e-9 && after < before - 1e-12) return false;
-  }
-  return true;
-}
-
-/** Turns about `point` and `axis` by `angle`, cut short to the largest part of the step that is allowed. */
-function limitedTurn(camera: THREE.Camera, point: THREE.Vector3, axis: THREE.Vector3, angle: number, limits: Limits): void {
-  const start = camera.position.clone();
-  const up = upOf(camera);
-  const at = (k: number) => start.clone().sub(point).applyAxisAngle(axis, angle * k).add(point);
-  const ok = (k: number) => acceptable(start, at(k), limits, up, up.clone().applyAxisAngle(axis, angle * k));
-  let k = 1;
-  if (!ok(1)) {
-    let lo = 0;
-    let hi = 1;
-    for (let i = 0; i < 40; i += 1) {
-      const mid = (lo + hi) / 2;
-      if (ok(mid)) lo = mid;
-      else hi = mid;
-    }
-    k = lo;
-  }
-  // A step cut to almost nothing is no step (it would leave the camera a hair off the axis).
-  if (k < 1e-6) return;
-  turnCamera(camera, point, new THREE.Quaternion().setFromAxisAngle(axis, angle * k));
+/** Keeps the camera at least the zoom limit above the surface: it slides out along its radius. */
+function keepAboveFloor(camera: THREE.Camera): void {
+  if (camera.position.length() < 1 + MIN_SPACE_ALTITUDE) camera.position.setLength(1 + MIN_SPACE_ALTITUDE);
 }
 
 /**
- * A drag of (dx, dy) CSS pixels in the System view: sideways turns about the drag's axis,
- * up and down tilts about the camera's right, both about the pivot.
+ * A drag of (dx, dy) CSS pixels in the System view: the free trackball described above, as
+ * one rotation per step about the screen axis perpendicular to the drag (so a diagonal drag
+ * turns diagonally). A rightward drag turns the camera by −a about its up axis, so the world
+ * in front of the pivot turns rightward; a downward drag by −a about its right axis.
  */
-export function orbitSystem(camera: THREE.PerspectiveCamera, frame: DragFrame, dx: number, dy: number, viewportHeight: number): void {
-  const pivot = systemPivot(camera.position, lookOf(camera), frame.focus);
+export function orbitSystem(
+  camera: THREE.PerspectiveCamera,
+  dx: number,
+  dy: number,
+  viewportHeight: number,
+  focus: THREE.Vector3 | null = null,
+): void {
+  const pixels = Math.hypot(dx, dy);
+  if (!(pixels > 0)) return;
+  const pivot = systemPivot(camera.position, lookOf(camera), focus);
   const rate = orbitRate(pivot, camera.fov, viewportHeight);
-  const limits = { axis: frame.axis, point: pivot.point, w: pivot.w };
-  if (dx !== 0) limitedTurn(camera, pivot.point, frame.axis, -dx * rate * frame.sense, limits);
-  if (dy !== 0) {
-    const after = systemPivot(camera.position, lookOf(camera), frame.focus);
-    limitedTurn(camera, after.point, rightOf(camera), -dy * rate, { ...limits, point: after.point });
-  }
+  const axis = upOf(camera).multiplyScalar(dx).add(rightOf(camera).multiplyScalar(dy));
+  if (axis.lengthSq() < 1e-24) return;
+  axis.normalize();
+  turnCamera(camera, pivot.point, new THREE.Quaternion().setFromAxisAngle(axis, -pixels * rate));
+  keepAboveFloor(camera);
 }
 
 /**

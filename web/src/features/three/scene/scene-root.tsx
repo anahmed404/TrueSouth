@@ -378,7 +378,12 @@ function Scene3D(props: SceneProps) {
   const apronReady = focusReady && focusReady.apron !== "loading" ? focusReady.apron : null;
 
   const bus = useRef<OverlayBus>({ overlay: null, controls: null });
-  const sceneSpace = useMemo(() => capture ? freeSpace : shrink(freeSpace, view === "system" ? PLATE_TOP : 0, view === "system" ? SYSTEM_FOOT : CONTROLS_FOOT), [freeSpace, view, capture]);
+  // The System view keeps room at the top only while a plate is there (a load failure, for example).
+  const topPlates = view === "system" && content.plates.length > 0;
+  const sceneSpace = useMemo(
+    () => (capture ? freeSpace : shrink(freeSpace, topPlates ? PLATE_TOP : 0, view === "system" ? SYSTEM_FOOT : CONTROLS_FOOT)),
+    [freeSpace, view, capture, topPlates],
+  );
 
   // Reduced motion: dip through Night, cut at the darkest point, rise again. A second pick
   // during a dip replaces the pending cut, so only the last view is cut to.
@@ -692,6 +697,8 @@ function Director(props: DirectorProps) {
       },
       focusOn: (ndc) => {
         const handled = rig.focusOn(ndc, latest.current.reduceMotion ? 0 : FOCUS_MS);
+        // A double-click on empty space levels the view: back to the preset's framing.
+        if (!handled) levelView.current();
         invalidate();
         return handled;
       },
@@ -828,6 +835,12 @@ function Director(props: DirectorProps) {
     },
     [rig, targetFor, focusFor, arrive, invalidate],
   );
+
+  // Levels the System view after free turning: flies back to the current preset's framing.
+  const levelView = useRef<() => void>(() => undefined);
+  levelView.current = () => {
+    if (latest.current.view === "system" && !rig.locked) flyToView("system", FLIGHT_MS, false);
+  };
 
   // The intro: once the data for the current time is in, ease in from 1.5 times the distance.
   // It is locked too, so the frame times it measures always reach a verdict.

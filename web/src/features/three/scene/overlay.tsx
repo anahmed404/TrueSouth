@@ -381,7 +381,12 @@ export function Overlay(props: OverlayProps) {
             {view === "system" ? (
               <div className="plate scene-controls scene-plate-interactive" style={fit}>
                 <SegmentedControl label="Camera" options={PRESETS.map((p) => ({ ...p, disabled: p.value === "follow_site" && !focusedId }))} value={props.preset} onChange={props.onPreset} />
-                <Button aria-pressed={trueScale} className="scene-toggle" onClick={() => props.onTrueScale(!trueScale)}>
+                <Button
+                  aria-pressed={trueScale}
+                  className="scene-toggle"
+                  onClick={() => props.onTrueScale(!trueScale)}
+                  title="Earth at its real distance and size. Off, distances are squeezed so everything fits; every direction is true either way."
+                >
                   True scale
                 </Button>
                 <Button aria-pressed={props.moon8k} className="scene-toggle" onClick={() => props.onMoon8k(!props.moon8k)} title="Loads two more images, 3 MB">

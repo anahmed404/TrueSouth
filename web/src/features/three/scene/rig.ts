@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { CameraViewId, FreeSpace } from "../../../app/scene";
 import { MOON_RADIUS_M } from "../../../lib/geo";
 import { easeInOutCubic, lerpPose, viewOffset, type Pose, type SiteFrame } from "./camera";
-import { beginDragFrame, focusPose, hitMoon, orbitSystem, panSystem, rayThrough, zoomSystem, type DragFrame } from "./navigate";
+import { focusPose, hitMoon, lookOf, orbitSystem, panSystem, rayThrough, systemPivot, zoomSystem } from "./navigate";
 import { clamp, smooth } from "./vec";
 
 /** The rig turns about the Moon in any view but Local terrain and Lander's eye. */
@@ -22,6 +22,21 @@ type Tween = {
 type Offset = { x: number; y: number; width: number; height: number };
 
 export { POLE_LIMIT_Y } from "./navigate";
+
+/**
+ * How a drag turns a camera view, set per view (a view not listed does not turn):
+ * - "free": the System view's free trackball about the pivot, with no pole limit (navigate.ts).
+ * - "site": Local terrain's turntable about the site, kept above the ground (6° to 85° up).
+ * - "look": Lander's eye looks around from where it stands, with a level horizon.
+ * - "none": the camera stays still (the Polar map stays a north-up map).
+ */
+export type OrbitStyle = "free" | "site" | "look" | "none";
+export const ORBIT_STYLE: Partial<Record<CameraViewId, OrbitStyle>> = {
+  system: "free",
+  map: "none",
+  terrain: "site",
+  panorama: "look",
+};
 
 /**
  * Moves the camera: eased flights between poses, the free-space offset, and the drag,
@@ -51,7 +66,6 @@ export class Rig {
   private tween: Tween | null = null;
   private offset: Offset | null = null;
   private offsetTween: { from: Offset; to: Offset; t0: number; ms: number } | null = null;
-  private dragFrame: DragFrame | null = null;
   /**
    * The System view's point of interest, on the unit sphere: the south pole after the "South
    * pole" preset, the site after "Follow site", a double-clicked spot. Close in, drags turn
@@ -195,17 +209,14 @@ export class Rig {
   //
   // Every drag follows one rule, "grab the globe": the surface under the pointer moves with
   // the pointer (drag right, the surface moves right). Keys move the camera the arrow's way,
-  // so the picture moves the other way. The System view's pivot, pan and zoom toward the
-  // pointer are in navigate.ts.
+  // so the picture moves the other way. How each view turns is a per-view setting
+  // (ORBIT_STYLE). The System view's free trackball, pivot, pan and zoom toward the pointer
+  // are in navigate.ts.
 
-  /**
-   * Starts a drag (or a key press): stops an unlocked move and fixes the drag's turning axis
-   * and direction for the System view, so they cannot change half way through a drag.
-   */
+  /** Starts a drag (or a key press): stops an unlocked move. */
   beginDrag(): void {
     if (this.locked) return;
     this.stop();
-    this.dragFrame = this.mode === "system" ? beginDragFrame(this.camera, this.focus) : null;
   }
 
   /** The window's height in CSS pixels, from the free space. */
@@ -213,9 +224,14 @@ export class Rig {
     return this.offset?.height ?? 900;
   }
 
-  /** True in the views a drag can turn: every view but the Polar map, which stays a north-up map. */
+  /** How the current view turns. */
+  private get style(): OrbitStyle {
+    return ORBIT_STYLE[this.mode] ?? "none";
+  }
+
+  /** True in the views a drag or a zoom can move: every view but the Polar map, which stays a north-up map. */
   private get turnable(): boolean {
-    return this.mode !== "map" && !this.locked;
+    return this.style !== "none" && !this.locked;
   }
 
   /** A drag of (dx, dy) CSS pixels: turn the view (see the rule above). */
@@ -224,14 +240,13 @@ export class Rig {
     if (!this.turnable) return;
     this.stop();
     this.userMoved = true;
-    if (this.mode === "system") {
-      const frame = this.dragFrame ?? beginDragFrame(c, this.focus);
-      this.dragFrame = frame;
-      orbitSystem(c, frame, dx, dy, this.viewportHeight);
+    const style = this.style;
+    if (style === "free") {
+      orbitSystem(c, dx, dy, this.viewportHeight, this.focus);
       return;
     }
-    // Only the two ground views turn about the site; any other view keeps the camera still.
-    if (this.mode !== "terrain" && this.mode !== "panorama") return;
+    // The two ground views turn about the site, within their limits.
+    if (style !== "site" && style !== "look") return;
     const site = this.site;
     if (!site) return;
     const ground = new THREE.Vector3(...site.ground);
@@ -247,7 +262,7 @@ export class Rig {
         .add(east.clone().multiplyScalar(Math.cos(e) * Math.sin(a)))
         .add(up.clone().multiplyScalar(Math.sin(e)));
     };
-    if (this.mode === "terrain") {
+    if (style === "site") {
       // A turntable about the site: the camera goes the other way round from the drag, so the
       // ground nearest the viewer follows the pointer.
       const rel = c.position.clone().sub(ground);
@@ -281,9 +296,7 @@ export class Rig {
     if (this.locked) return true;
     this.stop();
     this.userMoved = true;
-    // The view is no longer centred on the preset's point: turn about what is under the centre.
-    this.focus = null;
-    this.dragFrame = null;
+    // The preset's point slides off the centre; its weight fades (navigate.ts, focusWeight).
     panSystem(this.camera, dx, dy, this.viewportHeight);
     return true;
   }
@@ -298,13 +311,9 @@ export class Rig {
     this.stop();
     this.userMoved = true;
     if (this.mode === "system") {
-      if (ndc && this.focus) {
-        // Zooming toward a point other than the preset's moves the view off it.
-        const hit = hitMoon(c.position, rayThrough(c, ndc));
-        if (hit && hit.distanceTo(this.focus) > 1e-9) this.focus = null;
-      }
-      this.dragFrame = null;
-      zoomSystem(c, factor, this.trueScale ? 900 : 40, ndc, this.focus);
+      // Without a pointer, toward the pivot's point of interest, which moves continuously.
+      const toward = systemPivot(c.position, lookOf(c), this.focus).surface.normalize();
+      zoomSystem(c, factor, this.trueScale ? 900 : 40, ndc, toward);
       return;
     }
     if (this.mode === "terrain" && this.site) {
@@ -328,7 +337,6 @@ export class Rig {
     if (this.mode !== "system" || this.locked) return false;
     const hit = hitMoon(this.camera.position, rayThrough(this.camera, ndc));
     if (!hit) return false;
-    this.dragFrame = null;
     this.flyTo(focusPose(this.camera, hit), ms);
     this.focus = hit.normalize();
     this.userMoved = true;

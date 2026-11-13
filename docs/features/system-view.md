@@ -61,11 +61,12 @@ Prototype and designer's notes:
 All of it is a photograph of space under a flat interface. The scene's shading and shadows
 are decoration.
 
-## The "not to scale" line
+## Saying the distances are squeezed
 
-A line of plain text on the screen reads "Distances not to scale. Every direction is true."
-It stays on screen whenever the System view is the current view. It is plain text on a
-plate, not a bordered chip.
+No line on the scene says it (the team lead removed the "Distances not to scale" plate,
+2026-11-14). The view's About text says distances are squeezed by default and every
+direction is true (`system_view` in `web/src/lib/explain.ts`), and the "True scale" button's
+description says what it switches.
 
 ## Scale
 
@@ -74,11 +75,9 @@ about 400 times further.
 
 - **Default: compressed.** Every direction and angle is correct. Earth and the Sun are
   drawn closer than life, both squeezed to 2.5 Moon radii from the Moon, so they share the
-  frame with it. The "not to scale" line is on screen.
+  frame with it.
 - **True scale toggle.** Earth moves to its real distance at its real size. The camera
   pulls back to fit both. The Sun stays a direction arrow, labelled with its distance.
-  Proposed: while true scale is on, the line reads "True scale. Every direction is
-  true." Reason: its first sentence would be false.
 
 ## Textures
 
@@ -159,26 +158,35 @@ re-encoded. Sizes are from the prototype; they are budgets for the real files.
   the pointer (drag right and the surface moves right), on both axes, in the System view,
   Local terrain and Lander's eye. In a tilted view the ground nearest the viewer is the
   part that follows.
-- **Turn:** drag with one finger or the left button.
-  - Far out, the camera turns about the Moon's centre, around the Moon's axis.
-  - Close in, it turns about the point of interest on the surface, around that point's
-    vertical: the south pole after the "South pole" preset, the site after "Follow site",
-    a double-clicked spot, otherwise the point at the centre of the free space.
-  - Between 1.6 and 4 Moon radii from that point, the pivot slides along the line from the
-    Moon's centre to the point and the axis turns with it, so nothing jumps.
-  - The camera stops about 9.9° short of the axis it turns about, so the view never flips
-    over a pole. Close in it stays above the horizon (at most 80° of tilt), the sky stays at
-    the top of the screen, and it never goes below 60 km.
+- **Turn, freely:** drag with one finger or the left button. The Moon turns in any
+  direction, over either pole and all the way round, as often as you like (the team lead's
+  request, 2026-11-14). A horizontal drag turns the camera about its own up axis, a vertical
+  drag about its own right axis (a trackball), so the surface moves the way the pointer
+  moves whatever the orientation. There is no world "up": after going over a pole the Moon
+  may be upside down. A preset, or a double-click on empty space, flies back to a level
+  view.
+  - Far out, the camera turns about the Moon's centre. Close in, it turns about the point of
+    interest: the south pole after "South pole", the site after "Follow site", a
+    double-clicked spot, otherwise the point at the centre of the free space. A preset's
+    point fades out (it does not switch off) as it leaves the centre of the view or nears
+    its horizon.
+  - Between 0.5 and 2 Moon radii from that point, the pivot slides along the line from the
+    Moon's centre to the point, so nothing jumps.
+  - A turn never goes below 60 km from the surface: the camera slides along that height.
+  - Each view's drag is its own setting (`ORBIT_STYLE` in `rig.ts`): Local terrain keeps
+    its turntable above the ground, Lander's eye keeps a level horizon, and the Polar map
+    stays a north-up map.
 - **Slide (pan):** right-drag, Shift-drag or two-finger drag. The globe turns under the
-  camera about the Moon's centre, so the height above the surface does not change. Sliding
-  lets go of the preset's point of interest.
+  camera about the Moon's centre, so the height above the surface does not change.
 - **Zoom:** scroll or pinch, toward the pointer: the surface point under the pointer stays
   fixed on screen. Down to 60 km from the surface.
 - **Double-click or double-tap** a spot on the Moon: the camera centres it and moves in to
-  about half the distance, looking straight down.
+  about half the distance, looking straight down. On empty space: back to the preset's
+  framing, level.
 - **Keys, when the scene has focus:** an arrow key moves the camera the arrow's way, so the
   picture moves the other way, as on a map (in Lander's eye, the left arrow looks left).
-  Shift and an arrow slides. `+` and `−` zoom toward the centre.
+  In the System view the arrows turn freely, like a drag. Shift and an arrow slides. `+`
+  and `−` zoom toward the centre.
 - A short hint of these controls is in the view's "About" popover (`system_view` in
   `web/src/lib/explain.ts`), not on the scene.
 - **Presets:** "South pole" (the default), "From Earth", "From the Sun", and "Follow site"
