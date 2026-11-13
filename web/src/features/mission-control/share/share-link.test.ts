@@ -92,12 +92,20 @@ describe("links to NASA's maps", () => {
     expect(signedLongitude(0)).toBe(0);
   });
 
-  it("open in a new tab only at a confirmed address, else the front page with the coordinates", () => {
-    for (const link of [quickmapLink(-89.456, 222.619), moonTrekLink(-89.456, 222.619)]) {
-      const url = new URL(link.href);
-      expect(url.protocol).toBe("https:");
-      if (!link.centred) expect(url.pathname === "/" || url.pathname === "/moon/").toBe(true);
-    }
+  it("open each tool centred on the site, in its south-pole projection near the pole", () => {
+    expect(quickmapLink(0.674, 23.473).href).toBe(
+      "https://quickmap.lroc.im-ldi.com/layers?extent=23.4235,0.6245,23.5225,0.7235&proj=16&features=23.473,0.674",
+    );
+    const ridge = quickmapLink(-89.456, 222.619);
+    expect(ridge.href).toMatch(/^https:\/\/quickmap\.lroc\.im-ldi\.com\/layers\?extent=-14\d\.\d+,-89\.5055,-13\d\.\d+,-89\.4065&proj=27&features=-137\.381,-89\.456$/);
+    expect(moonTrekLink(0.674, 23.473).href).toBe(
+      "https://trek.nasa.gov/moon/#v=0.1&x=23.473&y=0.674&z=8&p=urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A104903&d=",
+    );
+    // The metres Moon Trek opened at the ridge in MC9's check (its readout: −89.4559°, −137.5466°).
+    expect(moonTrekLink(-89.456, 222.619).href).toBe(
+      "https://trek.nasa.gov/moon/#v=0.1&x=-11170&y=-12139&z=8&p=urn%3Aogc%3Adef%3Acrs%3AIAU2000%3A%3A30120&d=",
+    );
+    for (const link of [ridge, moonTrekLink(-89.456, 222.619)]) expect(link.centred).toBe(true);
     expect(coordinatesText(-89.456, 222.619)).toBe("−89.4560°, 222.6190° E");
   });
 });
