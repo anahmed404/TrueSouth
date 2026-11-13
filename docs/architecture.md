@@ -330,7 +330,8 @@ state. The Academy renders the same panels inside lessons.
 publication checks actual disk bytes under a shared lock. A full cache refuses work
 with 507 and never evicts completed sites. A concurrent external disk change can
 instead fail an already accepted job with storage_full. Health includes
-`custom_cache: { size_bytes, limit_bytes }`, including staging bytes in the size.
+`custom_cache: { size_bytes, limit_bytes }`, including staging bytes in the size. The catalog's reserved `cache/placement/`
+directory is neither traversed nor counted by the custom-site API.
 
 Only queued/running jobs and 128 recent finished states remain in memory; completed
 sites are recovered from disk. Address histories expire after the rolling hour. At

@@ -204,6 +204,10 @@ def direction_evidence(site_id, body, predicted, reference, times, step_h=24):
 def directions_gate(sites, system, times, directory):
     reports, charts, missing = [], [], []
     for site in sites:
+        # A best-lit variant has no saved Horizons response. G2 stays on the
+        # catalog sites; the variant is not a second ephemeris sample.
+        if site.variant_of is not None:
+            continue
         for body, radius in (('sun', SUN_RADIUS_KM), ('earth', EARTH_RADIUS_KM)):
             response = saved_response(directory, site_request(body, site.lat_deg, site.lon_deg), f'{site.id}-{body}')
             if response is None:
@@ -315,7 +319,9 @@ def run(args):
                 else:
                     explanation = detail
                 comparisons.append(comparison.model_copy(update={'explanation': explanation}))
-    chosen = [s for s in sites if s.group == 'sunlit_peak'][:3]
+    # Catalog sites only. A best-lit variant sorts next to its parent and would
+    # otherwise push a catalog row, such as Malapert Peak, out of the three.
+    chosen = [s for s in sites if s.variant_of is None and s.group == 'sunlit_peak'][:3]
     core, wide = prepared/'LDEM_80S_80MPP_ADJ.npy', prepared/'LDEM_60S_240MPP_ADJ.npy'
     if chosen:
         if not core.is_file() or not wide.is_file():
@@ -335,7 +341,7 @@ def run(args):
                     coarse.el_deg, fine.el_deg, coarse.dist_km, fine.dist_km, comparison.investigate_above)})
             comparisons.append(comparison)
     if len(chosen) < 3:
-        not_run.append(('R5', None, f'only {len(chosen)} sunlit_peak sites available; need three'))
+        not_run.append(('R5', None, f'only {len(chosen)} catalog sunlit_peak sites available; need three'))
     not_run.extend([('R4', None, 'close-up reference maps are not downloaded'),
                     ('R6', None, 'the sensitivity grid is not built in this version')])
     with tempfile.TemporaryDirectory(prefix='truesouth-validation-') as directory:
@@ -348,7 +354,7 @@ def run(args):
             'G11', 'Generated TypeScript types are current', 0., 'difference',
             'Not measured by this command. It is checked by pnpm --dir web gen:types followed by a clean diff.'),
     ])
-    print('R5 selection: first three sunlit_peak ids in sites.json, sorted by id.')
+    print('R5 selection: first three catalog sunlit_peak ids, sorted by id. A variant is never selected.')
     for identifier, ids in covered.items():
         print(identifier+' covered sites: '+', '.join(ids))
     print('comparison site ours reference difference outside_mark')

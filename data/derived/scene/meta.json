@@ -193,8 +193,22 @@
       "window_m": 300000.0
     },
     {
+      "site_id": "connecting_ridge_best_lit",
+      "file": "scene/aprons/connecting_ridge_best_lit.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
       "site_id": "de_gerlache_rim",
       "file": "scene/aprons/de_gerlache_rim.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
+      "site_id": "de_gerlache_rim_best_lit",
+      "file": "scene/aprons/de_gerlache_rim_best_lit.bin",
       "rows": 161,
       "columns": 161,
       "window_m": 300000.0
@@ -228,6 +242,13 @@
       "window_m": 300000.0
     },
     {
+      "site_id": "malapert_peak_best_lit",
+      "file": "scene/aprons/malapert_peak_best_lit.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
       "site_id": "peak_near_shackleton",
       "file": "scene/aprons/peak_near_shackleton.bin",
       "rows": 161,
@@ -235,8 +256,22 @@
       "window_m": 300000.0
     },
     {
+      "site_id": "peak_near_shackleton_best_lit",
+      "file": "scene/aprons/peak_near_shackleton_best_lit.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
       "site_id": "shackleton_rim",
       "file": "scene/aprons/shackleton_rim.bin",
+      "rows": 161,
+      "columns": 161,
+      "window_m": 300000.0
+    },
+    {
+      "site_id": "shackleton_rim_best_lit",
+      "file": "scene/aprons/shackleton_rim_best_lit.bin",
       "rows": 161,
       "columns": 161,
       "window_m": 300000.0
@@ -319,8 +354,8 @@
     },
     {
       "name": "sites.json",
-      "bytes": 12748,
-      "sha256": "ff528258a6bbf4914f43c747a3cab704bf39e08c7b8d45ad1e90d18c754bc58b"
+      "bytes": 20471,
+      "sha256": "cce2bc3eb34707ca8b2c36c9acd9efcf7eb53e221330caedffc382d9a573e199"
     },
     {
       "name": "scene_assets.py",

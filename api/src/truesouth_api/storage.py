@@ -3,6 +3,7 @@
 Admission reserves the fixed binary sizes plus 32 KiB for the two JSON files.
 Publication checks actual bytes under the same lock, including concurrent staging.
 """
+from itertools import chain
 from threading import Lock
 from truesouth.constants import TIME_GRID_COUNT, SKYLINE_BINS, TERRAIN_SIZE
 from truesouth_api.errors import Rejected
@@ -18,13 +19,23 @@ class CacheBudget:
 
     def size(self):
         total = 0
-        for path in self.root.rglob('*'):
-            try:
-                if not path.is_symlink() and path.is_file():
-                    total += path.stat().st_size
-            except FileNotFoundError:
-                # Publication renames a complete staging directory in one step.
+        try:
+            children = list(self.root.iterdir())
+        except FileNotFoundError:
+            return total
+        for child in children:
+            # Catalog candidates share the data root, but never the custom quota.
+            # Prune before walking so API requests do not read placement entries.
+            if child.name == 'placement' or child.is_symlink():
                 continue
+            descendants = child.rglob('*') if child.is_dir() else ()
+            for path in chain((child,), descendants):
+                try:
+                    if not path.is_symlink() and path.is_file():
+                        total += path.stat().st_size
+                except FileNotFoundError:
+                    # Publication renames a complete staging directory in one step.
+                    continue
         return total
 
     def reserve(self, identity, tier):

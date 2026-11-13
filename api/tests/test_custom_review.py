@@ -352,11 +352,13 @@ def test_unparseable_bytes_are_safe_422(empty_tree, body):
 def test_health_size_tolerates_staging_rename():
     from truesouth_api.storage import CacheBudget
     class Vanished:
+        name = 'staged-file'
+        def is_dir(self): return False
         def is_symlink(self): return False
         def is_file(self): return True
         def stat(self): raise FileNotFoundError('staging was published between is_file and stat')
     class Root:
-        def rglob(self, pattern): return iter([Vanished()])
+        def iterdir(self): return iter([Vanished()])
     assert CacheBudget(Root(), 100).size() == 0
 
 
