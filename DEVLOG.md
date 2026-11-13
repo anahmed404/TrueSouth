@@ -557,6 +557,41 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-14 · MC9 · The Compare window, share, CSV and JSON export, confirmed NASA links
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (building the
+  approved C2 window, no redesign) — wrote the Compare model and table, the CSV and scenario
+  JSON exports, the Share button with its hand-copy fallback, the NASA link builders, 47
+  vitest tests and the spec edits; a background research agent read the QuickMap and Moon
+  Trek bundles for their link parameters — checked by the agent with typecheck, the vitest
+  suite, the build and `uv run pytest`; by opening both NASA links for Apollo 11 and
+  Connecting Ridge and reading each tool's own coordinate readout; and by eye at 1440 × 900,
+  1024 × 768 and 390 × 844 with four, eight, one and best-lit sites, keyboard only, real
+  downloads read back with Python's csv module, and a copied link opened in a fresh browser
+  context; a human has not reviewed it yet
+- **State:** verified (333 Python tests, 1,896 web tests, typecheck and build pass on the
+  merge with main; not yet seen by the team lead)
+- **Changed:** `web/src/features/mission-control/compare/` (model, table, exports, tests),
+  `web/src/features/mission-control/share/` (new: Share button, link, NASA links, tests),
+  `web/src/lib/export/` (new: CSV writer and reader), `web/src/app/mission/top-bar.tsx`
+  (Share moved out to its own component), `web/src/lib/explain.ts` (Compare's text),
+  `docs/features/compare.md`, `docs/features/share-export.md`,
+  `docs/features/mission-control.md`, `docs/build-plan.md`,
+  `docs/design/c2/built-compare-*.png`, this entry
+- **Notes:**
+  - Each column is built from the focused-site panel's own functions (`useSiteStatus`,
+    `describeEvaluation`, `describeMetrics`, `scoreText`); a test checks every cell
+    against the panel for five presets and three dates on the fixture.
+  - Spec changes: up to eight sites (the rail's limit), not four; the summary and the
+    export buttons sit in the window's body; the Timeline, Skyline and Nearby dates rows
+    are deferred. The Timeline CSV, the Slip Planner CSV and the PNG export are not built.
+  - Share copies a link built from the store, because the address bar can lag a scrub by
+    up to 250 ms.
+  - NASA links: QuickMap moved to `quickmap.lroc.im-ldi.com`; both tools open in their
+    south-pole projection south of 80° S. The formats are in `share-export.md`. The links
+    are in the Compare table only; adding them to the focused-site panel waits for #83.
+  - A scrub does not re-render the table (a render-count test).
+
 #### 2026-11-14 · MC6b · Lander's eye: the horizon chart folds away, closed by default
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (keeping the
