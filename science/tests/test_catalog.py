@@ -28,6 +28,9 @@ def test_profiles_match_document():
     doc = (ROOT / 'docs/mission-profiles.md').read_text(encoding='utf-8')
     profiles = catalog.load_profiles()
     table = rows(section(doc, '## Presets'))
+    # One '###' subsection of '## Sources' per preset, in the table's column order.
+    missions = section(doc, '## Sources').split('\n### ')[1:6]
+    assert len(missions) == 5
     assert len(profiles) == len(table[0]) - 1 == 5
     assert len({p.id for p in profiles}) == len(profiles)
     for row in table:
@@ -50,8 +53,9 @@ def test_profiles_match_document():
             provenance = getattr(profile.provenance, field)
             assert provenance.kind == ('sourced' if cell.startswith('**') else 'assumed')
             if provenance.kind == 'sourced':
-                assert provenance.source_url in doc
-                assert provenance.quote in ' '.join(doc.split())
+                # The link and the quotation must both sit in this mission's own notes.
+                assert provenance.source_url in missions[i], (profile.id, field)
+                assert provenance.quote in ' '.join(missions[i].split()), (profile.id, field)
             else:
                 assert provenance.reason
     assert len(PROFILE_FIELDS) == len(table) - 1
@@ -78,7 +82,7 @@ def test_sites_match_document():
                 if 'same preprint' in row[4]:
                     previous = re.search(r'https?://[^>]+', table[2][4]).group()
                 assert site.source_url == previous
-                assert site.description == row[4].split(' <')[0] + '; sunlight in the source: ' + row[5] + '.'
+                assert site.description == row[4].split(' <')[0].rstrip('.') + '. Sunlight in the source: ' + row[5] + '.'
                 assert site.outcome is None
             else:
                 assert site.description == row[4]
@@ -106,13 +110,16 @@ def test_features_match_document():
 def test_regions_match_document():
     doc = (ROOT / 'docs/site-catalog.md').read_text(encoding='utf-8')
     regions = catalog.load_artemis_regions()
-    names = ['Peak near Cabeus B', 'Haworth', 'Malapert Massif', 'Mons Mouton Plateau',
-             'Mons Mouton', 'Nobile Rim 1', 'Nobile Rim 2', 'de Gerlache Rim 2', 'Slater Plain']
+    intro = section(doc, '## Group A:')
+    # The nine names and NASA's announcement link are read from the page's own sentence.
+    announcement = intro.split('(<', 1)[1].split('>', 1)[0]
+    listing = ' '.join(intro.split('):', 1)[1].split('. They were chosen', 1)[0].split())
+    names = [name.strip() for part in listing.split(', ') for name in part.split(' and ')]
+    assert len(names) == 9
     assert [r.name for r in regions] == names
     assert len(regions) == len({r.name for r in regions}) == 9
     assert all(r.lat_deg is None and r.lon_deg is None and r.size_km is None for r in regions)
-    assert all(r.source_url in doc for r in regions)
-    assert all(name in section(doc, '## Group A:') for name in names)
+    assert all(r.source_url == announcement for r in regions)
 
 
 def test_invalid_entry_names_file_and_entry(tmp_path):

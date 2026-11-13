@@ -107,7 +107,7 @@
       },
       "max_blackout_h": {
         "kind": "assumed",
-        "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+        "reason": "No figures are published."
       },
       "max_slope_deg": {
         "kind": "assumed",

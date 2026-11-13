@@ -25,7 +25,7 @@ def _load(filename: str, model: type[T], directory: Path | None) -> list[T]:
         try:
             result.append(model.model_validate(entry))
         except ValidationError as exc:
-            label = entry.get('id', entry.get('name', index)) if isinstance(entry, dict) else index
+            label = (entry.get('id') or entry.get('name') or index) if isinstance(entry, dict) else index
             raise ValueError(f'{path}: entry {label}: {exc}') from exc
     return result
 

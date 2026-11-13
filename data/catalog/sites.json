@@ -65,7 +65,7 @@
     "group": "sunlit_peak",
     "lat_deg": -89.4555,
     "lon_deg": 222.6192,
-    "description": "Gläser et al. 2014, point CR1.; sunlight in the source: 92.27% at 2 m above ground, over 19 years.",
+    "description": "Gläser et al. 2014, point CR1. Sunlight in the source: 92.27% at 2 m above ground, over 19 years.",
     "source_url": "https://www.sciencedirect.com/science/article/abs/pii/S0019103514004278",
     "outcome": null
   },
@@ -75,7 +75,7 @@
     "group": "sunlit_peak",
     "lat_deg": -89.7742,
     "lon_deg": 203.4952,
-    "description": "Gläser et al. 2014, point SR1 (same paper); sunlight in the source: not stated for this point.",
+    "description": "Gläser et al. 2014, point SR1 (same paper). Sunlight in the source: not stated for this point.",
     "source_url": "https://www.sciencedirect.com/science/article/abs/pii/S0019103514004278",
     "outcome": null
   },
@@ -85,7 +85,7 @@
     "group": "sunlit_peak",
     "lat_deg": -88.6952,
     "lon_deg": 291.7154,
-    "description": "De Rosa et al. 2012, region GR1.; sunlight in the source: not stated.",
+    "description": "De Rosa et al. 2012, region GR1. Sunlight in the source: not stated.",
     "source_url": "https://arxiv.org/abs/1208.5587",
     "outcome": null
   },
@@ -95,7 +95,7 @@
     "group": "sunlit_peak",
     "lat_deg": -88.74,
     "lon_deg": 124.5,
-    "description": "Bussey et al. 2010.; sunlight in the source: \"86% of the year\" (2020).",
+    "description": "Bussey et al. 2010. Sunlight in the source: \"86% of the year\" (2020).",
     "source_url": "https://www.sciencedirect.com/science/article/abs/pii/S0019103510001375",
     "outcome": null
   },
@@ -105,7 +105,7 @@
     "group": "sunlit_peak",
     "lat_deg": -85.9756,
     "lon_deg": 357.8876,
-    "description": "De Rosa et al. 2012, region MP1 (same preprint); sunlight in the source: not stated.",
+    "description": "De Rosa et al. 2012, region MP1 (same preprint). Sunlight in the source: not stated.",
     "source_url": "https://arxiv.org/abs/1208.5587",
     "outcome": null
   },
