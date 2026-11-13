@@ -143,6 +143,19 @@ selector is scoped to .pm, so nothing here reaches other components.
   margin: 0;
 }
 
+.pm-range {
+  margin: var(--s2) 0 0;
+}
+
+.pm-range dt {
+  color: var(--ink-2);
+  font-size: var(--t-sm);
+}
+
+.pm-range dd {
+  margin: 2px 0 0;
+}
+
 .pm-nudge {
   display: grid;
   gap: 2px;

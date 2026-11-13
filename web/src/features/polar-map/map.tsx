@@ -29,19 +29,22 @@ import { SegmentedControl } from "../../components/SegmentedControl";
 import { cx } from "../../components/format";
 import type { Site } from "../../contracts/generated";
 import { useFeatures, useMapLookup, useMapsMeta, useSites } from "../../data";
-import { polarStereoForward, polarStereoInverse, polarStereoScale } from "../../lib/geo";
+import { polarStereoForward, polarStereoInverse, polarStereoScale, wrapLongitude } from "../../lib/geo";
 import { useEvaluation } from "../../lib/scoring";
-import { useMapImage } from "./assets";
+import { releaseMapImage, useMapImage } from "./assets";
 import { drawMap, readPalette, type Marker, type Palette } from "./draw";
 import { onMap, pinAt, placePins, type PinState, type PlacedPin } from "./pins";
 import {
   AVERAGE_CAVEAT,
+  CHOSEN_TAG,
   NUDGE_CAVEAT,
   OVERLAY_NAME,
   coordinatesText,
   distanceText,
   lookupText,
-  nearbyRangeLine,
+  nearbyRangeText,
+  NUDGE_CAVEAT_SHORT,
+  variantLine,
   nudgeLine,
   readLookup,
   type LookupGrid,
@@ -50,6 +53,7 @@ import {
 import { scaleBar } from "./takeover";
 import {
   DEFAULT_HALF_WIDTH_M,
+  clampView,
   fitView,
   latLonToScreen,
   reliefLevel,
@@ -127,6 +131,9 @@ type Readout =
 const OVERLAY_TINT: Record<OverlayId, keyof Palette> = { sunlight: "sun", earthvis: "earth" };
 const KEY_PAN_PX = 60;
 const KEY_MOVE_PX = 8;
+const SHARP_RELIEF = "hillshade_8k.webp";
+/** How long the map stays zoomed out before it lets the 8K relief go. */
+const SHARP_RELEASE_MS = 20_000;
 const KEY_NUDGE_M = 100;
 const KEY_NUDGE_BIG_M = 1000;
 /** Starting a nudge zooms in to at least 40 m a pixel, so a 100 m step shows. */
@@ -225,7 +232,7 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
   // ── Images: the 4K relief first, the 8K once zoomed in, overlays after the first paint ──
   const relief4k = useMapImage("hillshade_4k.webp");
   const [wantSharp, setWantSharp] = useState(false);
-  const relief8k = useMapImage(wantSharp ? "hillshade_8k.webp" : null);
+  const relief8k = useMapImage(wantSharp ? SHARP_RELIEF : null);
   const firstPaint = relief4k.status === "ready" || relief4k.status === "error";
   const [ownOverlay, setOverlay] = useState<OverlayId | "none">("none");
   const [ownOpacity, setOpacity] = useState(0.65);
@@ -278,7 +285,12 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
   );
 
   // ── Applying a view, through d3-zoom so its state stays in step ──
-  const apply = useCallback((next: MapView) => {
+  const frameRef = useRef(frame);
+  frameRef.current = frame;
+  const halfWidthRef = useRef(halfWidthM);
+  halfWidthRef.current = halfWidthM;
+  const apply = useCallback((wanted: MapView) => {
+    const next = clampView(wanted, frameRef.current, halfWidthRef.current);
     const canvas = canvasRef.current;
     const behaviour = zoomRef.current;
     if (!canvas || !behaviour) {
@@ -320,6 +332,11 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
     const behaviour = d3zoom<HTMLCanvasElement, unknown>()
       .scaleExtent(zoomExtent(fit))
       .clickDistance(4)
+      // Pan stops before the map leaves the free space.
+      .constrain((transform) => {
+        const c = clampView({ k: transform.k, x: transform.x, y: transform.y }, frameRef.current, halfWidthRef.current);
+        return c.x === transform.x && c.y === transform.y ? transform : zoomIdentity.translate(c.x, c.y).scale(c.k);
+      })
       .filter((event: MouseEvent | TouchEvent | WheelEvent) => {
         if (!activeRef.current) return false;
         if (event.type === "wheel") return true;
@@ -397,9 +414,32 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
     bringIntoView(focusedSite.lat_deg, focusedSite.lon_deg);
   }, [focusedId]);
 
+  // The 8K relief loads once zoomed in, and is let go after 20 s zoomed back out, so the
+  // tab's memory falls back (DEVLOG, T7 review).
+  const sharpLevel = reliefLevel(view, dpr, halfWidthM);
   useEffect(() => {
-    if (reliefLevel(view, dpr, halfWidthM) === "8k") setWantSharp(true);
-  }, [view, dpr, halfWidthM]);
+    if (sharpLevel === "8k") {
+      setWantSharp(true);
+      return;
+    }
+    if (!wantSharp) return;
+    const timer = window.setTimeout(() => {
+      setWantSharp(false);
+      releaseMapImage(SHARP_RELIEF);
+    }, SHARP_RELEASE_MS);
+    return () => window.clearTimeout(timer);
+  }, [sharpLevel, wantSharp]);
+
+  // Leaving the view lets the 8K relief and the overlay images go. The 4K relief stays, so
+  // coming back draws at once.
+  useEffect(
+    () => () => {
+      releaseMapImage(SHARP_RELIEF);
+      releaseMapImage("sunlight_4k.webp");
+      releaseMapImage("earthvis_4k.webp");
+    },
+    [],
+  );
 
   // ── Drawing ──
   const palette = useRef<Palette | null>(null);
@@ -791,7 +831,7 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
           {overlay !== "none" ? (
             <p className="pm-caveat">
               <span className={cx("pm-swatch", overlay === "sunlight" ? "pm-swatch-sun" : "pm-swatch-earth")} aria-hidden="true" />
-              {OVERLAY_NAME[overlay]}, dark to bright: {AVERAGE_CAVEAT}
+              {OVERLAY_NAME[overlay]}, dark to bright: an 18.6-year average, not for your date.
             </p>
           ) : null}
         </div>
@@ -891,7 +931,16 @@ type ReadoutCardProps = {
 };
 
 /** The readout card beside its point: "New site here?", the nudge, or a catalog pin. */
-function ReadoutCard(props: ReadoutCardProps) {
+/**
+ * Calls `onRequestSite` for a point: latitude in degrees, east longitude folded into 0 to 360
+ * (the custom-site API's convention, docs/data-contracts.md).
+ */
+export function requestSiteAt(at: Point, onRequestSite: ((latDeg: number, lonDeg: number) => void) | undefined): void {
+  if (!onRequestSite) return;
+  onRequestSite(at.latDeg, wrapLongitude(at.lonDeg));
+}
+
+export function ReadoutCard(props: ReadoutCardProps) {
   const { readout, view, frame, siteById, valueAt, gridsReady } = props;
   const ref = useRef<HTMLElement>(null);
   const anchor = useMemo(() => {
@@ -968,7 +1017,7 @@ function ReadoutCard(props: ReadoutCardProps) {
           <p className="pm-card-note">{AVERAGE_CAVEAT}</p>
           {props.onRequestSite ? (
             <div className="pm-card-actions">
-              <Button onClick={() => props.onRequestSite?.(at.latDeg, at.lonDeg)}>Compute this site</Button>
+              <Button onClick={() => requestSiteAt(at, props.onRequestSite)}>Compute this site</Button>
             </div>
           ) : null}
         </>
@@ -993,14 +1042,20 @@ function ReadoutCard(props: ReadoutCardProps) {
           ) : (
             <p className="pm-card-line">Loading NASA's average maps…</p>
           )}
+          {/* Whose number this is, for the whole gesture: short while dragging. */}
+          <p className="pm-card-note">{readout.dragging ? NUDGE_CAVEAT_SHORT : NUDGE_CAVEAT}</p>
           {readout.dragging ? null : (
             <>
               {moved < 1 ? <p className="pm-card-line">Drag the pin, or use the arrow keys, to see how the averages change.</p> : null}
-              <p className="pm-card-note">{NUDGE_CAVEAT}</p>
-              {site?.group === "sunlit_peak" && site.nearby_sun ? <p className="pm-card-line">{nearbyRangeLine(site.nearby_sun)}</p> : null}
+              {site?.group === "sunlit_peak" && nearbyRangeText(site.nearby_sun) ? (
+                <dl className="pm-range">
+                  <dt>Nearby range, TrueSouth's six-year average sunlight</dt>
+                  <dd className="tabular">{nearbyRangeText(site.nearby_sun)}</dd>
+                </dl>
+              ) : null}
               {variant ? (
                 <p className="pm-card-line">
-                  TrueSouth's best-lit point is {distanceText(variant.site.offset_m ?? 0)} from the listed point.{" "}
+                  {variantLine(variant.site, site?.name ?? null)}, {CHOSEN_TAG}.{" "}
                   {variant.selected ? (
                     <Button variant="quiet" onClick={() => props.onFocusSite?.(variant.site.id)}>
                       Focus it
@@ -1020,7 +1075,7 @@ function ReadoutCard(props: ReadoutCardProps) {
               ) : null}
               {props.onRequestSite && moved >= 1 ? (
                 <div className="pm-card-actions">
-                  <Button onClick={() => props.onRequestSite?.(at.latDeg, at.lonDeg)}>Compute this point</Button>
+                  <Button onClick={() => requestSiteAt(at, props.onRequestSite)}>Compute this point</Button>
                 </div>
               ) : null}
             </>

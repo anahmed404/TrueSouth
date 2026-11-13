@@ -138,6 +138,23 @@ export function zoomAbout(view: MapView, factor: number, at: ScreenPoint, extent
   return { k, x: at.x - (at.x - view.x) * f, y: at.y - (at.y - view.y) * f };
 }
 
+/**
+ * Keeps part of the map inside the free space: at least a third of the map's width (or half
+ * the free space, when the map is zoomed in wider than that) stays inside it on each axis, at
+ * every zoom. Only the position moves; the zoom is left alone.
+ */
+export function clampView(view: MapView, rect: Frame["rect"], halfWidthM = DEFAULT_HALF_WIDTH_M, keep = 1 / 3): MapView {
+  if (rect.width <= 0 || rect.height <= 0) return view;
+  const side = (2 * halfWidthM * view.k) / WORLD_UNIT_M;
+  const clampAxis = (centre: number, start: number, length: number) => {
+    const margin = Math.min(side * keep, length / 2);
+    const low = start + margin - side / 2;
+    const high = start + length - margin + side / 2;
+    return Math.min(high, Math.max(low, centre));
+  };
+  return { k: view.k, x: clampAxis(view.x, rect.x, rect.width), y: clampAxis(view.y, rect.y, rect.height) };
+}
+
 /** Move the map by (dx, dy) CSS pixels. */
 export function panBy(view: MapView, dx: number, dy: number): MapView {
   return { k: view.k, x: view.x + dx, y: view.y + dy };

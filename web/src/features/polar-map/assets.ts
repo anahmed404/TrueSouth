@@ -37,6 +37,17 @@ export function loadMapImage(file: string): Promise<HTMLImageElement> {
   return promise;
 }
 
+/**
+ * Forgets a `maps/` image so the browser can free its decoded pixels (the 8K relief alone is
+ * 8,192 × 8,192). The next use loads it again, from the HTTP cache when it is still there.
+ */
+export function releaseMapImage(file: string): void {
+  // Dropping every reference is enough: a hook still holding the image lets it go on its
+  // next render. Clearing `src` here could leave a frame drawing a broken image.
+  ready.delete(file);
+  cache.delete(file);
+}
+
 export type ImageState = { status: "idle" | "loading" | "error"; image: null } | { status: "ready"; image: HTMLImageElement };
 
 /** A `maps/` image, loaded when `file` is set. */

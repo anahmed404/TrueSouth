@@ -10,7 +10,9 @@ import {
   NNBSP,
   coordinatesText,
   distanceText,
-  nearbyRangeLine,
+  lookupText,
+  nearbyRangeText,
+  variantLine,
   nudgeLine,
   readLookup,
   type LookupGrid,
@@ -239,31 +241,54 @@ describe("the nudge readout", () => {
   const v = (f: number) => ({ kind: "value", fraction: f }) as const;
 
   it("states both values and the direction, in whole percentages", () => {
-    expect(nudgeLine("sunlight", v(0.83), v(0.55))).toBe(`Average sunlight 83${NNBSP}% → 55${NNBSP}%, lower`);
-    expect(nudgeLine("earthvis", v(0.4), v(0.62))).toBe(`Average Earth visibility 40${NNBSP}% → 62${NNBSP}%, higher`);
+    expect(nudgeLine("sunlight", v(0.83), v(0.55))).toBe(`NASA's average sunlight 83${NNBSP}% → 55${NNBSP}%, lower`);
+    expect(nudgeLine("earthvis", v(0.4), v(0.62))).toBe(`NASA's average Earth visibility 40${NNBSP}% → 62${NNBSP}%, higher`);
   });
 
   it("calls two values the same when their whole percentages are", () => {
-    expect(nudgeLine("sunlight", v(0.541), v(0.538))).toBe(`Average sunlight 54${NNBSP}% → 54${NNBSP}%, the same`);
+    expect(nudgeLine("sunlight", v(0.541), v(0.538))).toBe(`NASA's average sunlight 54${NNBSP}% → 54${NNBSP}%, the same`);
     // 0.545 rounds to 55 and 0.535 to 54: the words follow the shown numbers.
-    expect(nudgeLine("sunlight", v(0.546), v(0.535))).toBe(`Average sunlight 55${NNBSP}% → 54${NNBSP}%, lower`);
+    expect(nudgeLine("sunlight", v(0.546), v(0.535))).toBe(`NASA's average sunlight 55${NNBSP}% → 54${NNBSP}%, lower`);
   });
 
   it("drops the direction word when either end has no data", () => {
-    expect(nudgeLine("sunlight", v(0.5), { kind: "no-data" })).toBe(`Average sunlight 50${NNBSP}% → no data`);
-    expect(nudgeLine("sunlight", { kind: "outside" }, v(0.5))).toBe(`Average sunlight no data → 50${NNBSP}%`);
+    expect(nudgeLine("sunlight", v(0.5), { kind: "no-data" })).toBe(`NASA's average sunlight 50${NNBSP}% → no data`);
+    expect(nudgeLine("sunlight", { kind: "outside" }, v(0.5))).toBe(`NASA's average sunlight no data → 50${NNBSP}%`);
   });
 
   it("matches the lookup grid at a hand-checked nudge", () => {
     const sunlight = grid("data/derived/maps/sunlight_u8.bin", 2048);
     const from = readLookup(sunlight, -89.4555, 222.6192); // 138 → 54 %
     const to = readLookup(sunlight, -89.7742, 203.4952); // 133 → 52 %
-    expect(nudgeLine("sunlight", from, to)).toBe(`Average sunlight 54${NNBSP}% → 52${NNBSP}%, lower`);
+    expect(nudgeLine("sunlight", from, to)).toBe(`NASA's average sunlight 54${NNBSP}% → 52${NNBSP}%, lower`);
   });
 
-  it("words a sunlit peak's nearby range as TrueSouth's estimate", () => {
-    expect(nearbyRangeLine({ radius_m: 160, points: 13, min: 0.397, max: 0.87 })).toBe(
-      `Within 160${NNBSP}m of the listed point, average sunlight ranges from 40${NNBSP}% to 87${NNBSP}% (TrueSouth's six-year estimate).`,
+  it("never shows a nearby range narrower than the data: the low end down, the high end up", () => {
+    // The five real ranges (#77): every low end rounds down.
+    const expected: Record<string, string> = {
+      connecting_ridge: `Within 160${NNBSP}m: 39${NNBSP}% to 87${NNBSP}%`,
+      shackleton_rim: `Within 160${NNBSP}m: 42${NNBSP}% to 82${NNBSP}%`,
+      de_gerlache_rim: `Within 160${NNBSP}m: 27${NNBSP}% to 70${NNBSP}%`,
+      malapert_peak: `Within 160${NNBSP}m: 37${NNBSP}% to 77${NNBSP}%`,
+      peak_near_shackleton: `Within 160${NNBSP}m: 49${NNBSP}% to 64${NNBSP}%`,
+    };
+    for (const [id, text] of Object.entries(expected)) {
+      expect(nearbyRangeText(realSites.find((s) => s.id === id)?.nearby_sun)).toBe(text);
+    }
+    expect(nearbyRangeText({ radius_m: 160, points: 3, min: 0.4, max: 0.87 })).toBe(`Within 160${NNBSP}m: 40${NNBSP}% to 87${NNBSP}%`);
+    expect(nearbyRangeText(null)).toBeNull();
+  });
+
+  it("words a best-lit variant as PR #92 does", () => {
+    const variant = realSites.find((s) => s.id === "connecting_ridge_best_lit") as Site;
+    expect(variantLine(variant, "Connecting Ridge")).toBe(`Best-lit map pixel, 149${NNBSP}m from Connecting Ridge`);
+  });
+
+  it("shows the top byte as over 99 %, never 100 %", () => {
+    expect(lookupText({ kind: "value", fraction: 254 / 255 })).toBe(`over 99${NNBSP}%`);
+    expect(lookupText({ kind: "value", fraction: 253 / 255 })).toBe(`99${NNBSP}%`);
+    expect(nudgeLine("sunlight", v(253 / 255), v(254 / 255))).toBe(
+      `NASA's average sunlight 99${NNBSP}% → over 99${NNBSP}%, higher`,
     );
   });
 

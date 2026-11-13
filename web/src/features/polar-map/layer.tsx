@@ -128,9 +128,12 @@ function makeLayer(options: PolarMapLayerOptions) {
  * API is wired; keep the returned object stable (make it once, or in a `useMemo`), since a
  * new one remounts the map.
  */
-export function polarMapLayer(options: PolarMapLayerOptions = {}): FlatLayer {
-  return { views: ["map"], Layer: makeLayer(options) };
+export function polarMapLayer(options: PolarMapLayerOptions = {}): PolarMapFlatLayer {
+  return { views: ["map"], Layer: makeLayer(options), onRequestSite: options.onRequestSite };
 }
 
+/** A flat layer for the scene slot, with the callback its map was made with. */
+export type PolarMapFlatLayer = FlatLayer & PolarMapLayerOptions;
+
 /** The Polar map layer with no custom-site button. */
-export const POLAR_MAP_LAYER: FlatLayer = polarMapLayer();
+export const POLAR_MAP_LAYER: PolarMapFlatLayer = polarMapLayer();
