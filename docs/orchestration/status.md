@@ -125,8 +125,6 @@ for the listed point and the variant, including the large gaps at `de_gerlache_r
 - **Say where a child may not write.** The Docker child wrote two context files under
   `~/.docker/contexts/meta/`, outside the repo and outside its brief. A brief that touches
   Docker, a global tool or a user profile says: change nothing outside the worktree.
-- **Run both test suites before every merge, documents included.** Two documents-only
-  merges broke `main` (#57 a catalog test, #64 the glossary test in the web suite).
 - **Read each check's exit code directly.** Piping a check into `grep` or `tail` hid a
   typecheck failure and a broken change was merged (#18, fixed by #19). Use
   `cmd > log 2>&1; echo exit=$?`.
