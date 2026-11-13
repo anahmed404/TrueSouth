@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { GroundLook, groundRuntime, heightMips } from "./ground-material";
+import { GroundLook, groundRuntime, heightMips, MOTION_DETAIL, motionDetail } from "./ground-material";
+import { qualityStages } from "./perf";
 import { GROUND_QUALITY, groundDefines, groundQualityFromQuery, SHADOW_STEPS } from "./ground-quality";
 import { CAP_HALF_WIDTH, CORE_HALF_WIDTH } from "./ground-relief";
 
@@ -113,26 +114,47 @@ describe("the height grids' mip levels", () => {
 });
 
 describe("what the ground draws at run time (no recompiling)", () => {
-  const still = { meshStep: 2, shadows: "reduced", grain: "full" } as const;
-
-  it("at rest: the quality's own levels, full mesh", () => {
-    expect(groundRuntime(GROUND_QUALITY.full, false, true, still)).toEqual({ steps: 64, grain: true, meshStep: 1 });
+  it("at rest, or moving on stage 0: the quality's own levels and the full mesh", () => {
+    expect(motionDetail(0)).toBeNull();
+    expect(groundRuntime(GROUND_QUALITY.full, true, null)).toEqual({ steps: 64, grain: true, meshStep: 1 });
   });
 
-  it("while the camera moves: the coarser mesh and the lower of the two levels", () => {
-    expect(groundRuntime(GROUND_QUALITY.full, true, true, still)).toEqual({ steps: 24, grain: true, meshStep: 2 });
-    expect(groundRuntime(GROUND_QUALITY.full, true, true, { meshStep: 4, shadows: "off", grain: "off" })).toEqual({
-      steps: 0,
-      grain: false,
-      meshStep: 4,
-    });
-    // Moving never raises a level the quality stages lowered.
-    expect(groundRuntime(GROUND_QUALITY.off, true, true, still)).toEqual({ steps: 0, grain: false, meshStep: 2 });
+  it("moving on a slow machine: coarser and lighter with each of the governor's stages", () => {
+    expect(groundRuntime(GROUND_QUALITY.full, true, motionDetail(1))).toEqual({ steps: 24, grain: true, meshStep: 2 });
+    expect(groundRuntime(GROUND_QUALITY.full, true, motionDetail(2))).toEqual({ steps: 24, grain: false, meshStep: 2 });
+    expect(groundRuntime(GROUND_QUALITY.full, true, motionDetail(3))).toEqual({ steps: 0, grain: false, meshStep: 4 });
+    expect(motionDetail(9)).toEqual(motionDetail(3));
+    // Moving never raises a level the quality lowered.
+    expect(groundRuntime(GROUND_QUALITY.off, true, motionDetail(1))).toEqual({ steps: 0, grain: false, meshStep: 2 });
+  });
+
+  it("the governor's stages each have a row", () => {
+    expect(MOTION_DETAIL.length).toBe(qualityStages(1).length);
   });
 
   it("where the disclosure cannot be shown: no drawn shadows and no texture, moving or not", () => {
-    expect(groundRuntime(GROUND_QUALITY.full, false, false, still)).toMatchObject({ steps: 0, grain: false });
-    expect(groundRuntime(GROUND_QUALITY.full, true, false, still)).toMatchObject({ steps: 0, grain: false });
+    expect(groundRuntime(GROUND_QUALITY.full, false, null)).toMatchObject({ steps: 0, grain: false });
+    expect(groundRuntime(GROUND_QUALITY.full, false, motionDetail(1))).toMatchObject({ steps: 0, grain: false });
+  });
+
+  it("setMotion drives the uniforms and the mesh's draw range, and back at rest", () => {
+    const { ground } = look();
+    const geometry = new THREE.BufferGeometry();
+    geometry.setIndex(Array.from({ length: 30 }, (_, i) => i % 3));
+    geometry.userData.lod = { 1: { start: 0, count: 24 }, 2: { start: 24, count: 6 } };
+    const mesh = new THREE.Mesh(geometry);
+    ground.attach(mesh);
+    expect(geometry.drawRange).toMatchObject({ start: 0, count: 24 });
+    ground.setMotion(true, 2);
+    expect(geometry.drawRange).toMatchObject({ start: 24, count: 6 });
+    expect(ground.uniforms.uSteps.value).toBe(24);
+    expect(ground.uniforms.uGrainOn.value).toBe(0);
+    ground.setMotion(false, 2);
+    expect(geometry.drawRange).toMatchObject({ start: 0, count: 24 });
+    expect(ground.uniforms.uSteps.value).toBe(64);
+    ground.setMotion(true, 0);
+    expect(geometry.drawRange).toMatchObject({ start: 0, count: 24 });
+    ground.dispose();
   });
 
   it("the material follows: setDisclosed(false) turns the uniforms off, and back", () => {

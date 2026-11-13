@@ -64,6 +64,12 @@ describe("what the scene draws for each load state", () => {
     expect(content.plates.map((p) => p.id)).toEqual(["apron-error", "decoration"]);
   });
 
+  it("a site with no apron by design (a custom site): the patch alone, and nothing reported missing", () => {
+    const content = sceneContent(input({ view: "terrain", apron: "none" }));
+    expect(content.ground).toBe("terrain");
+    expect(content.plates.map((p) => p.id)).toEqual(["decoration"]);
+  });
+
   it("terrain still loading says so, as a status", () => {
     const content = sceneContent(input({ view: "terrain", terrain: "loading" }));
     expect(content.ground).toBe("none");

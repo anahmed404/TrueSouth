@@ -440,6 +440,29 @@ export class World {
     return this.groundMeshes.length > 0;
   }
 
+  private prepTarget: THREE.WebGLRenderTarget | null = null;
+
+  /**
+   * Draws the ground once into a 1 × 1 target, so its meshes, height textures and shader are
+   * on the GPU before the first flight into Local terrain needs them (a stall of about 375 ms
+   * on a software GPU otherwise). Nothing on screen changes.
+   */
+  prepareGround(renderer: THREE.WebGLRenderer, camera: THREE.Camera): void {
+    if (!this.hasGround) return;
+    this.prepTarget ??= this.own(new THREE.WebGLRenderTarget(1, 1));
+    const visible = this.ground.visible;
+    const fade = this.groundLook.uniforms.uFade.value;
+    const previous = renderer.getRenderTarget();
+    this.ground.visible = true;
+    this.groundLook.fade = 1;
+    this.ground.updateMatrixWorld(true);
+    renderer.setRenderTarget(this.prepTarget);
+    renderer.render(this.ground, camera);
+    renderer.setRenderTarget(previous);
+    this.ground.visible = visible;
+    this.groundLook.fade = fade;
+  }
+
   // ── Per-frame layout ────────────────────────────────────────────────────
 
   setInputs(inputs: WorldInputs): void {

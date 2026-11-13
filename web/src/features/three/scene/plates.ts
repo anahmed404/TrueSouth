@@ -22,8 +22,11 @@ export type PlateInput = {
   series: LoadState;
   /** The focused site's `terrain.bin`. Ignored for a sphere-tier site, which has none. */
   terrain: LoadState;
-  /** The focused site's apron. Ignored for a sphere-tier site. */
-  apron: LoadState;
+  /**
+   * The focused site's apron. Ignored for a sphere-tier site. "none": the site has no apron by
+   * design (a custom site): the 20 km patch is drawn alone and nothing is reported missing.
+   */
+  apron: LoadState | "none";
   /**
    * The series' answer for the Sun at the current hour (its hour flag and disc fraction), or
    * null while it is not in. Optional: without it the decoration plate says only what is drawn.

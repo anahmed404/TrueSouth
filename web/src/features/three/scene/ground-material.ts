@@ -408,30 +408,44 @@ function heightTexture(grid: HeightGrid, floatLinear: boolean): THREE.DataTextur
   return texture;
 }
 
-/** How long the camera must be still before the ground goes back to full detail. */
-const SETTLE_MS = 150;
-
 export type MotionDetail = { meshStep: GroundLodStep; shadows: GroundLevel; grain: GroundLevel };
+
+/**
+ * What the ground draws while moving at each of the governor's stages (perf.ts,
+ * qualityStages). Stage 0 is the full picture, still and moving, as for the Moon.
+ */
+export const MOTION_DETAIL: readonly (MotionDetail | null)[] = [
+  null,
+  { meshStep: 2, shadows: "reduced", grain: "full" },
+  { meshStep: 2, shadows: "reduced", grain: "off" },
+  { meshStep: 4, shadows: "off", grain: "off" },
+];
+
+/** The detail for a stage; a stage past the table takes its last row. */
+export function motionDetail(stage: number): MotionDetail | null {
+  if (!(stage > 0)) return null;
+  return MOTION_DETAIL[Math.min(Math.floor(stage), MOTION_DETAIL.length - 1)] ?? null;
+}
 
 const LEVEL_RANK: Record<GroundLevel, number> = { off: 0, reduced: 1, full: 2 };
 const lower = (a: GroundLevel, b: GroundLevel): GroundLevel => (LEVEL_RANK[a] <= LEVEL_RANK[b] ? a : b);
 
 /**
- * What the ground draws now: the quality's levels, lowered to `whileMoving` while the camera
- * moves, and with no drawn shadows and no texture while the disclosure cannot be shown.
+ * What the ground draws now: the quality's levels, lowered to `whileMoving` (null: not
+ * moving, or stage 0), and with no drawn shadows and no texture while the disclosure cannot
+ * be shown.
  */
 export function groundRuntime(
   quality: GroundQuality,
-  moving: boolean,
   disclosed: boolean,
-  whileMoving: MotionDetail,
+  whileMoving: MotionDetail | null,
 ): { steps: number; grain: boolean; meshStep: GroundLodStep } {
-  const shadows = moving ? lower(quality.shadows, whileMoving.shadows) : quality.shadows;
-  const grain = moving ? lower(quality.grain, whileMoving.grain) : quality.grain;
+  const shadows = whileMoving ? lower(quality.shadows, whileMoving.shadows) : quality.shadows;
+  const grain = whileMoving ? lower(quality.grain, whileMoving.grain) : quality.grain;
   return {
     steps: disclosed ? SHADOW_STEPS[shadows] : 0,
     grain: disclosed && grain !== "off",
-    meshStep: moving ? whileMoving.meshStep : 1,
+    meshStep: whileMoving ? whileMoving.meshStep : 1,
   };
 }
 
@@ -502,17 +516,16 @@ export class GroundLook {
   }
 
   /**
-   * What the ground draws while the camera moves: a coarser mesh and lighter effects, back to
-   * the quality's own at rest. The scene's quality stages may change it, for example
-   * `{ meshStep: 4, shadows: "off", grain: "off" }` on their lowest stage.
+   * Called once a frame by the scene's quality governor (scene-root.tsx, perf.ts): whether the
+   * picture is moving, and the governor's stage. While moving on a stage above 0 the ground
+   * draws `motionDetail(stage)`: a coarser mesh and lighter effects. At rest, and always on
+   * stage 0, the full ground. No recompiling: uniforms and draw ranges only.
    */
-  whileMoving: MotionDetail = { meshStep: 2, shadows: "reduced", grain: "full" };
-
-  /** Sets `whileMoving` and applies it at once. */
-  setWhileMoving(detail: MotionDetail): void {
+  setMotion(moving: boolean, stage: number): void {
+    const detail = moving ? motionDetail(stage) : null;
+    if (detail === this.whileMoving) return;
     this.whileMoving = detail;
     this.applyRuntime();
-    this.invalidate();
   }
 
   /**
@@ -526,20 +539,14 @@ export class GroundLook {
     this.invalidate();
   }
 
-  get isMoving(): boolean {
-    return this.moving;
-  }
-
-  private moving = false;
+  /** What the ground draws while moving now, or null for the full ground. */
+  private whileMoving: MotionDetail | null = null;
   private disclosed = true;
-  private settleTimer: ReturnType<typeof setTimeout> | null = null;
-  private lastFrame = -1;
-  private readonly lastCamera = new Float64Array(16).fill(Number.NaN);
   private readonly meshes = new Set<THREE.Mesh>();
 
   /** Uniforms and draw ranges from the quality, the motion and the disclosure; no recompiling. */
   private applyRuntime(): void {
-    const r = groundRuntime(this.quality, this.moving, this.disclosed, this.whileMoving);
+    const r = groundRuntime(this.quality, this.disclosed, this.whileMoving);
     this.uniforms.uSteps.value = r.steps;
     this.uniforms.uGrainOn.value = r.grain ? 1 : 0;
     for (const mesh of this.meshes) {
@@ -547,32 +554,6 @@ export class GroundLook {
       const range = lod?.[r.meshStep] ?? lod?.[1];
       if (range) mesh.geometry.setDrawRange(range.start, range.count);
     }
-  }
-
-  /** Once a frame: is the camera where it was last frame? If not, draw lighter until it settles. */
-  private watchCamera(renderer: THREE.WebGLRenderer, camera: THREE.Camera): void {
-    const frame = renderer.info.render.frame;
-    if (frame === this.lastFrame) return;
-    this.lastFrame = frame;
-    const m = camera.matrixWorld.elements;
-    let moved = false;
-    for (let i = 0; i < 16; i += 1) {
-      if (m[i] !== this.lastCamera[i]) moved = true;
-      this.lastCamera[i] = m[i]!;
-    }
-    if (!moved) return;
-    if (!this.moving) {
-      this.moving = true;
-      this.applyRuntime();
-    }
-    if (this.settleTimer !== null) clearTimeout(this.settleTimer);
-    // At rest, one more frame at full quality: render on demand draws nothing more after it.
-    this.settleTimer = setTimeout(() => {
-      this.settleTimer = null;
-      this.moving = false;
-      this.applyRuntime();
-      this.invalidate();
-    }, SETTLE_MS);
   }
 
   /** The focused site's local frame, for the march, the texture and the camera's position. */
@@ -623,7 +604,6 @@ export class GroundLook {
   /** One handler for every ground mesh, made once: nothing is allocated per draw. */
   private readonly beforeRender = (renderer: THREE.WebGLRenderer, _scene: THREE.Scene, camera: THREE.Camera): void => {
     if (!this.built) this.build(renderer);
-    this.watchCamera(renderer, camera);
     const frame = this.frame;
     if (!frame) return;
     const km = MOON_RADIUS_M / 1_000;
@@ -659,8 +639,6 @@ export class GroundLook {
   }
 
   dispose(): void {
-    if (this.settleTimer !== null) clearTimeout(this.settleTimer);
-    this.settleTimer = null;
     this.clearHeights();
     this.blankHeight.dispose();
     this.material.dispose();
