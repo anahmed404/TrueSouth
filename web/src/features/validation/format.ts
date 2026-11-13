@@ -60,6 +60,8 @@ export function formatValue(value: number, options: { sig?: number; below?: numb
       text = size.toPrecision(figures);
       if (text.includes("e")) text = String(Number(text));
       shown = Number(text);
+      // "0.020" reads as "0.02": significant figures, not trailing zeros.
+      if (text.includes(".")) text = text.replace(/0+$/, "").replace(/\.$/, "");
     }
     const clashes = limit !== undefined && size < Math.abs(limit) && shown >= Math.abs(limit);
     if (!clashes || figures === 8) return withSign(text, negative);

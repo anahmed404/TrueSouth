@@ -2,6 +2,7 @@ import { ArrowUpRight } from "lucide-react";
 import { useId, useMemo, useState, type ReactNode } from "react";
 import type { Comparison, DataSource, DifferenceOverTime, Gate } from "../../contracts/generated.ts";
 import { Disclosure } from "../../components/Disclosure";
+import { formatNumber } from "../../components/format";
 import { Explain } from "../../components/Explain";
 import { REPO_BLOB_URL } from "../academy/card/links";
 import { G2Chart } from "./G2Chart";
@@ -121,7 +122,7 @@ function G2Over({ series, gate, names }: { series: readonly DifferenceOverTime[]
   const deg = (value: number) => withUnit(formatValue(value, { below: gate.limit }), "deg");
   const summary = `At ${name(site)}, the largest daily difference from JPL Horizons was ${deg(peak.value)}, for ${BODY_NAME[peak.body]} on ${utcDay(peak.time)} UTC. The limit is ${limit}.`;
   const across =
-    overall && sites.length > 1
+    overall && sites.length > 1 && overall.siteId !== site
       ? ` Across all ${sites.length} sites the largest was ${deg(overall.value)}, at ${name(overall.siteId)}.`
       : "";
 
@@ -220,22 +221,25 @@ export function GateList({ gates, label }: { gates: readonly Gate[]; label: stri
 
 // ── Comparisons ──────────────────────────────────────────────────────────────
 
-type ValueKind = "percent" | "degrees";
+/** Percentages for fractions; degrees to 2 decimals, or 3 when the mark is under 0.1°. */
+type ValueKind = "percent" | "degrees" | "fine-degrees";
 
 function kindOf(rows: readonly ComparisonRow[]): ValueKind {
-  return rows[0]?.unit === "fraction" ? "percent" : "degrees";
+  const first = rows[0];
+  if (!first || first.unit === "fraction") return "percent";
+  return first.mark < 0.1 ? "fine-degrees" : "degrees";
+}
+
+function decimals(kind: ValueKind): number {
+  return kind === "fine-degrees" ? 3 : 2;
 }
 
 function showValue(value: number, kind: ValueKind): string {
-  return kind === "percent" ? formatPercent(value) : withUnit(formatNumber2(value), "deg");
-}
-
-function formatNumber2(value: number): string {
-  return formatValue(value, { sig: 3 });
+  return kind === "percent" ? formatPercent(value) : `${formatNumber(value, decimals(kind))}°`;
 }
 
 function showDifference(row: ComparisonRow, kind: ValueKind): string {
-  return kind === "percent" ? `${formatPoints(row.difference)} points` : formatSignedDegrees(row.difference);
+  return kind === "percent" ? `${formatPoints(row.difference)} points` : formatSignedDegrees(row.difference, decimals(kind));
 }
 
 function showMark(mark: number, kind: ValueKind): string {
@@ -343,7 +347,7 @@ function sources(rows: readonly ComparisonRow[]): string[] {
 
 const MAP_INTRO: Record<string, { lead: string; x: string; y: string; body: "sun" | "earth" }> = {
   R1: {
-    lead: "For each polar site, the share of the time the Sun is in view, averaged over every hour, against NASA's average-sunlight map at the same spot.",
+    lead: "For each polar site, how much of the Sun's disc shows above the skyline, averaged over every hour, against NASA's average-sunlight map at the same spot.",
     x: "NASA's average sunlight",
     y: "Our average sunlight",
     body: "sun",

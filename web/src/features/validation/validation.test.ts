@@ -206,11 +206,13 @@ describe("number display", () => {
 
   it("never rounds a passing value up to its limit", () => {
     expect(formatValue(0.0049996002397847406, { below: 0.005 })).toBe("0.0049996");
-    expect(formatValue(0.006007249421241467, { below: 0.02 })).toBe("0.0060");
+    expect(formatValue(0.006007249421241467, { below: 0.02 })).toBe("0.006");
+    expect(formatValue(0.02)).toBe("0.02");
+    expect(formatValue(10.824032501633923, { sig: 3 })).toBe("10.8");
   });
 
   it("adds units, percentages and points", () => {
-    expect(withUnit("0.0060", "deg")).toBe("0.0060°");
+    expect(withUnit("0.006", "deg")).toBe("0.006°");
     expect(withUnit("0.01", "m")).toBe("0.01 m");
     expect(withUnit("0.0013", "fraction")).toBe("0.0013");
     expect(formatPercent(0.5985822873877985)).toBe("59.9%");

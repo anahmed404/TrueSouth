@@ -595,7 +595,7 @@
 
 .vl-gate {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) 21em 13.5em;
   gap: var(--s3) var(--s5);
   align-items: start;
   padding: var(--s4) 0;
@@ -613,7 +613,7 @@
 
 .vl-gate-values {
   display: grid;
-  grid-template-columns: repeat(3, auto);
+  grid-template-columns: 6em 8.5em 5.5em;
   gap: 0 var(--s5);
   margin: 0;
   font-size: var(--t-md);
@@ -630,7 +630,6 @@
 }
 
 .vl-gate-result {
-  min-width: 13.5em;
   padding-top: 2px;
 }
 
@@ -674,6 +673,10 @@
 
 .vl-table-box {
   min-width: 0;
+}
+
+.vl-block > .vl-table-box {
+  max-width: 760px;
 }
 
 .vl-table-scroll {
@@ -854,7 +857,7 @@
   }
 
   .vl-gate {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) 13.5em;
   }
 
   .vl-gate-values {
