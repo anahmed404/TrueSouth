@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Space-first flow</title>
+<meta name="description" content="Mission Control, space-first: the camera moves between the four scene views and the two floating windows.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* C2 neutrals. Boxes are places, arrows are what the user does. */
+:root{color-scheme:dark;--bg:#0b0b0c;--surface:#141415;--raised:#1b1b1d;--line:#262629;--line-strong:#37373b;--ink:#ececee;--ink-2:#b3b3b8;--ink-3:#8c8c93;--accent:#f3efe6;--sun:#ffe2a0;--earth:#6cc4ff}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink)}
+body{font:400 13px/1.4 "Jost","Futura","Century Gothic","Avenir Next","Trebuchet MS",system-ui,sans-serif;overflow-x:hidden}
+svg{display:block;width:100%;max-width:1440px;height:auto;margin:0 auto}
+text{font-family:inherit}
+.ttl{font-size:18px;font-weight:600;fill:var(--ink)}
+.sub{font-size:13px;fill:var(--ink-2)}
+.bt{font-size:15px;font-weight:600;fill:var(--ink)}
+.bb{font-size:12px;fill:var(--ink-2)}
+.al{font-size:12px;fill:var(--ink)}
+.al2{font-size:12px;fill:var(--ink-2)}
+.sec{font-size:13px;font-weight:600;fill:var(--ink-3)}
+</style>
+</head>
+<body>
+<svg id="flow" viewBox="0 0 1440 900" role="img" aria-label="Space-first Mission Control flow: the System view is home; the camera flies to the Polar map, Local terrain and Lander's eye; the Slip Planner and Compare open as floating windows."></svg>
+<script>
+const NS = 'http://www.w3.org/2000/svg', svg = document.getElementById('flow');
+const S = (t, a, p = svg, txt) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; p.appendChild(e); return e; };
+const defs = S('defs', {});
+for (const [id, col] of [['ar', '#b3b3b8'], ['ar2', '#5c5c63'], ['ac', '#f3efe6']]) {
+  const m = S('marker', { id, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, defs);
+  S('path', { d: 'M0,1 L9,5 L0,9 z', fill: col }, m);
+}
+const Lines = S('g', {}), Boxes = S('g', {}), Labels = S('g', {});
+S('text', { x: 32, y: 44, class: 'ttl' }, svg, 'Mission Control, space-first: how you move');
+S('text', { x: 32, y: 68, class: 'sub' }, svg, 'The 3D scene is always behind the interface. Picking a scene view moves the camera; the Slip Planner and Compare open as floating windows over whatever view you are on.');
+
+function box(x, y, w, h, title, lines, kind = 'view') {
+  const st = { home: ['#1b1b1d', '#f3efe6', 1.6, ''], view: ['#141415', '#37373b', 1.2, ''], win: ['#141415', '#8c8c93', 1.2, '5 4'], note: ['#0e0e0f', '#262629', 1, ''] }[kind];
+  S('rect', { x, y, width: w, height: h, rx: 14, fill: st[0], stroke: st[1], 'stroke-width': st[2], 'stroke-dasharray': st[3] }, Boxes);
+  S('text', { x: x + 16, y: y + 26, class: 'bt' }, Boxes, title);
+  lines.forEach((l, i) => S('text', { x: x + 16, y: y + 46 + i * 17, class: 'bb' }, Boxes, l));
+  return { x, y, w, h, cx: x + w / 2, cy: y + h / 2, r: x + w, b: y + h };
+}
+function arrow(pts, label, opts = {}) {
+  const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ',' + p[1]).join('');
+  S('path', { d, fill: 'none', stroke: opts.auto ? '#5c5c63' : opts.cam ? '#f3efe6' : '#b3b3b8', 'stroke-width': opts.cam ? 1.8 : 1.3, 'stroke-dasharray': opts.auto ? '5 4' : '', 'marker-end': `url(#${opts.auto ? 'ar2' : opts.cam ? 'ac' : 'ar'})` }, Lines);
+  if (label) {
+    const [lx, ly] = opts.at || pts[Math.floor(pts.length / 2)];
+    const g = S('g', {}, Labels);
+    const ls = Array.isArray(label) ? label : [label];
+    ls.forEach((t, i) => S('text', { x: lx, y: ly + i * 15, class: i ? 'al2' : 'al', 'text-anchor': opts.anchor || 'middle' }, g, t));
+    const bb = g.getBBox(); g.insertBefore(S('rect', { x: bb.x - 6, y: bb.y - 3, width: bb.width + 12, height: bb.height + 6, rx: 6, fill: '#0b0b0c' }), g.firstChild);
+  }
+}
+
+// the four scene views, as a camera path from far to near
+const W4 = 262, G4 = (1330 - 4 * W4) / 3, X4 = i => 64 + i * (W4 + G4);
+const sys = box(X4(0), 140, W4, 160, 'System view (home)', ['Sun, Earth and Moon fill the window.', 'Pins on the selected sites; sight-lines', 'from the focused site, from the series.', 'Distances not to scale.', 'Every direction is true.'], 'home');
+const pol = box(X4(1), 140, W4, 160, 'Polar map', ['The camera flies under the south', 'pole, then the flat map takes the', 'background. Overlays, nudge a pin,', 'click the ground to place a site.']);
+const ter = box(X4(2), 140, W4, 160, 'Local terrain', ['The camera descends to the site:', '20 km of 80 m ground inside the', 'real land around it, out to the', 'horizon. Colour, heights ×1 ×2 ×5.']);
+const eye = box(X4(3), 140, W4, 160, "Lander's eye", ['The camera drops to 2 m and looks', 'along the horizon. Earth and the', 'Sun at true size; the ×12 horizon', 'chart floats below.']);
+const gapMid = (a, b) => (a.r + b.x) / 2;
+arrow([[sys.r, 220], [pol.x, 220]], ['fly', '1.3 s'], { cam: true, at: [gapMid(sys, pol), 196] });
+arrow([[pol.r, 220], [ter.x, 220]], ['descend', '1.5 s'], { cam: true, at: [gapMid(pol, ter), 196] });
+arrow([[ter.r, 220], [eye.x, 220]], ['drop', '1.3 s'], { cam: true, at: [gapMid(ter, eye), 196] });
+arrow([[eye.cx, sys.b], [eye.cx, 340], [sys.cx + 40, 340], [sys.cx + 40, sys.b]], ['System view from any view: the camera rises back to the home framing'], { cam: true, at: [760, 344] });
+arrow([[ter.cx, ter.y], [ter.cx, 112], [sys.cx - 40, 112], [sys.cx - 40, sys.y]], ['Any view to any view: one eased move, interrupted by a drag or another pick'], { cam: true, at: [560, 116] });
+
+// floating windows
+const W3 = 376, G3 = (1330 - 3 * W3) / 2, X3 = i => 64 + i * (W3 + G3);
+S('text', { x: 200, y: 400, class: 'sec' }, svg, 'Floating windows, over any view');
+const slip = box(X3(0), 416, W3, 132, 'Slip Planner', ['Every site against every landing date.', 'Click a square or press Slip +7 d or +14 d:', 'the landing date moves, the slip card shows', 'before and after, the timeline follows.'], 'win');
+const cmp = box(X3(1), 416, W3, 132, 'Compare', ['Up to four sites in matching columns for', 'the same landing date. One sentence sums it', 'up; the deciding row is raised. Click a', 'column name to focus that site.'], 'win');
+const close = box(X3(2), 416, W3, 132, 'Closing a window', ['Escape, the close button, or the same', 'view-bar button. Focus returns to that button.', 'The camera never moves for a window, and', 'the timeline stays visible under it.'], 'note');
+arrow([[sys.x + 30, sys.b], [sys.x + 30, slip.y]], ['view bar'], { at: [sys.x + 42, 384], anchor: 'start' });
+arrow([[slip.r, 482], [cmp.x, 482]], ['switch'], { at: [gapMid(slip, cmp), 466] });
+arrow([[cmp.r, 482], [close.x, 482]], ['Escape'], { at: [gapMid(cmp, close), 466] });
+
+// one clock and the panels
+S('text', { x: 64, y: 594, class: 'sec' }, svg, 'One clock, and the floating panels');
+const tl = box(X3(0), 610, W3, 150, 'Timeline (bottom)', ['Drag the scrubber, press ← and →, or play.', 'The Sun and Earth move in the scene,', 'sight-lines and countdowns update, the', 'horizon chart redraws.']);
+const panels = box(X3(1), 610, W3, 150, 'Floating panels', ['Sites (left), focused site (right), timeline', '(bottom). Each folds with its own button,', 'or [ and ]; the camera re-centres on the', 'free space.']);
+const pick = box(X3(2), 610, W3, 150, 'Focus a site', ['From the sites panel, a pin, the map or a', "Compare column. Local terrain and Lander's", 'eye fly to it. Apollo 11 has no terrain:', 'the view says so and offers the System view.']);
+arrow([[tl.r, 690], [panels.x, 690]], ['all views,', 'one moment'], { auto: true, at: [gapMid(tl, panels), 664] });
+arrow([[panels.r, 690], [pick.x, 690]], ['click', 'a site'], { at: [gapMid(panels, pick), 664] });
+
+// other devices
+S('text', { x: 64, y: 804, class: 'sec' }, svg, 'Phone and slow devices');
+S('text', { x: 64, y: 824, class: 'sub' }, svg, 'Phone: the view bar scrolls, the focused site becomes a sheet with a Sites button, the timeline shows one countdown line. Windows open full screen.');
+S('text', { x: 64, y: 846, class: 'sub' }, svg, 'No WebGL, or 3D too slow: a still picture of the System view sits behind the same interface, with "Try 3D anyway". Reduce motion: every camera move becomes a 120 ms dip.');
+S('text', { x: 64, y: 878, class: 'sub' }, svg, 'Prototype: design/variants/space-first/index.html. Older docked flow: design/flows/mission-control/.');
+</script>
+</body>
+</html>

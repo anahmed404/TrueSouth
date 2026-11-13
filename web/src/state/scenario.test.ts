@@ -614,12 +614,15 @@ describe("shareable scenario link", () => {
     expect(store.getState().currentUtc).toBe(hourIndexToUtc(grid, grid.count - 1));
   });
 
-  it("does not use local-time Date methods in the scenario store, the scoring hooks or the timeline", () => {
+  it("does not use local-time Date methods in the scenario store, the scoring hooks, the sweep worker or the timeline", () => {
     const here = path.dirname(fileURLToPath(import.meta.url));
     const timeline = path.join(here, "../app/mission/timeline");
     const sources = [
       readFileSync(path.join(here, "scenario.ts"), "utf8"),
       readFileSync(path.join(here, "../lib/scoring/hooks.ts"), "utf8"),
+      readFileSync(path.join(here, "../lib/scoring/sweep-protocol.ts"), "utf8"),
+      readFileSync(path.join(here, "../lib/scoring/sweep-client.ts"), "utf8"),
+      readFileSync(path.join(here, "../lib/scoring/sweep.worker.ts"), "utf8"),
       readFileSync(path.join(here, "../app/mission/throttled-history.ts"), "utf8"),
       ...readdirSync(timeline)
         .filter((name) => /\.tsx?$/.test(name) && !name.includes(".test."))

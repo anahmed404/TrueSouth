@@ -42,12 +42,42 @@ each integration checkpoint.
 | Milestone | State |
 | :--- | :--- |
 | M0 Foundations | complete, 2026-11-13: S0 to S2, MC0 to MC2, T0, A0 and A1 verified; 151 Python and 1,058 web tests pass; the app loads all five fixture sites |
-| M1 Thin slice | in progress: S3 to S6, MC4a and A7 verified; S7 and MC3 in review; A2 and S9 being built |
+| M1 Thin slice | in progress: S3 to S7, S8 part 1, S9, MC3, MC4a, MC4b, the sweep worker, A2 and A7 verified; Mission Control's panels run on real Connecting Ridge data; the timeline (MC5), all catalog sites (S8 part 2) and the Academy card (A4) are being built; the centre views wait on the space-first design |
 | M2 Mission Control complete on catalog data | not started |
 | M3 Everything | not started |
 | M4 Tuned and submitted | not started |
 
 ## Science
+
+#### 2026-11-13 · S8 part 2 · Catalog slopes and terrain meshes
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-terra — wrote tests first, implemented build-sites wiring, and ran real-data builds and checks — human and orchestrator review pending
+- **State:** verified (orchestrator ran the 212 tests on the merge with main and rebuilt Connecting Ridge byte for byte; Antigravity, gemini-4-hydrogen validated every derived file against the contracts, recomputed tiers, slopes and all 15 meshes independently, rebuilt three sites byte for byte and ran six mutations, all caught)
+- **Changed:** science/src/truesouth/commands/build_sites.py, science/tests/test_build_sites_s7.py, data/derived/ sites and catalog, this entry.
+- **Notes:** All 20 sites built in 593.193 s; per-site build times appear below. Derived tree: 50,785,780 bytes. Mean sun_frac and hourly shares use the decoded series; missing mesh vertices count nonfinite up coordinates. A dash means unavailable. All 15 terrain-site slopes match direct polar_slope results exactly. Connecting Ridge series and skyline match main byte-for-byte and its slope is 4.052094 degrees over 160 m. Chandrayaan-3 is wide240, 0.860984 degrees over 480 m; IM-2 is core80. All five sphere sites have null slope and terrain, and no terrain.bin. Mesh centres have relative up within 4.657e-10 m of zero (roundoff), so match the site's ground height. Forced repeats of Connecting Ridge and Chandrayaan-3 reproduced all eight site files byte-for-byte. Close-up data remains unavailable. No spec questions. uv run pytest: 212 passed in 47.36 s, exit 0.
+
+| Site | Tier | Ground m | Slope deg / baseline m | Mean sun_frac | Any Sun % | Earth clearance >= 1 deg % | Missing skyline samples | Missing mesh vertices | Folder bytes | Time s |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| apollo11 | sphere | - | - | 0.502535 | 50.396 | 100.000 | 0 | - | 871152 | 0.073 |
+| apollo17 | sphere | - | - | 0.502515 | 50.396 | 100.000 | 0 | - | 871153 | 0.061 |
+| artemis_de_gerlache_rim_2 | core80 | -88.834 | 10.824033 / 160 | 0.363025 | 37.477 | 45.501 | 0 | 0 | 1927994 | 41.529 |
+| artemis_haworth | core80 | 1628.032 | 3.860687 / 160 | 0.123245 | 15.377 | 34.322 | 0 | 0 | 1927983 | 40.972 |
+| artemis_malapert | core80 | 4784.771 | 3.276887 / 160 | 0.297244 | 34.826 | 44.422 | 0 | 0 | 1927985 | 44.179 |
+| artemis_mouton | core80 | 6398.160 | 7.482868 / 160 | 0.216295 | 25.538 | 31.707 | 0 | 0 | 1927983 | 37.497 |
+| artemis_nobile_rim_1 | core80 | 5945.618 | 15.734713 / 160 | 0.307241 | 31.557 | 24.977 | 0 | 0 | 1927989 | 42.814 |
+| artemis_nobile_rim_2 | core80 | 1009.324 | 4.349377 / 160 | 0.411448 | 41.853 | 58.611 | 0 | 0 | 1927989 | 42.160 |
+| blue_ghost1 | sphere | - | - | 0.501886 | 50.323 | 100.000 | 0 | - | 871155 | 0.072 |
+| chandrayaan3 | wide240 | 529.723 | 0.860984 / 480 | 0.480968 | 48.513 | 100.000 | 0 | 0 | 1927981 | 26.799 |
+| change4 | sphere | - | - | 0.498581 | 50.065 | 0.000 | 0 | - | 871151 | 0.071 |
+| change6 | sphere | - | - | 0.498633 | 50.051 | 0.000 | 0 | - | 871152 | 0.070 |
+| connecting_ridge | core80 | 1950.256 | 4.052094 / 160 | 0.598582 | 65.746 | 45.607 | 0 | 0 | 1927984 | 47.317 |
+| de_gerlache_rim | core80 | 1779.196 | 2.154988 / 160 | 0.607358 | 66.853 | 48.827 | 0 | 0 | 1927984 | 39.583 |
+| im1_odysseus | core80 | 2591.948 | 11.510854 / 160 | 0.393991 | 40.048 | 100.000 | 0 | 0 | 1927981 | 32.729 |
+| im2_athena | core80 | 5321.502 | 2.684767 / 160 | 0.453740 | 47.077 | 73.787 | 0 | 0 | 1927980 | 36.984 |
+| luna25_target | wide240 | 309.643 | 2.627285 / 480 | 0.455682 | 45.984 | 100.000 | 0 | 0 | 1927980 | 28.900 |
+| malapert_peak | core80 | 4969.078 | 4.070659 / 160 | 0.727994 | 78.457 | 52.923 | 0 | 0 | 1927982 | 42.998 |
+| peak_near_shackleton | core80 | 1454.988 | 1.839560 / 160 | 0.601721 | 62.093 | 30.701 | 0 | 0 | 1927988 | 39.479 |
+| shackleton_rim | core80 | 1732.866 | 1.151164 / 160 | 0.746862 | 79.847 | 42.511 | 0 | 0 | 1927983 | 45.826 |
 
 #### 2026-11-13 · S8 part 1 · Slope (gate G8) and the terrain mesh
 - **Who:** Cursor agent, for the orchestrator
@@ -215,6 +245,13 @@ each integration checkpoint.
     kept this work in `web/src/app/`, so that folder's placeholder is no longer used by the
     shell. Clicking the card to open the Lander's eye waits for MC6.
 
+#### 2026-11-13 · MC7a · Slip sweep in a Web Worker
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote the sweep worker, the message handler, the client and `useSweeps`, with vitest tests — agent ran `pnpm --dir web typecheck`, `pnpm --dir web test` and `pnpm --dir web build`; a human has not reviewed it yet
+- **State:** verified (orchestrator ran typecheck, 1,230 tests and build on the merge with main; Codex, gpt-6.1-terra compared the worker with slipSweep on fixtures and the real site, simulated a detaching worker and ran seven mutations; its findings were fixed)
+- **Changed:** `web/src/lib/scoring/` (worker, protocol, client, hooks and cache; `scoring.ts` unchanged), `web/vite.config.ts`, `web/src/state/scenario.test.ts` (the local-time Date scan now includes the worker files), this entry
+- **Notes:** Review fixes were made. The worker keeps each site's three sweep columns after the first request, at most twelve series, least recently used, and the client sends the columns again when the worker has dropped a token. A sweep is cached and deduped by the time grid's start, step and count, so a different manifest cannot reuse one. The client copies those columns and transfers the copies, so the data store's buffers stay usable. Later profile edits send no series. One worker: a profile edit is compute once the series is resident, and a pool would keep another copy per worker. A landing date does not change the sweep, so a newer request for the same site drops the previous reply. Where `Worker` is missing, `useSweep` still computes on the main thread. Measured on this machine: one site through the handler, 52,584 hours, 100-day window, 3.8 ms (after one warmup); structured clone of 8 columns × 52,584 float64, 4.4 ms; copying those columns 1.0 ms and transferring them 0.1 ms. The production build emits `sweep.worker-BMR0j0qN.js`, 4.17 kB (1.72 kB gzip). The shell does not import the sweep yet, so `vite.config.ts` lists the worker as a build input; remove that input once a screen imports `useSweep`, or the build will emit the worker twice.
+
 #### 2026-11-13 · MC4b · Mission Control panels on the scenario store and real data
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill — wrote the
@@ -334,6 +371,48 @@ each integration checkpoint.
   - `|latitude| > 89.999°` throws for the local frame and for walking. The sphere point and the Sun-elevation formula still accept the poles.
 
 ## Academy
+
+#### 2026-11-13 · A4 · Under the hood card renderer with KaTeX and Fill chips
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the card type, the renderer, the lazy
+  KaTeX loader, the card-text tokenizer, the one rounding rule, the sample card and 32
+  vitest tests — checked by the agent with typecheck, tests and build, the impeccable
+  detector (0 findings), and by eye in a browser at 1440 × 900 and 390 × 844 with reduce
+  motion on and off, including KaTeX held back (loading) and blocked (failed). A human has
+  not read the card yet.
+- **State:** verified (orchestrator ran typecheck, 1,310 tests and build on the merge with main and looked at the card at both sizes; Codex, gpt-6.1-terra compared the quoted formulas with science.md section 4, probed the renderer for unsafe output and ran seven mutations; its findings were fixed and the trust mutation now fails nine tests)
+- **Changed:** `web/src/features/academy/` (`card/`, `types.ts`, `format-example.ts`,
+  `placeholders.ts`, `ui/filled.tsx`, `lessons/sample.ts`, `academy.css`, and the
+  `pending` prop through `index.tsx`, `lesson-screen.tsx`, `lesson/conversation.tsx`),
+  `web/package.json` (`katex` pinned to 0.19.1), `docs/academy/overview.md`, screenshots
+  `docs/design/c2/built-academy-card*.png`
+- **Notes:**
+  - Cards are typed data (`UnderTheHoodCard` in `types.ts`), not Markdown files: the
+    overview said `cards/<id>.md` while the same doc and the A2 code made lessons and
+    cards typed. The overview now says `cards/<id>.ts`. A5 creates that folder.
+  - KaTeX is in its own chunk, loaded when the "Under the hood" tab first opens:
+    `katex-render` JS 259.45 kB (77.88 kB gzip), CSS 29.78 kB (7.98 kB gzip), 19 woff2
+    fonts 256 kB (only the ones a formula uses are fetched). First-page JS went from
+    545.69 kB to 572.54 kB (175.70 to 184.63 kB gzip): the renderer and the sample card,
+    no KaTeX. `card/bundle.test.ts` walks the static import graph to keep it that way.
+  - Numbers are rounded by key suffix in `format-example.ts` (degrees 2 decimals, km 1,
+    m 0, h 1, pct 0), trailing zeros dropped. Lesson text uses the same rule now.
+  - The sample route now merges the real `worked_examples.json` under the sample's toy
+    values, so the sample card shows lesson 3's fixture numbers.
+  - Review fixes made (same PR):
+    - An unusable value (null, NaN, Infinity, an object, empty text) shows "value not
+      built yet" and never throws.
+    - Angles keep at least one decimal, and `_pct` is matched as a segment.
+    - A test walks every worked-example key; unitless keys are listed in
+      `format-example.ts`.
+    - Compared sets gain decimals until their values print differently, and comparison
+      words come from the data (`compare.ts`).
+    - KaTeX's trust, `maxSize` (20 em) and `maxExpand` (1000) are tested.
+    - The boxed-number note says "sample values for testing, not real" on fixtures.
+    - Malformed `{{example.…}}` keys show as missing, and the worked example's title is
+      drawn as card text.
+  - The real `data/derived/` has no `academy/worked_examples.json` yet. On real data the
+    card shows every number as "value not built yet", and the browser logs that file's 404.
 
 #### 2026-11-13 · A2 · Academy screens in the picked form and the five step kinds
 - **Who:** Claude Code agent, for the orchestrator

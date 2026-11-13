@@ -1,0 +1,59 @@
+{
+  "site_id": "malapert_peak",
+  "series": {
+    "columns": [
+      {
+        "name": "sun_az",
+        "scale": 0.01,
+        "offset": 180.0
+      },
+      {
+        "name": "sun_el",
+        "scale": 0.01,
+        "offset": 0.0
+      },
+      {
+        "name": "sun_frac",
+        "scale": 0.0001,
+        "offset": 0.0
+      },
+      {
+        "name": "sun_clear",
+        "scale": 0.01,
+        "offset": 0.0
+      },
+      {
+        "name": "earth_az",
+        "scale": 0.01,
+        "offset": 180.0
+      },
+      {
+        "name": "earth_el",
+        "scale": 0.01,
+        "offset": 0.0
+      },
+      {
+        "name": "earth_frac",
+        "scale": 0.0001,
+        "offset": 0.0
+      },
+      {
+        "name": "earth_clear",
+        "scale": 0.01,
+        "offset": 0.0
+      }
+    ]
+  },
+  "sun_radius_deg": 0.2664505760237834,
+  "earth_radius_deg": 0.9510033650155258,
+  "skyline": {
+    "bins": 1440,
+    "missing_samples": 0,
+    "max_range_km": 300.0
+  },
+  "terrain": {
+    "size": 257,
+    "window_km": 20.0
+  },
+  "closeup": null
+}
