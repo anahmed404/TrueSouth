@@ -49,6 +49,27 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-14 · Science clarifications · A9 findings and implementation limits
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — clarified the science document against the
+  reviewed code, checked current stored-file counts without rebuilding data,
+  and recorded each A9 finding's status. Both Academy teaching formulas are
+  unchanged. No code, contract, screen or data changed.
+- **State:** built, not verified
+- **Changed:** `docs/science.md`, the Status table and later-state notes in
+  `docs/reviews/a9-math-review.md`, and the dated outcome in decision 0004.
+- **Notes:**
+  - B1 is fixed by #77; the near-pole part of B8 is fixed by #80. Profile
+    file-contract validators remain future work. A1 and C4 are handled in #93;
+    this branch leaves sections 9–11 unchanged to avoid overlapping those edits.
+  - Documented bin and blocker ties, disc quadrature and singular cases, empty
+    skyline assumptions, missing slope, quantisation, approximation domains,
+    missed sub-hour intervals and the specified-but-unbuilt paths.
+  - Current stored files contain 58 azimuths at 360 degrees: the original
+    40 plus 18 variant samples. All 20 terrain-tier catalog files have blockers
+    in every bin and report zero missing samples. Only Connecting Ridge was
+    independently rebuilt in A9; the other sites were read, not recomputed.
+
 #### 2026-11-14 · S10b integration · Merge main's placement builder
 - **Who:** Codex implementation agent
 - **AI use:** Codex resolved build-sites and DEVLOG conflicts, preserved main's placement flow, adapted the custom-site wrapper to main's helpers, and added integration tests; human and orchestrator review pending.
