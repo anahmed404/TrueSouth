@@ -1,0 +1,124 @@
+/**
+ * "A copied link, opened in a private window, shows the same scenario"
+ * (docs/features/share-export.md): the link Share copies restores every part of the
+ * scenario, including a custom profile, the view and the Compare window being open.
+ */
+
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+import type { Manifest, MissionProfile } from "../../../contracts/generated";
+import { createScenarioStore, type ScenarioCatalog, type ScenarioState } from "../../../state/scenario";
+import { coordinatesText, moonTrekLink, quickmapLink, signedLongitude } from "./nasa-links";
+import { scenarioLink } from "./share-link";
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../../..");
+const fixtures = path.join(repoRoot, "data", "fixtures");
+const json = <T,>(file: string) => JSON.parse(readFileSync(path.join(fixtures, file), "utf8")) as T;
+const catalog: ScenarioCatalog = {
+  profiles: json<MissionProfile[]>("profiles.json"),
+  sites: json<ScenarioCatalog["sites"]>("sites.json"),
+  grid: json<Manifest>("manifest.json").time_grid,
+};
+const location = { origin: "https://truesouth.example", pathname: "/mission" };
+
+function scenarioOf(state: ScenarioState) {
+  return {
+    profile: state.profile,
+    basePresetId: state.basePresetId,
+    changedFields: [...state.changedFields].sort(),
+    siteIds: state.siteIds,
+    focusedSiteId: state.focusedSiteId,
+    landingUtc: state.landingUtc,
+    currentUtc: state.currentUtc,
+    view: state.view,
+  };
+}
+
+function reopen(link: string): ScenarioState {
+  const url = new URL(link);
+  expect(`${url.origin}${url.pathname}`).toBe("https://truesouth.example/mission");
+  return createScenarioStore(catalog, url.search).getState();
+}
+
+describe("the shared link", () => {
+  it("round-trips a custom profile, the sites, the focus, both times and the open Compare window", () => {
+    const store = createScenarioStore(catalog, "");
+    const s = store.getState();
+    s.choosePreset("viper");
+    s.editProfileField("max_dark_h", 9);
+    s.editProfileField("antenna_mask_deg", 2.5);
+    s.editProfileField("weights", { slope: 0.2, power: 0.5, comms: 0.3 });
+    s.editProfileField("landing_sun_el_min_deg", null);
+    store.getState().removeSite(store.getState().siteIds[0] as string);
+    store.getState().addSite("fixture_sphere");
+    store.getState().focusSite("fixture_sphere");
+    store.getState().slipLanding(14);
+    store.getState().stepCurrentTime(37);
+    store.getState().setView("compare");
+
+    const before = store.getState();
+    expect(before.changedFields.length).toBeGreaterThan(0);
+    expect(before.view).toBe("compare");
+    const link = scenarioLink(before, location);
+    const after = reopen(link);
+    expect(after.notices).toEqual([]);
+    expect(scenarioOf(after)).toEqual(scenarioOf(before));
+  });
+
+  it("round-trips a landing hour that is not midnight, and a current time hours after it", () => {
+    const store = createScenarioStore(catalog, "?profile=im2_athena&land=2027-03-09T17:00:00Z&t=0&view=compare");
+    store.getState().stepCurrentTime(29);
+    const before = store.getState();
+    expect(before.landingUtc).toBe("2027-03-09T17:00:00Z");
+    expect(before.currentUtc).toBe("2027-03-10T22:00:00Z");
+    const after = reopen(scenarioLink(before, location));
+    expect(after.notices).toEqual([]);
+    expect(after.landingUtc).toBe("2027-03-09T17:00:00Z");
+    expect(after.currentUtc).toBe("2027-03-10T22:00:00Z");
+    expect(scenarioOf(after)).toEqual(scenarioOf(before));
+  });
+
+  it("round-trips every view", () => {
+    for (const view of ["slip", "system", "map", "terrain", "panorama", "compare"] as const) {
+      const store = createScenarioStore(catalog, "");
+      store.getState().setView(view);
+      expect(reopen(scenarioLink(store.getState(), location)).view).toBe(view);
+    }
+  });
+
+  it("is built from the store, so it is never behind the address bar", () => {
+    const store = createScenarioStore(catalog, "");
+    store.getState().stepCurrentTime(5);
+    expect(new URL(scenarioLink(store.getState(), location)).searchParams.get("t")).toBe(
+      String(Math.round((Date.parse(store.getState().currentUtc) - Date.parse(store.getState().landingUtc)) / 3600000)),
+    );
+  });
+});
+
+describe("links to NASA's maps", () => {
+  it("wraps east longitude to −180..180", () => {
+    expect(signedLongitude(222.619)).toBeCloseTo(-137.381, 6);
+    expect(signedLongitude(23.473)).toBeCloseTo(23.473, 6);
+    expect(signedLongitude(180)).toBe(180);
+    expect(signedLongitude(0)).toBe(0);
+  });
+
+  it("open each tool centred on the site, in its south-pole projection near the pole", () => {
+    expect(quickmapLink(0.674, 23.473).href).toBe(
+      "https://quickmap.lroc.im-ldi.com/layers?extent=23.4235,0.6245,23.5225,0.7235&proj=16&features=23.473,0.674",
+    );
+    const ridge = quickmapLink(-89.456, 222.619);
+    expect(ridge.href).toMatch(/^https:\/\/quickmap\.lroc\.im-ldi\.com\/layers\?extent=-14\d\.\d+,-89\.5055,-13\d\.\d+,-89\.4065&proj=27&features=-137\.381,-89\.456$/);
+    expect(moonTrekLink(0.674, 23.473).href).toBe(
+      "https://trek.nasa.gov/moon/#v=0.1&x=23.473&y=0.674&z=8&p=urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A104903&d=",
+    );
+    // The metres Moon Trek opened at the ridge in MC9's check (its readout: −89.4559°, −137.5466°).
+    expect(moonTrekLink(-89.456, 222.619).href).toBe(
+      "https://trek.nasa.gov/moon/#v=0.1&x=-11170&y=-12139&z=8&p=urn%3Aogc%3Adef%3Acrs%3AIAU2000%3A%3A30120&d=",
+    );
+    for (const link of [ridge, moonTrekLink(-89.456, 222.619)]) expect(link.centred).toBe(true);
+    expect(coordinatesText(-89.456, 222.619)).toBe("−89.4560°, 222.6190° E");
+  });
+});
