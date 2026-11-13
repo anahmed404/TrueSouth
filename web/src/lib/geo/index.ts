@@ -32,3 +32,28 @@ export {
   trueLocalToSceneKm,
 } from "./scene";
 export { latLonToScene, moonFixedToScene, sceneToLatLon, sceneToMoonFixed, sunElevationDeg } from "./system";
+export {
+  CAP_CORE_HALF_WIDTH_M,
+  CAP_HALF_WIDTH_M,
+  EARTH_RADIUS_KM,
+  MOON_RADIUS_KM,
+  SQUEEZED_DISTANCE,
+  SQUEEZED_EARTH_RADIUS,
+  SQUEEZED_SUN_RADIUS,
+  SUN_RADIUS_KM,
+  apronCellLocalKm,
+  apronCellOffsetM,
+  bodyDirections,
+  capUv,
+  earthPlacement,
+  localDirectionToScene,
+  localKmToSceneOffset,
+  sceneDirectionAtSite,
+  siteFrameScene,
+  siteGroundScene,
+  sunPlacement,
+  surfacePointScene,
+  type ApronGrid,
+  type BodyPlacement,
+  type SystemHour,
+} from "./placement";
