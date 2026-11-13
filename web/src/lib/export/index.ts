@@ -6,7 +6,7 @@
 import type { MissionProfile, TimeGrid } from "../../contracts/generated";
 import { hourIndexToUtc } from "../time";
 
-export { parseCsv, toCsv, type CsvValue, type ParsedCsv } from "./csv";
+export { neutraliseFormula, parseCsv, toCsv, type CsvValue, type ParsedCsv } from "./csv";
 
 /** The validation caveat, as the footer line says it. */
 export const CAVEAT = "Planning aid, not flight certification";

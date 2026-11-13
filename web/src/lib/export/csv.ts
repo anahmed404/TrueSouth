@@ -8,16 +8,37 @@
  *   uses a true minus sign; the file is for machines.
  * - Lines end in CRLF (RFC 4180), and the file starts with a byte-order mark so a
  *   spreadsheet reads it as UTF-8 (the degree sign, the en dash).
+ * - Formula injection (OWASP "CSV Injection"): a spreadsheet runs a cell that begins with
+ *   `=`, `+`, `-` or `@` (also after leading spaces), or with a tab or a carriage return, as
+ *   a formula. Every *string* cell that begins so is prefixed with a single quote `'`, so it
+ *   opens as text; it is still quoted when it holds a comma, a quote or a line break.
+ *   Numbers are written from `number` values and are never prefixed, so `-19.76` stays a
+ *   number. Comment lines get the same guard after each comma, because a spreadsheet
+ *   splits them into cells too.
  */
 
 export type CsvValue = string | number | boolean | null;
 
 const BOM = "﻿";
 
+/** A string a spreadsheet would run as a formula (see the file's comment). */
+const FORMULA_START = /^(?:[\t\r]|\s*[=+\-@])/;
+
+/** Text that opens as text: a leading `'` when it would otherwise run as a formula. */
+export function neutraliseFormula(text: string): string {
+  return FORMULA_START.test(text) ? `'${text}` : text;
+}
+
 function field(value: CsvValue): string {
   if (value === null) return "";
-  const text = typeof value === "number" ? numberText(value) : String(value);
+  const text = typeof value === "number" ? numberText(value) : neutraliseFormula(String(value));
   return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+/** A comment line: one line, and no cell after a comma starts a formula. */
+function commentLine(line: string): string {
+  const parts = line.replace(/[\r\n]+/g, " ").split(",");
+  return `# ${parts.map((part, index) => (index === 0 ? part : neutraliseFormula(part))).join(",")}`;
 }
 
 function numberText(value: number): string {
@@ -27,7 +48,7 @@ function numberText(value: number): string {
 
 export function toCsv(comments: readonly string[], header: readonly string[], rows: readonly (readonly CsvValue[])[]): string {
   const lines = [
-    ...comments.map((line) => `# ${line.replace(/[\r\n]+/g, " ")}`),
+    ...comments.map(commentLine),
     header.map(field).join(","),
     ...rows.map((row) => row.map(field).join(",")),
   ];
