@@ -37,8 +37,8 @@
   /*
     One grid over the whole window. The scene slot is fixed behind it; every other child
     floats with a --float-gap margin. The empty row in the middle is the free space the scene
-    reads (free-space.ts). Rows: app bar, view bar, sentence, free space, foot stack,
-    timeline, footer line. Columns: sites rail, the middle, focused-site panel.
+    reads (free-space.ts). Rows: app bar, view bar, notices (the row keeps its old name,
+    "sentence"), free space, foot stack, timeline, footer line. Columns: sites rail, the middle, focused-site panel.
     DESIGN.md, "Layout"; docs/features/mission-control.md, "Layout".
   */
   .mc {
@@ -143,7 +143,7 @@
     }
   }
 
-  /* ── View bar and the view's sentence ───────────────────────────────────── */
+  /* ── View bar and its notices ─────────────────────────────────────────────── */
   .view-bar {
     grid-row: vbar;
     grid-column: 2;
@@ -218,32 +218,56 @@
     background: var(--line-strong);
   }
 
-  .view-sentence-stack {
+  /*
+    The current view's tab and its "About" button share one Raised fill, so the info icon
+    reads as part of the tab. The view's sentence lives in the button's tip.
+  */
+  .view-bar-current {
+    display: inline-flex;
+    flex: none;
+    align-items: stretch;
+    border-radius: var(--r-md);
+    background: var(--raised);
+  }
+
+  .view-bar-current > .view-bar-item {
+    padding-right: 4px;
+  }
+
+  .view-bar-current > .view-bar-item::after {
+    right: 4px;
+  }
+
+  .view-bar-about {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+  }
+
+  .view-bar-about .explain-button {
+    width: 28px;
+    height: 36px;
+    margin: 0;
+    border-radius: var(--r-md);
+    color: var(--ink-3);
+  }
+
+  .view-bar-about .explain-button:hover,
+  .view-bar-about .explain-button[aria-expanded="true"] {
+    background: var(--hover);
+    color: var(--ink);
+  }
+
+  /* Notices about the link, under the view bar. The free space starts below this stack. */
+  .view-notices {
     grid-row: sentence;
     grid-column: 2;
     justify-self: center;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--s2);
     max-width: 100%;
     margin-top: var(--s2);
-  }
-
-  .view-sentence {
-    max-width: 72ch;
-    margin: 0;
-    padding: 7px 14px 8px;
-    border-radius: var(--r-md);
-    color: var(--ink);
-    font-size: var(--t-lg);
-    line-height: 1.45;
-    text-align: center;
-    text-wrap: pretty;
-  }
-
-  .view-sentence .explain-button {
-    vertical-align: -3px;
   }
 
   /* A plate: the backing behind text drawn over the scene (DESIGN.md, "The scene"). */
@@ -256,13 +280,13 @@
     color: var(--ink-2);
   }
 
-  .view-sentence-stack .notices {
+  .view-notices .notices {
     margin: 0;
   }
 
-  /* Too narrow between the side panels: the bar and sentence sit above them instead. */
+  /* Too narrow between the side panels: the bar and its notices sit above them instead. */
   .mc[data-top="span"] .view-bar,
-  .mc[data-top="span"] .view-sentence-stack {
+  .mc[data-top="span"] .view-notices {
     grid-column: 1 / -1;
   }
 
@@ -407,6 +431,11 @@
     display: flex;
     min-width: 0;
     min-height: 0;
+  }
+
+  /* The timeline's head reads its own width: the landing date keeps its room first. */
+  .strip-timeline {
+    container: strip / inline-size;
   }
 
   /* ── Footer line ────────────────────────────────────────────────────────── */
@@ -1066,31 +1095,164 @@
     transform: rotate(180deg);
   }
 
-  .field-date {
+  /* ── The landing date: at the left of the timeline, where the window begins ─ */
+  .ldc {
+    position: relative;
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .ldc-label {
+    color: var(--ink-2);
+    font-size: var(--t-md);
+  }
+
+  .ldc-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 32px;
+    padding: 0 1px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--raised);
+  }
+
+  .ldc-value {
     height: 28px;
     padding: 0 6px;
     border: 1px solid transparent;
     border-radius: var(--r-sm);
     background: transparent;
+    color: var(--ink);
     font: inherit;
+    font-size: var(--t-md);
+    font-weight: 500;
     cursor: pointer;
   }
 
-  .field-date:hover,
-  .field-date[aria-expanded="true"] {
+  .ldc-value small {
+    color: var(--ink-3);
+    font-size: var(--t-sm);
+    font-weight: 400;
+  }
+
+  .ldc-value:hover,
+  .ldc-value[aria-expanded="true"] {
     border-color: var(--line-strong);
     background: var(--hover);
   }
 
-  .field-rule {
-    width: 1px;
-    height: 18px;
-    margin: 0 var(--s1);
-    background: var(--line-strong);
+  .ldc-slips {
+    display: inline-flex;
+    gap: var(--s1);
   }
 
-  .field-slip + .field-slip {
-    margin-right: 2px;
+  /* The window's end and length after the date: the date is the window's start. */
+  .ldc-window {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 4px;
+    color: var(--ink-2);
+    font-size: var(--t-md);
+  }
+
+  .ldc-window-length {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* At the end of the time grid a day or slip button stays focusable but does nothing. */
+  .ldc .btn[aria-disabled="true"],
+  .date-form .btn[aria-disabled="true"],
+  .ldc .btn[aria-disabled="true"]:hover,
+  .date-form .btn[aria-disabled="true"]:hover {
+    background: transparent;
+    color: var(--ink-4);
+    cursor: default;
+  }
+
+  .ldc .btn-secondary[aria-disabled="true"],
+  .date-form .btn-secondary[aria-disabled="true"] {
+    border-color: var(--line);
+  }
+
+  .ldc-slip-word {
+    color: var(--ink-3);
+  }
+
+  /* In the date's popover the row is already labelled "Slip". */
+  .date-form .ldc-slip-word {
+    display: none;
+  }
+
+  .ldc-next {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .ldc-go .ldc-spin {
+    animation: ldc-spin 900ms linear infinite;
+  }
+
+  @keyframes ldc-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ldc-go .ldc-spin {
+      animation: none;
+    }
+  }
+
+  .ldc-none {
+    color: var(--ink-3);
+    font-size: var(--t-sm);
+  }
+
+  /*
+    "Landing moved to …" with Undo: a bubble over "Next GO", like a tip (Raised, Control Edge,
+    the popover shadow), so it reads as that button's answer and not as another plate.
+  */
+  .ldc-note {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    width: max-content;
+    max-width: min(360px, calc(100vw - 2 * var(--float-gap)));
+    padding: 6px 6px 6px 12px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-md);
+    background: var(--raised);
+    box-shadow: var(--shadow-popover);
+    animation: window-rise 180ms var(--ease-out);
+  }
+
+  .ldc-note-text {
+    margin: 0;
+    color: var(--ink);
+    font-size: var(--t-md);
+    line-height: 1.4;
+    white-space: normal;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ldc-note {
+      animation: none;
+    }
   }
 
   .share {
@@ -1459,6 +1621,12 @@
   .date-form-zone {
     color: var(--ink-3);
     font-size: var(--t-sm);
+  }
+
+  .date-form-window {
+    margin: 0;
+    color: var(--ink);
+    font-size: var(--t-md);
   }
 
   .date-form-hint,
@@ -1932,14 +2100,11 @@
       grid-column: 1 !important;
     }
 
-    /* App bar: the brand's mark, the landing date and Share. */
+    /* App bar: the brand's mark and Share. The landing date is in the bottom strip. */
     .shell-top .seg,
     .shell-top .field-profile,
-    .shell-top .field-rule,
-    .shell-top .field-slip,
     .shell-top .field-label,
-    .shell-top .brand > span,
-    .shell-top-spacer {
+    .shell-top .brand > span {
       display: none;
     }
 
@@ -1951,17 +2116,6 @@
       justify-content: center;
       width: 44px;
       height: 42px;
-    }
-
-    .shell-top .field[role="group"] {
-      flex: 1;
-      justify-content: space-between;
-      min-width: 0;
-      padding: 0 2px;
-    }
-
-    .shell-top .field-date {
-      min-width: 0;
     }
 
     .shell-top .share-button {
@@ -1992,9 +2146,9 @@
       min-height: 44px;
     }
 
-    .view-sentence {
-      padding: 6px 10px;
-      font-size: var(--t-md);
+    .view-bar-about .explain-button {
+      width: 44px;
+      height: 44px;
     }
 
     .mc-foot-stack {
@@ -2089,7 +2243,7 @@
     .mc .seg-option,
     .mc .site-handle,
     .mc .rail-lamp,
-    .mc .field-date,
+    .mc .ldc-value,
     .mc .field-trigger,
     .popover .btn,
     .popover .seg-option,

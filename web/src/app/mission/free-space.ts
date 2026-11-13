@@ -5,7 +5,9 @@
  * `freeSpaceInput` turns the shell's layout state into the gap between the panels: its sides
  * from which side panels are folded (the width each panel is moving to, so the camera's
  * centre slides with a fold rather than after it), its top and bottom from the measured view
- * bar and sentence and the measured panels below. Anything that floats over that gap (an open
+ * bar (and any notices under it) and the measured panels below. No sentence plate sits under
+ * the view bar any more: the view's sentence is in its "About" button, so the scene keeps
+ * that room. Anything that floats over that gap (an open
  * floating window, an open phone sheet, the "why is it dark" plate) is then cut out of it by
  * `freeSpace`.
  *
@@ -126,7 +128,7 @@ export type ShellState = {
   /** Which side panels are folded (ignored on a phone). */
   folded: { sitesRail: boolean; focusPanel: boolean };
   windowOpen: boolean;
-  /** The bottom edge of the view bar and its sentence. */
+  /** The bottom edge of the view bar's notices stack: 8 px under the view bar when it is empty. */
   topBottom: number;
   /** The top edges of the panels below the free space: the timeline, and the phone's one-line sheet. */
   belowTops: readonly number[];
@@ -165,8 +167,8 @@ export const WINDOW_MAX = 1120;
 /**
  * Where a floating window goes:
  *
- * - "between": inside the free space, between the open side panels, under the view's
- *   sentence; it grows when panels fold, up to 1,120 px.
+ * - "between": inside the free space, between the open side panels, under the view bar;
+ *   it grows when panels fold, up to 1,120 px.
  * - "over": when the room between the panels is under 720 px (a 1,024 px window with both
  *   open), it covers the side panels, up to 1,120 px, centred in the window.
  * - "full": on a phone it fills the screen.
