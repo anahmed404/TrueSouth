@@ -49,6 +49,14 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-13 · S2 part 1 · Python scoring reference
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-terra — wrote the reference and hand-worked tests — automated tests run; human review pending
+- **State:** verified (the orchestrator, Claude Fable 5.2, read the module against docs/science.md sections 9 to 11 and ran the tests; Cursor, grok-4.7 reviewed it with hand cases and found the window-length rounding would differ between Python and JavaScript; the orchestrator decided the rounding rule and the countdown definition, the agent applied them to the doc and the code)
+- **Changed:** `science/src/truesouth/scoring.py`, `science/tests/test_scoring.py`
+- **Notes:** Spec interpretation questions are recorded in the pull request; G10 awaits the shared fixtures and TypeScript port.
+- **Review changes:** Specified half-up windows, flag-based countdowns, veto and slope rules, and added boundary tests.
+
 #### 2026-11-13 · S1 · Catalog inputs and validated loaders
 - **Who:** Codex agent, for the orchestrator
 - **AI use:** Codex, gpt-6.1-terra — built catalog inputs, contracts, loaders and document comparison tests — automated checks run; human review pending
