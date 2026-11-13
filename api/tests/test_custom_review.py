@@ -227,8 +227,8 @@ def test_clean_name_and_pole_identity(synthetic):
     from truesouth_api.jobs import ID
     import re
     assert ID.flags & re.ASCII
-    assert site_id(request(90, 123)) == 'c_90.0000_0.0000'
-    assert site_id(request(-90, 321)) == 'c_-90.0000_0.0000'
+    assert site_id(request(0, 123).model_copy(update=dict(lat_deg=90))) == 'c_90.0000_0.0000'
+    assert site_id(request(0, 321).model_copy(update=dict(lat_deg=-90))) == 'c_-90.0000_0.0000'
     body = request(0, 0, name=' \x00\n../display\t\u200b only\x7f ')
     assert body.name == '../display only'
     derived, prepared, cache = synthetic
@@ -236,3 +236,24 @@ def test_clean_name_and_pole_identity(synthetic):
     assert jobs.submit(body, 'one')['status'] == 'ready'
     assert sorted(p.name for p in cache.iterdir()) == ['c_0.0000_0.0000']
     assert jobs.cached(site_id(body))['name'] == '../display only'
+
+
+@pytest.mark.parametrize('latitude', [-90, 90, -89.9991, 89.9991, -89.99901, 89.99901])
+def test_pole_proximity_rejected_before_admission(empty_tree, latitude):
+    derived, prepared, cache = empty_tree
+    class Never(Instant):
+        def tier(self, body): raise AssertionError('invalid point reached the computer')
+    jobs = Jobs(cache, Never())
+    with TestClient(create_app(derived=derived, prepared=prepared, cache=cache, jobs=jobs)) as client:
+        response = client.post('/api/sites/custom', json=dict(lat_deg=latitude, lon_deg=123))
+        assert response.status_code == 422
+        assert response.json()['fields'] == [{'field':'lat_deg', 'message':'Latitude must be at least 0.001\u00b0 away from a pole.'}]
+        assert jobs.states == {} and jobs.starts == {}
+
+
+@pytest.mark.parametrize('latitude', [-89.999, 89.999])
+def test_science_latitude_boundary_is_allowed(empty_tree, latitude):
+    derived, prepared, cache = empty_tree
+    jobs = Jobs(cache, Instant())
+    with TestClient(create_app(derived=derived, prepared=prepared, cache=cache, jobs=jobs)) as client:
+        assert client.post('/api/sites/custom', json=dict(lat_deg=latitude, lon_deg=0)).json()['status'] == 'ready'

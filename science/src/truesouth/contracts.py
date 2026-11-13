@@ -1,3 +1,6 @@
+from truesouth.constants import MAX_SITE_LATITUDE_DEG
+from pydantic_core import PydanticCustomError
+
 from datetime import datetime
 import math
 from typing import Annotated, Literal
@@ -567,6 +570,13 @@ class CustomSiteRequest(Contract):
     lat_deg: Latitude = Field(strict=True, allow_inf_nan=False, description='Latitude in degrees north.')
     lon_deg: float = Field(strict=True, allow_inf_nan=False, description='Finite east longitude; normalised to [0, 360).')
     name: Annotated[str, StringConstraints(strict=True, strip_whitespace=True, max_length=120)] = Field(default='Custom site', description='Optional display name, trimmed and length limited.')
+
+    @field_validator('lat_deg')
+    @classmethod
+    def usable_local_frame(cls, value):
+        if abs(value) > MAX_SITE_LATITUDE_DEG:
+            raise PydanticCustomError('pole_proximity', 'Latitude must be at least 0.001\u00b0 away from a pole.')
+        return value
 
     @field_validator('name', mode='before')
     @classmethod

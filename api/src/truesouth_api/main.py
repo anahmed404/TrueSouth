@@ -88,7 +88,8 @@ def create_app(
         for issue in error.errors():
             location = issue.get('loc', ())
             field = location[1] if len(location) > 1 and location[1] in advice else 'body'
-            detail = {'field': field, 'message': advice[field]}
+            message = 'Latitude must be at least 0.001\u00b0 away from a pole.' if issue['type'] == 'pole_proximity' else advice[field]
+            detail = {'field': field, 'message': message}
             if detail not in fields:
                 fields.append(detail)
         return JSONResponse({'message': 'Please check the request fields.', 'fields': fields}, status_code=422)
