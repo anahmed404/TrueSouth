@@ -1,5 +1,5 @@
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
-import { memo, useEffect, useId, useRef, useState } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { memo, useId, useState } from "react";
 import { Link } from "react-router";
 import { BrandMark } from "../../components/BrandMark";
 import { Button, IconButton } from "../../components/Button";
@@ -14,6 +14,7 @@ import { profileTitle } from "./profile-fields";
 import { ProfileEditor } from "./profile-editor";
 import { formatLimit } from "./rules";
 import { useScenario, useScenarioStore } from "./scenario-context";
+import { ShareButton } from "../../features/mission-control/share/share-button";
 
 /**
  * The Mission Control app bar: four floating blocks over the scene (brand and mode switch,
@@ -186,41 +187,5 @@ function LandingDateForm({ landingUtc, firstUtc, lastUtc, durationDays }: Landin
         </p>
       ) : null}
     </div>
-  );
-}
-
-/** Copies the address, which is always the current scenario. */
-function ShareButton() {
-  const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
-  const timer = useRef<number | undefined>(undefined);
-  useEffect(() => () => window.clearTimeout(timer.current), []);
-
-  const copy = async () => {
-    window.clearTimeout(timer.current);
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setState("copied");
-    } catch {
-      setState("failed");
-    }
-    timer.current = window.setTimeout(() => setState("idle"), 2400);
-  };
-
-  return (
-    <span className="share">
-      <Button
-        size="md"
-        className="share-button"
-        icon={state === "copied" ? <Check size={16} strokeWidth={2} aria-hidden="true" /> : <Share2 size={16} strokeWidth={1.8} aria-hidden="true" />}
-        onClick={copy}
-        aria-label="Share: copy a link to this scenario"
-      >
-        <span className="share-word">{state === "copied" ? "Copied" : "Share"}</span>
-      </Button>
-      <span className="sr-only" role="status">
-        {state === "copied" ? "Link copied." : state === "failed" ? "Could not copy. The link is in the address bar." : ""}
-      </span>
-      {state === "failed" ? <span className="share-failed">Copy the address bar</span> : null}
-    </span>
   );
 }

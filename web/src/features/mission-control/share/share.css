@@ -1,0 +1,53 @@
+/*
+  The Share control's fallback field, shown only when the browser blocks the clipboard
+  (docs/features/share-export.md). Tokens only.
+*/
+
+.share-fallback {
+  position: absolute;
+  top: calc(100% + var(--s2));
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(420px, calc(100vw - 2 * var(--float-gap)));
+  padding: var(--s3);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-popover);
+}
+
+.share-fallback-label {
+  color: var(--ink-2);
+  font-size: var(--t-sm);
+}
+
+.share-fallback-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+}
+
+.share-fallback-field {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--raised);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--t-sm);
+}
+
+.share-fallback-field:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+@media (max-width: 760px) {
+  .share-fallback-field {
+    height: 44px;
+  }
+}
