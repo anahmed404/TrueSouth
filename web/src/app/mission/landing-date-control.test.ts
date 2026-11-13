@@ -25,6 +25,9 @@ vi.mock("lucide-react", async (importOriginal) => {
   };
 });
 
+// "Next GO" has its own tests (next-go-button.test.ts); here it would only start a sweep.
+vi.mock("./next-go-button", () => ({ NextGoButton: () => null }));
+
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 
 function loadCatalog(): ScenarioCatalog {

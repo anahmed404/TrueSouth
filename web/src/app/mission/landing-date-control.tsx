@@ -7,6 +7,7 @@ import { Popover } from "../../components/Popover";
 import { hourIndexToUtc, utcToHourIndex } from "../../lib/time";
 import { lastLandingHour } from "../../state/scenario";
 import { joinUtc, splitUtc, utcDay } from "./landing";
+import { NextGoButton } from "./next-go-button";
 import { formatLimit } from "./rules";
 import { useScenario, useScenarioStore } from "./scenario-context";
 
@@ -76,6 +77,7 @@ export const LandingDateControl = memo(function LandingDateControl({ density = "
         <IconButton label="One day later" icon={<ChevronRight size={16} strokeWidth={1.8} />} onClick={() => slip(1)} disabled={hour >= last} />
       </span>
       {compact ? null : <SlipButtons disabled={hour >= last} />}
+      <NextGoButton />
     </div>
   );
 });
