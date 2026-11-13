@@ -315,7 +315,7 @@ each integration checkpoint.
   detector (0 findings), and by eye in a browser at 1440 × 900 and 390 × 844 with reduce
   motion on and off, including KaTeX held back (loading) and blocked (failed). A human has
   not read the card yet.
-- **State:** built, not verified
+- **State:** verified (orchestrator ran typecheck, 1,310 tests and build on the merge with main and looked at the card at both sizes; Codex, gpt-6.1-terra compared the quoted formulas with science.md section 4, probed the renderer for unsafe output and ran seven mutations; its findings were fixed and the trust mutation now fails nine tests)
 - **Changed:** `web/src/features/academy/` (`card/`, `types.ts`, `format-example.ts`,
   `placeholders.ts`, `ui/filled.tsx`, `lessons/sample.ts`, `academy.css`, and the
   `pending` prop through `index.tsx`, `lesson-screen.tsx`, `lesson/conversation.tsx`),
