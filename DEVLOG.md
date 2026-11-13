@@ -49,6 +49,15 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-13 · S13 · Docker build, with a minimal API
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote the catalog API, Dockerfile, compose file and tests — checked with pytest, a local web build, and a real container run
+- **State:** built, not verified
+- **Changed:** `api/src/truesouth_api/` (health, static files, SPA fallback, one 501 stub), `api/tests/test_app.py`, `Dockerfile`, `compose.yaml`, `.dockerignore`, the Production and catalog-only API sections of `docs/architecture.md`.
+- **Out of scope:** custom sites, date jobs, rate limits, the sensitivity grid. `GET` and `HEAD /api/custom/…` return 501 with "Custom sites are not available in this version." `POST /api/sites/custom`, `GET /api/sites/custom/{id}` and `POST /api/sensitivity` are not registered: nothing in `web/src` calls them, so they 404 as JSON. No init service, because it would download NASA maps for custom-site terrain. The science package is not installed in the image.
+- **Numbers:** build context 53.03 MB. Successful `docker compose -p truesouth-s13 build` 58.8 s (the Python virtualenv layer was already cached; `uv sync` itself took 23.3 s when it ran). Image `truesouth-s13:catalog` 187,491,888 bytes. Startup to healthy 8.3 s. Live health `status` ok. `sites/connecting_ridge/series.bin` 841,344 bytes, matches disk. `maps/hillshade_4k.webp` 1,279,620 bytes, matches disk. `/mission` and `/academy/sample` return the app HTML. A missing data file is `text/plain` 404 `Not found`. Mission console had no errors. Academy console had one 404 for `/data/academy/worked_examples.json`, which is not in the derived tree (`worked_examples: false`). Removed container `truesouth-s13-truesouth-1`, network `truesouth-s13_default`, and image `truesouth-s13:catalog`.
+- **Checks:** `uv run pytest` 263 passed, 1 warning, exit 0, 44.47 s. `pnpm --dir web build` exit 0 (run outside Docker). Merged `origin/main` before the final checks. Did not touch the glossary test fixed on main.
+
 #### 2026-11-13 · S15A · Sunlit-peak placement, decision 0012 part A
 - **Who:** Codex implementation agent, for the orchestrator
 - **AI use:** Codex, gpt-6.1-sol — wrote contract fields, placement module and tests;

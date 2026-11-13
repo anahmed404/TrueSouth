@@ -189,6 +189,38 @@ FastAPI, one process. Formats are in [`data-contracts.md`](data-contracts.md).
 - A custom site outside every terrain map becomes a sphere-tier site and is ready
   immediately.
 
+### This version (catalog only)
+
+The deadline build does not compute custom sites or sensitivity grids, and it has
+no `jobs.py`. The table above is the full design. What this process actually
+registers:
+
+| Route | In this version |
+| :--- | :--- |
+| `GET /api/health` | Always HTTP 200. A missing file is reported, not an error. |
+| `GET /api/custom/{id}/…` | 501 `{"message": "Custom sites are not available in this version."}`. The web app requests this when a scenario names a custom site id (`web/src/data/paths.ts`). |
+| `POST /api/sites/custom` | Not registered. Nothing in `web/src/` calls it. |
+| `GET /api/sites/custom/{id}` | Not registered. Nothing in `web/src/` calls it. |
+| `POST /api/sensitivity` | Not registered. Nothing in `web/src/` calls it. |
+
+`/api/health` is JSON:
+
+- `status` is `ok` when `manifest.json`, a readable `sites.json`, and each listed
+  site's `meta.json`, `series.bin`, and `skyline.bin` are present. It is `empty`
+  when `data/derived/` has no files, and `incomplete` otherwise. Terrain,
+  close-up, map images, validation, worked examples, scene files, and prepared
+  maps are reported and do not by themselves change `status`.
+- `custom_sites` and `sensitivity_grid` are `not_available`. `message` says both
+  are not available in this version.
+- `derived` has a boolean for manifest, sites, profiles, features, Artemis
+  regions, system, validation, and worked examples; `sites_json_readable`;
+  `maps` (each file under `maps/`); `site_files` (each site id, then
+  `meta.json`, `series.bin`, `skyline.bin`, `terrain.bin`, `closeup.bin`);
+  and `scene` (a list of file names when `scene/` exists, otherwise `null`).
+- `prepared_maps` lists the two polar maps `prepare-dem` writes,
+  `LDEM_80S_80MPP_ADJ` and `LDEM_60S_240MPP_ADJ`, each as a `.npy` and a `.json`
+  sidecar. The handler does not open the arrays.
+
 In production the same process also serves the built web app and `data/derived/`.
 
 ## Running it
@@ -211,17 +243,46 @@ pnpm --dir web dev
 
 ### Production (Docker)
 
+Catalog sites only. Build the image and start it:
+
 ```bash
-docker compose up -d --build
+docker compose -p truesouth-s13 up -d --build
 ```
 
-- The image is built in two stages: Node builds `web/dist`, then a slim Python image
-  installs the workspace and copies in `web/dist` and `data/derived/`.
-- One container, one port (8080). FastAPI serves `/`, `/data/` and `/api/`.
-- `data/prepared/` and `data/cache/` are a named volume. A one-shot `init` service runs
-  `fetch-raw` and `prepare-dem` if the volume is empty.
-- Without prepared maps the container still serves every catalog site. Only custom sites
-  with terrain and sensitivity grids are unavailable, and `/api/health` says so.
+Stop it:
+
+```bash
+docker compose -p truesouth-s13 down
+```
+
+- The image is multi-stage. Node 22 (`node:22-bookworm-slim`) builds `web/dist`.
+  That stage installs pnpm 11.10.0 with npm, then runs `pnpm install --frozen-lockfile`
+  and `pnpm build`. The lockfile's release-age check stays on. Python 3.12
+  (`python:3.12-slim-bookworm`) installs the `truesouth-api` workspace member
+  from `uv.lock`. uv 0.11.6 is copied from `ghcr.io/astral-sh/uv:0.11.6`
+  (`uv sync --frozen --no-dev --package truesouth-api`).
+  The science package is not installed: this server does not run the pipeline,
+  and installing it would pull rasterio into the image. The final stage is the
+  same slim Python image, runs as a non-root user, and contains the built web
+  app, the API, and `data/derived/`.
+- One container, port 8080. FastAPI serves `/`, `/data/` and `/api/`.
+- `data/derived/` is copied in at build time. It is already committed, so the
+  container does not download anything when it starts. `/data/` is that tree,
+  not the fixtures.
+- There is no `init` service. The full design used one to run `fetch-raw` and
+  `prepare-dem` into a volume so custom sites could read prepared maps. Custom
+  sites are not in this version, and a catalog-only start must not download the
+  NASA maps. `data/raw/` and `data/prepared/` are not in the image.
+- This process does not open prepared maps, so it does not need the memory
+  noted above for memory-mapping them. `/api/health` only checks that the two
+  polar map files are present.
+- `/api/health` is the container health check. HTTP 200 means the process
+  answered. `status` in the body says whether the catalog files are complete.
+- Client routes such as `/mission` and `/academy/sample` return the app's
+  `index.html`. A missing `/data/…` file, or an unknown `/api/…` path, is a
+  real 404, not that HTML.
+
+Development does not use this image. The commands in the previous section are unchanged.
 
 ## Frontend structure
 
