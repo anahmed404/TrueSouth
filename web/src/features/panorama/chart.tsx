@@ -30,7 +30,8 @@ import {
   dayTickHours,
   discShape,
   elevationTicks,
-  maskVertices,
+  discCopies,
+  maskRuns,
   skylineVertices,
   trackSegments,
   xOfAzimuth,
@@ -81,7 +82,7 @@ export type Drawing = {
   tracks: { body: BodyId; d: string }[];
   ticks: Tick[];
   maskD: string | null;
-  maskLabel: { x: number; y: number } | null;
+  maskLabel: { x: number; y: number; anchor: "start" | "end" } | null;
   compass: CompassTick[];
 };
 
@@ -112,7 +113,7 @@ export function buildDrawing(
 
   const tracks: Drawing["tracks"] = [];
   const ticks: Tick[] = [];
-  let earthOffsets: number[] = [];
+  const earthAz: number[] = [];
   if (series && window) {
     const path = line<TrackPoint>()
       .x((p) => x(p.offset))
@@ -124,7 +125,9 @@ export function buildDrawing(
       const segments = trackSegments(az, el, window.from, window.to, scales.centreDeg);
       const d = segments.map((segment) => path(segment) ?? "").join("");
       if (d) tracks.push({ body, d });
-      if (body === "earth") earthOffsets = segments.flat().map((p) => p.offset);
+      if (body === "earth") {
+        for (let hour = window.from; hour < Math.min(window.to, az.length); hour++) earthAz.push(az[hour] ?? Number.NaN);
+      }
       for (const hour of dayTickHours(window.from, window.to)) {
         const now = bodyAt(series, body, hour);
         if (now) ticks.push({ body, hour, x: xOfAzimuth(scales, now.azDeg), y: y(now.elDeg) });
@@ -132,8 +135,18 @@ export function buildDrawing(
     }
   }
 
-  const mask = maskDeg !== null && vertices.length ? maskVertices(vertices, earthOffsets, maskDeg) : null;
-  const first = mask?.[0];
+  const runs = maskDeg !== null && vertices.length ? maskRuns(vertices, earthAz, maskDeg, scales.centreDeg) : [];
+  // The mask's word goes at an end of its longest piece, wherever it stays inside the plot.
+  const longest = runs.reduce<SkylineVertex[] | null>((best, run) => (!best || run.length > best.length ? run : best), null);
+  let maskLabel: Drawing["maskLabel"] = null;
+  if (longest) {
+    const start = longest[0] as SkylineVertex;
+    const end = longest[longest.length - 1] as SkylineVertex;
+    const sx = x(start.offset) - 6;
+    const ex = x(end.offset) + 6;
+    if (sx - MASK_WORD_PX >= frame.left) maskLabel = { x: sx, y: y(start.el), anchor: "end" };
+    else if (ex + MASK_WORD_PX <= frame.right) maskLabel = { x: ex, y: y(end.el), anchor: "start" };
+  }
   return {
     vertices,
     skylineD: vertices.length ? edge(vertices) : null,
@@ -141,14 +154,17 @@ export function buildDrawing(
     skyD: vertices.length ? sky(vertices) : null,
     tracks,
     ticks,
-    maskD: mask ? edge(mask) : null,
-    maskLabel: first ? { x: x(first.offset) - 6, y: y(first.el) } : null,
+    maskD: runs.length ? runs.map((run) => edge(run) ?? "").join("") : null,
+    maskLabel,
     compass: compassTicks(scales),
   };
 }
 
 /** Below this chart width the readout hangs under the chart and the mask's word is left out. */
 const NARROW_PX = 520;
+
+/** The room the words "antenna mask" take at 11 px. */
+const MASK_WORD_PX = 72;
 
 // ── The layers ───────────────────────────────────────────────────────────────
 
@@ -220,8 +236,8 @@ const StaticLayer = memo(function StaticLayer({
         {zeroInside ? <line x1={frame.left} x2={frame.right} y1={zeroY} y2={zeroY} className="pano-zero" /> : null}
         {drawing.maskD ? <path d={drawing.maskD} className="pano-mask" /> : null}
       </g>
-      {drawing.maskLabel && frame.width >= NARROW_PX && drawing.maskLabel.x > frame.left + 72 ? (
-        <text x={drawing.maskLabel.x} y={drawing.maskLabel.y - 5} textAnchor="end" className="pano-mask-label">
+      {drawing.maskLabel && frame.width >= NARROW_PX ? (
+        <text x={drawing.maskLabel.x} y={drawing.maskLabel.y - 5} textAnchor={drawing.maskLabel.anchor} className="pano-mask-label">
           antenna mask
         </text>
       ) : null}
@@ -307,15 +323,20 @@ function DiscLayer({
         return (
           <g key={now.body} className={`pano-disc pano-disc-${now.body}`}>
             {small ? <circle cx={disc.cx} cy={disc.cy} r={Math.max(disc.ry, disc.rx) + 5} className="pano-locator" /> : null}
-            <ellipse cx={disc.cx} cy={disc.cy} rx={disc.rx} ry={disc.ry} className="pano-disc-hidden" />
-            <ellipse
-              cx={disc.cx}
-              cy={disc.cy}
-              rx={disc.rx}
-              ry={disc.ry}
-              className="pano-disc-shown"
-              clipPath={hasSky ? `url(#${clipSky})` : undefined}
-            />
+            {/* A disc on the chart's edge is drawn on both sides. */}
+            {discCopies(scales, disc).map((copy, index) => (
+              <g key={index}>
+                <ellipse cx={copy.cx} cy={copy.cy} rx={copy.rx} ry={copy.ry} className="pano-disc-hidden" />
+                <ellipse
+                  cx={copy.cx}
+                  cy={copy.cy}
+                  rx={copy.rx}
+                  ry={copy.ry}
+                  className="pano-disc-shown"
+                  clipPath={hasSky ? `url(#${clipSky})` : undefined}
+                />
+              </g>
+            ))}
           </g>
         );
       })}

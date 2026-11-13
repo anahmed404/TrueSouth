@@ -8,7 +8,7 @@
  */
 
 import { scaleLinear, type ScaleLinear } from "d3-scale";
-import { skylineBinCentreDeg, wrapAzimuth } from "../../lib/geo";
+import { signedAzimuthDifference, skylineBinCentreDeg, wrapAzimuth } from "../../lib/geo";
 
 /** How far an azimuth sits from the chart's centre, in [−180, 180). East of the centre is positive. */
 export function offsetFrom(centreDeg: number, azDeg: number): number {
@@ -310,16 +310,50 @@ export function discShape(scales: ChartScales, azDeg: number, elDeg: number, rad
 export const MASK_REACH_DEG = 12;
 
 /**
- * The antenna mask drawn above the skyline around Earth's path: for each skyline vertex
- * within `MASK_REACH_DEG` of the path's azimuth span, the stored skyline plus the profile's
- * mask. Null when there is no path.
+ * The antenna mask drawn above the skyline around Earth's path: the stored skyline plus the
+ * profile's mask, at every skyline vertex within `reachDeg` of Earth's positions. "Within"
+ * is measured on the circle, from the middle of Earth's positions, so a path that sits on
+ * the chart's edge does not stretch the reach across the whole chart. Returned as runs in
+ * the chart's order: two pieces when the stretch wraps past the edge, none without a path.
  */
-export function maskVertices(vertices: readonly SkylineVertex[], earthOffsets: readonly number[], maskDeg: number): SkylineVertex[] | null {
-  if (earthOffsets.length === 0) return null;
-  const lo = Math.min(...earthOffsets) - MASK_REACH_DEG;
-  const hi = Math.max(...earthOffsets) + MASK_REACH_DEG;
-  const out = vertices.filter((v) => v.offset >= lo && v.offset <= hi).map((v) => ({ ...v, el: v.el + maskDeg }));
-  return out.length > 1 ? out : null;
+export function maskRuns(
+  vertices: readonly SkylineVertex[],
+  earthAzDeg: readonly number[],
+  maskDeg: number,
+  centreDeg: number,
+  reachDeg = MASK_REACH_DEG,
+): SkylineVertex[][] {
+  const middle = meanAzimuth(earthAzDeg, 0, earthAzDeg.length);
+  if (middle === null) return [];
+  let spread = 0;
+  for (const az of earthAzDeg) {
+    if (Number.isFinite(az)) spread = Math.max(spread, Math.abs(signedAzimuthDifference(middle, az)));
+  }
+  const half = spread + reachDeg;
+  const runs: SkylineVertex[][] = [];
+  let run: SkylineVertex[] = [];
+  for (const v of vertices) {
+    if (half >= 180 || Math.abs(signedAzimuthDifference(middle, centreDeg + v.offset)) <= half) {
+      run.push({ ...v, el: v.el + maskDeg });
+    } else {
+      if (run.length > 1) runs.push(run);
+      run = [];
+    }
+  }
+  if (run.length > 1) runs.push(run);
+  return runs;
+}
+
+/**
+ * The copies of a disc to draw: the disc, and when it pokes past one edge of the chart, the
+ * same disc a full turn away, so a disc on the edge shows on both sides.
+ */
+export function discCopies(scales: ChartScales, disc: DiscShape): DiscShape[] {
+  const turn = scales.frame.right - scales.frame.left;
+  const copies = [disc];
+  if (disc.cx - disc.rx < scales.frame.left) copies.push({ ...disc, cx: disc.cx + turn });
+  if (disc.cx + disc.rx > scales.frame.right) copies.push({ ...disc, cx: disc.cx - turn });
+  return copies;
 }
 
 // ── Compass ──────────────────────────────────────────────────────────────────

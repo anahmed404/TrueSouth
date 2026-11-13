@@ -16,7 +16,10 @@ import {
   azimuthAtX,
   chartFrame,
   chartScales,
+  discCopies,
   discShape,
+  MASK_REACH_DEG,
+  maskRuns,
   meanAzimuth,
   offsetFrom,
   skylineElAtOffset,
@@ -27,6 +30,7 @@ import {
   type ChartScales,
   type SkylineVertex,
 } from "./geometry";
+import { signedAzimuthDifference } from "../../lib/geo";
 import { answerSentence, bodyAt, labelTitle, skylineReading, visibility, VISIBILITY_WORDS } from "./readings";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -298,5 +302,84 @@ describe("the vertical range", () => {
     const out = zoomRange({ lo: -80, hi: 80 }, 2, 0);
     expect(out.lo).toBeGreaterThanOrEqual(-90);
     expect(out.hi).toBeLessThanOrEqual(90);
+  });
+});
+
+describe("the antenna mask and the discs at the chart's edge", () => {
+  // 2028-03-01 00:00 UTC on the time grid, a 10-day window: Earth sits near 131° to 143°.
+  const from = 19704;
+  const to = from + WINDOW;
+  const earthAz = Array.from({ length: to - from }, (_, i) => ridge.series.earth_az[from + i]!);
+  const middle = meanAzimuth(ridge.series.earth_az, from, to)!;
+  const spread = Math.max(...earthAz.map((az) => Math.abs(signedAzimuthDifference(middle, az))));
+  const half = spread + MASK_REACH_DEG;
+  const centres: [string, number, number][] = [
+    ["centred on Earth", middle, 1],
+    ["Earth a quarter-turn east", middle - 90, 1],
+    ["Earth exactly on the seam", middle + 180, 2],
+    ["the seam 5° into Earth's path", middle + 175, 2],
+    ["the review's case, centred on 310°", 310, 2],
+    ["centred on north", 0, 1],
+  ];
+  for (const [name, centre, pieces] of centres) {
+    it(`covers ±${MASK_REACH_DEG}° around Earth on the circle: ${name}`, () => {
+      const vertices = skylineVertices(ridge.skyline.el_deg, centre);
+      const runs = maskRuns(vertices, earthAz, 1, centre);
+      expect(runs).toHaveLength(pieces);
+      const bins = new Set<number>();
+      for (const run of runs) {
+        for (const v of run) {
+          expect(Math.abs(signedAzimuthDifference(middle, v.bin * 0.25))).toBeLessThanOrEqual(half + 1e-9);
+          expect(v.el).toBeCloseTo(ridge.skyline.el_deg[v.bin]! + 1, 9);
+          bins.add(v.bin);
+        }
+        for (let i = 1; i < run.length; i++) expect(run[i]!.offset - run[i - 1]!.offset).toBeCloseTo(0.25, 9);
+      }
+      // Every bin within reach, and no other.
+      for (let bin = 0; bin < 1440; bin++) {
+        expect(bins.has(bin)).toBe(Math.abs(signedAzimuthDifference(middle, bin * 0.25)) <= half);
+      }
+      expect(bins.size).toBeLessThan(1440 / 4);
+
+      // Its word stays inside the plot.
+      const scales = chartScales(chartFrame(720), centre, { lo: -10, hi: 10 });
+      const drawing = buildDrawing(scales, ridge.skyline, ridge.series, { from, to }, 1);
+      if (drawing.maskLabel) {
+        const { x, anchor } = drawing.maskLabel;
+        const [l, r] = anchor === "end" ? [x - 72, x] : [x, x + 72];
+        expect(l).toBeGreaterThanOrEqual(scales.frame.left);
+        expect(r).toBeLessThanOrEqual(scales.frame.right);
+      }
+      expect((drawing.maskD?.match(/M/g) ?? []).length).toBe(pieces);
+    });
+  }
+
+  it("has no mask without Earth's path", () => {
+    expect(maskRuns(skylineVertices(ridge.skyline.el_deg, 0), [], 1, 0)).toEqual([]);
+  });
+
+  it("draws a disc on the seam on both sides, and a disc inside the chart once", () => {
+    const hour = from + 50;
+    const az = ridge.series.earth_az[hour]!;
+    const el = ridge.series.earth_el[hour]!;
+    for (const [centre, copies] of [
+      [az + 180, 2],
+      [az + 180.3, 2],
+      [az - 179.7, 2],
+      [az + 90, 1],
+      [az, 1],
+    ] as const) {
+      const scales = chartScales(chartFrame(720), centre, { lo: -10, hi: 10 });
+      const disc = discShape(scales, az, el, ridge.meta.earth_radius_deg);
+      const drawn = discCopies(scales, disc);
+      expect(drawn).toHaveLength(copies);
+      if (copies === 2) {
+        const xs = drawn.map((d) => d.cx).sort((a, b) => a - b);
+        // One copy reaches past the left edge, the other past the right, a full turn apart.
+        expect(xs[0]! - disc.rx).toBeLessThan(scales.frame.left);
+        expect(xs[1]! + disc.rx).toBeGreaterThan(scales.frame.right);
+        expect(xs[1]! - xs[0]!).toBeCloseTo(scales.frame.right - scales.frame.left, 9);
+      }
+    }
   });
 });
