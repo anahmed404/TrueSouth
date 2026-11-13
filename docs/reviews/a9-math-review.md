@@ -637,8 +637,11 @@ state remains “built, not verified,” as requested; this report has not recei
 the owning tracks' independent review.
 
 Main advanced to `63d518a` with the A8 validation page while the review ran.
-That integration and the post-integration web check are recorded below once
-complete; the math review's immutable source remains `2f258dd`.
+That commit was merged into this branch, preserving both Academy DEVLOG
+entries. It changes no reviewed Python, scoring or geo module. After
+integration, `pnpm --dir web typecheck` returned **0**, the frozen-lockfile
+install returned **0**, and `pnpm --dir web test` passed **1,744 tests in 71
+files**, exit **0**. The math review's immutable source remains `2f258dd`.
 
 ## Numerical ledger
 
