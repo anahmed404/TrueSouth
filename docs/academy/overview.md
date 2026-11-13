@@ -70,7 +70,7 @@ the unlocked panel, and buttons for "Next lesson" and "Open in Mission Control".
 | Predict steps | One guess. 10 XP if it is right; 2 XP if it is wrong, the same as an answer that had to be shown. "Show me" then plays out the real answer. There is no hint and no second guess. |
 | Draw-skyline steps | One attempt, and every sketch passes. XP is earned by closeness. The gap is the mean absolute difference in degrees between the sketch and the real skyline over the step's azimuth range. XP = round(10 − 8 × clamp((gap − 0.25) / 1.75, 0, 1)): 10 XP at 0.25° or closer, 2 XP at 2° or worse. The step counts as right first time for stars when the gap is 1.0° or less. |
 | Wrong answers | No lives. First miss: Luna gives a hint and the learner tries again. Second miss: the answer is shown and explained, then the lesson moves on. |
-| Stars | 3 if every step was right first time; 2 if at least 60% were; 1 otherwise |
+| Stars | 3 if every scored step was right first time; 2 if at least 60% of the scored steps were; 1 otherwise. A lesson with no scored step earns 1 star and no patch. The complete screen then says the lesson is finished and that no patch was earned. |
 | Mission patch | One per lesson, earned on completion; a ninth, named "True South", for finishing all eight |
 | Replays | Allowed. The best star count is kept. |
 | Progress | Saved in the browser's local storage under `truesouth.academy.v1`. A "Reset progress" button clears it, after asking. |
@@ -124,30 +124,64 @@ type StepBase = {
   pip?: { power?: number; link?: boolean };
 };
 
+type StepAnswer = number | { equals: GoalValue };
+
 type Step = StepBase & (
-  | { kind: "choice";       options: string[]; answer: number }
-  | { kind: "predict";      options: string[]; answer: number; reveal: RevealSpec }
-  | { kind: "drag-body";    body: "sun" | "earth"; scene: SceneSpec; goal: GoalSpec }
-  | { kind: "draw-skyline"; scene: SceneSpec; azFrom: number; azTo: number }
-  | { kind: "drop-pin";     map: MapSpec; goal: GoalSpec }
-  | { kind: "tune-slider";  slider: SliderSpec; goal: GoalSpec }
+  | { kind: "choice";       options: string[]; answer: StepAnswer; stage?: StageSpec }
+  | { kind: "predict";      options: string[]; answer: StepAnswer; reveal: RevealSpec; stage?: StageSpec }
+  | { kind: "drag-body";    body: "sun" | "earth"; panel: PanelId; scene: SceneSpec; goal: GoalSpec; readout?: string[]; follow?: PipFollow }
+  | { kind: "draw-skyline"; scene: SceneSpec; azFrom: GoalValue; azTo: GoalValue }
+  | { kind: "drop-pin";     map: MapSpec; goal?: GoalSpec }
+  | { kind: "tune-slider";  slider: SliderSpec; goal: GoalSpec; unreachable?: Unreachable }
   | { kind: "fill-formula"; tex: string; options: string[]; answer: number }
   | { kind: "spot-bug";     lines: string[]; buggyLine: number }
 );
+
+type SceneSpec = {
+  scenario: Scenario;         // a site, a landing date and a profile
+  skyline: "flat" | "smooth" | "terrain";
+  timeRange: { kind: "utc"; fromUtc: string; toUtc: string }
+    | { kind: "span"; span: "one-month"; aroundUtc: GoalValue }
+    | null;
+};
+
+type SliderSpec =
+  | { kind: "number"; min: number; max: number; step: number; unit: string; readout?: NumberReadout; scene?: SceneSpec; panel?: PanelId; follow?: PipFollow }
+  | { kind: "date"; minUtc: string; maxUtc: string; stepDays: number; readout?: DateReadout; scene?: SceneSpec; panel?: PanelId; follow?: PipFollow };
+
+type RevealSpec =
+  | { kind: "text"; text: string }
+  | { kind: "panel"; panel: PanelId; caption: string; scene: SceneSpec | null; when: RevealWhen | null }
+  | { kind: "illustration"; illustration: "curved-moon-side"; caption: string };
+
+type GoalSpec =
+  | { metric: string; op: "<" | "<=" | ">" | ">=" | "=="; value: GoalValue; tolerance?: number; prior?: PriorRef }
+  | { metric: string; op: "<" | "<=" | ">" | ">=" | "=="; comparedTo: string; prior?: PriorRef };
 ```
 
-- `SceneSpec` names a site, a landing date and a profile: a scenario.
+- `SceneSpec` names a site, a landing date and a profile, and says whether the horizon is
+  flat, smooth or the site's terrain. `timeRange` is the span the learner may drag, or null.
 - `GoalSpec` is a small typed condition on a metric, such as
-  `{ metric: "longest_blackout_h", op: "<=", value: 12 }`. Its value may be a number, text,
-  a UTC date-time (ISO-8601 ending in `Z`), or a `{{example.key}}` placeholder filled from
-  `worked_examples.json`. Numbers compare as numbers, UTC times as moments, and text only
-  with `==`. A placeholder whose key is missing never meets its goal.
+  `{ metric: "longest_blackout_h", op: "<=", value: 12 }`, or a comparison of two metrics
+  (`comparedTo`). Its value may be a number, text, a UTC date-time (ISO-8601 ending in `Z`),
+  or a `{{example.key}}` placeholder filled from `worked_examples.json`. Numbers compare as
+  numbers, UTC times as moments, and text only with `==`. For `==` on numbers, `tolerance`
+  is how far either side still counts. A placeholder whose key is missing cannot be checked
+  yet: it is not a pass. `prior` names an earlier step's answer to pass to the evaluator.
 - `drop-pin`: the learner's attempt is a catalog site id or coordinates in degrees, and the
-  goal is optional. With no goal, any pin passes.
-- `RevealSpec`, a predict step's reveal, is either a panel with a caption or plain text.
+  goal is optional. With no goal, any pin passes. The map says `polar` or `closeup`, and may
+  take its site list from a worked-example key.
+- `RevealSpec` is plain text, an illustration, or a Mission Control panel. A panel reveal
+  may name a scenario and when to look: an hour, a span such as one month, a UTC range, or
+  a timeline band.
+- `SliderSpec` is either a slider over numbers or a slider over UTC dates. Either may carry
+  a readout looked up from lesson data, a scene, and which of Pip's meters follows it.
+- `draw-skyline` carries the azimuth window, in degrees, that `skylineGapDeg` scores. Each
+  end is a number or a `{{example.key}}` placeholder. The real skyline is the scene site's.
 - A `choice` or `predict` step may name a `StageSpec`: the illustration on the stage, such
   as Pip under a sky ruler whose angles come from lesson data or placeholders. It is a
-  drawing, never a computed Sun position.
+  drawing, never a computed Sun position. A choice or predict answer is an option index, or
+  the option whose text equals a value once placeholders are filled.
 
 The exact types are in `web/src/features/academy/types.ts`. Where this sketch and that
 file differ, the file is right and this sketch should be updated.

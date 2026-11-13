@@ -1,4 +1,5 @@
-import type { SketchPoint } from "./types";
+import { resolveDegrees, type WorkedExamples } from "./placeholders";
+import type { GoalValue, SketchPoint } from "./types";
 
 /**
  * The draw-skyline step's closeness rule. The rule is written in
@@ -21,18 +22,18 @@ function clamp(value: number, low: number, high: number): number {
 
 /**
  * XP = round(10 − 8 × clamp((gap − 0.25) / 1.75, 0, 1)).
- * 10 XP at 0.25° or closer, 2 XP at 2° or worse. A gap that is not a finite number
- * scores the floor.
+ * 10 XP at 0.25° or closer, 2 XP at 2° or worse. A gap that is negative or not a
+ * finite number is invalid and scores the floor.
  */
 export function skylineXp(gapDeg: number): number {
-  if (!Number.isFinite(gapDeg)) return 2;
+  if (!Number.isFinite(gapDeg) || gapDeg < 0) return 2;
   const span = SKYLINE_FLOOR_XP_GAP_DEG - SKYLINE_FULL_XP_GAP_DEG;
   return Math.round(10 - 8 * clamp((gapDeg - SKYLINE_FULL_XP_GAP_DEG) / span, 0, 1));
 }
 
 /** True when the sketch is close enough to count as right first time for stars. */
 export function skylineRightFirstTime(gapDeg: number): boolean {
-  return Number.isFinite(gapDeg) && gapDeg <= SKYLINE_FIRST_TIME_GAP_DEG;
+  return Number.isFinite(gapDeg) && gapDeg >= 0 && gapDeg <= SKYLINE_FIRST_TIME_GAP_DEG;
 }
 
 /** The sketch's elevation at an azimuth, by straight lines between its points. */
@@ -78,4 +79,20 @@ export function skylineGapDeg(
     count += 1;
   }
   return count === 0 ? Number.NaN : sum / count;
+}
+
+/**
+ * The azimuth window `skylineGapDeg` should use, with placeholders filled.
+ * Returns null when a key is missing or a value is not a finite number of degrees,
+ * so the sketch cannot be checked yet.
+ */
+export function resolveSkylineWindow(
+  azFrom: GoalValue,
+  azTo: GoalValue,
+  examples: WorkedExamples,
+): { azFrom: number; azTo: number } | null {
+  const from = resolveDegrees(azFrom, examples);
+  const to = resolveDegrees(azTo, examples);
+  if (from === null || to === null) return null;
+  return { azFrom: from, azTo: to };
 }

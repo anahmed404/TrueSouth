@@ -4,8 +4,11 @@ import { compareGoalValues, createValueEvaluator, goalValueKind, type GoalEvalua
 import { sampleProfile } from "./lessons/sample-profile";
 import { resolveDegrees, resolveValue } from "./placeholders";
 import {
+  commitLessonProgress,
+  completeScreenData,
   completionRecord,
   initialRunnerState,
+  starsFor,
   needsLeaveCheck,
   reduceRunner,
   type RunnerState,
@@ -72,6 +75,15 @@ describe("draw-skyline closeness XP", () => {
 
   it("scores a gap it cannot measure at the floor", () => {
     expect(skylineXp(Number.NaN)).toBe(2);
+    expect(skylineXp(Number.POSITIVE_INFINITY)).toBe(2);
+  });
+
+  it("treats a negative gap as invalid: 2 XP, and not right first time", () => {
+    expect(skylineXp(-0.1)).toBe(2);
+    expect(skylineXp(-1)).toBe(2);
+    expect(skylineXp(Number.NEGATIVE_INFINITY)).toBe(2);
+    expect(skylineRightFirstTime(-0.1)).toBe(false);
+    expect(skylineRightFirstTime(0)).toBe(true);
   });
 
   it("counts as right first time for stars at 1.0° or closer only", () => {
@@ -98,7 +110,9 @@ describe("draw-skyline closeness XP", () => {
   });
 
   it("allows one attempt and scores it by closeness", () => {
-    const lesson = lessonWith([{ ...base, id: "sk", kind: "draw-skyline", scene: { scenario }, azFrom: 0, azTo: 20 }]);
+    const lesson = lessonWith([
+      { ...base, id: "sk", kind: "draw-skyline", scene: { scenario, skyline: "terrain", timeRange: null }, azFrom: 0, azTo: 20 },
+    ]);
     const close = run(initialRunnerState(), { kind: "draw-skyline", sketch: [], gapDeg: 0.25 }, lesson);
     expect(close.phase).toBe("correct");
     expect(close.xp).toBe(10);
@@ -115,12 +129,17 @@ describe("draw-skyline closeness XP", () => {
     expect(far.results).toEqual(["sketched"]);
     const done = reduceRunner(far, { type: "continue" }, lesson, values);
     expect(done.stars).toBe(1);
+
+    const invalid = run(initialRunnerState(), { kind: "draw-skyline", sketch: [], gapDeg: -1 }, lesson);
+    expect(invalid.phase).toBe("correct");
+    expect(invalid.xp).toBe(2);
+    expect(invalid.results).toEqual(["sketched"]);
   });
 });
 
 describe("predict scoring", () => {
   const lesson = lessonWith([
-    { ...base, id: "p", kind: "predict", options: ["Sunlight", "Shadow"], answer: 1, reveal: { text: "Shadow." } },
+    { ...base, id: "p", kind: "predict", options: ["Sunlight", "Shadow"], answer: 1, reveal: { kind: "text", text: "Shadow." } },
   ]);
 
   it("gives 10 XP for a right guess", () => {
@@ -175,21 +194,24 @@ describe("goal values", () => {
     ...base,
     id: "slide",
     kind: "tune-slider",
-    slider: { min: 0, max: 60, step: 1, unit: "km" },
+    slider: { kind: "number", min: 0, max: 60, step: 1, unit: "km" },
     goal: { metric: "distance_km", op: "==", value },
   });
 
   it("resolves a placeholder goal before asking the evaluator", () => {
     const lesson = lessonWith([slider("{{example.l3.target_km}}")]);
     const examples = { "l3.target_km": 20 };
-    expect(run(initialRunnerState(), { kind: "tune-slider", value: 20 }, lesson, values, examples).phase).toBe("correct");
-    expect(run(initialRunnerState(), { kind: "tune-slider", value: 21 }, lesson, values, examples).phase).toBe("hint");
+    expect(run(initialRunnerState(), { kind: "tune-slider", variant: "number", value: 20 }, lesson, values, examples).phase).toBe("correct");
+    expect(run(initialRunnerState(), { kind: "tune-slider", variant: "number", value: 21 }, lesson, values, examples).phase).toBe("hint");
   });
 
   it("never meets a goal whose placeholder is missing", () => {
     const lesson = lessonWith([slider("{{example.l3.missing}}")]);
     const yes = createStubEvaluator(true);
-    expect(run(initialRunnerState(), { kind: "tune-slider", value: 20 }, lesson, yes).phase).toBe("hint");
+    expect(run(initialRunnerState(), { kind: "tune-slider", variant: "number", value: 20 }, lesson, yes).phase).toBe("unavailable");
+    expect(run(initialRunnerState(), { kind: "tune-slider", variant: "number", value: 20 }, lesson, yes).feedback).toBe(
+      "This cannot be checked yet.",
+    );
   });
 
   it("accepts a UTC time as a drag-body value", () => {
@@ -199,7 +221,8 @@ describe("goal values", () => {
         id: "drag",
         kind: "drag-body",
         body: "sun",
-        scene: { scenario },
+        panel: "LandersEye",
+        scene: { scenario, skyline: "smooth", timeRange: null },
         goal: { metric: "utc", op: "==", value: "2028-03-05T18:00:00Z" },
       },
     ]);
@@ -210,7 +233,7 @@ describe("goal values", () => {
 
 describe("drop-pin", () => {
   it("passes any pin when the step has no goal", () => {
-    const lesson = lessonWith([{ ...base, id: "pin", kind: "drop-pin", map: { siteIds: [] } }]);
+    const lesson = lessonWith([{ ...base, id: "pin", kind: "drop-pin", map: { view: "polar", siteIds: [], sitesKey: null, aside: null } }]);
     const state = run(initialRunnerState(), { kind: "drop-pin", pin: { latDeg: -89.4, lonEastDeg: 222.6 } }, lesson);
     expect(state.phase).toBe("correct");
     expect(state.xp).toBe(10);
@@ -222,7 +245,7 @@ describe("drop-pin", () => {
         ...base,
         id: "pin",
         kind: "drop-pin",
-        map: { siteIds: ["a", "b"] },
+        map: { view: "closeup", siteIds: ["a", "b"], sitesKey: null, aside: null },
         goal: { metric: "site_id", op: "==", value: "b" },
         answerLabel: "Site b",
       },
@@ -247,7 +270,7 @@ describe("drop-pin", () => {
 describe("skipping a panel step until A3", () => {
   const lesson = lessonWith([
     { ...base, id: "c", kind: "choice", options: ["a", "b"], answer: 0 },
-    { ...base, id: "pin", kind: "drop-pin", map: { siteIds: [] } },
+    { ...base, id: "pin", kind: "drop-pin", map: { view: "polar", siteIds: [], sitesKey: null, aside: null } },
   ]);
 
   it("skips only a panel step, for no XP, and leaves it out of the stars", () => {
@@ -259,6 +282,33 @@ describe("skipping a panel step until A3", () => {
     expect(done.xp).toBe(10);
     expect(done.results).toEqual(["first", "skipped"]);
     expect(done.stars).toBe(3);
+  });
+
+  it("gives 1 star and no patch when every step was skipped", () => {
+    expect(starsFor(0, 0)).toBe(1);
+    const only = lessonWith([{ ...base, id: "pin", kind: "drop-pin", map: { view: "polar", siteIds: [], sitesKey: null, aside: null } }]);
+    const done = reduceRunner(initialRunnerState(), { type: "skip" }, only, values);
+    expect(done.phase).toBe("complete");
+    expect(done.stars).toBe(1);
+    expect(done.patchEarned).toBe(false);
+    expect(done.xp).toBe(0);
+    expect(completeScreenData(only, done)).toMatchObject({
+      stars: 1,
+      showPatch: false,
+      heading: "Fixture is complete. No patch: this lesson had no scored step.",
+    });
+    const saved = new Map<string, string>();
+    const store = createAcademyStore({
+      getItem: (key) => saved.get(key) ?? null,
+      setItem: (key, value) => void saved.set(key, value),
+      removeItem: (key) => void saved.delete(key),
+    });
+    expect(
+      commitLessonProgress(done, (record) => {
+        store.getState().recordCompletion(only.id, record.stars, record.xp, record.patch);
+      }),
+    ).toBe(true);
+    expect(store.getState().lessons[only.id]).toEqual({ stars: 1, xp: 0, patch: false });
   });
 });
 
@@ -299,9 +349,30 @@ describe("leaving a lesson part-way", () => {
     const done = reduceRunner(run(first, { kind: "choice", selected: 0 }, lesson), { type: "continue" }, lesson, values);
     expect(needsLeaveCheck(done)).toBe(false);
     const record = completionRecord(done);
-    expect(record).toEqual({ stars: 3, xp: 20 });
-    if (record) store.getState().recordCompletion(lesson.id, record.stars, record.xp);
+    expect(record).toEqual({ stars: 3, xp: 20, patch: true });
+    if (record) store.getState().recordCompletion(lesson.id, record.stars, record.xp, record.patch);
     expect(store.getState().xp).toBe(20);
+  });
+
+  it("records nothing in the store until the lesson is complete", () => {
+    const store = createAcademyStore(memory());
+    const save = (state: RunnerState) =>
+      commitLessonProgress(state, (record) => {
+        store.getState().recordCompletion(lesson.id, record.stars, record.xp, record.patch);
+      });
+    expect(save(initialRunnerState())).toBe(false);
+    const answered = run(initialRunnerState(), { kind: "choice", selected: 0 }, lesson);
+    expect(answered.phase).toBe("correct");
+    expect(save(answered)).toBe(false);
+    const midway = reduceRunner(answered, { type: "continue" }, lesson, values);
+    expect(midway.phase).toBe("prompt");
+    expect(save(midway)).toBe(false);
+    expect(store.getState().lessons).toEqual({});
+    expect(store.getState().xp).toBe(0);
+
+    const done = reduceRunner(run(midway, { kind: "choice", selected: 0 }, lesson), { type: "continue" }, lesson, values);
+    expect(save(done)).toBe(true);
+    expect(store.getState().lessons[lesson.id]).toEqual({ stars: 3, xp: 20, patch: true });
   });
 });
 

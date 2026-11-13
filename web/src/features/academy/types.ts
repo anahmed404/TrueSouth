@@ -42,34 +42,173 @@ export type GoalValue = number | string;
  * A condition over evaluation results. The runner never treats this as a
  * hard-coded answer; an evaluator says whether it is met.
  */
-export type GoalSpec = {
-  metric: string;
-  op: "<" | "<=" | ">" | ">=" | "==";
-  value: GoalValue;
-};
+export type GoalOp = "<" | "<=" | ">" | ">=" | "==";
 
-/** A site, a landing date and a profile: a lesson's own scenario. */
-export type SceneSpec = {
-  scenario: Scenario;
+/** An earlier step's answer, passed to the evaluator with the goal. The lesson does not recompute it. */
+export type PriorRef = {
+  stepId: string;
+  field: "siteId" | "utc" | "value" | "selected";
 };
 
 /**
- * What a predict step plays out after the guess: a Mission Control panel with a caption,
- * or plain text when no panel is needed.
+ * A condition on one metric.
+ * `tolerance` applies only to `==` on numbers: how far either side still counts, in the value's unit.
+ * Omit it for an exact match. A negative tolerance never matches.
  */
-export type RevealSpec = { panel: PanelId; caption: string } | { text: string };
-
-export type MapSpec = {
-  siteIds: readonly string[];
+export type ValueGoal = {
+  metric: string;
+  op: GoalOp;
+  value: GoalValue;
+  tolerance?: number;
+  prior?: PriorRef;
 };
 
-export type SliderSpec = {
+/** A condition that compares two metrics, such as site B's score above site A's. */
+export type ComparedGoal = {
+  metric: string;
+  op: GoalOp;
+  comparedTo: string;
+  prior?: PriorRef;
+};
+
+export type GoalSpec = ValueGoal | ComparedGoal;
+
+/** A fixed option index, or the option whose text equals a value once placeholders are filled. */
+export type StepAnswer = number | { equals: GoalValue };
+
+/** How the horizon is drawn. `flat` is a level line, `smooth` a round Moon with no ridges, `terrain` the site's skyline. */
+export type SkylineKind = "flat" | "smooth" | "terrain";
+
+/**
+ * The span a learner may drag across.
+ * - `utc`: inclusive instants, each a UTC ISO-8601 string ending in `Z`.
+ * - `span`: a named length such as one month, around an instant (a number or a placeholder).
+ */
+export type TimeRange =
+  | { kind: "utc"; fromUtc: string; toUtc: string }
+  | { kind: "span"; span: "one-month"; aroundUtc: GoalValue };
+
+/** A site, a landing date and a profile, plus how the horizon is drawn and the drag window. */
+export type SceneSpec = {
+  scenario: Scenario;
+  skyline: SkylineKind;
+  /** Null when the learner does not drag through time. */
+  timeRange: TimeRange | null;
+};
+
+/** When a panel reveal looks. An hour, a named span, an inclusive range, or a timeline band. */
+export type RevealWhen =
+  | { kind: "hour"; utc: GoalValue }
+  | { kind: "span"; span: "one-month"; aroundUtc: GoalValue }
+  | { kind: "range"; fromUtc: GoalValue; toUtc: GoalValue }
+  | { kind: "band"; band: "earth" | "sun" };
+
+/** A picture that is not a Mission Control panel. */
+export type IllustrationId = "curved-moon-side";
+
+/** Layers a map reveal can add on top of the panel. */
+export type MapOverlay = "learner-site" | "nasa-average-sunlight" | "artemis-regions";
+
+/**
+ * Two captions, chosen from a worked-example flag. The lesson does not decide which;
+ * the key's value does. Used for the honest ending of lesson 8.
+ */
+export type HonestReveal = {
+  whenKey: string;
+  yes: string;
+  no: string;
+};
+
+/**
+ * What a predict step plays out after the guess.
+ * - `text`: words, when no panel is needed.
+ * - `panel`: a Mission Control panel, optionally at a scenario, hour, or playback window.
+ * - `illustration`: a drawing, not a Mission Control panel.
+ */
+export type RevealSpec =
+  | { kind: "text"; text: string }
+  | {
+      kind: "panel";
+      panel: PanelId;
+      caption: string;
+      /** The scenario the panel shows. Null keeps the lesson's own scene. */
+      scene: SceneSpec | null;
+      /** Where in time the panel looks. Null when it is not pinned to a time. */
+      when: RevealWhen | null;
+      overlays?: readonly MapOverlay[];
+      honest?: HonestReveal;
+    }
+  | { kind: "illustration"; illustration: IllustrationId; caption: string };
+
+export type MapSpec = {
+  /** `closeup` is the slope map; `polar` is the south-polar map. */
+  view: "polar" | "closeup";
+  siteIds: readonly string[];
+  /**
+   * A worked-example key whose value is a list of site ids, such as `l8.candidates`.
+   * Null means `siteIds` is the list.
+   */
+  sitesKey: string | null;
+  /** A panel beside the map, or null when the map stands alone. */
+  aside: PanelId | null;
+};
+
+/** One line of a slider readout. The text may hold placeholders. The UI looks it up; it never computes it. */
+export type NumberReadout = {
+  label: string;
+  stops: readonly { at: number; text: string }[];
+};
+
+export type DateReadout = {
+  label: string;
+  stops: readonly { atUtc: string; text: string }[];
+};
+
+/**
+ * Which of Pip's meters follows the step as the learner drags.
+ * The number comes from the panel. The lesson never computes it.
+ */
+export type PipFollow =
+  | { power: "sun-fraction"; link?: "link-up" }
+  | { link: "link-up"; power?: "sun-fraction" };
+
+/** A slider over a number, such as kilometres or degrees. */
+export type NumberSliderSpec = {
+  kind: "number";
   min: number;
   max: number;
   step: number;
   unit: string;
   /** What the slider sets, for its label, for example "Distance". */
   label?: string;
+  readout?: NumberReadout;
+  scene?: SceneSpec;
+  panel?: PanelId;
+  follow?: PipFollow;
+};
+
+/**
+ * A slider over UTC instants. `minUtc` and `maxUtc` are inclusive, ISO-8601, ending in `Z`.
+ * `stepDays` is the gap between stops, in whole days.
+ */
+export type DateSliderSpec = {
+  kind: "date";
+  minUtc: string;
+  maxUtc: string;
+  stepDays: number;
+  label?: string;
+  readout?: DateReadout;
+  scene?: SceneSpec;
+  panel?: PanelId;
+  follow?: PipFollow;
+};
+
+export type SliderSpec = NumberSliderSpec | DateSliderSpec;
+
+/** What Luna offers when no stop on a slider can meet the goal. */
+export type Unreachable = {
+  says: string;
+  offer: readonly ("best-caution-date" | "change-site")[];
 };
 
 /**
@@ -102,24 +241,46 @@ export type StepBase = {
 
 export type Step = StepBase &
   (
-    | { kind: "choice"; options: readonly string[]; answer: number; stage?: StageSpec }
+    | { kind: "choice"; options: readonly string[]; answer: StepAnswer; stage?: StageSpec }
     | {
         kind: "predict";
         options: readonly string[];
-        answer: number;
+        answer: StepAnswer;
         reveal: RevealSpec;
         stage?: StageSpec;
       }
     | {
         kind: "drag-body";
         body: "sun" | "earth";
+        /** The Mission Control panel the learner drags on. */
+        panel: PanelId;
         scene: SceneSpec;
         goal: GoalSpec;
         answerLabel?: string;
+        /** Lines beside the drag, such as a highest and a lowest. May hold placeholders. */
+        readout?: readonly string[];
+        follow?: PipFollow;
       }
-    | { kind: "draw-skyline"; scene: SceneSpec; azFrom: number; azTo: number }
+    | {
+        kind: "draw-skyline";
+        scene: SceneSpec;
+        /**
+         * Azimuth window, in degrees, passed to `skylineGapDeg` as `azFrom` and `azTo`.
+         * A number, or a `{{example.key}}` placeholder. The real skyline is the scene site's
+         * skyline (`scene.skyline`); this step never stores the elevations.
+         */
+        azFrom: GoalValue;
+        azTo: GoalValue;
+      }
     | { kind: "drop-pin"; map: MapSpec; goal?: GoalSpec; answerLabel?: string }
-    | { kind: "tune-slider"; slider: SliderSpec; goal: GoalSpec; answerLabel?: string }
+    | {
+        kind: "tune-slider";
+        slider: SliderSpec;
+        goal: GoalSpec;
+        answerLabel?: string;
+        /** Shown when no stop can meet the goal. Absent when every slider has a reachable goal. */
+        unreachable?: Unreachable;
+      }
     | { kind: "fill-formula"; tex: string; options: readonly string[]; answer: number }
     | { kind: "spot-bug"; lines: readonly string[]; buggyLine: number; title?: string }
   );
@@ -252,7 +413,9 @@ export type UnderTheHoodCard = {
 
 export type Submission =
   | { kind: "choice" | "predict" | "fill-formula" | "spot-bug"; selected: number }
-  | { kind: "drag-body" | "tune-slider"; value: number | string }
+  | { kind: "drag-body"; value: number | string }
+  | { kind: "tune-slider"; variant: "number"; value: number }
+  | { kind: "tune-slider"; variant: "date"; utc: string }
   | { kind: "drop-pin"; pin: PinAttempt }
   | {
       kind: "draw-skyline";

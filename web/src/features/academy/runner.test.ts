@@ -225,11 +225,11 @@ describe("goal steps", () => {
     hint: "Try the other way.",
     explain: "That meets the goal.",
     kind: "tune-slider",
-    slider: { min: 0, max: 2, step: 1, unit: "steps" },
+    slider: { kind: "number", min: 0, max: 2, step: 1, unit: "steps" },
     goal,
   };
   const lesson = lessonWith([step]);
-  const attempt: Submission = { kind: "tune-slider", value: 2 };
+  const attempt: Submission = { kind: "tune-slider", variant: "number", value: 2 };
 
   it("asks the evaluator and awards a first-try pass", () => {
     let asked = 0;
@@ -270,6 +270,8 @@ describe("goal steps", () => {
             landingUtc: "2028-01-01T00:00:00Z",
             currentUtc: "2028-01-01T00:00:00Z",
           },
+          skyline: "terrain",
+          timeRange: null,
         },
         azFrom: 0,
         azTo: 1,
