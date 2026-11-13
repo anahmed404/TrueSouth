@@ -123,7 +123,7 @@ function columnNotes(column: ColumnView, rows: readonly MetricRow[], index: numb
   if (column.status.kind === "loading") notes.push("Still loading");
   if (column.status.kind === "error") notes.push(`Could not load: ${column.status.message}`);
   if (column.status.kind === "none") notes.push("No result: the mission window runs past the end of the time grid");
-  return notes.join("; ");
+  return notes.join("; ").replace(/ /g, " ");
 }
 
 /** The table's rows as CSV rows: the printed numbers, as numbers. */

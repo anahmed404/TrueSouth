@@ -447,7 +447,7 @@ export function summarySentence(columns: readonly ColumnView[], profile: Mission
   if (go.length === 1) {
     sentences.push(`${lead}, ${(go[0] as ColumnView).name} is the only GO site.`);
   } else if (go.length > 1) {
-    const all = go.length === ready.length ? (ready.length === 2 ? "Both sites" : `All ${count(ready.length)} sites`) : nameList(go.map((c) => c.name));
+    const all = go.length === ready.length ? (ready.length === 2 ? "both sites" : `all ${count(ready.length)} sites`) : nameList(go.map((c) => c.name));
     sentences.push(`${lead}, ${all} are GO.`);
     sentences.push(scoreLeader(go));
   } else if (caution.length > 0) {
