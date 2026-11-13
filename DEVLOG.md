@@ -53,7 +53,12 @@ _No entries yet._
 
 ## Mission Control
 
-_No entries yet._
+#### 2026-11-13 · MC0 · Web scaffold with panel placeholders
+- **Who:** Toffy
+- **AI use:** Cursor, grok-4.7 — wrote the Vite app, router, theme tokens, data middleware, panel placeholders and tests — orchestrator still has to run the checks
+- **State:** built, not verified
+- **Changed:** `web/`, this entry
+- **Notes:** `origin/main` had no `contracts.py` or `schema.json` at merge time, so `panel.ts` still has the temporary `MissionProfile`. `generated.ts` is not in this branch. Sample scenario profile is `{ id: "im2_athena" }`, landing date and current time are `2028-03-01T00:00:00Z`, and `siteIds` is empty.
 
 ## 3D and Map
 

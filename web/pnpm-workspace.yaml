@@ -1,0 +1,4 @@
+minimumReleaseAgeExclude:
+  - framer-motion@14.13.0
+  - motion-dom@14.13.0
+  - motion@14.13.0
