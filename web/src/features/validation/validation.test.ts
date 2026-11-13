@@ -10,7 +10,7 @@ import { parseValidation } from "../../data/parse.ts";
 import { formatCount, formatPercent, formatPoints, formatValue, withUnit } from "./format";
 import { checkGate, checkReport, type GateItem } from "./check";
 import { ValidationView } from "./index";
-import { isPlayableLesson } from "./Method";
+import { lessonLink } from "./Method";
 import {
   GATE_VERDICT_LABEL,
   NOT_RUN_MESSAGE,
@@ -267,11 +267,28 @@ describe("the page", () => {
     expect(markup).toContain("Failed");
   });
 
-  it("links no method box to a lesson that is not written yet", () => {
+  it("links the method boxes to lessons 1 to 4 by catalog title, and to no later lesson", () => {
     const markup = page({ status: "ready", data: fixture, error: null });
-    for (const lesson of ["l1_sun", "l2_skyline", "l3_horizon", "l4_link", "l6_tradeoffs"]) {
-      expect(isPlayableLesson(lesson)).toBe(false);
+    expect(markup).toContain('href="/academy/l1_sun"');
+    expect(markup).toContain("Lesson 1: Where&#x27;s the Sun?");
+    expect(markup).toContain("Lesson 3: The Moon is round");
+    expect(markup).toContain("Lesson 2: Mountains steal sunlight");
+    expect(markup).toContain("Lesson 4: Phone home");
+    for (const lesson of ["l5_slope", "l6_tradeoffs", "l7_slip", "l8_mission"]) {
+      expect(lessonLink(lesson)).toBeNull();
       expect(markup).not.toContain(`/academy/${lesson}`);
+    }
+    expect(lessonLink("no_such_lesson")).toBeNull();
+  });
+
+  it("links nowhere into the private repository, and imports nothing from inside the Academy", () => {
+    const markup = page({ status: "ready", data: fixture, error: null });
+    expect(markup).not.toContain("github.com");
+    expect(markup).toContain("docs/science.md, section 15");
+    for (const file of ["Method.tsx", "sections.tsx", "index.tsx", "model.ts", "check.ts", "display.ts", "parts.tsx"]) {
+      const source = readRepo(`web/src/features/validation/${file}`);
+      const academyImports = [...source.matchAll(/from "\.\.\/academy\/([^"]+)"/g)].map((match) => match[1]);
+      expect(academyImports.every((path) => path === "catalog"), file).toBe(true);
     }
   });
 });

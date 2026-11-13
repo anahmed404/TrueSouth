@@ -4,7 +4,6 @@ import type { DataSource, Gate } from "../../contracts/generated.ts";
 import { INCOMPLETE_MESSAGE, type ComparisonItem, type G2Series, type GateItem } from "./check";
 import { Disclosure } from "../../components/Disclosure";
 import { Explain } from "../../components/Explain";
-import { REPO_BLOB_URL } from "../academy/card/links";
 import { G2Chart } from "./G2Chart";
 import { Scatter } from "./Scatter";
 import {
@@ -592,13 +591,8 @@ export function NotModelled() {
           </li>
         ))}
       </ul>
-      <p className="vl-source-line">
-        In plain words, from{" "}
-        <ExternalLink href={`${REPO_BLOB_URL}docs/science.md#15-known-limits`}>
-          docs/science.md, section 15, “Known limits”
-        </ExternalLink>
-        .
-      </p>
+      {/* Plain text, not a link: the repository is private, so a judge would meet a sign-in page. */}
+      <p className="vl-source-line">In plain words, from docs/science.md, section 15, “Known limits”.</p>
     </>
   );
 }

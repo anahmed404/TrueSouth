@@ -1,21 +1,28 @@
 import { ArrowDown, ArrowRight } from "lucide-react";
 import { Fragment } from "react";
 import { Link } from "react-router";
-import { sampleLesson } from "../academy/lessons/sample";
+import { LESSONS } from "../academy/catalog";
 
 /**
- * A lesson link is drawn only for a lesson the app can play. Today the Academy routes a
- * lesson to its screen only when it is the playable one (web/src/features/academy/index.tsx);
- * lessons 1 to 8 still open "This lesson is not written yet", so no box links yet.
+ * Lessons 1 to 4 are part of the deadline build (work package A5), so a box that teaches
+ * one of them links to it. Lessons 5 to 8 get no link. Ids and titles come from the
+ * Academy's public catalog; nothing is imported from inside its lesson files.
  */
-export function isPlayableLesson(lessonId: string): boolean {
-  return lessonId === sampleLesson.id;
+const LINKED_LESSONS = 4;
+
+export type LessonLink = { href: string; label: string };
+
+export function lessonLink(lessonId: string): LessonLink | null {
+  const index = LESSONS.findIndex((lesson) => lesson.id === lessonId);
+  const lesson = LESSONS[index];
+  if (!lesson || index >= LINKED_LESSONS) return null;
+  return { href: `/academy/${lesson.id}`, label: `Lesson ${index + 1}: ${lesson.title}` };
 }
 
 type Box = {
   title: string;
   text: string;
-  /** The Academy lesson that teaches this step. Linked only once it is playable. */
+  /** The Academy lesson that teaches this step. Linked only for lessons 1 to 4. */
   lesson?: string;
   /** Where on this page the step is checked. */
   checked: { href: string; label: string };
@@ -72,14 +79,14 @@ const COLUMNS: Column[] = [
 ];
 
 function MethodBox({ box }: { box: Box }) {
-  const playable = box.lesson !== undefined && isPlayableLesson(box.lesson);
+  const lesson = box.lesson === undefined ? null : lessonLink(box.lesson);
   return (
     <li className="vl-box">
       <h4 className="vl-box-title">{box.title}</h4>
       <p>{box.text}</p>
       <p className="vl-box-links">
         <a href={box.checked.href}>{box.checked.label}</a>
-        {playable && box.lesson ? <Link to={`/academy/${box.lesson}`}>Learn it in the Academy</Link> : null}
+        {lesson ? <Link to={lesson.href}>{lesson.label}</Link> : null}
       </p>
     </li>
   );
