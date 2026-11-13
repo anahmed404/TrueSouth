@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrueSouth · Direction C2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── Direction C2 tokens (see design/variants/direction-c2.md). Same block on every C2 page. ── */
+:root{
+  color-scheme:dark;
+  --bg:#0b0b0c; --surface:#141415; --raised:#1b1b1d; --hover:#232326;
+  --line:#262629; --line-strong:#37373b;
+  --ink:#ececee; --ink-2:#b3b3b8; --ink-3:#8c8c93; --ink-4:#5c5c63;
+  --accent:#f3efe6; --accent-ink:#141414;
+  --sun:#ffe2a0; --sun-core:#fff4d8; --earth:#6cc4ff; --earth-core:#9fdbff;
+  --status-go:#45c98b; --status-caution:#f2a33a; --status-nogo:#f0646d;
+  --plot:#0e0e0f; --terrain:#1d1d20; --terrain-rim:#a8a8af; --grid:rgba(255,255,255,.06);
+  --font:"Jost","Futura","Century Gothic","Avenir Next","Trebuchet MS",system-ui,sans-serif;
+  --t-xs:11px; --t-sm:12px; /* --t-xs is for SVG axis ticks only; HTML text floor is --t-sm */ --t-md:13px; --t-lg:15px; --t-xl:18px; --t-2xl:24px; --t-3xl:32px; --t-display:44px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px;
+  --r-sm:6px; --r-md:10px; --r-lg:14px; --r-pill:999px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;overflow:hidden}
+::selection{background:var(--accent);color:var(--accent-ink)}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:var(--r-sm)}
+.frame{position:relative;width:1440px;height:900px;margin:0 auto;overflow:hidden}
+#ground{position:absolute;left:0;bottom:0}
+.top{position:absolute;left:40px;right:40px;top:28px;display:flex;align-items:center;gap:var(--s5)}
+.brand{display:flex;align-items:center;gap:10px;font-size:var(--t-xl);font-weight:600}
+.brand svg{width:24px;height:24px}
+.toplinks{margin-left:auto;display:flex;gap:var(--s5);font-size:var(--t-md);color:var(--ink-2)}
+.toplinks a:hover{color:var(--ink)}
+.proto{font-size:var(--t-sm);color:var(--ink-3);border:1px solid var(--line-strong);border-radius:var(--r-pill);padding:0 8px;line-height:18px}
+.hero{position:absolute;left:0;right:0;top:112px;text-align:center}
+.hero h1{font-size:var(--t-display);font-weight:500;line-height:1.1;letter-spacing:-.01em}
+.hero p{font-size:var(--t-xl);color:var(--ink-2);margin-top:var(--s3)}
+.door{position:absolute;top:252px;width:420px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.door.mc{left:270px} .door.ac{left:750px}
+.port{width:300px;height:300px}
+.port svg{width:300px;height:300px;display:block}
+.door h2{font-size:var(--t-2xl);font-weight:600;margin-top:var(--s5)}
+.door p{font-size:var(--t-lg);color:var(--ink-2);line-height:1.5;margin-top:var(--s2);max-width:360px}
+.door .meta{font-size:var(--t-md);color:var(--ink-3);margin-top:var(--s2)}
+.door .go{margin-top:var(--s5);height:44px;padding:0 20px 0 22px;border-radius:var(--r-pill);border:1px solid var(--line-strong);display:inline-flex;align-items:center;gap:10px;font-size:var(--t-lg);font-weight:500;background:var(--surface);transition:background-color .15s ease-out,border-color .15s ease-out}
+.door .go svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.door .go:hover{background:var(--hover);border-color:var(--ink-3)}
+.foot{position:absolute;left:40px;right:40px;bottom:14px;display:flex;justify-content:space-between;font-size:var(--t-sm);color:var(--ink-3)}
+text{font-family:var(--font)}
+</style>
+</head>
+<body>
+<div class="frame">
+  <svg id="ground" viewBox="0 0 1440 120" width="1440" height="120" aria-hidden="true"></svg>
+
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="#8c8c93" stroke-width="1.6"/><path d="M16 4 L19 16 L16 28 L13 16Z" fill="#ececee"/><path d="M16 16 L19 16 L16 28Z" fill="#8c8c93"/></svg>
+      TrueSouth
+    </div>
+    <nav class="toplinks"><a href="#">About the data</a><a href="#">Validation</a></nav>
+    <span class="proto">prototype · mock data</span>
+  </header>
+
+  <div class="hero">
+    <h1>Where and when can this mission land?</h1>
+    <p>A lunar south pole landing site navigator. Two ways in, the same real NASA data underneath.</p>
+  </div>
+
+  <a class="door mc" href="../../mission-shell/c2/index.html">
+    <div class="port"><svg id="p-mc" viewBox="0 0 344 344" role="img" aria-label="A small Lander's eye: the Sun behind a ridge, Earth above the horizon, and GO, CAUTION and NO-GO status lamps"></svg></div>
+    <h2>Mission Control</h2>
+    <p>Pick a mission profile and sites, find every date that works, and inspect any site hour by hour.</p>
+    <div class="meta">For mission planners · 5 real-mission presets · 20 sites</div>
+    <span class="go">Open Mission Control <svg viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+  </a>
+
+  <a class="door ac" href="#">
+    <div class="port"><svg id="p-ac" viewBox="0 0 344 344" role="img" aria-label="Luna the moon watching Pip the lander on a ridge at sunrise"></svg></div>
+    <h2>Academy</h2>
+    <p>Help Luna land Pip at the south pole, and rebuild the tool's logic one short lesson at a time.</p>
+    <div class="meta">For students and the curious · 8 lessons · 10–15 minutes</div>
+    <span class="go">Start the Academy <svg viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+  </a>
+
+  <div class="foot"><span>Sun and Earth from JPL Horizons · terrain from LOLA via NASA PGDA</span><span>Planning aid, not flight certification · NASA Space Apps 2026</span></div>
+</div>
+
+<script>
+const NS='http://www.w3.org/2000/svg';
+function E(tag,a,p){const e=document.createElementNS(NS,tag);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C={ink:css('--ink'),ink2:css('--ink-2'),ink3:css('--ink-3'),ink4:css('--ink-4'),line:css('--line'),lineS:css('--line-strong'),surface:css('--surface'),raised:css('--raised'),
+  sun:css('--sun'),sunCore:css('--sun-core'),earth:css('--earth'),earthCore:css('--earth-core'),plot:css('--plot'),terrain:css('--terrain'),rim:css('--terrain-rim'),grid:css('--grid'),accent:css('--accent'),
+  go:css('--status-go'),caution:css('--status-caution'),nogo:css('--status-nogo')};
+const P=[[0,-0.40],[12,-0.12],[25,0.35],[34,0.12],[48,0.62],[58,0.92],[66,0.50],[80,-0.25],[95,-0.95],[108,-1.25],[120,-0.62],[128,0.18],[133,0.38],[137,0.55],[140,0.95],[142.5,1.32],[146,1.02],[152,0.48],[165,0.06],[180,-0.32],[195,0.18],[210,0.62],[222,0.92],[228,1.18],[231.2,1.47],[234,1.08],[240,0.70],[248,0.62],[256,0.86],[263.6,0.90],[265.9,1.30],[267.2,0.92],[274,0.70],[282,0.25],[292,-0.50],[305,-1.05],[318,-0.70],[332,-0.18],[345,0.10],[360,-0.40]];
+function base(a){a=((a%360)+360)%360;for(let i=0;i<P.length-1;i++){const[a0,e0]=P[i],[a1,e1]=P[i+1];if(a>=a0&&a<=a1){const t=(a-a0)/(a1-a0);return e0+(e1-e0)*(1-Math.cos(Math.PI*t))/2;}}return P[0][1];}
+const sky=a=>{const r=a*Math.PI/180;return base(a)+0.045*Math.sin(r*37)+0.03*Math.sin(r*91+1.3)+0.02*Math.sin(r*173+.4);};
+
+/* the polar skyline along the bottom, kept low so the footer sits on the ground, not across the rim */
+(function(){const s=document.getElementById('ground');
+  let d='';for(let i=0;i<=360;i++){const x=i*4,y=58-sky(i+100)*14;d+=(i?'L':'M')+x+','+y.toFixed(1);}
+  E('path',{d:d+'L1440,120L0,120Z',fill:C.surface},s);
+  E('path',{d,fill:'none',stroke:C.rim,'stroke-opacity':.45,'stroke-width':1.2},s);})();
+
+/* a porthole: the same flat bezel for both doors, a different scene inside */
+function bezel(svg,labels){
+  const c=172,defs=E('defs',{},svg);
+  defs.innerHTML=`<clipPath id="${svg.id}w"><circle cx="${c}" cy="${c}" r="136"/></clipPath>`;
+  E('circle',{cx:c,cy:c,r:170,fill:C.surface,stroke:C.lineS,'stroke-width':1.2},svg);
+  for(let i=0;i<72;i++){const a=i/72*2*Math.PI-Math.PI/2,big=i%9===0,r1=166,r2=big?157:162;
+    E('line',{x1:c+r1*Math.cos(a),y1:c+r1*Math.sin(a),x2:c+r2*Math.cos(a),y2:c+r2*Math.sin(a),stroke:C.ink3,'stroke-opacity':big?1:.45,'stroke-width':big?1.5:1},svg);}
+  labels.forEach(([ang,t])=>{const a=ang*Math.PI/180-Math.PI/2;E('text',{x:c+149*Math.cos(a),y:c+149*Math.sin(a)+4.5,'text-anchor':'middle','font-size':13,'font-weight':600,fill:C.ink},svg).textContent=t;});
+  const g=E('g',{'clip-path':`url(#${svg.id}w)`},svg);
+  E('rect',{x:0,y:0,width:344,height:344,fill:C.plot},g);
+  return g;
+}
+function rim(svg){E('circle',{cx:172,cy:172,r:136,fill:'none',stroke:C.lineS,'stroke-width':1.2},svg);}
+
+/* Mission Control: a small Lander's eye. The Sun sits behind the ridge, Earth stands above its mask */
+(function(){const svg=document.getElementById('p-mc');
+  const g=bezel(svg,[[0,'N'],[90,'E'],[180,'S'],[270,'W']]);
+  for(let e=-1;e<=4;e++)E('line',{x1:0,x2:344,y1:220-e*30,y2:220-e*30,stroke:C.grid},g);
+  const X=a=>172+(a-200)*1.75,Y=e=>220-e*30;
+  let d='';for(let a=100;a<=300;a+=.5)d+=(a===100?'M':'L')+X(a).toFixed(1)+','+Y(sky(a)).toFixed(1);
+  const cp=E('clipPath',{id:'mcc'},svg);E('path',{d:d+'L400,0L0,0Z'},cp);
+  let sp='';for(let h=0;h<=240;h+=2){const a=298-.5083*h,e=.8+.0046*h-.0000025*h*h;if(a<=300)sp+=(sp?'L':'M')+X(a).toFixed(1)+','+Y(e).toFixed(1);}
+  E('path',{d:sp,fill:'none',stroke:C.sun,'stroke-width':1.6,'stroke-dasharray':'2 4','stroke-linecap':'round'},g);
+  let md='';for(let a=124;a<=152;a+=.5)md+=(a===124?'M':'L')+X(a).toFixed(1)+','+Y(sky(a)+1).toFixed(1);
+  E('path',{d:md,fill:'none',stroke:C.earth,'stroke-width':1.3,'stroke-dasharray':'4 3',opacity:.8},g);
+  let ep='';for(let h=0;h<=240;h+=4){const a=133+8*h/240,e=3.399-.0068*h;ep+=(ep?'L':'M')+X(a).toFixed(1)+','+Y(e).toFixed(1);}
+  E('path',{d:ep,fill:'none',stroke:C.earth,'stroke-width':1.6},g);
+  const sx=X(265.98),sy=Y(1.08),ex=X(135.66),ey=Y(2.97);
+  E('ellipse',{cx:sx,cy:sy,rx:3,ry:8,fill:C.sunCore,'fill-opacity':.3},g);
+  E('ellipse',{cx:sx,cy:sy,rx:3,ry:8,fill:C.sunCore,'clip-path':'url(#mcc)'},g);
+  E('ellipse',{cx:ex,cy:ey,rx:4,ry:28,fill:C.earthCore},g);
+  E('path',{d:d+'L400,400L0,400Z',fill:C.terrain},g);
+  E('path',{d,fill:'none',stroke:C.rim,'stroke-width':1.3},g);
+  // three flat status lamps on the ground: the planner's answer in miniature
+  [[C.go,'M-3.4 .4l2.2 2.2 4.6-4.8'],[C.caution,'M0 -4v4.4M0 3.6v.3'],[C.nogo,'M-3 -3l6 6M3 -3l-6 6']].forEach(([c,p],i)=>{const x=126+i*46,y=282;
+    E('circle',{cx:x,cy:y,r:11,fill:c},g);
+    E('path',{d:p,transform:`translate(${x} ${y})`,stroke:'#0b0b0c','stroke-width':2.4,fill:'none','stroke-linecap':'round','stroke-linejoin':'round'},g);});
+  rim(svg);})();
+
+/* Academy: Luna (placeholder face) watching Pip on the ridge at sunrise */
+(function(){const svg=document.getElementById('p-ac');
+  const g=bezel(svg,[[0,'1'],[45,'2'],[90,'3'],[135,'4'],[180,'5'],[225,'6'],[270,'7'],[315,'8']]);
+  E('circle',{cx:262,cy:224,r:12,fill:C.sunCore},g);
+  // the lesson path, dotted across the sky
+  E('path',{d:'M70 250 C 110 190, 150 170, 190 160',fill:'none',stroke:C.accent,'stroke-opacity':.7,'stroke-width':2,'stroke-dasharray':'1 7','stroke-linecap':'round'},g);
+  // Luna (placeholder: a round moon with two eyes, a mouth and craters)
+  const L=E('g',{transform:'translate(112 112)'},g);
+  E('circle',{cx:0,cy:0,r:50,fill:C.ink},L);
+  E('path',{d:'M 50 0 A 50 50 0 0 1 -35 35.7 A 46 46 0 0 0 50 0Z',fill:C.ink2},L);
+  [[-24,-22,8],[26,-28,6],[22,24,9],[-30,20,5]].forEach(([x,y,rr])=>E('circle',{cx:x,cy:y,r:rr,fill:C.ink2,'fill-opacity':.55},L));
+  E('ellipse',{cx:-14,cy:-4,rx:5,ry:6.5,fill:C.plot},L);E('ellipse',{cx:14,cy:-4,rx:5,ry:6.5,fill:C.plot},L);
+  E('circle',{cx:-12.5,cy:-6,r:1.7,fill:C.ink},L);E('circle',{cx:15.5,cy:-6,r:1.7,fill:C.ink},L);
+  E('path',{d:'M -10 12 Q 0 21 10 12',fill:'none',stroke:C.plot,'stroke-width':3,'stroke-linecap':'round'},L);
+  E('circle',{cx:-25,cy:8,r:4.5,fill:C.sun,'fill-opacity':.6},L);E('circle',{cx:25,cy:8,r:4.5,fill:C.sun,'fill-opacity':.6},L);
+  // ridge
+  const rd='M0 262 L40 250 L78 236 L104 244 L138 222 L170 232 L204 226 L236 238 L262 230 L300 246 L344 240';
+  E('path',{d:rd+' L344 344 L0 344Z',fill:C.terrain},g);
+  E('path',{d:rd,fill:'none',stroke:C.rim,'stroke-width':1.3,'stroke-linejoin':'round'},g);
+  // Pip, the small lander, lit from the right
+  const p=E('g',{transform:'translate(184 199)'},g);
+  E('path',{d:'M-14 22 L-8 8 M14 22 L8 8 M0 22 L0 10',stroke:C.ink2,'stroke-width':2,'stroke-linecap':'round'},p);
+  E('rect',{x:-11,y:-4,width:22,height:14,rx:3,fill:C.accent},p);
+  E('rect',{x:1,y:-4,width:10,height:14,rx:2,fill:C.sun,'fill-opacity':.55},p);
+  E('rect',{x:-26,y:-1,width:13,height:7,rx:1.5,fill:C.ink4},p);E('rect',{x:13,y:-1,width:13,height:7,rx:1.5,fill:C.ink4},p);
+  E('path',{d:'M0 -4 L0 -12',stroke:C.accent,'stroke-width':1.6},p);E('circle',{cx:0,cy:-13,r:2.4,fill:C.earth},p);
+  E('text',{x:0,y:44,'text-anchor':'middle','font-size':13,'font-weight':600,fill:C.ink},p).textContent='Pip';
+  // a speech bubble from Luna
+  const b=E('g',{transform:'translate(176 140)'},g);
+  E('path',{d:'M14 -18 H100 A14 14 0 0 1 114 -4 V8 A14 14 0 0 1 100 22 H14 A14 14 0 0 1 0 8 V-6 L-14 -16 L2 -12 A14 14 0 0 1 14 -18Z',fill:C.raised,stroke:C.lineS},b);
+  E('text',{x:12,y:-1,'font-size':12,fill:C.ink},b).textContent='My south pole is a';
+  E('text',{x:12,y:13,'font-size':12,fill:C.ink},b).textContent='strange place.';
+  rim(svg);})();
+</script>
+</body>
+</html>
