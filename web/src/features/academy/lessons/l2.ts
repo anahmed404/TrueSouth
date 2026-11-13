@@ -21,8 +21,9 @@ function lesson2Scene(skyline: SkylineKind, timeRange: TimeRange | null): SceneS
 const terrain = lesson2Scene("terrain", null);
 const sunDrag = lesson2Scene("terrain", hoursAround("{{example.l2.example_utc}}", 24));
 
-const shadow =
-  "Sunlight / **Shadow**. Reveal: the Lander's eye view at that hour. The ridge looks {{l2.ridge_el_deg}}° tall.";
+const moved =
+  "I moved us to {{example.l2.site_name}}. From a high ridge like Connecting Ridge, distant ground lies below Pip, so a Sun above the flat horizon is hidden only by ground close by.";
+const shadow = `Sunlight / **Shadow**. Luna: "${moved}" Reveal: the Lander's eye view at that hour. The ridge looks {{example.l2.ridge_el_deg}}° tall.`;
 const pieces = "**its height above you** / its height above sea level / its width";
 const sketch = "The real skyline is laid over the sketch. Closer sketches earn more XP; every sketch passes.";
 const disc = "Goal: `sun_frac < 0.5`. Pip's power meter follows the visible share.";
@@ -40,17 +41,17 @@ export const lesson2 = {
       id: "l2-shadow",
       luna: {
         mood: "thinking",
-        says: "The Sun is {{example.l2.sun_el_deg}}° up. A ridge {{example.l2.ridge_dist_km}} km away stands {{example.l2.ridge_rise_m}} m above Pip. Sunlight or shadow?",
+        says: "From {{example.l2.site_name}}, the Sun is {{example.l2.sun_el_deg}}° up. A ridge {{example.l2.ridge_dist_km}} km away stands {{example.l2.ridge_rise_m}} m above Pip. Sunlight or shadow?",
       },
       hint: todo(shadow),
-      explain: todo(shadow),
+      explain: moved,
       kind: "predict",
       options: ["Sunlight", "Shadow"],
       answer: 1,
       reveal: {
         kind: "panel",
         panel: "LandersEye",
-        caption: todo("the Lander's eye view at that hour. The ridge looks {{l2.ridge_el_deg}}° tall."),
+        caption: todo("the Lander's eye view at that hour. The ridge looks {{example.l2.ridge_el_deg}}° tall."),
         scene: terrain,
         when: { kind: "hour", utc: "{{example.l2.example_utc}}" },
       },
@@ -67,7 +68,7 @@ export const lesson2 = {
     },
     {
       id: "l2-sketch",
-      luna: { mood: "thinking", says: "Sketch the skyline you think Pip sees in this direction." },
+      luna: { mood: "thinking", says: "Sketch the skyline you think Pip sees from {{example.l2.site_name}}, in this direction." },
       hint: todo(sketch),
       explain: todo(sketch),
       kind: "draw-skyline",
