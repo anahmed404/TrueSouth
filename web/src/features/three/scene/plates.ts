@@ -1,4 +1,6 @@
 import type { CameraViewId } from "../../../app/scene";
+import type { HourFlags } from "../../../lib/scoring";
+import { sightState } from "./sight";
 
 /**
  * What the scene may draw and which plain-words plates it shows, from the load state of each
@@ -127,4 +129,20 @@ export function decorationPlate(sun: { lit: boolean; discFraction: number } | nu
     ? `The series says: lit. ${Math.round(fraction * 100)} % of the Sun's disc is above the skyline.`
     : `The series says: dark. Sun disc fraction ${fraction.toFixed(2)} above the skyline.`;
   return { id: "decoration", text, note, place: "foot" };
+}
+
+/**
+ * The series' answer for the Sun at one hour, as the decoration plate states it: lit or dark
+ * from the profile's hour flag (science.md §9), and the disc fraction from the series. The
+ * scene passes this straight to `sceneContent`; null while the series or flags are not in.
+ */
+export function seriesSunAnswer(
+  series: { sun_frac: ArrayLike<number> } | null | undefined,
+  flags: HourFlags | null | undefined,
+  hourIndex: number | null,
+): { lit: boolean; discFraction: number } | null {
+  if (!series || !flags || hourIndex === null) return null;
+  const state = sightState(flags, hourIndex);
+  if (!state) return null;
+  return { lit: state.sun === "lit", discFraction: series.sun_frac[hourIndex] ?? Number.NaN };
 }

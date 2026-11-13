@@ -36,7 +36,7 @@ import {
   type SiteFrame,
 } from "./camera";
 import { Overlay, type OverlayBus, type Preset, type LookToward } from "./overlay";
-import { sceneContent, type LoadState } from "./plates";
+import { sceneContent, seriesSunAnswer, type LoadState } from "./plates";
 import { Rig } from "./rig";
 import { sightState, type SightState } from "./sight";
 import { mul, type V3 } from "./vec";
@@ -320,9 +320,9 @@ function Scene3D(props: SceneProps) {
         series: focusReady?.states.series ?? "loading",
         terrain: focusReady?.states.terrain ?? "loading",
         apron: focusReady?.states.apron ?? "loading",
-        sun: sight?.state ? { lit: sight.state.sun === "lit", discFraction: sight.sunFrac } : null,
+        sun: seriesSunAnswer(focusReady?.series, focusReady?.flags, hourIndex),
       }),
-    [view, trueScale, systemState, worldSite, focusReady?.states.series, focusReady?.states.terrain, focusReady?.states.apron, sight],
+    [view, trueScale, systemState, worldSite, focusReady?.states.series, focusReady?.states.terrain, focusReady?.states.apron, focusReady?.series, focusReady?.flags, hourIndex],
   );
 
   const inputs = useMemo((): WorldInputs => {
