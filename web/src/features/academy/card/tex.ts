@@ -1,5 +1,5 @@
-import { formatExample } from "../format-example";
-import { hasExample, splitPlaceholders, type WorkedExamples } from "../placeholders";
+import type { Decimals } from "../format-example";
+import { exampleText, splitPlaceholders, type WorkedExamples } from "../placeholders";
 
 /** The chip's words for a key that `worked_examples.json` does not have yet. */
 export const MISSING_TEXT = "value not built yet";
@@ -43,23 +43,31 @@ export type FilledTex = {
   missing: string[];
 };
 
+export type FillOptions = {
+  /** The examples are still loading, so a missing key says "loading". */
+  pending?: boolean;
+  /** Decimals for keys in a compared set (see `../compare.ts`). */
+  precision?: ReadonlyMap<string, Decimals>;
+};
+
 /**
- * Fills the `{{example.key}}` placeholders in a TeX string for KaTeX. Each value is
- * wrapped in `\htmlClass{ac-fill}{…}` so it draws as a `Fill` chip; a missing key becomes
- * a dashed chip that says "value not built yet". While `pending` (the examples are still
- * loading) a missing key says "loading" instead. The raw `{{…}}` never reaches the page.
+ * Fills the `{{example.…}}` placeholders in a TeX string for KaTeX. Each value is wrapped
+ * in `\htmlClass{ac-fill}{…}` so it draws as a `Fill` chip. A key that is missing,
+ * malformed, or whose value is not usable becomes a dashed chip that says "value not built
+ * yet" (or "loading" while `pending`). Text values are escaped into `\text{…}`, so a value
+ * can never inject TeX or HTML. The raw `{{…}}` never reaches the page.
  */
-export function fillTex(tex: string, examples: WorkedExamples, pending = false): FilledTex {
+export function fillTex(tex: string, examples: WorkedExamples, options: FillOptions = {}): FilledTex {
   const missing: string[] = [];
   const out = splitPlaceholders(tex).map((part) => {
     if (part.kind === "text") return part.text;
-    const value = examples[part.key];
-    if (!hasExample(examples, part.key) || value === undefined) {
+    const written = exampleText(examples, part.key, options.precision?.get(part.key));
+    if (written === null) {
       missing.push(part.key);
-      const words = pending ? PENDING_TEXT : MISSING_TEXT;
-      return `\\htmlClass{${FILL_CLASS} ${FILL_CLASS}--missing}{\\text{${words}}}`;
+      const words = options.pending ? PENDING_TEXT : MISSING_TEXT;
+      return String.raw`\htmlClass{${FILL_CLASS} ${FILL_CLASS}--missing}{\text{${words}}}`;
     }
-    return `\\htmlClass{${FILL_CLASS}}{${valueAsTex(formatExample(part.key, value), typeof value === "number")}}`;
+    return String.raw`\htmlClass{${FILL_CLASS}}{${valueAsTex(written, typeof examples[part.key] === "number")}}`;
   });
   return { tex: out.join(""), missing };
 }

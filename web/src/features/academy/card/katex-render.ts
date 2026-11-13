@@ -13,9 +13,24 @@ import { FILL_CLASS } from "./tex";
 
 export type TexResult = { ok: true; html: string } | { ok: false; error: string };
 
-/** Only our own `\htmlClass{ac-fill…}` wrapper is trusted; every other HTML command is refused. */
-function trust(context: TrustContext): boolean {
-  return context.command === "\\htmlClass" && context.class.split(" ").every((name) => name.startsWith(FILL_CLASS));
+/** The largest size, in em, that a rule, box or space in a formula may take. */
+export const MAX_SIZE_EM = 20;
+
+/** The most macro expansions one formula may take before it fails to parse (KaTeX's default). */
+export const MAX_EXPAND = 1000;
+
+/** The only classes a formula may set: the Fill chip and its missing form. */
+const TRUSTED_CLASSES = new Set([FILL_CLASS, `${FILL_CLASS}--missing`]);
+
+/**
+ * Only our own `\htmlClass{ac-fill}` and `\htmlClass{ac-fill ac-fill--missing}` wrappers
+ * are trusted. Every other HTML command (`\href`, `\url`, `\includegraphics`, `\htmlId`,
+ * `\htmlStyle`, `\htmlData`, `\htmlClass` with any other class) is refused.
+ */
+export function trust(context: TrustContext): boolean {
+  if (context.command !== "\\htmlClass") return false;
+  const names = context.class.split(/\s+/).filter(Boolean);
+  return names.length > 0 && names.every((name) => TRUSTED_CLASSES.has(name));
 }
 
 const reported = new Set<string>();
@@ -39,6 +54,8 @@ export function renderTex(tex: string, display: boolean): TexResult {
       throwOnError: true,
       trust,
       strict: "ignore",
+      maxSize: MAX_SIZE_EM,
+      maxExpand: MAX_EXPAND,
     });
     return { ok: true, html };
   } catch (error) {

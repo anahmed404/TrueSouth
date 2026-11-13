@@ -1,22 +1,39 @@
-import { formatExample, type ExampleValue } from "./format-example";
-
-const PLACEHOLDER = /\{\{example\.([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*)\}\}/g;
+import { formatExample, isUsableExample, type Decimals } from "./format-example";
 
 /**
- * A worked-examples object. Keys match `{{example.key}}`, and may contain dots. Values are
- * as in `worked_examples.json`: numbers, text, yes/no, or lists.
+ * Anything shaped like `{{example.…}}` is a placeholder, whatever is inside, so a mistyped
+ * key such as `{{example.l.bad-key}}` shows as a missing value instead of leaking as raw
+ * text. Other `{{…}}` text (a TeX group, say) is left alone.
  */
-export type WorkedExamples = Readonly<Record<string, ExampleValue>>;
+const PLACEHOLDER = /\{\{example\.([^{}]*)\}\}/g;
 
-/** True when `examples` has a value for `key`. */
+/** The shape of a real key: dot-separated words of letters, digits and underscores. */
+const VALID_KEY = /^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*$/;
+
+/**
+ * A worked-examples object. Keys match `{{example.key}}`, and may contain dots. Values come
+ * from `worked_examples.json`, so they are checked when used, never trusted to be usable.
+ */
+export type WorkedExamples = Readonly<Record<string, unknown>>;
+
+/** True when `examples` has a usable value for `key` (see `isUsableExample`). */
 export function hasExample(examples: WorkedExamples, key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(examples, key) && examples[key] !== undefined;
+  return VALID_KEY.test(key) && Object.prototype.hasOwnProperty.call(examples, key) && isUsableExample(examples[key]);
+}
+
+/**
+ * The value for `key` written as text by the rule in `format-example.ts`, or `null` when the
+ * key is malformed, absent, or its value is not usable. `decimals` overrides the key's rule.
+ */
+export function exampleText(examples: WorkedExamples, key: string, decimals?: Decimals): string | null {
+  if (!hasExample(examples, key)) return null;
+  return formatExample(key, examples[key], decimals);
 }
 
 /** A piece of text: plain text, or a `{{example.key}}` placeholder. */
 export type PlaceholderPart = { kind: "text"; text: string } | { kind: "key"; key: string };
 
-/** Splits text around its `{{example.key}}` placeholders, in order. */
+/** Splits text around its `{{example.…}}` placeholders, in order. */
 export function splitPlaceholders(text: string): PlaceholderPart[] {
   const parts: PlaceholderPart[] = [];
   let last = 0;
@@ -42,17 +59,17 @@ export type FilledText = {
 export function fillPlaceholders(text: string, examples: WorkedExamples): FilledText {
   const missing: string[] = [];
   const filled = text.replace(PLACEHOLDER, (token, key: string) => {
-    const value = examples[key];
-    if (!hasExample(examples, key) || value === undefined) {
+    const written = exampleText(examples, key);
+    if (written === null) {
       missing.push(key);
       return token;
     }
-    return formatExample(key, value);
+    return written;
   });
   return { text: filled, missing };
 }
 
-const WHOLE_PLACEHOLDER = /^\{\{example\.([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*)\}\}$/;
+const WHOLE_PLACEHOLDER = /^\{\{example\.([^{}]*)\}\}$/;
 
 export type ResolvedValue = {
   /** The filled value, or null when its key is missing. */
@@ -63,19 +80,17 @@ export type ResolvedValue = {
 /**
  * Fills a value that is a whole `{{example.key}}` placeholder, keeping its type: a number
  * stays a number and text stays text; yes/no and lists become their written form. Any other
- * value is returned as it is. A missing key gives `null`.
+ * value is returned as it is. A missing key, or one whose value is not usable, gives `null`.
  */
 export function resolveValue(value: number | string, examples: WorkedExamples): ResolvedValue {
   if (typeof value === "number") return { value, missing: [] };
   const match = WHOLE_PLACEHOLDER.exec(value);
   if (!match) return { value, missing: [] };
   const key = match[1] ?? "";
+  if (!hasExample(examples, key)) return { value: null, missing: [key] };
   const found = examples[key];
-  if (!hasExample(examples, key) || found === undefined) {
-    return { value: null, missing: [key] };
-  }
   if (typeof found === "number" || typeof found === "string") return { value: found, missing: [] };
-  return { value: formatExample(key, found), missing: [] };
+  return { value: exampleText(examples, key), missing: [] };
 }
 
 /**

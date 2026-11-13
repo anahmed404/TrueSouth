@@ -6,6 +6,7 @@ import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { isExplainTerm } from "../../../lib/explain";
 import { sampleCard, sampleExamples } from "../lessons/sample";
+import { academyDataSource, type DataSource } from "../data-source";
 import type { WorkedExamples } from "../placeholders";
 import type { UnderTheHoodCard as CardData } from "../types";
 import { CardContent, UnderTheHoodCard, uniqueSymbols } from "./index";
@@ -26,9 +27,15 @@ const DELIBERATELY_MISSING = "sample.sun_el_deg";
 
 const ready: KatexState = { status: "ready", render: renderTex };
 
-function draw(card: CardData, katex: KatexState, pending = false): string {
+function draw(
+  card: CardData,
+  katex: KatexState,
+  pending = false,
+  source: DataSource = "fixtures",
+  values: WorkedExamples = examples,
+): string {
   return renderToStaticMarkup(
-    createElement(MemoryRouter, null, createElement(CardContent, { card, examples, katex, pending })),
+    createElement(MemoryRouter, null, createElement(CardContent, { card, examples: values, katex, pending, source })),
   );
 }
 
@@ -121,7 +128,7 @@ describe("the sample card against the card type", () => {
 describe("drawing the card", () => {
   it("draws KaTeX with MathML beside it, Fill chips, the missing chip and the citations", () => {
     const html = draw(sampleCard, ready);
-    for (const part of ["The idea", "The formulas", "A worked example: one skyline bin", "In the code", "What can go wrong"]) {
+    for (const part of ["The idea", "The formulas", "A worked example: one skyline bin, at azimuth", "In the code", "What can go wrong"]) {
       expect(html).toContain(part);
     }
     expect(html).toContain('class="katex"');
@@ -130,7 +137,7 @@ describe("drawing the card", () => {
     // A number with its unit, as a chip, from text and from inside TeX.
     expect(html).toContain('<span class="ac-fill">3 km</span>');
     expect(html).toContain(`<span class="ac-fill ac-fill--missing">${MISSING_TEXT}</span>`);
-    expect(html).toContain("A dashed box is a number that code has not built yet.");
+    expect(html).toContain("A dashed box is a number TrueSouth&#x27;s pipeline has not built yet.");
     expect(html).not.toContain("{{");
     expect(html).toContain("Science notes, section 4");
     expect(html).toContain("docs/science.md#4-how-high-a-piece-of-terrain-looks");
@@ -199,5 +206,58 @@ describe("drawing the card", () => {
   it("says when a lesson has no card yet", () => {
     const html = renderToStaticMarkup(createElement(UnderTheHoodCard, { card: undefined, examples }));
     expect(html).toContain("This lesson&#x27;s card is not written yet.");
+  });
+
+  it("draws the worked example's title as card text, with its chip", () => {
+    const html = draw(sampleCard, ready);
+    expect(html).toContain('<h3>A worked example: one skyline bin, at azimuth <span class="ac-fill">45.0°</span></h3>');
+  });
+
+  it("chooses the comparison word from the data, so it agrees with the numbers", () => {
+    const lower = draw(sampleCard, ready, false, "fixtures", { ...examples, "l3.example_el_true_deg": 1.861, "l3.example_el_flat_deg": 1.864 });
+    expect(lower).toContain("the ridge looks lower than on a flat Moon");
+    expect(lower).toContain('<span class="ac-fill">1.861°</span> against <span class="ac-fill">1.864°</span>');
+    const higher = draw(sampleCard, ready, false, "fixtures", { ...examples, "l3.example_el_true_deg": 1.864, "l3.example_el_flat_deg": 1.861 });
+    expect(higher).toContain("the ridge looks higher than on a flat Moon");
+    const same = draw(sampleCard, ready, false, "fixtures", { ...examples, "l3.example_el_true_deg": 1.86, "l3.example_el_flat_deg": 1.86 });
+    expect(same).toContain("the ridge looks as high as on a flat Moon");
+    expect(same).toContain('<span class="ac-fill">1.86°</span> against <span class="ac-fill">1.86°</span>');
+  });
+
+  it("never calls fixture numbers real, and says where real ones come from", () => {
+    expect(draw(sampleCard, ready, false, "fixtures")).toContain("Numbers in a box are sample values for testing, not real.");
+    expect(draw(sampleCard, ready, false, "fixtures")).not.toContain("real data");
+    expect(draw(sampleCard, ready, false, "derived")).toContain(
+      "Numbers in a box are real data, made by TrueSouth&#x27;s pipeline from NASA data.",
+    );
+    expect(academyDataSource({ VITE_DATA: "fixtures" })).toBe("fixtures");
+    expect(academyDataSource({})).toBe("derived");
+    expect(academyDataSource({ VITE_DATA: "derived" })).toBe("derived");
+  });
+
+  it("says only that numbers are missing when none were built", () => {
+    const html = draw(sampleCard, ready, false, "derived", sampleExamples);
+    expect(html).not.toContain("real data");
+    expect(html).toContain("A dashed box is a number TrueSouth&#x27;s pipeline has not built yet.");
+  });
+
+  it("draws an unusable value as the missing chip, in text and in TeX, without throwing", () => {
+    for (const value of [null, Number.NaN, Number.POSITIVE_INFINITY, { a: 1 }, ""]) {
+      const values = { ...examples, "l3.example_height_m": value, "l3.example_el_true_deg": value };
+      for (const katex of [ready, { status: "loading" } as const]) {
+        let html = "";
+        expect(() => {
+          html = draw(sampleCard, katex, false, "fixtures", values);
+        }).not.toThrow();
+        expect(html).toContain(MISSING_TEXT);
+        expect(html).not.toContain("{{");
+      }
+    }
+  });
+
+  it("escapes a text value that holds HTML in card text", () => {
+    const html = draw(sampleCard, ready, false, "fixtures", { ...examples, "l3.example_bin_az": "<img src=x onerror=alert(1)>" });
+    expect(html).not.toContain("<img");
+    expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
   });
 });

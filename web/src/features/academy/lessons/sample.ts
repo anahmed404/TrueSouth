@@ -39,7 +39,7 @@ const section4 = { number: "4", title: "How high a piece of terrain looks" } as 
 export const sampleCard: UnderTheHoodCard = {
   id: "sample",
   idea:
-    "This sample card shows every part a card can hold, with a real formula. The Moon is round, so the ground falls away below a level line as you look farther out. A far ridge therefore looks lower than it would on a flat Moon, and with the Sun this low, that small drop can decide light or shadow.",
+    "This sample card shows every part a card can hold, with a real formula. The Moon is round, so the ground falls away below a level line as you look farther out. Far terrain sinks towards the horizon, and with the Sun this low, that small drop can decide light or shadow.",
   formulas: [
     {
       id: "drop",
@@ -82,9 +82,8 @@ export const sampleCard: UnderTheHoodCard = {
     },
   ],
   workedExample: {
-    title: "one skyline bin",
-    intro:
-      "One [[skyline_bin|skyline bin]], looking towards azimuth {{example.l3.example_bin_az}}°. The terrain point that sets it is its [[blocker]].",
+    title: "one skyline bin, at azimuth {{example.l3.example_bin_az}}°",
+    intro: "One [[skyline_bin|skyline bin]]. The terrain point that sets it is its [[blocker]].",
     rows: [
       { label: "Distance along the ground, $s$", value: "{{example.l3.example_dist_km}} km" },
       { label: "Height above Pip's eyes, $z - z_0 - h_{obs}$", value: "{{example.l3.example_height_m}} m" },
@@ -97,7 +96,8 @@ export const sampleCard: UnderTheHoodCard = {
       { label: "For scale: the drop at 20 km", value: "{{example.l3.drop_at_20km_m}} m" },
       { label: "The Sun's height at that hour", value: "{{example.sample.sun_el_deg}}°" },
     ],
-    outro: "The round Moon makes the ridge look lower than the flat sum says.",
+    outro:
+      "On the round Moon the ridge looks {{compare:l3.example_el_true_deg,l3.example_el_flat_deg|lower than|higher than|as high as}} on a flat Moon: {{example.l3.example_el_true_deg}}° against {{example.l3.example_el_flat_deg}}°.",
   },
   inTheCode: [
     {
@@ -111,6 +111,7 @@ export const sampleCard: UnderTheHoodCard = {
     "The short formula drifts at long range, so the code uses the exact one from the same section.",
     "Mixing kilometres and metres: $s$ and $R$ must be in the same unit.",
   ],
+  compare: [["l3.example_el_flat_deg", "l3.example_el_true_deg"]],
 };
 
 export const sampleLesson = {

@@ -327,6 +327,20 @@ each integration checkpoint.
     m 0, h 1, pct 0), trailing zeros dropped. Lesson text uses the same rule now.
   - The sample route now merges the real `worked_examples.json` under the sample's toy
     values, so the sample card shows lesson 3's fixture numbers.
+  - Review fixes made (same PR):
+    - An unusable value (null, NaN, Infinity, an object, empty text) shows "value not
+      built yet" and never throws.
+    - Angles keep at least one decimal, and `_pct` is matched as a segment.
+    - A test walks every worked-example key; unitless keys are listed in
+      `format-example.ts`.
+    - Compared sets gain decimals until their values print differently, and comparison
+      words come from the data (`compare.ts`).
+    - KaTeX's trust, `maxSize` (20 em) and `maxExpand` (1000) are tested.
+    - The boxed-number note says "sample values for testing, not real" on fixtures.
+    - Malformed `{{example.…}}` keys show as missing, and the worked example's title is
+      drawn as card text.
+  - The real `data/derived/` has no `academy/worked_examples.json` yet. On real data the
+    card shows every number as "value not built yet", and the browser logs that file's 404.
 
 #### 2026-11-13 · A2 · Academy screens in the picked form and the five step kinds
 - **Who:** Claude Code agent, for the orchestrator

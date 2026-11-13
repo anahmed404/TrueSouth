@@ -1,10 +1,9 @@
 import { MoveHorizontal } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { hasExample, splitPlaceholders, type WorkedExamples } from "../placeholders";
+import { exampleText, splitPlaceholders, type WorkedExamples } from "../placeholders";
 import { FillChip } from "../ui/filled";
-import { formatExample } from "../format-example";
 import type { TexResult } from "./katex-render";
-import { fillTex } from "./tex";
+import { fillTex, type FillOptions } from "./tex";
 
 /** The part of the KaTeX module the card uses. */
 export type TexRenderer = (tex: string, display: boolean) => TexResult;
@@ -61,9 +60,11 @@ type TexProps = {
   display: boolean;
   examples: WorkedExamples;
   katex: KatexState;
-  /** The worked examples are still loading, so a missing key is not missing yet. */
-  pending?: boolean;
+  /** Whether the examples are still loading, and the decimals of compared sets. */
+  fill?: FillOptions;
 };
+
+const NO_FILL: FillOptions = {};
 
 /**
  * One formula. With KaTeX ready it is drawn with MathML beside it for screen readers, and
@@ -71,11 +72,11 @@ type TexProps = {
  * formula fails to parse, the TeX source is shown as text with its placeholders filled.
  * A bad formula never breaks the lesson.
  */
-export function Tex({ tex, display, examples, katex, pending = false }: TexProps) {
+export function Tex({ tex, display, examples, katex, fill = NO_FILL }: TexProps) {
   const result = useMemo(() => {
     if (katex.status !== "ready") return null;
-    return katex.render(fillTex(tex, examples, pending).tex, display);
-  }, [tex, display, examples, katex, pending]);
+    return katex.render(fillTex(tex, examples, fill).tex, display);
+  }, [tex, display, examples, katex, fill]);
 
   if (result?.ok) {
     const Tag = display ? "div" : "span";
@@ -86,11 +87,9 @@ export function Tex({ tex, display, examples, katex, pending = false }: TexProps
     <code className={display ? "ac-tex-src ac-tex-src--block" : "ac-tex-src"} data-state={state}>
       {splitPlaceholders(tex).map((part, index) => {
         if (part.kind === "text") return part.text;
-        const value = examples[part.key];
-        if (!hasExample(examples, part.key) || value === undefined) {
-          return <FillChip key={index} state={pending ? "pending" : "missing"} />;
-        }
-        return <FillChip key={index}>{formatExample(part.key, value)}</FillChip>;
+        const written = exampleText(examples, part.key, fill.precision?.get(part.key));
+        if (written === null) return <FillChip key={index} state={fill.pending ? "pending" : "missing"} />;
+        return <FillChip key={index}>{written}</FillChip>;
       })}
     </code>
   );

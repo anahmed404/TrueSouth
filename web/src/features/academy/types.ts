@@ -150,7 +150,11 @@ export type Lesson = {
  * Text fields marked "card text" may hold:
  * - `$…$` inline maths in TeX (write `\$` for a dollar sign);
  * - `{{example.key}}` placeholders, filled from `worked_examples.json`. A unit written right
- *   after one (`°`, `%`, ` m`, ` km`, ` h`, ` UTC`) is kept with its number;
+ *   after one (`°`, `%`, ` m`, ` km`, ` h`, ` UTC`) is kept with its number. A key that is
+ *   missing, malformed or has no usable value shows a "value not built yet" chip;
+ * - `{{compare:keyA,keyB|less|more|same}}`, a word chosen from the data: `less` when A's
+ *   value is smaller than B's, `more` when larger, `same` when they print the same. A and B
+ *   also become a compared set (see `compare`). A comparison word is never typed;
  * - `[[term]]` or `[[term|label]]`, a glossary term explained by `<Explain>` from
  *   `web/src/lib/explain.ts`. A card never explains a term in its own words;
  * - `` `code` `` for a name in the code.
@@ -206,7 +210,7 @@ export type WorkedRow =
 
 /** A worked example on real data, with every intermediate number as a placeholder. */
 export type WorkedExample = {
-  /** What the example is about, after "A worked example: ". Card text. */
+  /** What the example is about, after "A worked example: ". Card text, drawn in the heading. */
   title: string;
   /** Where and when the numbers come from. Card text. */
   intro: string;
@@ -238,6 +242,12 @@ export type UnderTheHoodCard = {
   inTheCode: readonly [CodeRef, ...CodeRef[]];
   /** 5. What can go wrong: the mistakes this formula invites, one per item. Card text. */
   whatCanGoWrong: readonly [string, ...string[]];
+  /**
+   * Keys whose numbers are compared on the card, each set printed with shared decimals
+   * that grow (up to 4) until unequal values print differently. Pairs named in a
+   * `{{compare:…}}` are added on their own.
+   */
+  compare?: readonly (readonly [string, string, ...string[]])[];
 };
 
 export type Submission =

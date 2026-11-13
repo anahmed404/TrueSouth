@@ -1,14 +1,16 @@
 import { ArrowUpRight } from "lucide-react";
-import { createContext, Fragment, useContext, type ReactNode } from "react";
+import { createContext, Fragment, useContext, useMemo, type ReactNode } from "react";
 import { Explain } from "../../../components/Explain";
 import { isExplainTerm } from "../../../lib/explain";
-import { formatExample } from "../format-example";
-import { hasExample, type WorkedExamples } from "../placeholders";
+import { comparisonWord, precisionFor } from "../compare";
+import { academyDataSource, boxedNumbersNote, type DataSource } from "../data-source";
+import type { Decimals } from "../format-example";
+import { exampleText, hasExample, type WorkedExamples } from "../placeholders";
 import type { CardFormula, FormulaSymbol, UnderTheHoodCard as CardData, WorkedRow } from "../types";
 import { FillChip } from "../ui/filled";
 import { fileName, fileUrl, sectionLabel, sectionUrl } from "./links";
 import { ScrollBox, Tex, useKatex, type KatexState } from "./math";
-import { keysIn, parseProse } from "./prose";
+import { comparedSetsIn, keysIn, parseProse } from "./prose";
 
 type UnderTheHoodCardProps = {
   /** The lesson's card, or undefined when it is not written yet. */
@@ -20,9 +22,44 @@ type UnderTheHoodCardProps = {
   pending?: boolean;
 };
 
-type CardContext = { examples: WorkedExamples; katex: KatexState; pending: boolean };
+type CardContext = {
+  examples: WorkedExamples;
+  katex: KatexState;
+  pending: boolean;
+  /** Whether the numbers are real derived data or test fixtures. */
+  source: DataSource;
+};
 
-const Ctx = createContext<CardContext>({ examples: {}, katex: { status: "loading" }, pending: false });
+type DrawContext = CardContext & {
+  /** Decimals for every key in a compared set. */
+  precision: ReadonlyMap<string, Decimals>;
+};
+
+const Ctx = createContext<DrawContext>({
+  examples: {},
+  katex: { status: "loading" },
+  pending: false,
+  source: "derived",
+  precision: new Map(),
+});
+
+/** Every string in a card, for the checks that run over all of its text. */
+export function cardText(card: CardData): string[] {
+  const walk = (value: unknown): string[] =>
+    typeof value === "string"
+      ? [value]
+      : Array.isArray(value)
+        ? value.flatMap(walk)
+        : value && typeof value === "object"
+          ? Object.values(value).flatMap(walk)
+          : [];
+  return walk(card);
+}
+
+/** The card's compared sets: those it lists, and every pair a `{{compare:…}}` names. */
+export function cardComparedSets(card: CardData): string[][] {
+  return [...(card.compare ?? []).map((set) => [...set]), ...cardText(card).flatMap(comparedSetsIn)];
+}
 
 /**
  * The "Under the hood" card: the five fixed parts of docs/academy/overview.md, with KaTeX
@@ -38,7 +75,7 @@ export function UnderTheHoodCard({ card, examples, title, pending = false }: Und
         <span className="ac-card-free">Never costs XP</span>
       </div>
       {card ? (
-        <CardContent card={card} examples={examples} katex={katex} pending={pending} />
+        <CardContent card={card} examples={examples} katex={katex} pending={pending} source={academyDataSource()} />
       ) : (
         <p>This lesson's card is not written yet.</p>
       )}
@@ -46,23 +83,33 @@ export function UnderTheHoodCard({ card, examples, title, pending = false }: Und
   );
 }
 
-/** The card's five parts, drawn with the given KaTeX state. Tests render it directly. */
+/** The card's five parts, drawn with the given KaTeX state and data source. Tests render it directly. */
 export function CardContent({ card, ...context }: { card: CardData } & CardContext) {
+  const precision = useMemo(() => precisionFor(cardComparedSets(card), context.examples), [card, context.examples]);
   return (
-    <Ctx.Provider value={context}>
+    <Ctx.Provider value={{ ...context, precision }}>
       <CardBody card={card} />
     </Ctx.Provider>
   );
 }
 
+/** One formula or piece of maths, with the card's examples, KaTeX state and precision. */
+function CardTex({ tex, display }: { tex: string; display: boolean }) {
+  const { examples, katex, pending, precision } = useContext(Ctx);
+  const fill = useMemo(() => ({ pending, precision }), [pending, precision]);
+  return <Tex tex={tex} display={display} examples={examples} katex={katex} fill={fill} />;
+}
+
 function CardBody({ card }: { card: CardData }) {
-  const { examples, katex, pending } = useContext(Ctx);
+  const { examples, katex, pending, source } = useContext(Ctx);
   const symbols = uniqueSymbols(card.formulas);
   const exampleKeys = [
+    card.workedExample.title,
     card.workedExample.intro,
     card.workedExample.outro ?? "",
     ...card.workedExample.rows.flatMap((row) => [row.label, "value" in row ? row.value : row.tex]),
   ].flatMap(keysIn);
+  const anyFilled = exampleKeys.some((key) => hasExample(examples, key));
   const anyMissing = !pending && exampleKeys.some((key) => !hasExample(examples, key));
 
   return (
@@ -93,7 +140,7 @@ function CardBody({ card }: { card: CardData }) {
             {symbols.map((symbol) => (
               <div key={symbol.tex} className="ac-symbol">
                 <dt>
-                  <Tex tex={symbol.tex} display={false} examples={examples} katex={katex} pending={pending} />
+                  <CardTex tex={symbol.tex} display={false} />
                 </dt>
                 <dd>
                   <Prose text={symbol.meaning} />
@@ -107,7 +154,9 @@ function CardBody({ card }: { card: CardData }) {
         </>
       ) : null}
 
-      <h3>A worked example: {card.workedExample.title}</h3>
+      <h3>
+        A worked example: <Prose text={card.workedExample.title} />
+      </h3>
       <p>
         <Prose text={card.workedExample.intro} />
       </p>
@@ -124,8 +173,9 @@ function CardBody({ card }: { card: CardData }) {
         </p>
       ) : null}
       <p className="ac-card-note">
-        Numbers in a box are real data, made by running TrueSouth's science code.
-        {anyMissing ? " A dashed box is a number that code has not built yet." : null}
+        {anyFilled ? boxedNumbersNote(source) : null}
+        {anyFilled && anyMissing ? " " : null}
+        {anyMissing ? "A dashed box is a number TrueSouth's pipeline has not built yet." : null}
       </p>
 
       <h3>In the code</h3>
@@ -161,8 +211,7 @@ function CardBody({ card }: { card: CardData }) {
 }
 
 function Formula({ formula }: { formula: CardFormula }) {
-  const { examples, katex, pending } = useContext(Ctx);
-  const tex = <Tex tex={formula.tex} display={formula.display === "block"} examples={examples} katex={katex} pending={pending} />;
+  const tex = <CardTex tex={formula.tex} display={formula.display === "block"} />;
   return (
     <figure className="ac-formula-item" data-display={formula.display}>
       {formula.display === "block" ? (
@@ -193,7 +242,6 @@ function Formula({ formula }: { formula: CardFormula }) {
 }
 
 function Row({ row }: { row: WorkedRow }) {
-  const { examples, katex, pending } = useContext(Ctx);
   if ("tex" in row) {
     return (
       <tr className="ac-we-calc">
@@ -202,7 +250,7 @@ function Row({ row }: { row: WorkedRow }) {
             <Prose text={row.label} />
           </span>
           <ScrollBox label={labelText(row.label)}>
-            <Tex tex={row.tex} display examples={examples} katex={katex} pending={pending} />
+            <CardTex tex={row.tex} display />
           </ScrollBox>
         </td>
       </tr>
@@ -242,9 +290,18 @@ export function uniqueSymbols(formulas: readonly CardFormula[]): FormulaSymbol[]
 
 const warnedTerms = new Set<string>();
 
-/** Card text, drawn: maths, `Fill` chips, glossary terms and code names. */
+/** The larger of two decimals settings, or undefined when neither is given. */
+function widest(a: Decimals | undefined, b: Decimals | undefined): Decimals | undefined {
+  if (!a) return b;
+  if (!b) return a;
+  return a.max >= b.max ? a : b;
+}
+
+const warnedCompares = new Set<string>();
+
+/** Card text, drawn: maths, `Fill` chips, comparison words, glossary terms and code names. */
 export function Prose({ text }: { text: string }): ReactNode {
-  const { examples, katex, pending } = useContext(Ctx);
+  const { examples, pending, precision } = useContext(Ctx);
   return parseProse(text).map((token, index) => {
     switch (token.kind) {
       case "text":
@@ -252,7 +309,7 @@ export function Prose({ text }: { text: string }): ReactNode {
       case "code":
         return <code key={index}>{token.text}</code>;
       case "math":
-        return <Tex key={index} tex={token.tex} display={false} examples={examples} katex={katex} pending={pending} />;
+        return <CardTex key={index} tex={token.tex} display={false} />;
       case "term":
         if (!isExplainTerm(token.term)) {
           if (import.meta.env.DEV && !warnedTerms.has(token.term)) {
@@ -267,16 +324,29 @@ export function Prose({ text }: { text: string }): ReactNode {
           </Explain>
         );
       case "fill": {
-        const value = examples[token.key];
-        if (!hasExample(examples, token.key) || value === undefined) {
-          return <FillChip key={index} state={pending ? "pending" : "missing"} />;
-        }
+        const written = exampleText(examples, token.key, precision.get(token.key));
+        if (written === null) return <FillChip key={index} state={pending ? "pending" : "missing"} />;
         return (
           <FillChip key={index}>
-            {formatExample(token.key, value)}
+            {written}
             {token.unit}
           </FillChip>
         );
+      }
+      case "compare": {
+        const [first, second] = token.keys;
+        const [less, more, same] = token.words;
+        if (token.keys.length !== 2 || token.words.length !== 3 || !first || !second || !less || !more || !same) {
+          if (import.meta.env.DEV && !warnedCompares.has(text)) {
+            warnedCompares.add(text);
+            console.warn(`[Under the hood] A {{compare:…}} needs two keys and three words: ${text}`);
+          }
+          return <FillChip key={index} state="missing" />;
+        }
+        const decimals = widest(precision.get(first), precision.get(second));
+        const word = comparisonWord(examples, first, second, { less, more, same }, decimals);
+        if (word === null) return <FillChip key={index} state={pending ? "pending" : "missing"} />;
+        return <Fragment key={index}>{word}</Fragment>;
       }
     }
   });

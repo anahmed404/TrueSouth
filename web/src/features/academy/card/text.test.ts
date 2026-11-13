@@ -64,6 +64,53 @@ describe("placeholders inside TeX", () => {
   });
 
   it("says loading, not missing, while the examples load", () => {
-    expect(fillTex("{{example.nope}}", {}, true).tex).toContain(PENDING_TEXT);
+    expect(fillTex("{{example.nope}}", {}, { pending: true }).tex).toContain(PENDING_TEXT);
+  });
+
+  it("turns an unusable value (null, NaN, Infinity, an object, empty text) into the missing chip", () => {
+    for (const value of [null, Number.NaN, Number.POSITIVE_INFINITY, { a: 1 }, "", []]) {
+      const filled = fillTex("x = {{example.v_deg}}", { v_deg: value });
+      expect(filled.missing).toEqual(["v_deg"]);
+      expect(filled.tex).toContain(MISSING_TEXT);
+    }
+  });
+
+  it("turns a malformed key into the missing chip, and leaves other braces alone", () => {
+    const filled = fillTex(String.raw`a = {{example.l.bad-key}} + {{example.}} + \frac{{a}}{2}`, { "l.bad-key": 1 });
+    expect(filled.missing).toEqual(["l.bad-key", ""]);
+    expect(filled.tex).not.toContain("{{example");
+    expect(filled.tex).toContain(String.raw`\frac{{a}}{2}`);
+  });
+
+  it("uses a compared set's decimals", () => {
+    const precision = new Map([["l3.example_el_true_deg", { min: 1, max: 3 }]]);
+    expect(fillTex("{{example.l3.example_el_true_deg}}", { "l3.example_el_true_deg": 1.8612 }, { precision }).tex).toBe(
+      String.raw`\htmlClass{ac-fill}{1.861}`,
+    );
+  });
+});
+
+describe("malformed placeholders and comparisons in card text", () => {
+  it("makes anything shaped like {{example.…}} a placeholder, so it never leaks", () => {
+    expect(parseProse("A {{example.l.bad-key}}° B")).toEqual([
+      { kind: "text", text: "A " },
+      { kind: "fill", key: "l.bad-key", unit: "°" },
+      { kind: "text", text: " B" },
+    ]);
+  });
+
+  it("leaves a literal {{ that is not that shape as text", () => {
+    expect(parseProse("Write {{x}} or {{ example.a }} or {{example.a}")).toEqual([
+      { kind: "text", text: "Write {{x}} or {{ example.a }} or {{example.a}" },
+    ]);
+  });
+
+  it("reads a comparison's two keys and three words", () => {
+    expect(parseProse("looks {{compare:a_deg, b_deg|lower than|higher than|as high as}} on")).toEqual([
+      { kind: "text", text: "looks " },
+      { kind: "compare", keys: ["a_deg", "b_deg"], words: ["lower than", "higher than", "as high as"] },
+      { kind: "text", text: " on" },
+    ]);
+    expect(keysIn("{{compare:a_deg,b_deg|x|y|z}} {{example.c}}")).toEqual(["a_deg", "b_deg", "c"]);
   });
 });
