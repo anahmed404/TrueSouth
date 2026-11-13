@@ -16,15 +16,17 @@ import { formatLimit } from "./rules";
 import { useScenario, useScenarioStore } from "./scenario-context";
 
 /**
- * The Mission Control top bar: brand, mode switch, the profile picker, the landing-date
- * picker and Share. It reads only the profile and the landing date from the scenario, so
+ * The Mission Control app bar: four floating blocks over the scene (brand and mode switch,
+ * the profile picker, the landing-date picker, Share). It reads only the profile and the landing date from the scenario, so
  * moving the current time does not re-render it.
  */
 export const TopBar = memo(function TopBar() {
   return (
     <header className="shell-top">
-      <BrandMark />
-      <ModeSwitch current="mission" />
+      <div className="appbar-block appbar-brand">
+        <BrandMark />
+        <ModeSwitch current="mission" />
+      </div>
       <div className="shell-top-spacer" />
       <ProfilePicker />
       <LandingDatePicker />
@@ -213,7 +215,7 @@ function ShareButton() {
         onClick={copy}
         aria-label="Share: copy a link to this scenario"
       >
-        {state === "copied" ? "Copied" : "Share"}
+        <span className="share-word">{state === "copied" ? "Copied" : "Share"}</span>
       </Button>
       <span className="sr-only" role="status">
         {state === "copied" ? "Link copied." : state === "failed" ? "Could not copy. The link is in the address bar." : ""}

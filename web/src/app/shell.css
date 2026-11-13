@@ -1,6 +1,6 @@
 /*
   The Mission Control shell and the start screen (direction C2). Tokens only.
-  Layout reference: design/variants/mission-shell/c2/index.html and DESIGN.md "Layout".
+  Layout reference: design/variants/space-first/ (the approved prototype) and DESIGN.md "Layout".
 */
 
 /* Imported here, inside theme.css's graph, so it lands after Tailwind's layer order. */
@@ -32,55 +32,362 @@
     fill: var(--ink-3);
   }
 
-  /* ── Shell grid: docked, nothing floats over the main view ───────────────── */
-  .shell {
+  /* ── The floating layout: the scene behind, the interface above ─────────── */
+  /*
+    One grid over the whole window. The scene slot is fixed behind it; every other child
+    floats with a --float-gap margin. The empty row in the middle is the free space the scene
+    reads (free-space.ts). Rows: app bar, view bar, sentence, free space, foot stack,
+    timeline, footer line. Columns: sites rail, the middle, focused-site panel.
+    DESIGN.md, "Layout"; docs/features/mission-control.md, "Layout".
+  */
+  .mc {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
     display: grid;
-    height: 100dvh;
-    min-height: 640px;
-    min-width: 1024px;
-    padding: 0 var(--gutter);
-    column-gap: var(--gutter);
-    row-gap: var(--gutter);
-    /* The strip takes its own height: open, folded to one row, or with the clearance chart. */
-    grid-template-rows: 44px minmax(0, 1fr) auto 20px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows:
+      [appbar] auto [vbar] auto [sentence] auto [gap] minmax(0, 1fr)
+      [foot] auto [timeline] auto [footer] auto;
+    column-gap: var(--float-gap);
+    padding: 12px var(--float-gap) 6px;
     overflow: hidden;
-    transition: grid-template-columns var(--dur-panel) var(--ease-out);
+    background: var(--space);
+    pointer-events: none;
   }
 
+  .mc > * {
+    position: relative;
+    z-index: 1;
+    pointer-events: auto;
+  }
+
+  /* Floating panels take the firmer Control Edge border: the scene needs it. */
+  .mc .panel {
+    border-color: var(--line-strong);
+  }
+
+  .mc > .scene-slot {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+  }
+
+  /* ── App bar: four floating blocks ─────────────────────────────────────── */
   .shell-top {
+    grid-row: appbar;
     grid-column: 1 / -1;
-    grid-row: 1;
     display: flex;
-    align-items: center;
-    gap: var(--s3);
-    padding: var(--s2) var(--s1) 0;
+    align-items: stretch;
+    gap: var(--s2);
+    height: 44px;
+    pointer-events: none;
+  }
+
+  .shell-top > * {
+    pointer-events: auto;
   }
 
   .shell-top-spacer {
     flex: 1;
+    pointer-events: none;
+  }
+
+  .appbar-block,
+  .shell-top .field,
+  .shell-top .share-button {
+    height: 44px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-lg);
+    background: var(--surface);
+  }
+
+  .appbar-block {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    padding: 6px 6px 6px 12px;
+  }
+
+  .shell-top .field {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .shell-top .share-button {
+    padding: 0 14px;
+    font-size: var(--t-md);
+  }
+
+  .shell-top .share-button:hover {
+    background: var(--hover);
+  }
+
+  /* Below 1,200 px the four blocks only fit with the wordmark and Share's word hidden. */
+  @media (max-width: 1199px) {
+    .shell-top .brand > span,
+    .shell-top .share-button .share-word {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .shell-top .share-button {
+      width: 44px;
+      padding: 0;
+      justify-content: center;
+    }
+  }
+
+  /* ── View bar and the view's sentence ───────────────────────────────────── */
+  .view-bar {
+    grid-row: vbar;
+    grid-column: 2;
+    justify-self: center;
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    max-width: 100%;
+    height: 44px;
+    margin-top: var(--float-gap);
+    padding: 4px;
+  }
+
+  .view-bar-item {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: var(--r-md);
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: var(--t-md);
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
+  }
+
+  .view-bar-item:hover {
+    background: var(--raised);
+    color: var(--ink);
+  }
+
+  .view-bar-item[aria-current="true"] {
+    background: var(--raised);
+    color: var(--ink);
+  }
+
+  .view-bar-item[aria-current="true"]::after {
+    content: "";
+    position: absolute;
+    right: 12px;
+    bottom: 3px;
+    left: 12px;
+    height: 2px;
+    border-radius: var(--r-sm);
+    background: var(--accent);
+  }
+
+  .view-bar-item[aria-expanded="true"] {
+    background: var(--hover);
+    color: var(--ink);
+  }
+
+  .view-bar-icon {
+    flex: none;
+    color: var(--ink-3);
+  }
+
+  .view-bar-rule {
+    flex: none;
+    align-self: center;
+    width: 1px;
+    height: 20px;
+    margin: 0 4px;
+    background: var(--line-strong);
+  }
+
+  .view-sentence-stack {
+    grid-row: sentence;
+    grid-column: 2;
+    justify-self: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--s2);
+    max-width: 100%;
+    margin-top: var(--s2);
+  }
+
+  .view-sentence {
+    max-width: 72ch;
+    margin: 0;
+    padding: 7px 14px 8px;
+    border-radius: var(--r-md);
+    color: var(--ink);
+    font-size: var(--t-lg);
+    line-height: 1.45;
+    text-align: center;
+    text-wrap: pretty;
+  }
+
+  .view-sentence .explain-button {
+    vertical-align: -3px;
+  }
+
+  /* A plate: the backing behind text drawn over the scene (DESIGN.md, "The scene"). */
+  .plate {
+    background: var(--plate);
+  }
+
+  /* Over the scene only Ink and Ink 2 are used, never Ink 3, so the info icons go up a step. */
+  .plate .explain-button {
+    color: var(--ink-2);
+  }
+
+  .view-sentence-stack .notices {
+    margin: 0;
+  }
+
+  /* Too narrow between the side panels: the bar and sentence sit above them instead. */
+  .mc[data-top="span"] .view-bar,
+  .mc[data-top="span"] .view-sentence-stack {
+    grid-column: 1 / -1;
+  }
+
+  /* ── Side panels: placement and folding ─────────────────────────────────── */
+  .shell-rail,
+  .shell-focus {
+    grid-row: vbar / timeline;
+    align-self: start;
+    max-height: calc(100% - 2 * var(--float-gap));
+    margin-top: var(--float-gap);
+    transition: width var(--dur-panel) var(--ease-out);
+  }
+
+  .mc[data-top="span"] .shell-rail,
+  .mc[data-top="span"] .shell-focus {
+    grid-row: gap / timeline;
   }
 
   .shell-rail {
     grid-column: 1;
-    grid-row: 2;
-  }
-
-  .shell-main {
-    grid-column: 2;
-    grid-row: 2;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    width: var(--shell-rail);
   }
 
   .shell-focus {
     grid-column: 3;
-    grid-row: 2;
+    width: var(--shell-focus);
   }
 
+  .shell-rail[data-collapsed="true"],
+  .shell-focus[data-collapsed="true"] {
+    width: var(--shell-slim);
+  }
+
+  /* ── The foot of the free space: the "Why is it dark?" card ─────────────── */
+  .mc-foot-stack {
+    grid-row: foot;
+    grid-column: 2;
+    justify-self: center;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    container-type: inline-size;
+  }
+
+  .mc-foot-stack[hidden] {
+    display: none;
+  }
+
+  /* One plate: the short reason for the Sun and for Earth, and "Why?". */
+  .why-line {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    max-width: 100%;
+    margin-bottom: var(--float-gap);
+    padding: 4px 4px 4px 12px;
+    border-radius: var(--r-md);
+  }
+
+  .why-line-text {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    min-width: 0;
+    margin: 0;
+    color: var(--ink);
+    font-size: var(--t-md);
+    line-height: 1.4;
+  }
+
+  .why-line-reason {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .why-line-words {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .why-line-reason > .body-icon,
+  .why-line-reason > svg {
+    flex: none;
+  }
+
+  .why-line-sep {
+    flex: none;
+    width: 1px;
+    height: 14px;
+    margin-right: 6px;
+    background: var(--line-strong);
+  }
+
+  .why-line-more {
+    flex: none;
+  }
+
+  /* Too narrow for both reasons on one line: the Sun's (or the first) only; "Why?" has both. */
+  @container (max-width: 640px) {
+    .why-line-reason + .why-line-reason {
+      display: none;
+    }
+  }
+
+  /* The full card, opened from "Why?". */
+  .why-pop {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--s2);
+    padding: var(--s2);
+  }
+
+  .why-pop > .why {
+    align-self: stretch;
+    border: 0;
+  }
+
+  /* ── Timeline strip ─────────────────────────────────────────────────────── */
   .shell-strip {
+    grid-row: timeline;
     grid-column: 1 / -1;
-    grid-row: 3;
     display: grid;
     grid-template-columns: minmax(0, 1fr) 384px;
     gap: var(--s4);
@@ -101,20 +408,147 @@
     min-height: 0;
   }
 
-  .shell-foot {
+  /* ── Footer line ────────────────────────────────────────────────────────── */
+  .mc-foot {
+    grid-row: footer;
     grid-column: 1 / -1;
-    grid-row: 4;
-    position: relative;
     display: flex;
-    align-items: flex-start;
     justify-content: center;
-    color: var(--ink-3);
-    font-size: var(--t-sm);
-    line-height: 1.2;
+    margin-top: 10px;
+    pointer-events: none;
   }
 
-  .shell-foot p {
+  .mc-foot p {
     margin: 0;
+    padding: 1px 10px;
+    border-radius: var(--r-pill);
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+    line-height: 18px;
+    pointer-events: auto;
+  }
+
+  /* ── Floating windows: Slip Planner and Compare ─────────────────────────── */
+  .floating-window {
+    grid-row: sentence / timeline;
+    grid-column: 1 / -1;
+    justify-self: center;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    width: min(1120px, 100%);
+    min-height: 0;
+    margin: var(--s2) 0 var(--float-gap);
+    box-shadow: var(--shadow-popover);
+    animation: window-rise 180ms var(--ease-out);
+  }
+
+  /* With room between the open side panels, the window sits inside the free space. */
+  .mc[data-window-place="between"] .floating-window {
+    grid-row: gap / timeline;
+    grid-column: 2;
+  }
+
+  /* The window takes focus on open so it is read out; its controls show the focus ring. */
+  .floating-window:focus {
+    outline: none;
+  }
+
+  @keyframes window-rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+
+  .floating-window-head {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s3);
+    padding: var(--s4) var(--s3) var(--s3) var(--s4);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .floating-window-titles {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .floating-window-title {
+    margin: 0;
+    font-size: var(--t-xl);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .floating-window-description {
+    max-width: 72ch;
+    margin: 4px 0 0;
+    color: var(--ink);
+    font-size: var(--t-lg);
+    line-height: 1.45;
+  }
+
+  .floating-window-close {
+    flex: none;
+  }
+
+  .floating-window-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    padding: var(--s3) var(--s4) var(--s4);
+    overflow: auto;
+  }
+
+  /* ── The scene slot ─────────────────────────────────────────────────────── */
+  .scene-slot {
+    background: var(--space);
+  }
+
+  .scene-still {
+    position: absolute;
+    inset: 0;
+    background: var(--space);
+  }
+
+  .scene-plate {
+    position: absolute;
+    width: max-content;
+    margin: 0;
+    padding: 6px 12px 7px;
+    border-radius: var(--r-md);
+    color: var(--ink-2);
+    font-size: var(--t-md);
+    line-height: 1.45;
+    text-align: center;
+    transform: translateX(-50%);
+  }
+
+  .scene-placeholder {
+    transform: translate(-50%, -50%);
+  }
+
+  .scene-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s2) var(--s3);
+    color: var(--ink);
+  }
+
+  .scene-note p {
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  /* Reduced motion: windows appear at once, and panels fold at once (--dur-panel is 0). */
+  @media (prefers-reduced-motion: reduce) {
+    .floating-window {
+      animation: none;
+    }
   }
 
   /* ── Side panels: shared ────────────────────────────────────────────────── */
@@ -140,6 +574,18 @@
     border-radius: var(--r-md);
     background: transparent;
     transition: background-color var(--dur-fast) var(--ease-out);
+  }
+
+  /* "Add site" at the foot of the folded rail: a 44 px plus. */
+  .rail-add-compact {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin-top: var(--s1);
+    padding: 0;
+    border-radius: var(--r-md);
+    color: var(--ink-2);
   }
 
   .rail-lamp:hover {
@@ -290,66 +736,6 @@
     border-style: dashed;
     border-color: var(--line-strong);
     font-weight: 400;
-  }
-
-  /* ── Main view ──────────────────────────────────────────────────────────── */
-  .view-body {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    gap: var(--s3);
-    /* Never shorter than its sentence and the stage's minimum, so nothing overlaps them. */
-    min-height: min-content;
-    padding: var(--s4) var(--s4) var(--s4);
-  }
-
-  .view-what {
-    max-width: 72ch;
-    margin: 0;
-    color: var(--ink);
-    font-size: var(--t-lg);
-    line-height: 1.45;
-    text-wrap: pretty;
-  }
-
-  .view-what .explain-button {
-    vertical-align: -3px;
-  }
-
-  .shell-main {
-    /* The least height the open view keeps, whatever is docked under it. */
-    --view-stage-min: 120px;
-    /* On a window too short for the tabs, the view at its least height and one row of the
-       card under it, the main view scrolls: nothing is squeezed, clipped or overlapped. */
-    overflow-y: auto;
-  }
-
-  .shell-main > :not(.view-why) {
-    flex-shrink: 0;
-  }
-
-  .view-stage {
-    display: flex;
-    flex: 1;
-    min-height: var(--view-stage-min);
-  }
-
-  /*
-    The "Why is it dark?" card, docked under the view in its own column. It gives way
-    first: at most 40 % of the main view, and when even that does not fit, it scrolls
-    inside itself rather than squeezing the view.
-  */
-  .view-why {
-    flex: 0 1 auto;
-    /* Always at least the card's first row. */
-    min-height: 64px;
-    max-height: 40%;
-    overflow-y: auto;
-    padding: 0 var(--s4) var(--s4);
-  }
-
-  .view-why:empty {
-    display: none;
   }
 
   /* ── Focused-site panel ─────────────────────────────────────────────────── */
@@ -1458,57 +1844,233 @@
     font-size: var(--t-sm);
   }
 
-  /* ── Phone: the panels stack and the page scrolls ───────────────────────── */
+  /* ── The folded focused-site rail: lamp, then name and verdict down the rail ── */
+  .rail-verdict {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--s2);
+    width: 36px;
+    height: auto;
+    padding: 10px 0;
+  }
+
+  .rail-vline {
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+    line-height: 1.2;
+    white-space: nowrap;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+  }
+
+  .rail-vline b {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* ── The phone's focused-site sheet ─────────────────────────────────────── */
+  .focus-sheet .sheet-head {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    padding: var(--s2) var(--s2) var(--s2) var(--s3);
+  }
+
+  .focus-sheet[data-collapsed="false"] .sheet-head {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .sheet-title {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .focus-sheet .focus-name {
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--t-lg);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sheet-summary {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    min-width: 0;
+    margin: 2px 0 0;
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+    white-space: nowrap;
+  }
+
+  .sheet-fact {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .focus-sheet .focus-full {
+    min-width: 0;
+  }
+
+  /* ── Phone: one column over the scene ───────────────────────────────────── */
   @media (max-width: 760px) {
-    .shell {
-      display: flex;
-      flex-direction: column;
-      height: auto;
-      min-height: 100dvh;
-      min-width: 0;
-      padding: 0 var(--s3) var(--s3);
-      overflow: visible;
+    .mc {
+      --float-gap: 8px;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows:
+        [appbar] auto [vbar] auto [sentence] auto [gap] minmax(0, 1fr)
+        [foot] auto [sites] auto [focus] auto [timeline] auto [footer] auto;
+      column-gap: 0;
+      padding: var(--float-gap) var(--float-gap) 4px;
     }
 
-    .shell-top {
-      flex-wrap: wrap;
-      row-gap: var(--s2);
-      padding: var(--s3) 0 0;
+    .mc > * {
+      grid-column: 1 !important;
     }
 
+    /* App bar: the brand's mark, the landing date and Share. */
+    .shell-top .seg,
+    .shell-top .field-profile,
+    .shell-top .field-rule,
+    .shell-top .field-slip,
+    .shell-top .field-label,
+    .shell-top .brand > span,
     .shell-top-spacer {
       display: none;
     }
 
-    .shell-top .seg {
-      margin-left: auto;
+    .appbar-block {
+      padding: 0;
     }
 
-    .shell-top .field-profile,
-    .shell-top .field[role="group"] {
-      flex: 1 1 100%;
-      max-width: none;
-      height: auto;
-      min-height: 48px;
+    .shell-top .brand {
+      justify-content: center;
+      width: 44px;
+      height: 42px;
     }
 
     .shell-top .field[role="group"] {
-      flex-wrap: wrap;
-      padding: 2px 4px;
-    }
-
-    .shell-top .field-rule {
-      flex-basis: 100%;
-      height: 0;
-      margin: 0;
+      flex: 1;
+      justify-content: space-between;
+      min-width: 0;
+      padding: 0 2px;
     }
 
     .shell-top .field-date {
-      flex: 1;
+      min-width: 0;
     }
 
-    .shell-top .field-slip {
-      flex: 1;
+    .shell-top .share-button {
+      width: 44px;
+      min-width: 0;
+      padding: 0;
+      justify-content: center;
+    }
+
+    .shell-top .share-button .share-word,
+    .shell-top .share-failed {
+      display: none;
+    }
+
+    /* The view bar scrolls sideways; every tab is 44 px tall. */
+    .view-bar {
+      justify-self: stretch;
+      height: 52px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .view-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .view-bar-item {
+      min-height: 44px;
+    }
+
+    .view-sentence {
+      padding: 6px 10px;
+      font-size: var(--t-md);
+    }
+
+    .mc-foot-stack {
+      display: none;
+    }
+
+    /* The sites rail is a sheet, opened by "Sites"; the focused site is a one-line sheet. */
+    .shell-rail,
+    .shell-focus,
+    .mc[data-top="span"] .shell-rail,
+    .mc[data-top="span"] .shell-focus {
+      align-self: end;
+      width: auto;
+      margin: 0 0 var(--float-gap);
+    }
+
+    /* An open sheet rises over the free space, and the free space reads it as a cover. */
+    .shell-rail,
+    .mc[data-top="span"] .shell-rail {
+      grid-row: gap / focus;
+      display: none;
+      max-height: calc(100% - 2 * var(--float-gap));
+    }
+
+    .mc[data-sites-sheet="open"] .shell-rail {
+      display: flex;
+    }
+
+    .shell-focus,
+    .mc[data-top="span"] .shell-focus {
+      grid-row: focus;
+      max-height: none;
+    }
+
+    .mc[data-sites-sheet="open"] .shell-rail,
+    .mc .shell-focus[data-collapsed="false"] {
+      margin-top: var(--float-gap);
+    }
+
+    .mc .shell-focus[data-collapsed="false"] {
+      grid-row: gap / timeline;
+      max-height: calc(100% - 2 * var(--float-gap));
+    }
+
+    .shell-focus[data-collapsed="true"] {
+      width: auto;
+    }
+
+    .rail-full {
+      min-width: 0;
+    }
+
+    /* The timeline is the compact strip. */
+    .shell-strip,
+    .shell-strip[data-folded="true"] {
+      grid-template-columns: minmax(0, 1fr);
+      min-height: 0;
+      padding: var(--s2) var(--s3);
+    }
+
+    .mc-foot {
+      margin-top: 4px;
+    }
+
+    .mc-foot p {
+      border-radius: var(--r-md);
+      text-align: center;
+      white-space: normal;
+    }
+
+    /* A floating window fills the screen. */
+    .floating-window {
+      position: fixed;
+      inset: var(--float-gap);
+      z-index: 5;
+      width: auto;
+      margin: 0;
     }
 
     .brand,
@@ -1516,78 +2078,13 @@
       min-height: 44px;
     }
 
-    .shell-top .share {
-      flex: 1 1 100%;
-    }
-
-    .shell-top .share-button {
-      width: 100%;
-    }
-
-    .shell-rail,
-    .shell-focus {
-      overflow: visible;
-    }
-
-    .rail-full,
-    .focus-full,
-    .focus-name,
-    .focus-coords {
-      min-width: 0;
-    }
-
-    [data-collapsed="true"] .rail-head,
-    [data-collapsed="true"] .focus-head {
-      justify-content: flex-start;
-      padding: var(--s2) var(--s2) var(--s1) var(--s4);
-    }
-
-    [data-collapsed="true"] .rail-body,
-    [data-collapsed="true"] .focus-body {
-      align-items: flex-start;
-      padding: 0 var(--s3) var(--s2);
-    }
-
-    [data-collapsed="true"] .rail-lamps {
-      flex-flow: row wrap;
-      padding: 0;
-    }
-
-    .shell-main {
-      min-height: 480px;
-    }
-
-    .shell-strip {
-      grid-template-columns: minmax(0, 1fr);
-      padding: var(--s3);
-    }
-
-    .shell-foot {
-      padding: var(--s2) 0;
-      text-align: center;
-    }
-
-    /* The top bar's provenance tag keeps its look; its touch target grows to 44 px. */
-    .shell-top .tag {
-      position: relative;
-    }
-
-    .shell-top .tag::after {
-      content: "";
-      position: absolute;
-      inset: 50% auto auto 50%;
-      width: max(100%, 44px);
-      height: 44px;
-      transform: translate(-50%, -50%);
-    }
-
     /* Every control at least 44 px on a touch screen. */
-    .shell .btn,
-    .shell .seg-option,
-    .shell .site-handle,
-    .shell .rail-lamp,
-    .shell .field-date,
-    .shell .field-trigger,
+    .mc .btn,
+    .mc .seg-option,
+    .mc .site-handle,
+    .mc .rail-lamp,
+    .mc .field-date,
+    .mc .field-trigger,
     .popover .btn,
     .popover .seg-option,
     .popover .pe-reset,
@@ -1596,13 +2093,13 @@
       min-height: 44px;
     }
 
-    .shell .btn-icon,
-    .shell .site-handle,
-    .shell .rail-lamp {
+    .mc .btn-icon,
+    .mc .site-handle,
+    .mc .rail-lamp {
       min-width: 44px;
     }
 
-    .shell .site-row,
+    .mc .site-row,
     .popover .pe-preset,
     .popover .pick-site {
       min-height: 48px;
@@ -1621,11 +2118,20 @@
       position: relative;
     }
 
-    .explain-button::after,
-    .tag::after {
+    .explain-button::after {
       position: absolute;
       inset: -13px;
       content: "";
+    }
+
+    /* Every provenance tag keeps its look; its touch target is 44 px whatever its size. */
+    .tag::after {
+      content: "";
+      position: absolute;
+      inset: 50% auto auto 50%;
+      width: max(100%, 44px);
+      height: 44px;
+      transform: translate(-50%, -50%);
     }
   }
 
