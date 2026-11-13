@@ -90,9 +90,12 @@ per track. Tracks are split where they wrap past the view's edge.
 
 ## The "Why is it dark?" card
 
-The card sits at the foot of the floating panel, under the chart, in this view. Its text,
-its wording and its data are in [`site-detail.md`](site-detail.md). It says "Lit." plus the
-share of the Sun's disc above the skyline when the Sun is up.
+In this view the card sits at the foot of the floating panel, under the chart, folded to the
+one-line plate the other views use: the short reason for the Sun and for Earth, and a "Why?"
+button that opens the full card. On a lit, linked hour it shows the card's lit line instead.
+Its text, its wording and its data are in [`site-detail.md`](site-detail.md): the lit line
+says "Lit and linked." plus, when the series' Sun disc fraction is below 1, the share of the
+Sun's disc above the skyline.
 
 ## States
 
