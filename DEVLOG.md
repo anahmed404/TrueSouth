@@ -597,7 +597,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   shell's popover, CSV formula injection, the variant's "not ranked" sentence, the shared
   site wording and rounding, rendered-panel tests, the summary and Sun-at-landing edges, the
   CSV's precision note, and custom sites. A human has not reviewed it yet
-- **State:** built, not verified (the review fixes await the re-review)
+- **State:** verified (2,091 web tests, typecheck and build pass on the merge with main (the orchestrator's run), and 425 Python tests (the builder's run); reviewed by Gemini, which checked every cell against the focused-site panel and a direct evaluation on real data, parsed both exports and checked the NASA links' projection; eight findings fixed with tests (the Share fallback is no longer covered and Escape closes only it; CSV text cells that begin like a formula are neutralised; the best-lit point's missing mark is explained; ranges round outward); not yet tried by the team lead)
 - **Changed:** `web/src/features/mission-control/compare/` (model, table, exports, tests),
   `web/src/features/mission-control/share/` (new: Share button, link, NASA links, tests),
   `web/src/lib/export/` (new: CSV writer and reader, with the formula guard),
