@@ -319,7 +319,8 @@ export function metricRows(columns: readonly ColumnView[], profile: MissionProfi
   return rows;
 }
 
-function rowLimit(row: MetricRow, profile: MissionProfile): number | null {
+/** The limit a row is measured against, for scaling its spread; null when it has none. */
+export function rowLimit(row: Pick<MetricRow, "id">, profile: MissionProfile): number | null {
   switch (row.id) {
     case "dark":
       return profile.max_dark_h;
@@ -327,6 +328,11 @@ function rowLimit(row: MetricRow, profile: MissionProfile): number | null {
       return profile.relay_available ? null : profile.max_blackout_h;
     case "slope":
       return profile.max_slope_deg;
+    case "landing_sun": {
+      // The profile's landing-Sun window (degrees), when it sets one: the larger bound.
+      const bounds = [profile.landing_sun_el_min_deg, profile.landing_sun_el_max_deg].filter((v): v is number => v !== null);
+      return bounds.length > 0 ? Math.max(...bounds.map(Math.abs)) : null;
+    }
     default:
       return null;
   }
@@ -426,6 +432,10 @@ export function summarySentence(columns: readonly ColumnView[], profile: Mission
   if (columns.some((c) => c.status.kind === "loading")) return `${lead}: loading the sites' data…`;
 
   const ready = columns.filter((c) => c.evaluation !== null);
+  // "every", "both" and "all" only when every column has a result.
+  const complete = ready.length === columns.length;
+  const allOf = (n: number) =>
+    complete ? (n === 2 ? "both sites" : `all ${count(n)} sites`) : `the ${count(n)} sites with a result`;
   const failed = columns.filter((c) => c.status.kind === "error");
   const none = columns.filter((c) => c.status.kind === "none");
   const tail: string[] = [];
@@ -450,19 +460,25 @@ export function summarySentence(columns: readonly ColumnView[], profile: Mission
   if (go.length === 1) {
     sentences.push(`${lead}, ${(go[0] as ColumnView).name} is the only GO site.`);
   } else if (go.length > 1) {
-    const all = go.length === ready.length ? (ready.length === 2 ? "both sites" : `all ${count(ready.length)} sites`) : nameList(go.map((c) => c.name));
+    const all = go.length === ready.length ? allOf(ready.length) : nameList(go.map((c) => c.name));
     sentences.push(`${lead}, ${all} are GO.`);
     sentences.push(scoreLeader(go));
   } else if (caution.length > 0) {
     const names = nameList(caution.map((c) => c.name));
     sentences.push(
-      caution.length === ready.length
-        ? `${lead}, no site is GO; ${caution.length === 2 ? "both" : `all ${count(caution.length)}`} are CAUTION.`
+      caution.length === ready.length && caution.length > 1
+        ? `${lead}, no site is GO; ${allOf(caution.length).replace(/ sites$/, "")} are CAUTION.`
         : `${lead}, no site is GO; ${names} ${caution.length === 1 ? "is" : "are"} CAUTION.`,
     );
     if (caution.length > 1) sentences.push(scoreLeader(caution));
   } else {
-    sentences.push(`${lead}, every site is NO-GO.`);
+    sentences.push(
+      complete
+        ? `${lead}, every site is NO-GO.`
+        : ready.length === 1
+          ? `${lead}, the only site with a result is NO-GO.`
+          : `${lead}, ${allOf(ready.length)} are NO-GO.`,
+    );
   }
 
   if (go.length > 0 && caution.length > 0) {

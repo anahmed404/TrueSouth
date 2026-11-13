@@ -17,6 +17,7 @@ import { COMPARE_CSV_HEADER, compareCsv, compareFileName, scenarioFileName, scen
 import {
   MAP_CENTRE_NOTE,
   nameList,
+  rowLimit,
   TOO_FEW_SITES,
   compareColumn,
   metricRows,
@@ -153,6 +154,18 @@ describe("best marks", () => {
   });
 });
 
+describe("the Sun-at-landing row's limit", () => {
+  it("shows the profile's landing-Sun window and scales the row by it", () => {
+    const windowed = { ...athena, landing_sun_el_min_deg: 6, landing_sun_el_max_deg: 9 };
+    const cols = columns([["a", ready(evaluation())], ["b", ready(evaluation())]], windowed);
+    const row = metricRows(cols, windowed).find((r) => r.id === "landing_sun")!;
+    expect(plain(row.limitText)).toBe("at least 6°, at most 9°, and lit");
+    expect(rowLimit({ id: "landing_sun" }, windowed)).toBe(9);
+    expect(rowLimit({ id: "landing_sun" }, { ...athena, landing_sun_el_min_deg: -2, landing_sun_el_max_deg: null })).toBe(2);
+    expect(rowLimit({ id: "landing_sun" }, { ...athena, landing_sun_el_min_deg: null, landing_sun_el_max_deg: null })).toBeNull();
+  });
+});
+
 describe("site notes", () => {
   const cols = columns([
     ["peak", ready(evaluation())],
@@ -237,6 +250,19 @@ describe("the summary sentence", () => {
     expect(say([["a", go(90)], ["b", go(90.5)], ["c", go(70)], ["d", blackout]])).toBe(
       `${lead}, Alpha, Bravo and Charlie are GO. Alpha and Bravo tie for the highest score, 90 of 100. Delta fails on a 31 h blackout (limit ${athena.max_blackout_h} h).`,
     );
+  });
+
+  it("says 'every', 'both' or 'all' only when every site has a result", () => {
+    const failed: SiteStatus = { kind: "error", message: "404" };
+    expect(say([["a", blackout], ["b", dark], ["c", dark], ["d", failed]])).toBe(
+      `${lead}, the three sites with a result are NO-GO. Delta could not be loaded.`,
+    );
+    expect(say([["a", blackout], ["b", failed]])).toBe(
+      `${lead}, the only site with a result is NO-GO. Alpha fails on a 31 h blackout (limit ${athena.max_blackout_h} h). Bravo could not be loaded.`,
+    );
+    expect(say([["a", go(90)], ["b", go(70)], ["c", { kind: "none" }]])).toContain(`${lead}, the two sites with a result are GO.`);
+    expect(say([["a", caution(55)], ["b", caution(60)], ["c", failed]])).toContain(`${lead}, no site is GO; the two sites with a result are CAUTION.`);
+    expect(say([["a", caution(55)], ["b", caution(60)]])).toContain(`${lead}, no site is GO; both are CAUTION.`);
   });
 
   it("splits names that hold a comma with semicolons", () => {
