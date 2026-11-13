@@ -19,6 +19,7 @@ import {
   formatBearing,
   formatDistance,
   formatHeight,
+  litShare,
   shortReason,
   wordExplanation,
   type BodyNow,
@@ -94,7 +95,7 @@ function SiteWhyDarkCard({ siteId, scenario, hideWhenLit }: { siteId: string; sc
       <section className="why why-ok" aria-label="Sunlight now">
         <BodyIcon body="sun" />
         <p>
-          <span className="why-ok-word">Lit and linked.</span> {words.text}
+          <span className="why-ok-word">Lit and linked.</span> {litShare(why.sun.now.frac) ?? words.text}
         </p>
       </section>
     );

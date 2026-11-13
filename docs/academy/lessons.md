@@ -5,14 +5,18 @@ The Academy's content, step by step. Mechanics and step types are in
 
 - Each lesson is about five steps and about 90 seconds.
 - **Bold** marks the correct answer.
-- `{{…}}` marks a number filled from `worked_examples.json`. Numbers written out here are
-  design values from our first Horizons run (Connecting Ridge, December 2026, smooth
-  Moon); the build replaces them with values for the story's site and dates.
+- `{{…}}` marks a number filled from `worked_examples.json`. In lessons 1 to 4 every
+  value that has a key is written as its placeholder, so the words stay true if the data
+  is rebuilt. Numbers still written out there are teaching examples (a 5 km mountain, a
+  1,000 m ridge) or the tilt rule of thumb in lesson 1, and are not read from the data.
+  Numbers written out in lessons 5 to 8 are design values from our first Horizons run
+  (Connecting Ridge, December 2026, smooth Moon); they are replaced when those lessons are
+  written.
 - "Card" lists what the lesson's Under-the-hood card covers, by section of
   [`../science.md`](../science.md).
 
 Story scenario for every lesson unless stated: Pip, profile `im2_athena`, at Connecting
-Ridge, in 2028.
+Ridge, in 2028. Lesson 2 states its exception: Pip looks from `{{l2.site_name}}`.
 
 ---
 
@@ -23,10 +27,10 @@ Ridge, in 2028.
 
 | # | Kind | Luna asks | Answer and what happens |
 | :--- | :--- | :--- | :--- |
-| 1 | `choice` | "At my equator the midday Sun is almost overhead. How high does it get at my south pole?" | Overhead / About 45° / **Under 2°** |
-| 2 | `drag-body` (Sun) | "Drag the Sun through a whole month. Find its highest moment." | Lander's eye view with a flat skyline. The best the learner can find is {{l1.sun_el_max_deg}}° (2.0°). |
+| 1 | `choice` | "At my equator the midday Sun is almost overhead. How high does it get at my south pole?" | Overhead / About 45° / **Under 3°** |
+| 2 | `drag-body` (Sun) | "Drag the Sun through a whole month. Find its highest moment." | Lander's eye view with a flat skyline. The best the learner can find is {{l1.sun_el_max_deg}}°. Luna: "This month the Sun climbs only to {{l1.sun_el_max_deg}}°, and sinks to {{l1.sun_el_min_deg}}°. It skims my horizon." |
 | 3 | `predict` | "Over that month, which directions does the Sun visit?" | Only east and west / **All the way round** / Only north. Reveal: the System view plays one month. |
-| 4 | `fill-formula` | "Highest Sun ≈ 90° − latitude + ( ? )" | **1.54°, my tilt** / 23.4° / 5.1°. At 89.46°S that gives 2.08°. |
+| 4 | `fill-formula` | "Highest Sun ≈ 90° − latitude + ( ? )" | **1.54°, my tilt** / 23.4° / 5.1°. At Pip's latitude that gives 2.08°. Luna: "That 2.08° is the most my Sun can reach here, in the best season. This month it only gets to {{l1.sun_el_max_deg}}°. Both numbers are true." |
 | 5 | `choice` | "If you stood exactly on my south pole, which way is north?" | East / Up / **Every direction**. Luna: "That is why this tool is called TrueSouth." |
 
 **Card:** sub-solar point and the Moon's 1.54° tilt (§3.1); direction to the Sun from any
@@ -47,19 +51,19 @@ longitudes; assuming the pole has 14 days of light then 14 of dark.
 
 | # | Kind | Luna asks | Answer and what happens |
 | :--- | :--- | :--- | :--- |
-| 1 | `predict` | "The Sun is {{l2.sun_el_deg}}° up. A ridge {{l2.ridge_dist_km}} km away stands {{l2.ridge_rise_m}} m above Pip. Sunlight or shadow?" | Sunlight / **Shadow**. Reveal: the Lander's eye view at that hour. The ridge looks {{l2.ridge_el_deg}}° tall. |
+| 1 | `predict` | "From {{l2.site_name}}, the Sun is {{l2.sun_el_deg}}° up. A ridge {{l2.ridge_dist_km}} km away stands {{l2.ridge_rise_m}} m above Pip. Sunlight or shadow?" | Sunlight / **Shadow**. Luna: "I moved us to {{l2.site_name}}. From a high ridge like Connecting Ridge, distant ground lies below Pip, so a Sun above the flat horizon is hidden only by ground close by." Reveal: the Lander's eye view at that hour. The ridge looks {{l2.ridge_el_deg}}° tall. |
 | 2 | `fill-formula` | "How tall a ridge looks: angle = atan( ? ÷ distance )" | **its height above you** / its height above sea level / its width |
-| 3 | `draw-skyline` | "Sketch the skyline you think Pip sees in this direction." | The real skyline is laid over the sketch. Closer sketches earn more XP; every sketch passes. |
+| 3 | `draw-skyline` | "Sketch the skyline you think Pip sees from {{l2.site_name}}, in this direction." | The real skyline is laid over the sketch. Closer sketches earn more XP; every sketch passes. |
 | 4 | `drag-body` (Sun) | "The Sun is a disc, not a dot. Find a moment when more than half of it is hidden." | Goal: `sun_frac < 0.5`. Pip's power meter follows the visible share. |
 | 5 | `choice` | "Which blocks more sky: a 300 m ridge 12 km away, or a 3,000 m mountain 150 km away?" | **The near ridge** / The far mountain. Luna: "Surprised? The next lesson explains why." |
 
-**Exact settings:** Step 3 is a 60° azimuth window centred on `l2.sun_az_deg` (−30° to +30°, wrapping at 0°/360°). Step 4 drags the 48 hours centred on `l2.example_utc` (−24 h to +24 h), clamped to the time grid.
+**Exact settings:** Steps 1 to 4 look from the site `l2.site_id` (`{{l2.site_name}}`), not from the story site. Step 3 is a 60° azimuth window centred on `l2.sun_az_deg` (−30° to +30°, wrapping at 0°/360°). Step 4 drags the 48 hours centred on `l2.example_utc` (−24 h to +24 h), clamped to the time grid.
 
 **Card:** elevation angle of terrain (§4, the flat version first); the skyline and its two
 methods (§5); disc fraction (§6). Worked example: the step-1 hour, from the skyline bin to
 "blocked". What can go wrong: a peak slipping between two rays; treating the Sun as a dot.
 
-**Keys:** `l2.example_utc`, `l2.sun_el_deg`, `l2.sun_az_deg`, `l2.ridge_dist_km`,
+**Keys:** `l2.site_id`, `l2.site_name`, `l2.example_utc`, `l2.sun_el_deg`, `l2.sun_az_deg`, `l2.ridge_dist_km`,
 `l2.ridge_rise_m`, `l2.ridge_el_deg`, `l2.ridge_feature`, `l2.sun_frac`.
 
 ---
@@ -71,17 +75,19 @@ methods (§5); disc fraction (§6). Worked example: the step-1 hour, from the sk
 
 | # | Kind | Luna asks | Answer and what happens |
 | :--- | :--- | :--- | :--- |
-| 1 | `predict` | "A mountain 5 km tall stands 130 km from Pip. On a flat Moon it would look 2.2° tall. What does Pip really see?" | 2.2° of mountain / **Just the tip** / Nothing. Reveal: a side view of the curved Moon. |
+| 1 | `predict` | "A mountain 5 km tall stands 130 km from Pip. On a flat Moon it would look 2.2° tall. What does Pip really see?" | 2.2° of mountain / **Just the tip** / Nothing. Reveal: a side view of the curved Moon. At 130 km the ground has dropped {{l3.drop_at_130km_m}} m, so only the top of the mountain shows. |
 | 2 | `fill-formula` | "How far the ground drops away: drop = distance² ÷ ( ? )" | R / **2R** / R² |
-| 3 | `tune-slider` | "Slide the distance until the ground has dropped 115 m." | Goal: 20 km. A live readout shows the drop. |
-| 4 | `spot-bug` | "This calculation says Pip is in shadow. One line is wrong." | Lines: (1) the ridge is 1,000 m above Pip; (2) it is 60 km away; **(3) it looks atan(1000 ÷ 60000) = 0.95° tall**; (4) the Sun is 0.8° up, so it is blocked. Line 3 forgot the drop: 1,036 m at 60 km. The ridge is below Pip's horizon. |
-| 5 | `choice` | "Why does a third of a degree matter so much here?" | **Because the Sun is only 1–2° up** / Because my mountains are small / It doesn't |
+| 3 | `tune-slider` | "Slide the distance until the ground has dropped {{l3.drop_at_20km_m}} m." | Goal: 20 km. A live readout shows the drop. |
+| 4 | `spot-bug` | "This calculation says Pip is in shadow. One line is wrong." | Lines: (1) the ridge is 1,000 m above Pip; (2) it is 60 km away; **(3) it looks atan(1000 ÷ 60000) = 0.95° tall**; (4) the Sun is 0.5° up, so it is blocked. Line 3 forgot the drop: {{l3.drop_at_60km_m}} m at 60 km. The ridge is below Pip's horizon. |
+| 5 | `choice` | "Why does a third of a degree matter so much here?" | **Because the Sun never gets above {{l1.sun_el_max_deg}}° this month** / Because my mountains are small / It doesn't. Luna: "At 20 km the drop is a third of a degree. That is a big slice of a Sun that never gets above {{l1.sun_el_max_deg}}°." |
 
 **Exact settings:** Step 3 slides distance from 0 to 60 km in steps of 1 km. The goal is 20 km, right within ±1 km. The live readout is the drop s²/2R from science.md §4, using the Moon's radius from the manifest.
 
 **Card:** the exact formula and how the simple one follows from it (§4); the flat-Moon
 horizon dip; why 300 km is far enough (§5). Worked example: the blocker for one real bin,
-with and without curvature. What can go wrong: a flat-Moon calculation; using the simple
+with and without curvature: the most distant blocker, at azimuth {{l3.example_bin_az}}°,
+{{l3.example_dist_km}} km away. Its height above Pip is negative ({{l3.example_height_m}} m):
+from a high ridge the far ground lies below Pip, and the card says so. What can go wrong: a flat-Moon calculation; using the simple
 formula at long range.
 
 **Keys:** `l3.drop_at_20km_m`, `l3.drop_at_60km_m`, `l3.drop_at_130km_m`,
@@ -98,12 +104,12 @@ formula at long range.
 | # | Kind | Luna asks | Answer and what happens |
 | :--- | :--- | :--- | :--- |
 | 1 | `choice` | "From Apollo 11's site, Earth hangs high in the sky all the time. From my south pole?" | It is always overhead / It never appears / **It bobs up and down at the horizon** |
-| 2 | `drag-body` (Earth) | "Drag Earth through a month. Find its highest moment." | Readouts: highest {{l4.earth_el_max_deg}}° (6.0°), lowest {{l4.earth_el_min_deg}}° (−7.3°). |
-| 3 | `predict` | "Over a month, how much of the time is Earth above Pip's horizon?" | Always / About two-thirds / **About {{l4.earth_up_pct}}%** (38%). Reveal: the timeline's Earth band. |
-| 4 | `tune-slider` | "Pip's antenna needs Earth to clear the ground by some margin. Raise the margin until Pip can talk less than 15% of the time." | Goal: about 5°. Readout: link time. Pip's link meter follows. |
-| 5 | `spot-bug` | "An early TrueSouth used these rules and called every polar site NO-GO. Which rule can never be met here?" | Lines: (1) Earth must clear the skyline; (2) by at least 5°; **(3) for at least half of every month**; (4) or the site is NO-GO. Even with no margin, Earth is up only 38% of the time. Luna: "Judge the mission's own days, not the whole month. Lesson 7." |
+| 2 | `drag-body` (Earth) | "Drag Earth through a month. Find its highest moment." | Readouts: highest {{l4.earth_el_max_deg}}°, lowest {{l4.earth_el_min_deg}}°. |
+| 3 | `predict` | "Over a month, how much of the time is Earth above Pip's horizon?" | Always / Almost never / **About {{l4.earth_up_pct}}%**. Reveal: the timeline's Earth band. |
+| 4 | `tune-slider` | "Pip's antenna needs Earth to clear the ground by some margin. Raise the margin until Pip can talk less than 15% of the time." | Goal: {{l4.mask_for_15pct_deg}}° or more. Readout: link time. Pip's link meter follows. |
+| 5 | `spot-bug` | "An early TrueSouth used these rules and called every polar site NO-GO. Which rule can never be met here?" | Lines: (1) Earth must clear the skyline; (2) by at least 5°; **(3) for at least half of every month**; (4) or the site is NO-GO. Luna: "A 5° margin held for half of every month can never be met: with a 5° margin Pip can talk only {{l4.link_pct_mask5}}% of the time. Judge the mission's own days, not the whole month. Lesson 7." |
 
-**Exact settings:** Step 4 slides the margin from 0° to 10° in steps of 0.5°. The goal is `{{l4.mask_for_15pct_deg}}`, right within ±1°. Link time at each step is read from `l4.link_pct_by_mask`. Pip's link meter follows that readout. The lesson unlocks both the timeline and the countdowns.
+**Exact settings:** Step 4 slides the margin from 0° to 10° in steps of 0.5°. The goal is any margin at or above `{{l4.mask_for_15pct_deg}}`, the first at which link time is under 15%; a lower margin is a miss, because link time there is still 15% or more. Link time at each step is read from `l4.link_pct_by_mask`. Pip's link meter follows that readout. The lesson unlocks both the timeline and the countdowns.
 
 **Card:** sub-Earth point, libration and distance (§3.1); the exact direction to Earth,
 including the 0.26° shift from standing off-centre (§3.2); link and antenna mask (§9).
@@ -111,7 +117,8 @@ Worked example: one hour, from sub-Earth point to clearance to link. What can go
 fixed thresholds copied from another latitude; measuring the mask from the wrong line.
 
 **Keys:** `l4.earth_el_max_deg`, `l4.earth_el_min_deg`, `l4.earth_up_pct`,
-`l4.link_pct_mask0`, `l4.link_pct_mask1`, `l4.link_pct_mask5`, `l4.example_utc`,
+`l4.link_pct_mask0`, `l4.link_pct_mask1`, `l4.link_pct_mask5`, `l4.link_pct_by_mask`,
+`l4.mask_for_15pct_deg`, `l4.example_utc`,
 `l4.example_earth_az`, `l4.example_earth_el`, `l4.example_earth_clear`.
 
 ---
@@ -277,13 +284,16 @@ mission profile do not. The team lead agreed these on 2026-11-13.
 **Lesson text that must change to match** (wording is the lesson writer's job):
 
 - Lesson 1: the design value "2.0°" for the highest Sun is replaced by
-  `{{l1.sun_el_max_deg}}` wherever it appears.
-- Lesson 2, steps 1 and 3: Luna says which site Pip is looking from.
+  `{{l1.sun_el_max_deg}}` wherever it appears. *Done.* Step 4 also says the 2.08° rule of
+  thumb is the best-season maximum and this month is lower; step 1's right answer is now
+  "Under 3°", because "Under 2°" is false for the best season (2.08°).
+- Lesson 2, steps 1 and 3: Luna says which site Pip is looking from. *Done.* Step 1 also
+  says why the lesson moved there.
 - Lesson 4, step 2: the readouts' design values (6.0°, −7.3°) are examples only; the
-  placeholders carry the real ones.
+  placeholders carry the real ones. *Done.*
 - Lesson 4, step 3: the wrong option "About two-thirds" is too close to the real answer
-  and is replaced by one that is clearly wrong, such as "Almost never".
-- Lesson 4, step 5: the explanation "Even with no margin, Earth is up only 38% of the
+  and is replaced by one that is clearly wrong, such as "Almost never". *Done.*
+- Lesson 4, step 5 (*done*; step 4's goal is now `{{l4.mask_for_15pct_deg}}` too): the explanation "Even with no margin, Earth is up only 38% of the
   time" is false on the real data. The rule that can never be met is the 5° margin for
   half of every month: with a 5° margin Pip can talk `{{l4.link_pct_mask5}}`% of the
   time.

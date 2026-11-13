@@ -557,6 +557,41 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-13 · MC6 · Lander's eye: the horizon chart
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (building the
+  approved C2 chart, no redesign) — wrote `LandersEye` (the hand-built SVG chart with
+  `d3-scale` and `d3-shape`, its control row, legend, states, hover readout, marker, drag,
+  scroll zoom and keyboard use), its mount under the horizon in Mission Control, the lit
+  line's share in the shared "Why is it dark?" card, and 54 vitest tests; then fixed the
+  review of PR #78 (Gemini): the antenna mask on the chart's seam, true-size discs, the
+  legend and contrast, the lit line, label placement and the shell's measuring — checked by
+  the agent with typecheck, the vitest suite, the build and `uv run pytest`, impeccable's
+  detector (no findings) and an inline audit pass, and by eye in a browser on the real data
+  with the 3D scene behind the panel at 1440 × 900, 1024 × 768 and 390 × 844 and in a 360 px
+  lesson box (a local route, never committed); a human has not reviewed it yet
+- **State:** verified (322 Python tests, 1,691 web tests, typecheck and build pass on the merge with main, which has the 3D scene; reviewed by Gemini (no frontend science, geometry spot-checked, three mutations caught; six findings, all fixed with tests); the chart and the scene's labels agree at every hour of three fixture windows; not yet seen by the team lead)
+- **Changed:** `web/src/features/panorama/` (new: `chart.tsx`, `geometry.ts`,
+  `readings.ts`, `panorama.css`, four tests; `index.tsx`), `web/src/app/mission-screen.tsx`
+  (the foot stack mounts the chart in Lander's eye, the free space ends above it, the
+  shell reads only its own plate and remeasures on a camera change), `web/src/app/shell.css`
+  (one phone rule), `web/src/app/mission/timeline/why-dark.ts` and `why-dark-card.tsx`
+  (the lit line's share), `docs/features/panorama.md`, `docs/features/site-detail.md`,
+  `docs/design/c2/built-landers-eye*.png`, this entry
+- **Notes:**
+  - Every value drawn or read out comes from `skyline.bin`, the series and the site meta as
+    stored. The state words are the 3D scene's (in view, partly in view, behind the ridge,
+    below the horizon), from the series' disc fraction and clearance; a test checks the two
+    agree at every hour of three fixture windows.
+  - Discs are drawn at their true angular size. On Connecting Ridge the share drawn above
+    the skyline is within 0.019 of the series' disc fraction. The fixtures store a linear
+    ramp, not the §6 circle, so there the gap reaches 0.058, which is the ramp's own error.
+  - The skyline, paths and axes are one memoised layer: render-count tests (on the chart
+    and on the whole view with its data hooks) show no rebuild while the hour changes.
+  - On a dark or blackout hour the panel shows the one-line "why" with its "Why?" button.
+  - The marker is not shared with Local terrain yet: a later package wires `marker` and
+    `onMarkerChange` through the shell.
+
 #### 2026-11-13 · MC4c · The space-first shell
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (question
@@ -776,6 +811,63 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## 3D and Map
 
+#### 2026-11-13 · T1, T2 · The 3D scene behind Mission Control
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (question
+  round skipped, as briefed) — wrote the scene in `web/src/features/three/scene/` (the
+  Moon, polar cap, Earth and Sun shaders adapted from the approved prototype; the camera
+  rig, flights and controls; the ground built from the patch and apron; the pins, plates
+  and controls; the Pip lander built in code), the placement helpers in
+  `web/src/lib/geo/placement.ts`, vitest tests for both, and the still picture (a render of
+  the scene's own NASA textures; no AI-generated imagery) — checked by the agent with
+  typecheck, the vitest suite, the build, impeccable's detector (no findings) and by eye
+  and by the numbers in a browser with WebGL (NVIDIA RTX 2060, ANGLE D3D11) on the real
+  data and the fixtures at 1440 × 900, 1024 × 768 and 390 × 844; a human has not reviewed
+  it yet
+- **State:** verified (322 Python tests, 1,637 web tests, typecheck and build pass on the merge with main; reviewed by Gemini (geometry and the data rule confirmed, three mutations caught; six findings, all fixed with tests); seen by the builder on hardware WebGL; a weak laptop and a hidden tab are not measured)
+- **Changed:** `web/src/features/three/scene/` (new), `web/src/lib/geo/placement.ts` and
+  its test (new), `web/src/lib/geo/index.ts`, `web/src/app/scene.ts` (adds
+  `SceneArrival`, the optional `onArrive` and `STILL_PICTURE_URL`), one line in
+  `web/src/app/mission-screen.tsx`, the still picture in `web/src/app/mission/scene-slot.tsx`
+  and its label in `web/src/app/mission/scene-status.ts`,
+  `web/public/still/system-view.webp` (new), `docs/design/c2/built-scene-*.png`, this entry
+- **Notes:**
+  - By the numbers at Connecting Ridge (hours 18,960, 18,997 and 19,091): the Sun's
+    elevation from the scene's sub-solar direction agrees with the series' `sun_el` within
+    0.005°. The Earth sight-line and the Earth drawn in Lander's eye use the series'
+    `earth_az` and `earth_el`, so they agree exactly. The System view's Earth sits along the
+    sub-Earth point as science.md §14 says; seen from the site it differs from `earth_el`
+    by 0.25° to 0.27°, which is Earth's parallax between the Moon's centre and its surface.
+  - Shackleton's 20.9 km rim drawn at its IAU position sits on the crater in the cap image;
+    the Connecting Ridge pin lands on the ridge toward de Gerlache.
+  - Frame time at 1440 × 900, pixel ratio 1, RTX 2060: 4.2 ms median and 4.3 ms 95th
+    percentile both orbiting and during a flight (capped by the 240 Hz display). A still
+    scene draws 0 frames in 2 s. A weak laptop is still not measured.
+  - Bundles: the first page's `index` chunk is 704.3 kB (224.7 kB gzipped) with no three.js
+    in it; the lazy `scene-root` chunk is 973.2 kB (261.7 kB gzipped).
+  - Pip is drawn 300 times larger than life in Local terrain, with a "Lander not to scale"
+    plate. As the camera drops to Lander's eye it shrinks away and is hidden, so it never
+    blocks the horizon.
+  - The still picture: `sessionStorage["truesouth.scene.capture"] = "1"` in the dev
+    server, open `/mission?...&land=2028-03-01T00%3A00Z&t=0&view=system` at 1440 × 900, wait
+    for `window.__truesouthStill` (a WebP data URL), decode it into
+    `web/public/still/system-view.webp`. It is 27 kB, over the spec's 0.01 MB guess.
+  - Dev only: `window.__truesouthScene` exposes the world, rig, camera and renderer for
+    checks like the ones above.
+  - Flat mode (the shell's `mode: "flat"`): the scene draws nothing, unmounts its Canvas and
+    reports `flatViews: []`, so the shell's still picture stands for every view.
+  - Review fixes (Gemini review of #75): the System view can pitch away from the pole (a step
+    toward it stops at the limit and never flips); a flight that changes the camera view is
+    locked against drags, scrolls and keys, another pick re-targets it, and the Polar map's
+    lighting blend lives in the rig and ends at 0 or 1; failed loads say so on a plate and
+    never draw a made-up Sun, Earth or distance (`plates.ts`); the apron is lowered only
+    under the patch; Lander's eye labels read "Sun, 1.1° below level · in view" from the
+    series' disc fraction and clearance; replaced Moon textures are released; the 8K seam
+    no longer wraps at 180°; pins are named with their status. Checked with rig, plate,
+    ground and label tests, and in the browser with hardware WebGL (the failure states were
+    forced through the app's own data store).
+  - three.js r187 prints a `THREE.Clock` deprecation warning from inside React Three Fiber.
+
 #### 2026-11-13 · T0 · Coordinate helpers and a shared Canvas mount
 - **Who:** Cursor agent, for the orchestrator
 - **AI use:** Cursor, grok-4.7 — wrote `web/src/lib/geo/` (tests first), the `SceneCanvas` wrapper and this entry — not checked by a human; the orchestrator marks this verified after `pnpm --dir web test`, typecheck and build
@@ -788,6 +880,103 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - `|latitude| > 89.999°` throws for the local frame and for walking. The sphere point and the Sun-elevation formula still accept the poles.
 
 ## Academy
+
+#### 2026-11-13 · A9 · Math review of all fifteen science sections
+- **Who:** Codex review agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — read the science document against Python and
+  TypeScript, wrote independent numerical probes, checked saved Horizons responses
+  and read-only prepared terrain, and wrote the review report. No human or owning
+  track has checked the report yet.
+- **State:** built, not verified
+- **Changed:** `docs/reviews/a9-math-review.md`, the short reproducer in
+  `docs/reviews/a9-scripts/boundaries.py`, and two wrong TypeScript file paths in
+  `docs/science.md`. No formulas, code or derived data changed.
+- **Notes:**
+  - Reviewed all 15 numbered sections and inventoried 40 formula groups. Recorded
+    128 case-level numerical checks, including 36 additional Python/TypeScript
+    scoring scenarios. Found 1 A, 11 B and 5 C findings. The A finding is a shared
+    prefix-sum rounding error that can turn an exact score of 70 into CAUTION.
+  - Full saved-response G2 passes at all 20 sites over 52,584 hours. Rebuilt one
+    real skyline and checked four bins independently. The report states the
+    unimplemented paths and every material verification limit.
+  - Required checks pass: pytest 322 tests (exit 0), frozen-lockfile install
+    (exit 0), and, after bringing in A8 from main, web 1,744 tests and typecheck
+    (both exit 0). The report and retained script were rechecked after the disk-full
+    interval; a PowerShell text-encoding issue was repaired. State remains built,
+    not verified pending independent review.
+
+#### 2026-11-13 · A8 · Validation page, "How we know it's right"
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the page at `/validation`, its model,
+  number formatting, the two hand-built SVG charts and the vitest tests — checked by the
+  agent with tests, typecheck and build, the impeccable detector (0 findings), and by eye
+  at 1440 × 900, 1024 × 768 and 390 × 844 on the real data and on `VITE_DATA=fixtures`
+  (no console errors, no sideways page scroll, every control at least 44 px, keyboard
+  focus visible). A human has not read the page yet.
+- **State:** verified (322 Python tests, 1,744 web tests, typecheck and build pass on the merge with main; reviewed by Codex (every recorded miss shown, counts match both data files, three mutations caught; six findings, all fixed with tests: largest differences round up, a damaged file never prints NaN, the compass-bearing note is in the open); not yet read by the team lead)
+- **Changed:** `web/src/features/validation/` (all new except `index.tsx`), screenshots
+  `docs/design/c2/built-validation*.png`
+- **Notes:**
+  - Every number on the page comes from `validation.json`. Derived display values (a
+    difference of the file's two numbers, row counts, the largest daily value) are marked
+    in code comments. A gate with `passed: null` reads "Checked in the web tests". A
+    failed gate is a NO-GO cross with "Failed"; a comparison outside its mark is a CAUTION
+    "!" with "Outside the mark", its explanation in a card above its table.
+  - Missing or unreadable file: "Validation has not been run on this build", no numbers.
+  - Sections 3 and 5 also show every gate and comparison the brief did not place: G1, G3,
+    G9, G10 and G11 under "Other checks"; R5 (and R6 on the fixture) under Slope.
+  - Gaps in the real file: no R4 (the page says so), the raw compass-azimuth difference
+    of decision 0011 exists only inside G2's `detail` text, and in-mark R1 to R3
+    `explanation` fields hold pixel notes, not explanations (shown behind "Notes from the
+    pipeline").
+  - The fixture already has a failing comparison (R1) and a failing gate (G6). The test
+    for an outside self-comparison is built from the fixture's R5 row.
+  - Review fixes (Codex review of PR #79), each its own commit:
+    1. A largest difference, an upper bound or a "within X" is rounded up, a lower bound
+       down, a reading to nearest (`format.ts`), and a shown value keeps its side of its
+       limit or mark. The real headline now reads "within 0.0061°", not "0.006°". A test
+       checks every gate and comparison in both data files against its printed result.
+    2. `check.ts` checks every field the page reads. An incomplete gate or row reads
+       "This check's record is incomplete in this build" in its place and is never
+       counted as passed; no NaN, undefined, null or Infinity in any tested case.
+       `parseValidation` in `web/src/data/` still rejects a whole file whose gate has a
+       result but no measurement, so that case reads "not run" in the app.
+    3. G2's raw-bearing sentences are quoted from `detail` in the open under the headline.
+       The pipeline could supply them as fields: `raw_azimuth_max_deg`,
+       `raw_azimuth_max_at` (site, body, UTC), `raw_azimuth_hours_over_limit`,
+       `sky_max_deg` and `elevation_max_deg`.
+    4. Method boxes link to lessons 1 to 4 by catalog title; lessons 5 to 8 get no link.
+       The feature imports only `academy/catalog.ts`. No link points into the private repo.
+    5. Every data table has a caption; every header cell a scope.
+    6. Contrast: CAUTION amber text 8.83:1 on the card, 8.25:1 on the highlighted row;
+       the diagonal 5.78:1 on the plot. The mark's shaded band was 1.12:1, so its edges
+       are now dashed Ink 3 lines (5.78:1 on the plot, 5.15:1 over the band).
+
+#### 2026-11-13 · A5b · Lessons 1 to 4 reworded to the real numbers
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-sonnet-5-5 — rewrote the text of lessons 1 to 4 in
+  `lessons.md` and in `l1.ts`–`l4.ts` against `worked_examples.json`, and read the
+  existing tests that tie the code strings to the document — checked by the agent with
+  pytest, vitest and typecheck. A human has not read or played the lessons.
+- **State:** verified (322 Python tests and 1,581 web tests and the typecheck pass on the merge with main; the orchestrator read every changed line against the built numbers and changed lesson 4's slider goal to any margin at or above the first under 15%; not yet played in a browser)
+- **Changed:** `docs/academy/lessons.md` (lessons 1 to 4, the intro note, and the
+  "Lesson text that must change to match" list marked done), `web/src/features/academy/lessons/l1.ts`–`l4.ts`
+  (string literals only)
+- **Notes:**
+  - Every value that has a worked-example key is now a `{{key}}` placeholder. Lesson 1
+    says the 2.08° tilt figure is the best-season maximum and this month only reaches the
+    real value. Lesson 2 names `{{l2.site_name}}` and says why Pip moved. Lesson 3 uses the
+    real drops and a Sun that is never above the lesson 1 maximum. Lesson 4 uses 60%, a
+    goal of `{{l4.mask_for_15pct_deg}}` and the 5° rule that can never be met.
+  - Options changed: lesson 1 step 1 "Under 2°" is now "Under 3°"; lesson 3 step 5's right
+    answer no longer says "1–2° up"; lesson 4 step 3 "About two-thirds" is now "Almost
+    never". Lesson 3 step 4's line 4 says the Sun is 0.5° up (was 0.8°, above the month's
+    highest).
+  - Left alone because it needs more than wording: lesson 4 step 4's goal tolerance
+    (±1°) also accepts 5.5° and 6° (21% and 16% link time, not under 15%);
+    `lessons/COVERAGE.md` still lists the old settings and design values;
+    `docs/science.md` section 4 and `docs/academy/luna.md` still say "1–2°" and "2°" for
+    the polar Sun.
 
 #### 2026-11-13 · A5a · Lesson types for lessons 1 to 8, skeletons for 1 to 4
 - **Who:** Cursor agent, for the orchestrator
@@ -937,6 +1126,29 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   live, or a `reduceMotion` prop.
 
 ## Planning
+
+#### 2026-11-13 · A11 · Submission materials (drafts)
+- **Who:** team lead
+- **AI use:** Claude Code, claude-sonnet-5-5 — wrote the project description (three
+  lengths), the objective-to-feature map, the three-minute demo script with its
+  one-minute version and judge questions, the AI-use disclosure, the links checklist and a
+  proposed README, from the repository's own documents and `data/derived/validation.json`;
+  ran the Python scoring reference on the stored series to check the demo's dates — not yet
+  read by the team lead; every number is footnoted to a file and every unsure point is
+  marked "CHECK:"
+- **State:** built, not verified
+- **Changed:** `docs/submission/` (new), this entry
+- **Notes:**
+  - States in the objective map were checked against `origin/main` and the open pull
+    requests, and must be checked again on the day (the validation page, #79, had merged): #81 (Academy lessons 1 to 4), #83 (landing date in the timeline and "Next GO"),
+    #77 (sunlit-peak variants) and #80 (custom-site server) were open. The Slip Planner, the
+    Compare window, the flat Polar map and the custom-coordinates form are not built and
+    have no pull request, so the demo script reaches the slip story with the landing-date
+    buttons instead.
+  - Two gaps are written down plainly: sunlight at Connecting Ridge is well below the
+    published 92.27% (different point spans; not closed), and `docs/orchestration/status.md`
+    totals do not match its own ledger table.
+  - The README is not changed. A proposed version is `docs/submission/README-proposed.md`.
 
 #### 2026-11-13 · MC7 (spec) · The Slip Planner spec rewritten as a view on the Moon
 - **Who:** team lead
