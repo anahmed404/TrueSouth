@@ -6,6 +6,7 @@ import time
 
 import numpy as np
 
+from truesouth.catalog import load_sites
 from truesouth.constants import EARTH_RADIUS_KM, SUN_RADIUS_KM
 from truesouth.ephemeris import compare_site, load_global, topocentric, write_global
 from truesouth.horizons import (
@@ -21,33 +22,6 @@ def add_arguments(parser):
     parser.add_argument('--report', type=Path, help='Write G2 JSON here (default: shared raw/horizons/g2-report.json)')
 
 
-def _sites():
-    # TEMPORARY S1 bridge: exact coordinates from docs/site-catalog.md tables.
-    # Remove this list once truesouth.catalog is available on main.
-    return [
-        ('connecting_ridge', -89.4555, 222.6192),
-        ('artemis_haworth', -86.7639, 337.2230),
-        ('artemis_malapert', -85.9948, 359.7642),
-        ('artemis_mouton', -85.4266, 31.7428),
-        ('artemis_nobile_rim_1', -85.4381, 37.3667),
-        ('artemis_nobile_rim_2', -83.9540, 58.8221),
-        ('artemis_de_gerlache_rim_2', -88.2300, 295.3716),
-        ('shackleton_rim', -89.7742, 203.4952),
-        ('de_gerlache_rim', -88.6952, 291.7154),
-        ('peak_near_shackleton', -88.74, 124.5),
-        ('malapert_peak', -85.9756, 357.8876),
-        ('chandrayaan3', -69.3741, 32.32),
-        ('im1_odysseus', -80.13, 1.44),
-        ('im2_athena', -84.7906, 29.1957),
-        ('luna25_target', -69.545, 43.544),
-        ('apollo11', 0.67416, 23.47314),
-        ('apollo17', 20.1911, 30.7723),
-        ('blue_ghost1', 18.5623, 61.8103),
-        ('change4', -45.4561, 177.5885),
-        ('change6', -41.6385, 206.0148),
-    ]
-
-
 def _check_grid(table):
     if not np.array_equal(table.times, time_grid()):
         raise ValueError('Horizons response does not cover the exact contract time grid')
@@ -61,7 +35,8 @@ def run(args):
     print(f'system.bin: {len(table.times)} UTC hours; {table.frame}; {table.longitude_positive}-positive', flush=True)
     if not args.check_sites:
         return 0
-    sites = _sites()
+    sites = [(site.id, site.lat_deg, site.lon_deg) for site in sorted(
+        load_sites(), key=lambda site: site.id != 'connecting_ridge')]
     if args.only:
         unknown = set(args.only) - {site[0] for site in sites}
         if unknown:
@@ -72,7 +47,7 @@ def run(args):
     report = {
         'gate': 'G2', 'tolerance_deg': 0.02, 'count': len(table.times),
         'ground_height_m': 0, 'observer_height_m': 2,
-        'catalog_source': 'TEMPORARY docs/site-catalog.md coordinates; S1 not yet on main',
+        'catalog_source': 'truesouth.catalog.load_sites',
         'comparison': 'science.md §3.3: azimuth separation at reference elevation, absolute elevation, full sky separation',
         'expected_comparisons': 2 * len(sites), 'complete': False, 'passed': False,
         'results': [],

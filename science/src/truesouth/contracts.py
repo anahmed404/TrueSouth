@@ -50,6 +50,25 @@ class Slope(Contract):
     source: str = Field(description='Slope data source.')
 
 
+class CatalogSite(Contract):
+    """Hand-entered site information, before pipeline processing."""
+
+    id: SiteId = Field(description='Stable site identifier.')
+    name: str = Field(description='Display name.')
+    group: Literal['artemis', 'sunlit_peak', 'polar_lander', 'contrast'] = Field(description='Catalog group.')
+    lat_deg: Latitude = Field(description='Latitude in degrees north.')
+    lon_deg: Longitude = Field(description='East longitude in degrees.')
+    description: str = Field(description='Plain-language site description.')
+    source_url: str = Field(description='Source of site coordinates.')
+    outcome: str | None = Field(description='Mission outcome, or null.')
+
+
+class CatalogSites(RootModel[list[CatalogSite]]):
+    """Array of hand-entered catalog sites."""
+
+    root: list[CatalogSite] = Field(description='Ordered catalog site inputs.')
+
+
 class Site(Contract):
     """Catalog or custom site."""
 
