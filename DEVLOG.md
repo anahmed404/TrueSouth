@@ -145,6 +145,20 @@ each integration checkpoint.
 
 ## Mission Control
 
+#### 2026-11-13 · MC3 · Scenario store, shareable link and evaluation hooks
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote the scenario store, the share-link reader and writer, the scoring cache and the evaluation hooks, with vitest tests — agent ran `pnpm --dir web typecheck`, `pnpm --dir web test` and `pnpm --dir web build`; a human has not reviewed it yet
+- **State:** verified (orchestrator ran typecheck, 1,089 tests and build on the merge with main; Codex review, seven fixes confirmed)
+- **Changed:** `web/src/state/scenario.ts`, `web/src/lib/scoring/` (cache, hooks and exports only), `docs/data-contracts.md` (shareable link), this entry
+- **Notes:** The link carries `focus` only when the focused site is not the first selected site; otherwise opening one focuses the first selected site. A dragged landing date or current time replaces the history entry; other changes push. Custom fields are `custom:<preset>;field=value`, and a changed field is assumed with reason "Changed by you." The slip sweep hook still runs on the main thread and returns a `SlipSweep` a worker can fill later (MC7 moves it to a Web Worker). Default sites are Connecting Ridge, Malapert Massif, Mons Mouton and de Gerlache Rim 2, or the first four ids in `sites.json` when none of those are listed. Review fixes were made.
+
+#### 2026-11-13 · MC1 · Loaders, decoders and the data hooks
+- **Who:** Cursor agent, for the orchestrator
+- **AI use:** Cursor, grok-4.7 — wrote the decoders, loaders, data store, hooks, time helpers and tests — agent ran typecheck, vitest and the production build, and opened DataCheck on the fixture server; the orchestrator has not checked it yet
+- **State:** built, not verified
+- **Changed:** `web/src/data/`, `web/src/state/data.ts`, `web/src/lib/time/`, this entry
+- **Notes:** Decoded series are Float64Array so they match Python's float64 decode. A missing terrain.bin, closeup.bin or validation.json is ready with null data. Custom site ids load from `/api/custom/<id>/`.
+
 #### 2026-11-13 · MC2 · Browser port of the mission scoring reference
 - **Who:** Cursor agent, for the orchestrator
 - **AI use:** Cursor, grok-4.7 — ported `scoring.py` into `web/src/lib/scoring/` and wrote the gate G10 test plus hand-worked unit tests — agent ran `pnpm --dir web typecheck`, `pnpm --dir web test` and `pnpm --dir web build`; a human has not reviewed it yet
