@@ -114,3 +114,34 @@ def test_dead_worker_is_reconciled_and_restarted(tmp_path):
         assert jobs.worker.is_alive()
     finally:
         jobs.close()
+
+
+@pytest.mark.parametrize('field', ['name', 'extra'])
+@pytest.mark.parametrize('streamed', [False, True])
+def test_large_body_is_413(synthetic, field, streamed):
+    derived, prepared, cache = synthetic
+    body = json.dumps(dict(lat_deg=0, lon_deg=0, **{field:'SECRET'*1_750_000})).encode()
+    with TestClient(create_app(derived=derived, prepared=prepared, cache=cache)) as client:
+        response = client.post('/api/sites/custom', content=iter([body[:2000], body[2000:]]) if streamed else body,
+                               headers={'Content-Type':'application/json'})
+        assert response.status_code == 413
+        assert response.json() == {'message':'Custom-site requests must be at most 4096 bytes.'}
+        assert 'SECRET' not in response.text
+
+
+def test_stream_limit_stops_receiving_before_parsing(synthetic):
+    import asyncio
+    derived, prepared, cache = synthetic
+    app = create_app(derived=derived, prepared=prepared, cache=cache)
+    seen, sent = [], []
+    async def receive():
+        seen.append(1)
+        assert len(seen) == 1, 'read past the size limit'
+        return {'type':'http.request', 'body':b'x'*4097, 'more_body':True}
+    async def send(message): sent.append(message)
+    scope = dict(type='http', asgi={'version':'3.0'}, http_version='1.1', method='POST',
+        scheme='http', path='/api/sites/custom', raw_path=b'/api/sites/custom', query_string=b'',
+        headers=[(b'content-type', b'application/json')], server=('localhost',80), client=('test',1))
+    asyncio.run(app(scope, receive, send))
+    assert sent[0]['status'] == 413
+    assert len(seen) == 1

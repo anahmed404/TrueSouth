@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from truesouth.contracts import CustomSiteRequest, CustomSiteQueued, CustomSiteStatus
+from truesouth_api.body_limit import CustomBodyLimit
 from truesouth_api.jobs import Computer, Jobs, Rejected, START
 from truesouth_api.settings import cache_dir
 
@@ -101,6 +102,8 @@ def create_app(
                 return _json_missing()
             return _plain_missing()
         return await call_next(request)
+
+    app.add_middleware(CustomBodyLimit)
 
     @app.get("/api/health")
     def health() -> JSONResponse:
