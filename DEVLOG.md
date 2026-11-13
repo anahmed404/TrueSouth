@@ -961,6 +961,29 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     2 km) for the Lander's eye near ground, already in the contracts as `closeup.bin`; (5) an
     albedo map of the cap in the same projection (the LROC colour map is 2.7 km a pixel at
     the pole).
+  - Review fixes (Codex review of #91), 2026-11-14:
+    - The disclosure is on screen wherever the drawing is: the decoration plate is exempt
+      from the overlay's hiding, shortens to "Shadows and ground texture are illustrative."
+      in a tight space or beside an open window, and where not even that fits the ground is
+      drawn without shadows and texture (`decorationDisclosure`, `visiblePlates`,
+      `GroundLook.setDisclosed`). Checked by eye: Compare open (no room: plain ground, no
+      plate; closed again: full), 1024 × 640, a 390 × 844 phone, Lander's eye with the chart
+      folded and open (the plate sits above the view's controls, clear of the chart's row).
+    - The plate's series answer is `seriesSunAnswer`, tested on fixture_ridge at a lit, a
+      dark and a partly hidden hour; a constant "lit" fails two tests, and a test pins the
+      one line in `scene-root.tsx` that passes it.
+    - Texture: craters like real small lunar ones (mostly old and shallow, a few fresh),
+      clustered with no grid, rim shadows at half strength, fewer rocks.
+    - Weak GPU: the ground follows #88's quality governor (`setMotion(moving, stage)`), with
+      coarser meshes by draw range; `prepareGround` uploads the ground before the first
+      flight. Numbers in local-terrain.md, "Performance".
+    - Custom sites (no apron listed) draw the patch alone with no error plate.
+    - One shared draw hook (no per-draw allocation); the loop bounds' comment says why they
+      are uniforms. A WebGL 1-only browser: the scene's own probe (`scene-root.tsx`,
+      `probeWebgl`) asks for WebGL 2 and reports "no-webgl"; the shell's probe
+      (`app/mission/scene-slot.tsx`) accepts WebGL 1 and would mount the scene, which then
+      reports "no-webgl" itself. Not changed here.
+    - Decision renamed 0015 (#88 added 0014).
 
 #### 2026-11-14 · Scene polish · Controls, real stars, and speed on weak machines
 - **Who:** Claude Code agent, for the orchestrator

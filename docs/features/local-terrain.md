@@ -109,7 +109,19 @@ drawing marches over the 20 km patch and the 300 km terrain around it, at 80 m a
 while the series used the full 300 km skyline from the 80 m map at 2 m above the ground.
 The browser never compares the two or judges the drawing; the plate says in every case
 which one is right. Example: Connecting Ridge, 2028-03-06 18:00 UTC. The series says dark,
-and the drawing shows a sunlit patch beside the lander.
+and the drawing shows a sunlit patch beside the lander. The plate's answer comes from
+`seriesSunAnswer` (`plates.ts`): the profile's hour flag and the series' disc fraction for
+the hour on the clock, tested on the shared fixture.
+
+**The disclosure is on screen wherever the drawing is** (`decorationDisclosure`,
+`visiblePlates` in `plates.ts`). Other plates and labels hide in a tight free space or while
+a floating window is open; this one does not:
+
+- With room (at least 360 × 140 px of free space and no window open): the plate above.
+- Tight (at least 200 × 56 px), or beside an open window such as Compare: one line,
+  "Shadows and ground texture are illustrative."
+- No room even for that line: no plate, and the ground is drawn plain, with no drawn
+  shadows and no texture, until the line fits again (`GroundLook.setDisclosed`).
 
 Two things keep the picture close to the truth:
 
@@ -143,20 +155,35 @@ are in `ground-relief.ts` and tested.
    as soft as the Sun's disc (0.27° radius). Toward the terrain's outer edge the drawn
    shadow fades out, because the globe beyond draws none. Pip does not cast a shadow: it is
    drawn 300 times larger than life, so its shadow would be a false stripe kilometres long.
-3. **Near-ground texture.** Close up, small craters (with the shadow of their own rim, as at
-   a low Sun), rocks and grain, made up in the shader. It is generic ground, not real
-   topography: the largest craters are about 11 m across, far below the 80 m data, it is a bump on the
-   lighting and a slight change of albedo only, it never moves the ground or the skyline,
-   and each size fades out as it shrinks to a few pixels, so it shows only close to the
-   camera and never at map scale.
+3. **Near-ground texture.** Close up, small craters, a few rocks and grain, made up in the
+   shader. The craters follow real small lunar craters: many small and few large; most old
+   and worn (a gentle bowl about 0.03 of its diameter deep, no rim), a few fresh (up to 0.2
+   of the diameter, with a sharp rim); scattered by chance in patches, with no grid. A bowl
+   is lit like everything else and, at a low Sun, partly filled by its sunward rim's shadow,
+   at half strength so the texture stays quieter than the real relief. It is generic ground,
+   not real topography: the largest craters are about 11 m across, far below the 80 m data;
+   it is a bump on the lighting and a slight change of albedo only; it never moves the
+   ground or the skyline; and each size fades out as it shrinks to a few pixels, so it
+   shows only close to the camera and never at map scale.
 4. **Tone.** A grey albedo from the Moon's colour map, its range narrowed; a lunar
    photometric function (Lommel–Seeliger and Lambert mixed by phase angle, with the
    brightening when looking down-Sun); and a faint fill from sunlit ground nearby and from
    earthshine (by Earth's phase, when Earth is up), so shadows are dark but not black.
 
-Each of 1 to 3 can be set to full, reduced or off (`GroundQuality`, `ground-quality.ts`),
-for the quality stages that measure frame time. For checking, the address takes
-`ground=reduced` (or `off`), or one effect, such as `ground-shadows=off`.
+Each of 1 to 3 can be set to full, reduced or off (`GroundQuality`, `ground-quality.ts`,
+`world.groundLook.setQuality`). For checking, the address takes `ground=reduced` (or
+`off`), or one effect, such as `ground-shadows=off`.
+
+**While moving on a slow machine** the ground follows the scene's quality governor
+(`perf.ts`; decision 0014): each frame the scene calls
+`world.groundLook.setMotion(moving, stage)`. Stage 0 draws the full ground, still and
+moving. While moving, stage 1 draws every second grid point with shadows reduced, stage 2
+also drops the texture, and stage 3 draws every fourth point with no drawn shadows
+(`MOTION_DETAIL` in `ground-material.ts`). The governor's frame at rest puts the full ground
+back. The coarser meshes share the full mesh's index buffer and are picked by draw range,
+and the effects switch by uniforms, so nothing recompiles or uploads. When a site's ground
+is built, `world.prepareGround` compiles its shader and draws it once off-screen, so its
+meshes and height textures are on the GPU before the first flight.
 
 ## Performance
 
@@ -171,6 +198,14 @@ for the quality stages that measure frame time. For checking, the address takes
   throttling: all full 1.75 ms, all reduced 1.06 ms. Software rendering (SwiftShader):
   1.67 s a frame with every effect off, 2.05 s reduced, 2.37 s full; the app shows its
   still picture there anyway. At rest the scene draws no frames.
+- On a software GPU (SwiftShader), the whole Local terrain frame at 1440 × 900 (canvas
+  1424 × 805, pixel ratio 1), one run each on a heavily loaded machine, 2026-11-14: 2,301 ms
+  with the full ground; while moving, 1,727 ms at stage 1, 1,705 ms at stage 2, 1,486 ms at
+  stage 3; 958 ms with no ground at all. At stage 3's moving pixel ratio of 0.5: 1,095 ms
+  with the full ground, 555 ms with stage 3's ground. The first frame showing a new site's
+  ground stalled about 3.0 s without `prepareGround` (3,963 ms against 937 ms for the next)
+  and about 1.0 s with it (2,005 against 986); the 2.4 s it moves is paid when the site's
+  data arrives, not during the flight.
 - The terrain files are 0.18 MB per site and load for the focused site only.
 - Geometry and textures are released when the site changes or the view closes.
 
@@ -180,6 +215,9 @@ for the quality stages that measure frame time. For checking, the address takes
   Apollo 11. It is far from the pole, so TrueSouth treats the ground there as a smooth
   sphere." A button offers "Show Apollo 11 in the System view", and the camera follows the
   site on the globe instead of descending.
+- **A site with no terrain around the patch by design (a custom site):** the scene's
+  metadata lists no apron for it, so the 20 km patch is drawn alone and no plate says
+  anything is missing. An apron that is listed but fails to load keeps its message.
 - **Missing terrain in part of the mesh:** holes are left open, not filled.
 - **Terrain still loading.** Proposed: the camera flies, and the ground appears when it is
   ready; the globe stays in place until then. Reason: a flight should never wait on a file.
