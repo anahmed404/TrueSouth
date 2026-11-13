@@ -161,6 +161,8 @@
   .scene-plate-stack > .scene-plate-top {
     position: relative;
     transform: none;
+    /* The free space's width limit, passed down from the anchor through the stack. */
+    max-width: inherit;
   }
 
   .scene-plate-top p {

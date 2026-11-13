@@ -145,7 +145,7 @@ are in `ground-relief.ts` and tested.
    drawn 300 times larger than life, so its shadow would be a false stripe kilometres long.
 3. **Near-ground texture.** Close up, small craters (with the shadow of their own rim, as at
    a low Sun), rocks and grain, made up in the shader. It is generic ground, not real
-   topography: the largest craters are about 10 m across, far below the 80 m data, it is a bump on the
+   topography: the largest craters are about 11 m across, far below the 80 m data, it is a bump on the
    lighting and a slight change of albedo only, it never moves the ground or the skyline,
    and each size fades out as it shrinks to a few pixels, so it shows only close to the
    camera and never at map scale.

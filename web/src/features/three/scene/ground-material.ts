@@ -163,39 +163,44 @@ float fade(float foot, float cell) {
   return 1. - smoothstep(${f(GRAIN_FADE.lo, 4)} * cell, ${f(GRAIN_FADE.hi, 4)} * cell, foot);
 }
 // Small craters in one size band: (∂h/∂E, ∂h/∂N, albedo change, light left by the
-// crater's own rim). At a Sun a degree or two up, a real crater's floor is filled with the
-// shadow of its Sun-side rim, which a bump alone cannot draw, so each bowl also tests its rim:
-// the ray toward the light leaves the bowl at distance t, where the rim stands
-// depth (1 − x²) + rim above this point. sd is the light's direction across the ground and
-// tanEl its elevation over the ground under the crater.
+// craters' own rims). Like real small lunar craters: most are old and worn, a gentle bowl with
+// no rim (depth about 0.03 of the diameter); a few are fresh, a steeper bowl (up to 0.2 of the
+// diameter) with a sharp, slightly bright rim. A cell holds a crater with a chance that varies
+// slowly across the ground, and anywhere in it, so there is no grid and no even spacing. At a
+// low Sun a bowl fills with the shadow of its sunward rim: the ray toward the light leaves the
+// bowl at distance t, where the rim stands "rise" above this point. sd is the light's
+// direction across the ground and tanEl its elevation over the ground under the crater.
 vec4 craters(vec2 p, float S, float seed, float density, vec2 sd, float tanEl) {
   vec2 c = floor(p / S);
   vec4 acc = vec4(0., 0., 0., 1.);
   for (int k = 0; k < uNine; k++) {
     vec2 cell = c + vec2(float(k % 3 - 1), float(k / 3 - 1));
     vec4 r = hash4(cell, seed);
-    if (r.w > density) continue;
-    vec2 d = p - (cell + .15 + .7 * r.xy) * S;
-    // Many small, few large: radius from 0.06 S to 0.36 S.
-    float rad = S * (.06 + .3 * r.z * r.z * r.z);
+    float patchy = density * (.2 + 1.6 * hash4(floor(cell / 6.), seed + 5.).y);
+    if (r.w > patchy) continue;
+    vec2 d = p - (cell + r.xy) * S;
+    // Many small, few large: radius from 0.05 S to 0.35 S, weighted to the small end.
+    float rad = S * (.05 + .3 * r.z * r.z * r.z);
     float rho = length(d);
     float x = rho / rad;
     if (x > 1.8 || rho < 1e-6) continue;
-    // Most small lunar craters are worn: depth a tenth of the diameter or less; fresher ones deeper.
-    // Four in five are worn: soft rims and shallow bowls.
-    float fresh = pow(fract(r.z * 7.31 + r.w * 3.7), 4.);
-    float depth = rad * mix(.05, .18, fresh);
+    float fresh = pow(fract(r.z * 7.31 + r.w * 3.7), 6.);
+    float depth = 2. * rad * mix(.03, .2, fresh);
     float e = x - 1.;
-    float rimH = mix(.1, .22, fresh) * depth;
-    float rim = rimH * exp(-e * e / .06);
-    float dhdx = (x < 1. ? 2. * depth * x : 0.) - rim * 2. * e / .06;
+    float rimH = .25 * depth * fresh;
+    float rim = rimH * exp(-e * e / .05);
+    // Old: h = −depth (1 − x²)², smooth at the edge. Fresh: h = depth (x² − 1), with a rim.
+    float inside = x < 1. ? 1. : 0.;
+    float dOld = inside * depth * 4. * x * (1. - x * x);
+    float dFresh = inside * 2. * depth * x;
+    float dhdx = mix(dOld, dFresh, fresh) - rim * 2. * e / .05;
     acc.xy += dhdx / rad * d / rho;
-    // Fresh craters have slightly brighter walls; no halo outside the rim.
-    acc.z += (x < 1. ? .03 * (1. - x * x) : 0.) * fresh;
+    acc.z += .05 * fresh * exp(-e * e / .3);
     if (x < 1.) {
+      float hp = mix(-depth * (1. - x * x) * (1. - x * x), depth * (x * x - 1.), fresh);
       float along = dot(d, sd);
       float t = -along + sqrt(max(along * along - rho * rho + rad * rad, 0.));
-      float rise = depth * (1. - x * x) + rimH;
+      float rise = rimH - hp;
       acc.w = min(acc.w, smoothstep(-SUN_R, SUN_R, atan(tanEl) - atan(rise / max(t, 1e-4))));
     }
   }
@@ -243,16 +248,17 @@ vec4 grain(vec2 p, float foot, vec2 sd, float tanEl) {
   float w;
   mat2 t1 = mat2(.8, .6, -.6, .8), t2 = mat2(.28, .96, -.96, .28);
   #if GROUND_GRAIN > 1
-  w = fade(foot, 14.); if (w > 0.) { cr = craters(p, 14., 11., .3, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
-  w = fade(foot, 3.5); if (w > 0.) { cr = craters(p, 3.5, 23., .4, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
-  w = fade(foot, .9); if (w > 0.) { cr = craters(p, .9, 37., .45, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
-  w = fade(foot, .5); if (w > 0.) acc.xyz += w * rocks(p, .5, 41., .25);
+  w = fade(foot, 16.); if (w > 0.) { cr = craters(p, 16., 11., .12, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
+  w = fade(foot, 6.); if (w > 0.) { cr = craters(p, 6., 17., .22, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
+  w = fade(foot, 2.2); if (w > 0.) { cr = craters(p, 2.2, 23., .32, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
+  w = fade(foot, .8); if (w > 0.) { cr = craters(p, .8, 37., .3, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
+  w = fade(foot, .5); if (w > 0.) acc.xyz += w * rocks(p, .5, 41., .1);
   w = fade(foot, .6); if (w > 0.) { vec3 g = grainOctave(p, .6, .005, 53., t1); acc.xyz += w * vec3(g.xy, g.z * .05); }
   w = fade(foot, .15); if (w > 0.) { vec3 g = grainOctave(p, .15, .0016, 59., t2); acc.xyz += w * vec3(g.xy, g.z * .04); }
   w = fade(foot, .04); if (w > 0.) { vec3 g = grainOctave(p, .04, .0006, 61., t1); acc.xy += w * g.xy; }
   #else
-  w = fade(foot, 5.); if (w > 0.) { cr = craters(p, 5., 23., .4, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
-  w = fade(foot, 1.2); if (w > 0.) { cr = craters(p, 1.2, 37., .45, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
+  w = fade(foot, 5.); if (w > 0.) { cr = craters(p, 5., 23., .2, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
+  w = fade(foot, 1.2); if (w > 0.) { cr = craters(p, 1.2, 37., .35, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
   w = fade(foot, .4); if (w > 0.) { vec3 g = grainOctave(p, .4, .004, 53., t1); acc.xyz += w * vec3(g.xy, g.z * .05); }
   #endif
   return acc;
@@ -309,7 +315,8 @@ void main() {
     vec4 gr = grain(pm, foot, sd, mu0 / sqrt(max(1. - mu0 * mu0, 1e-6)));
     n = normalize(n - gr.x * E - gr.y * N);
     alb *= 1. + gr.z;
-    shadow = mix(1., gr.w, 1. - uNoLight);
+    // The texture stays quieter than the real relief: its own shadows are softened.
+    shadow = mix(1., gr.w, .5 * (1. - uNoLight));
   }
   #endif
 
