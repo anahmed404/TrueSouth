@@ -259,6 +259,19 @@ export type SketchPoint = { azDeg: number; elDeg: number };
 /** Where a learner dropped a pin: a catalog site, or coordinates in degrees. */
 export type PinAttempt = { siteId: string } | { latDeg: number; lonEastDeg: number };
 
+/**
+ * What a panel step shows until its panel is built (work package A3): Luna says what the
+ * learner will do there once it is ready, and the stage shows the real answer, so the
+ * lesson's story still reads end to end. Both are lesson text and may hold placeholders.
+ * The step then earns no XP and does not count for the stars.
+ */
+export type PanelPreview = {
+  /** Luna's line in place of her question, which asks for an interaction that is not there yet. */
+  says: string;
+  /** The answer the learner would find, as a short reveal. */
+  reveal: string;
+};
+
 export type StepBase = {
   id: string;
   luna: LunaLine;
@@ -290,6 +303,7 @@ export type Step = StepBase &
         /** Lines beside the drag, such as a highest and a lowest. May hold placeholders. */
         readout?: readonly string[];
         follow?: PipFollow;
+        preview?: PanelPreview;
       }
     | {
         kind: "draw-skyline";
@@ -301,8 +315,9 @@ export type Step = StepBase &
          * the scene site's skyline; this step never stores the elevations.
          */
         window: AzimuthWindow;
+        preview?: PanelPreview;
       }
-    | { kind: "drop-pin"; map: MapSpec; goal?: GoalSpec; answerLabel?: string }
+    | { kind: "drop-pin"; map: MapSpec; goal?: GoalSpec; answerLabel?: string; preview?: PanelPreview }
     | {
         kind: "tune-slider";
         slider: SliderSpec;

@@ -55,7 +55,7 @@ export function AnswerOption({ index, view, tabStop, locked, onPick, children }:
       <span className="ac-opt-label">{children}</span>
       {view.note ? (
         <span className="ac-opt-note">
-          {view.state === "answer" ? (view.correct ? <CorrectMark showLabel={false} /> : <ShownMark />) : null}
+          {view.state === "answer" ? (view.correct ? <CorrectMark silent={Boolean(view.note)} showLabel={false} /> : <ShownMark />) : null}
           {view.note}
         </span>
       ) : null}
