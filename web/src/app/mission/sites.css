@@ -1,0 +1,391 @@
+/*
+  Custom sites and the labels that say what a site's point is (the sites rail, the add-site
+  picker, the focused-site panel). Tokens only. DESIGN.md "Chips": sourced is a solid
+  outline, assumed dashed, chosen by TrueSouth dotted; "Your site" is a filled tag.
+*/
+
+@layer components {
+  /* ── Tags ───────────────────────────────────────────────────────────────── */
+  .tag-chosen {
+    border-style: dotted;
+    border-color: var(--ink-3);
+  }
+
+  .tag-yours {
+    border-color: transparent;
+    background: var(--hover);
+    color: var(--ink-2);
+  }
+
+  .site-note .tag,
+  .pick-sub .tag {
+    margin-right: 2px;
+  }
+
+  /* ── A custom site's row while it computes or has failed ───────────────── */
+  .cs-row {
+    cursor: default;
+  }
+
+  .cs-row:hover {
+    background: transparent;
+  }
+
+  .cs-sub {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px var(--s2);
+    margin-top: 2px;
+    color: var(--ink-3);
+    font-size: var(--t-sm);
+  }
+
+  .cs-live {
+    display: block;
+  }
+
+  .cs-state {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cs-state .site-line {
+    align-items: flex-start;
+  }
+
+  .cs-state .site-line .lamp-none {
+    margin-top: 1px;
+  }
+
+  .cs-failed {
+    color: var(--ink);
+  }
+
+  .cs-action {
+    margin-top: var(--s2);
+  }
+
+  /*
+    An honest "still working" cue: a short segment sweeping a hairline track. It says the
+    job is alive, never how far along it is. Still under reduced motion.
+  */
+  .cs-progress {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 2px;
+    margin-top: var(--s2);
+    overflow: hidden;
+    border-radius: var(--r-pill);
+    background: var(--line);
+  }
+
+  .cs-progress::after {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 28%;
+    border-radius: inherit;
+    background: var(--ink-3);
+    content: "";
+    animation: cs-sweep 1.6s var(--ease-out) infinite;
+  }
+
+  @keyframes cs-sweep {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(360%);
+    }
+  }
+
+  /* A busy lamp: the empty dashed ring turns slowly. */
+  .lamp-busy {
+    animation: cs-turn 6s linear infinite;
+  }
+
+  @keyframes cs-turn {
+    to {
+      transform: rotate(1turn);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cs-progress::after,
+    .lamp-busy {
+      animation: none;
+    }
+
+    .cs-progress::after {
+      width: 100%;
+      opacity: 0.4;
+    }
+  }
+
+  .rail-lamp-static {
+    display: inline-grid;
+    place-items: center;
+    cursor: default;
+  }
+
+  .rail-lamp-static:hover {
+    background: transparent;
+  }
+
+  /* ── "Your own coordinates", in the add-site picker ────────────────────── */
+  .cs {
+    border-top: 1px solid var(--line);
+    padding-top: var(--s2);
+  }
+
+  .cs-head {
+    margin: 0;
+    font: inherit;
+  }
+
+  .cs-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 32px;
+    padding: 0 var(--s2);
+    border: 0;
+    border-radius: var(--r-md);
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .cs-toggle:hover {
+    background: var(--hover);
+    color: var(--ink);
+  }
+
+  .cs-chevron {
+    color: var(--ink-3);
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+
+  .cs-toggle[aria-expanded="true"] .cs-chevron {
+    transform: rotate(180deg);
+  }
+
+  .cs-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s3);
+    padding: var(--s2) var(--s2) 0;
+  }
+
+  .cs-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s3);
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .cs-fields:disabled {
+    opacity: 0.55;
+  }
+
+  .cs-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s3);
+  }
+
+  .cs-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .cs-label-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .cs-label {
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+  }
+
+  .cs-optional {
+    color: var(--ink-3);
+  }
+
+  .cs-box {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 32px;
+    padding: 0 8px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    transition: border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .cs-box:hover {
+    border-color: var(--ink-4);
+  }
+
+  .cs-box:has(:focus-visible),
+  .cs-input-text:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .cs-input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    caret-color: var(--accent);
+  }
+
+  .cs-input:focus-visible {
+    outline: none;
+  }
+
+  .cs-input::placeholder {
+    color: var(--ink-3);
+  }
+
+  .cs-input-text {
+    height: 32px;
+    padding: 0 8px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-md);
+    background: var(--surface);
+  }
+
+  .cs-input-invalid,
+  .cs-input-invalid:hover {
+    border-color: var(--status-nogo-edge);
+  }
+
+  .cs-unit {
+    flex: none;
+    color: var(--ink-3);
+    font-size: var(--t-sm);
+  }
+
+  .cs-message {
+    color: var(--ink);
+    font-size: var(--t-sm);
+  }
+
+  .cs-message::before {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 6px;
+    border-radius: var(--r-pill);
+    background: var(--status-nogo);
+    vertical-align: 1px;
+    content: "";
+  }
+
+  .cs-note {
+    color: var(--ink-3);
+    font-size: var(--t-sm);
+  }
+
+  .cs-before,
+  .cs-unavailable {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+    line-height: 1.45;
+  }
+
+  .cs-before-sphere {
+    color: var(--ink);
+  }
+
+  .cs-submit {
+    align-self: flex-start;
+  }
+
+  /* ── Focused-site panel: what the point is ─────────────────────────────── */
+  .focus-what {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    margin: var(--s2) 0 0;
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+    line-height: 1.45;
+  }
+
+  p.focus-what {
+    display: block;
+  }
+
+  .focus-what p {
+    margin: 0;
+  }
+
+  .focus-body > .focus-what {
+    padding: 0 var(--s4) var(--s2);
+  }
+
+  .focus-link-button {
+    align-self: flex-start;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: var(--t-sm);
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+
+  .focus-link-button:hover {
+    color: var(--ink);
+  }
+
+  dd .focus-link-button {
+    display: block;
+    margin-top: 4px;
+  }
+
+  /* ── The phone ─────────────────────────────────────────────────────────── */
+  @media (max-width: 760px) {
+    .cs-toggle,
+    .cs-box,
+    .cs-input-text {
+      min-height: 44px;
+    }
+
+    .cs-input {
+      font-size: 16px;
+    }
+
+    .focus-link-button {
+      min-height: 44px;
+    }
+  }
+}

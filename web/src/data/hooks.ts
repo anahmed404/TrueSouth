@@ -76,13 +76,16 @@ export function useSites(): HookResult<Sites> {
   const catalog = useCatalogSites();
   const custom = useStore(customSitesStore, (state) => state.readySites);
   // The merged list keeps its identity while neither part changes.
-  const merged = useMemo(() => {
-    if (catalog.status !== "ready" || custom.length === 0) return null;
-    const listed = new Set(catalog.data.map((site) => site.id));
-    const extra = custom.filter((site) => !listed.has(site.id));
-    return extra.length === 0 ? null : [...catalog.data, ...extra];
-  }, [catalog.status, catalog.data, custom]);
+  const merged = useMemo(() => (catalog.status === "ready" ? mergeSites(catalog.data, custom) : null), [catalog.status, catalog.data, custom]);
   return merged ? { status: "ready", data: merged, error: null } : catalog;
+}
+
+/** The catalog, then the ready custom sites it does not list. Null when there are none to add. */
+export function mergeSites(catalog: Sites, custom: readonly Site[]): Sites | null {
+  if (custom.length === 0) return null;
+  const listed = new Set(catalog.map((site) => site.id));
+  const extra = custom.filter((site) => !listed.has(site.id));
+  return extra.length === 0 ? null : [...catalog, ...extra];
 }
 
 /** `sites.json` only: the catalog. */
