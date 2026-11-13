@@ -5,6 +5,7 @@ import { Explain } from "../../../components/Explain";
 import { cx, formatNumber } from "../../../components/format";
 import { Card } from "../../../components/Panel";
 import { StatusLamp } from "../../../components/StatusLamp";
+import { Tip } from "../../../components/Tip";
 import { useManifest, useSeries } from "../../../data/hooks";
 import type { DecodedSeries } from "../../../data/decode/layouts";
 import { useCountdowns, useHourFlags, windowLength, type HourFlags } from "../../../lib/scoring";
@@ -70,15 +71,24 @@ function SiteCountdowns({ siteId, grid, scenario }: { siteId: string; grid: Time
 
   return (
     <div className="cd-row">
-      <CountdownCard view={sun} gridEnd={gridEnd}>
+      <CountdownCard
+        view={sun}
+        gridEnd={gridEnd}
+        stretch={<StretchChip kind="dark" flags={flags.data} hour={current} landing={landing} windowEnd={windowEnd} profile={profile} />}
+      >
         <Values body="sun" series={series.data} hour={current} profile={profile} />
-        <StretchLine kind="dark" flags={flags.data} hour={current} landing={landing} windowEnd={windowEnd} profile={profile} />
       </CountdownCard>
-      <CountdownCard view={earth} gridEnd={gridEnd} profile={profile}>
+      <CountdownCard
+        view={earth}
+        gridEnd={gridEnd}
+        profile={profile}
+        stretch={
+          profile.relay_available ? null : (
+            <StretchChip kind="blackout" flags={flags.data} hour={current} landing={landing} windowEnd={windowEnd} profile={profile} />
+          )
+        }
+      >
         <Values body="earth" series={series.data} hour={current} profile={profile} />
-        {profile.relay_available ? null : (
-          <StretchLine kind="blackout" flags={flags.data} hour={current} landing={landing} windowEnd={windowEnd} profile={profile} />
-        )}
       </CountdownCard>
     </div>
   );
@@ -108,15 +118,24 @@ export function nextEvent(view: Pick<CountdownView, "body" | "eventName">): stri
   return `Next ${view.body === "sun" ? view.eventName.toLowerCase() : view.eventName}`;
 }
 
+/**
+ * One countdown card. Its rows are the same at every hour, so neither the card nor the
+ * bottom strip changes height while the user scrubs or plays: the head, the countdown, the
+ * values now, then one notes row reserved two lines tall that holds this stretch's chip
+ * ("✕ 130 h dark · limit 6 h" with its tag) and the "Under 6 h" chip, or nothing.
+ */
 function CountdownCard({
   view,
   gridEnd,
   profile,
+  stretch,
   children,
 }: {
   view: CountdownView;
   gridEnd: string;
   profile?: MissionProfile;
+  /** The current dark stretch or blackout, while there is one in the mission window. */
+  stretch?: ReactNode;
   children: ReactNode;
 }) {
   const name = view.body === "sun" ? "Sun" : "Earth";
@@ -139,12 +158,6 @@ function CountdownCard({
             </p>
             <CountdownNumber hours={view.hours} gridEnd={gridEnd} />
           </div>
-          {view.soon ? (
-            <span className="cd-flag">
-              <StatusLamp status="CAUTION" size="xs" />
-              Under {SOON_HOURS} h
-            </span>
-          ) : null}
         </div>
       ) : (
         <div className="cd-main">
@@ -155,6 +168,15 @@ function CountdownCard({
         </div>
       )}
       {children}
+      <p className="cd-notes">
+        {stretch}
+        {view.soon ? (
+          <span className="cd-flag">
+            <StatusLamp status="CAUTION" size="xs" />
+            Under {SOON_HOURS} h
+          </span>
+        ) : null}
+      </p>
     </Card>
   );
 }
@@ -221,7 +243,22 @@ export function stretchNow(
   return { hours, broken: hours > limit, value: printed.value, limit: printed.limit };
 }
 
-function StretchLine({
+/**
+ * This dark stretch or blackout as a chip in the card's notes row: "✕ 130 h dark · limit
+ * 6 h", then the limit's sourced or assumed tag. The whole sentence ("This dark stretch
+ * lasts 130 h, over the 6 h limit.") is its accessible description and its hover and focus
+ * tip. Over the limit it carries the NO-GO lamp and the word "over" in the sentence, so it is
+ * never colour alone.
+ */
+export function stretchChipText(kind: "dark" | "blackout", now: { value: string; limit: string; broken: boolean }) {
+  const what = kind === "dark" ? "This dark stretch" : "This blackout";
+  return {
+    short: `${now.value} ${kind} · limit ${now.limit}`,
+    sentence: `${what} lasts ${now.value}, ${now.broken ? "over" : "within"} the ${now.limit} limit.`,
+  };
+}
+
+function StretchChip({
   kind,
   flags,
   hour,
@@ -240,14 +277,18 @@ function StretchLine({
   const now = stretchNow(kind === "dark" ? flags.lit : flags.link, hour, landing, windowEnd, limit);
   if (!now) return null;
   const tag = settingsProvenance(profile, ruleFields(profile, kind === "dark" ? "darkness" : "blackout"));
-  const what = kind === "dark" ? "This dark stretch" : "This blackout";
+  const text = stretchChipText(kind, now);
   return (
-    <p className={cx("cd-stretch", now.broken && "is-broken")}>
-      {now.broken ? <StatusLamp status="NO-GO" size="xs" /> : null}
-      <span>
-        {what} <span className="tabular cd-stretch-value">{now.value}</span>, {now.broken ? "over" : "within"} the{" "}
-        <span className="tabular">{now.limit}</span> limit <SettingsTag settings={tag} />
-      </span>
-    </p>
+    <>
+      <Tip content={text.sentence}>
+        {(trigger) => (
+          <span {...trigger} tabIndex={0} className={cx("cd-chip", now.broken && "is-broken")}>
+            {now.broken ? <StatusLamp status="NO-GO" size="xs" /> : null}
+            <span className="tabular">{text.short}</span>
+          </span>
+        )}
+      </Tip>
+      <SettingsTag settings={tag} />
+    </>
   );
 }

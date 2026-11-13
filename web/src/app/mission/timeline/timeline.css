@@ -529,12 +529,17 @@
     min-width: 0;
   }
 
+  /*
+    A card's rows are the same at every hour (head, countdown, values, notes), and each row's
+    height is fixed by design, so the card never grows while scrubbing. The rows fit the
+    strip's lit-hour height at 1440 px: 10 + 18 + 6 + 44 + 6 + 35 + 6 + 34 + 10 = 169 px.
+  */
   .cd {
     display: flex;
     flex-direction: column;
-    gap: var(--s2);
+    gap: 6px;
     min-width: 0;
-    padding: var(--s3) 14px;
+    padding: 10px 14px;
   }
 
   .cd-head {
@@ -571,13 +576,19 @@
     font-size: var(--t-sm);
   }
 
-  .cd-num {
+  /* The countdown line is one height whatever it says: a number, words, or "none before". */
+  .cd-num,
+  .cd-none {
     display: block;
+    height: 28px;
+    line-height: 28px;
+    white-space: nowrap;
+  }
+
+  .cd-num {
     color: var(--ink);
     font-size: var(--t-2xl);
     font-weight: 500;
-    line-height: 1.15;
-    white-space: nowrap;
   }
 
   .cd-num-words {
@@ -589,21 +600,49 @@
   }
 
   .cd-none {
-    display: block;
     color: var(--ink-2);
     font-size: var(--t-lg);
-    line-height: 1.6;
+  }
+
+  /*
+    The notes row: always there, always two lines tall (a 16 px line and an 18 px tag line),
+    at the foot of the card. It holds this stretch's chip and its tag, and "Under 6 h". Empty,
+    it is the card's bottom margin, as before.
+  */
+  .cd-notes {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    align-items: center;
+    gap: 0 6px;
+    height: 34px;
+    margin: auto 0 0;
+    overflow: hidden;
+    font-size: var(--t-sm);
+    line-height: 16px;
   }
 
   .cd-flag {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    margin-bottom: 3px;
     color: var(--status-caution);
-    font-size: var(--t-sm);
     font-weight: 500;
     white-space: nowrap;
+  }
+
+  .cd-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: var(--r-sm);
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+
+  .cd-chip.is-broken {
+    color: var(--status-nogo);
+    font-weight: 500;
   }
 
   .cd-relay {
@@ -630,28 +669,6 @@
     margin: 0;
     color: var(--ink);
     font-size: var(--t-md);
-    font-weight: 500;
-  }
-
-  .cd-stretch {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-    margin: 0;
-    padding-top: var(--s2);
-    border-top: 1px solid var(--line);
-    color: var(--ink-2);
-    font-size: var(--t-sm);
-    line-height: 1.5;
-  }
-
-  .cd-stretch .lamp {
-    align-self: flex-start;
-    margin-top: 3px;
-  }
-
-  .cd-stretch.is-broken .cd-stretch-value {
-    color: var(--status-nogo);
     font-weight: 500;
   }
 

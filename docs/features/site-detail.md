@@ -145,9 +145,25 @@ Four cards, measured from the scrubber's time:
 - Each card also shows the current value: Sun elevation and disc fraction; Earth elevation
   and clearance.
 - If no event falls inside the time grid, the card says "none before 2032".
-- When a countdown is under 6 hours the card turns amber.
+- When a countdown is under 6 hours the card turns amber, and an "Under 6 h" chip with the
+  CAUTION lamp says so in words.
 - Sunset and Earthset mean the moments defined by the profile's rules, not the geometric
   horizon. The tooltip says so.
+- **The same rows at every hour.** Each card is, top to bottom: the head (body, state), the
+  countdown (its label and one 28 px line, whether it holds a number, words or "none before
+  2032"), the values now, and a notes row reserved two lines tall at the foot. Nothing
+  appears or disappears between hours, so neither the card nor the bottom strip changes
+  height while the user scrubs or plays (the team lead's request, 2026-11-14): the strip
+  keeps its lit-hour height, 196 px at 1440 px wide. The countdown column has size
+  containment, so the cards can never set the strip's height; the timeline does.
+- **The notes row** holds, while the current hour is in a dark stretch (Sun) or a blackout
+  (Earth) inside the mission window, a chip with this stretch's length against the
+  profile's limit, "✕ 130 h dark · limit 6 h" or "90 h blackout · limit 12 h", followed by
+  the limit's sourced or assumed tag (it wraps under the chip in the 158 px card). Over the
+  limit the chip is NO-GO red with the NO-GO lamp. Its whole sentence, "This dark stretch
+  lasts 130 h, over the 6 h limit.", is its accessible description and its hover and focus
+  tip. The row also holds "Under 6 h". Empty, it is the card's bottom margin, as before.
+  Lengths use the same rounding and strict comparison as the veto (docs/science.md §10).
 
 ## "Why is it dark?" card
 
