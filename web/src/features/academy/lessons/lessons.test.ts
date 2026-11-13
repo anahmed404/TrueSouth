@@ -527,7 +527,7 @@ describe("every learner-visible string of lessons 1 to 4 is in the doc", () => {
       if (where.endsWith("answer label") && sliders.has(where.split(".")[0] ?? "")) return `goal: ${value}`;
       return value;
     };
-    const sliders = new Set(lesson.steps.filter((step) => step.kind === "tune-slider").map((step) => step.id));
+    const sliders = new Set<string>(lesson.steps.filter((step) => step.kind === "tune-slider").map((step) => step.id));
     const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     for (const item of visibleStrings(lesson)) {
       const want = loose(slot(item.where, item.text));
