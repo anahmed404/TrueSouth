@@ -947,6 +947,77 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Academy
 
+#### 2026-11-13 · A5 · Lessons 1 to 4 playable, with their cards
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the final hints, explanations, reveals
+  and panel-step previews of lessons 1 to 4 (and the matching "Words" lists in
+  `lessons.md`), the four Under-the-hood cards, the routing, path and completion changes,
+  the slider readout, the "not ready" form of panel steps and their vitest tests; checked
+  each multiple-choice answer against `worked_examples.json` and the story month's
+  series. **AI-generated images:** the side view of the curved Moon for lesson 3's reveal
+  (inline SVG in `lesson/scenes.tsx`, a labelled schematic, not to scale). Checked by the
+  agent with the tests, typecheck, build and pytest, by playing lessons 1 to 4 in a
+  browser at 1440 × 900 and 390 × 844 (and once with `VITE_DATA=fixtures`, and once by
+  keyboard only), and with the Impeccable detector. A human has not played the lessons.
+- **State:** verified (333 Python tests, 1,849 web tests and the typecheck pass on the merge with main; reviewed by Codex, which recomputed every answer of lessons 1 to 4 from the real data; five findings fixed (the highest-Sun formula uses the distance from the pole and is called an estimate; the ridge is said to be toward the Sun; the 20 km slider goal is exact; story-month numbers say this month; the wording test covers every visible string); played by the builder by keyboard at two sizes; not yet played by the team lead)
+- **Changed:** `web/src/features/academy/` (`lessons/l1.ts`–`l4.ts`, `lessons/index.ts`,
+  `lessons/story.ts`, `lessons/COVERAGE.md`, `cards/`, `index.tsx`, `path-map.tsx`,
+  `complete-screen.tsx`, `lesson-screen.tsx`, `lesson/stage.tsx`, `lesson/scenes.tsx`,
+  `lesson/conversation.tsx`, `step-view.ts`, `types.ts`, `academy.css`, tests),
+  `docs/academy/lessons.md` (a "Words" list per lesson and two card notes),
+  `docs/design/c2/built-lessons-*.png`
+- **Notes:**
+  - `/academy/l1_sun` to `/academy/l4_link` open with the real worked examples, with plain
+    loading and failed-to-load pages. Every lesson is open from the start, as
+    `overview.md` says; lessons 5 to 8 show "Not written yet" on the path. The sample is
+    no longer linked from the path; it still opens at `/academy/sample`.
+  - Panel steps (`drag-body`, `draw-skyline`, `drop-pin`) wait for A3. Until then each
+    shows a `preview` (a new optional field): Luna says what the learner will do there,
+    the stage shows the real answer, and "Continue" moves on for no XP. A skipped step
+    is not counted for the stars; `starsFor(0, 0)` already gave 1 star and no patch.
+  - Number sliders now show their readout (the s²/2R drop in lesson 3, the link time
+    from `l4.link_pct_by_mask` in lesson 4). Lesson 3's illustration reveal is now drawn.
+  - `docs/science.md` has no 1.54° tilt (lesson 1's card) and no 0.26° off-centre shift
+    (lesson 4's card); the cards describe both in words. §9 names
+    `web/src/lib/scoring/metrics.ts`, which does not exist; the code is `scoring.ts`.
+  - On the fixture the lessons validate and play, but its synthetic numbers do not fit
+    the story (lesson 2's Sun is above the ridge; lesson 1's maximum is 4.4°).
+  - Review fixes (Codex review of PR #81), each its own commit:
+    1. Lesson 1 step 4 asks "Highest Sun ≈ (90° − how far south you are) + ( ? )". After a
+       math review, the rule is worded as an estimate, not a limit (the stored six years
+       reach a little higher than its 2.08°): Luna says "about 2° at Pip's latitude in the
+       best season ... one is an estimate for the best season, the other is this month",
+       no 2.08 is typed, and a test fails if any lesson or card source words it as a limit.
+       A test checks that 90 − |`l1.site_lat_deg`| + 1.54 rounds to 2. The miss explanation says what 23.4° and 5.1° really are. The
+       lesson 1 card quotes `docs/science.md` §3.4's highest-Sun rule with |φ|, the lesson 4
+       card its 0.26° off-centre shift.
+    2. Lesson 2 step 1 says the ridge lies in the Sun's direction; step 3 sketches the
+       skyline towards the Sun; step 5 compares two features in the same direction.
+    3. Lesson 3's slider goal is exactly 20 km (19 and 21 km read 104 and 127 m and are
+       misses). A test tries every position of both sliders: an answer is accepted exactly
+       when its own readout answers the question. Lesson 4's "6.5° or more" passes it.
+    4. Story-month numbers say "this month". Lesson 4 step 5 asks "Which rule made them all
+       fail?" and says only that a 5° margin gives `l4.link_pct_mask5`% this month. Lesson 1
+       step 3 says the Sun's direction circles and for part of the month it is just below
+       level; the 511 hours and twelve 30° sectors are not typed.
+    5. The drift test covers every learner-visible string, every option in order, no
+       duplicate options and every marked answer in range. Card text is pinned by a
+       snapshot.
+    6. Played by keyboard only at 1440 × 900 and 390 × 844, all four lessons end to end:
+       focus visible on every control, no control under 44 px, no sideways scroll, no
+       console errors. Fixed: the result and a right option said "Correct" twice to a screen
+       reader; a degree slider read "6.5 °" (now "6.5°"). Progress: tests on lesson 1 played
+       wrong then right, quit halfway, replayed better and worse, and reloaded (XP is
+       best-of, never added twice, quitting saves nothing); in the browser a replay of
+       lesson 4 earned 35 XP and the total stayed 160. A missing, null, NaN or empty
+       worked-example key: the lesson does not open and says some of its numbers are not
+       built yet.
+    7. The Lander's eye chart is not wired into the panel steps (A3).
+  - Worked-example keys worth adding later: the hours the Sun is above level in the story
+    month (511 of 720), the number of 30° compass sectors the Sun visits (12), and the
+    5° link time for other 30-day windows (about 32.6% from February and 32.9% from
+    October 2028), so lesson 4 could show the month-to-month spread.
+
 #### 2026-11-13 · A9 · Math review of all fifteen science sections
 - **Who:** Codex review agent, for the orchestrator
 - **AI use:** Codex, gpt-6.1-sol — read the science document against Python and

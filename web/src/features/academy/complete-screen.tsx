@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { Link } from "react-router";
 import { Luna, useLunaReducedMotion } from "../../components/luna";
 import { LESSONS, PATCH_SHELF } from "./catalog";
+import { isWritten } from "./lessons";
 import type { WorkedExamples } from "./placeholders";
 import { completeScreenData, type RunnerState } from "./runner";
 import { useAcademyStore } from "./store";
@@ -71,7 +72,9 @@ export function CompleteScreen({ lesson, runner, examples }: { lesson: Lesson; r
   const nextRef = useRef<HTMLAnchorElement>(null);
 
   const index = LESSONS.findIndex((item) => item.id === lesson.id);
-  const next = index >= 0 ? LESSONS[index + 1] : undefined;
+  const following = index >= 0 ? LESSONS[index + 1] : undefined;
+  // The next lesson, if it is written. After lesson 4 the path goes on to lessons that are not.
+  const next = following && isWritten(following.id) ? following : undefined;
   const shelfIds = new Set(PATCH_SHELF.map((patch) => patch.id));
   const earnedOfNine = patches.filter((id) => shelfIds.has(id)).length;
   const done = completeScreenData(lesson, runner);
@@ -168,10 +171,17 @@ export function CompleteScreen({ lesson, runner, examples }: { lesson: Lesson; r
               </Link>
             </>
           ) : (
-            <Link ref={nextRef} className="ac-btn ac-btn--primary" to="/academy">
-              Back to the path
-              <ArrowRight aria-hidden="true" />
-            </Link>
+            <>
+              {following ? (
+                <p className="ac-cf-note">
+                  Lesson {index + 2}, {following.title}, is not written yet.
+                </p>
+              ) : null}
+              <Link ref={nextRef} className="ac-btn ac-btn--primary" to="/academy">
+                Back to the path
+                <ArrowRight aria-hidden="true" />
+              </Link>
+            </>
           )}
         </div>
       </footer>
