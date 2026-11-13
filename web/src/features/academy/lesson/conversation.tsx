@@ -175,7 +175,7 @@ function ResultRow({ result, examples }: { result: ResultView; examples: WorkedE
   const reduced = useLunaReducedMotion();
   return (
     <div className="ac-result" role="status">
-      {result.tone === "correct" ? <CorrectMark showLabel={false} label={headline} /> : <ShownMark />}
+      {result.tone === "correct" ? <CorrectMark silent /> : <ShownMark />}
       <span className="ac-result-text">{result.tone === "shown" ? <span className="ac-visually-hidden">The answer: </span> : null}
         {headline}
       </span>

@@ -131,6 +131,11 @@ export type ConversationEntry =
   | { who: "luna"; mood: LunaMood; text: string; old: boolean; key: string }
   | { who: "me"; text: string; miss: boolean; key: string };
 
+/** A number with its unit: "20 km", but "6.5°" and "11%", which sit on the number. */
+export function withUnit(value: number, unit: string): string {
+  return unit === "°" || unit === "%" ? `${value}${unit}` : `${value} ${unit}`;
+}
+
 /** How the learner's reply reads in the conversation. Text may hold placeholders. */
 export function replyText(step: Step, submission: Submission): string {
   switch (submission.kind) {
@@ -145,7 +150,7 @@ export function replyText(step: Step, submission: Submission): string {
     case "tune-slider":
       if (step.kind !== "tune-slider") return "";
       if (submission.variant === "date") return submission.utc;
-      return step.slider.kind === "number" ? `${submission.value} ${step.slider.unit}` : String(submission.value);
+      return step.slider.kind === "number" ? withUnit(submission.value, step.slider.unit) : String(submission.value);
     case "drag-body":
       return String(submission.value);
     case "drop-pin":

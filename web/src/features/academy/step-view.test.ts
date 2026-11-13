@@ -195,3 +195,12 @@ describe("Pip's meters", () => {
     expect(pipAt([{ ...base, id: "z", kind: "choice", options: ["x"], answer: 0 }], 0)).toBeNull();
   });
 });
+
+describe("a slider value with its unit", () => {
+  it("puts degrees and percent on the number, and spaces other units", async () => {
+    const { withUnit } = await import("./step-view");
+    expect(withUnit(6.5, "°")).toBe("6.5°");
+    expect(withUnit(11, "%")).toBe("11%");
+    expect(withUnit(20, "km")).toBe("20 km");
+  });
+});

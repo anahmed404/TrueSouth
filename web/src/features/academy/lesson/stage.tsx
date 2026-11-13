@@ -5,7 +5,7 @@ import { formatNumber, unitRuleFor } from "../format-example";
 import { resolveDegrees, type WorkedExamples } from "../placeholders";
 import { numberReadoutAt } from "../readout";
 import type { RunnerState } from "../runner";
-import { isAnswered, panelPreview, type Draft, type OptionView } from "../step-view";
+import { isAnswered, panelPreview, withUnit, type Draft, type OptionView } from "../step-view";
 import type { NumberReadout, PanelId, RevealSpec, Step } from "../types";
 import { AnswerOption, OptionGroup, optionTabStop } from "../ui/answer-option";
 import { filledText } from "../ui/filled";
@@ -330,7 +330,7 @@ function SliderStage({
       <div className="ac-slider-row">
         <label htmlFor={`ac-slider-${step.id}`}>{label}</label>
         <output htmlFor={`ac-slider-${step.id}`} aria-live="off">
-          {value} {slider.unit}
+          {withUnit(value, slider.unit)}
         </output>
       </div>
       <input
@@ -342,16 +342,16 @@ function SliderStage({
         step={slider.step}
         value={value}
         disabled={answered}
-        aria-valuetext={`${value} ${slider.unit}`}
+        aria-valuetext={withUnit(value, slider.unit)}
         data-ac-slider=""
         onChange={(event) => onDraft({ kind: "tune-slider", variant: "number", value: Number(event.target.value) })}
       />
       <div className="ac-slider-ends" aria-hidden="true">
         <span>
-          {slider.min} {slider.unit}
+          {withUnit(slider.min, slider.unit)}
         </span>
         <span>
-          {slider.max} {slider.unit}
+          {withUnit(slider.max, slider.unit)}
         </span>
       </div>
       {slider.readout ? <SliderReadout readout={slider.readout} at={value} examples={examples} /> : null}
