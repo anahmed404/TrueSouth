@@ -3,9 +3,7 @@ import json
 from pathlib import Path
 
 import numpy as np
-import rasterio
 from pyproj import CRS
-from rasterio.windows import Window
 
 from .constants import MOON_RADIUS_M
 from .frames import polar_stereo_forward
@@ -26,6 +24,9 @@ def site_tier(latitude):
 
 def prepare_map(source, output):
     """Convert one raster to a memory-mappable float32 array and metadata."""
+    import rasterio
+    from rasterio.windows import Window
+
     source, output = Path(source), Path(output)
     sidecar = output.with_suffix(".json")
     size = source.stat().st_size
