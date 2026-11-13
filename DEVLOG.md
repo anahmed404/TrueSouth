@@ -918,7 +918,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   (no findings) and by eye in a browser on the real data at 1440 × 900, 1024 × 768,
   390 × 844, forced "no WebGL", reduced motion and a 360 px lesson box; a human has not
   reviewed it yet
-- **State:** built, not verified
+- **State:** verified (2,017 web tests, typecheck and build pass on the merge with main (the orchestrator's run), and 425 Python tests on the same tree (the builder's run); reviewed by Cursor, which re-derived the projection independently and matched it at the pole, the four 80°S axes and five sites, confirmed the image is not mirrored and the lookup cells are right; one must-fix (the NASA caveat now stays up while a pin is dragged) and five smaller fixes made; not yet tried by the team lead)
 - **Changed:** `web/src/features/polar-map/` (new files; `index.tsx` keeps `PolarMap` as the
   default export), `web/src/app/scene.ts` (adds `FlatLayer` and `FlatLayerProps`),
   `web/src/app/mission/scene-slot.tsx` (optional `flat` prop), two lines in
