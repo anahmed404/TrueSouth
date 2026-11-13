@@ -224,6 +224,31 @@ The scrubber drives the scene. Playing time shows the three motions that matter:
   NVIDIA RTX 2060 desktop GPU at 1440 × 900: the scene costs under 4 ms a frame with panels
   open or folded, at pixel ratio 1 and 2, and while orbiting Local terrain (each capped by
   the display's 240 Hz). A weak laptop is not measured yet.
+- **Weak machines step down; strong ones never change.** The scene measures the frames of
+  its flights (they are drawn back to back, so the time between them is a frame's cost)
+  and steps its quality down in stages when they are slower than 36 ms. Stage 0, the full
+  picture, is what every machine starts on and what a fast one keeps. Stages 1 to 3 draw
+  fewer pixels only while the camera or the time moves (60 % of the pixel ratio, then
+  half), and lower the resting pixel ratio only on the last two stages (to 1.25, then
+  0.85). See [`../decisions/0014-the-scene-steps-quality-down.md`](../decisions/0014-the-scene-steps-quality-down.md).
+- **While moving, a lighter Moon.** The Moon sphere has only as many segments as its size
+  on screen needs to keep its edge within a quarter of a pixel (64 around at home zoom,
+  instead of 384). Shading is per pixel, so nothing else changes. At rest the full mesh is
+  back: 160 ms after the last movement the scene draws one full frame, then nothing.
+- **Measured** (1440 × 900 unless said; frames are the median time between drawn frames):
+
+  | Machine | Orbiting the System view | Flight to the Polar map |
+  | :--- | ---: | ---: |
+  | RTX 2060, before and after | 4.2 ms | 4.2 ms |
+  | SwiftShader (software GPU), before | 196 ms | 229 ms |
+  | SwiftShader, after | 33 ms | 37 ms |
+  | SwiftShader, 6× CPU throttling, before | 213 ms | 225 ms |
+  | SwiftShader, 6× CPU throttling, after | 36 ms | 41 ms |
+
+  A real laptop's built-in graphics is still not measured. Local terrain on SwiftShader is
+  still slow (about 240 ms a frame): the ground's mesh, for the ground package to take on.
+- **Dev only:** `?perf` in the address shows the frame time over the scene;
+  `window.__truesouthPerf` reads it.
 - **When nothing moves, the page renders nothing.** A still scene draws no frames.
 - **Rendering stops when the tab is hidden.**
 - One sphere per body, a few pins and lines. The page weight is under "Textures".
@@ -233,8 +258,9 @@ The scrubber drives the scene. Playing time shows the three motions that matter:
 
 ## When 3D does not run
 
-When WebGL is missing, or the first flight is slow (a median frame over 55 ms during it),
-a still picture of the System view replaces the scene:
+When WebGL is missing, or the scene is still slow on its last quality stage (a median
+flight frame over 55 ms; see "Performance"), a still picture of the System view replaces
+the scene. A slow first flight alone no longer does: it steps the quality down.
 
 - A single image behind the interface, with a note and a "Try 3D anyway" button.
 - The 55 ms threshold is a guess from one machine. Measure on a laptop with built-in
