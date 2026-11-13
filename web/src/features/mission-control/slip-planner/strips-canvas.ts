@@ -54,7 +54,7 @@ export function drawStrips(ctx: StripContext, frame: StripFrame): void {
     const top = index * (h + gap);
     ctx.save();
     ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(0, top, width, h, Math.min(6, h / 2));
+    if (ctx.roundRect) ctx.roundRect(0, top, width, h, Math.min(3, h / 4));
     else ctx.rect(0, top, width, h);
     ctx.clip();
     ctx.globalAlpha = 1;

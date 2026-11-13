@@ -463,6 +463,7 @@ function Dates(props: DatesProps) {
               rowHeight={metrics.height}
               landingDay={landingDay}
               focused={row.kind === "site" && row.siteId === scenario.focusedSiteId}
+              compact={compact}
               catalog={catalog}
               onFocusSite={onFocusSite}
             />
@@ -589,11 +590,13 @@ type RowLabelProps = {
   rowHeight: number;
   landingDay: number;
   focused: boolean;
+  /** On the phone the whole strip area is the touch target: a row name is text, not a button. */
+  compact: boolean;
   catalog: readonly Site[] | null;
   onFocusSite: (siteId: string) => void;
 };
 
-const RowLabel = memo(function RowLabel({ row, top, rowHeight, landingDay, focused, catalog, onFocusSite }: RowLabelProps) {
+const RowLabel = memo(function RowLabel({ row, top, rowHeight, landingDay, focused, compact, catalog, onFocusSite }: RowLabelProps) {
   const code = row.codes?.[landingDay] ?? 0;
   const status = code === DAY_PENDING ? null : codeStatus(code);
   const lamp = status ? <StatusLamp status={status} size="xs" /> : <span className="lamp-none ldp-lamp-none" aria-hidden="true" />;
@@ -611,23 +614,24 @@ const RowLabel = memo(function RowLabel({ row, top, rowHeight, landingDay, focus
   const parent = parentId ? (catalog?.find((s) => s.id === parentId) ?? null) : null;
   const name = site?.name ?? row.siteId;
   const variantText = parent && site ? variantLine(metresApart(site, parent, MOON_RADIUS_M), parent.name) : null;
+  const Tag = compact ? "span" : "button";
   return (
-    <button
-      type="button"
-      tabIndex={-1}
+    <Tag
+      type={compact ? undefined : "button"}
+      tabIndex={compact ? undefined : -1}
       className={cx("ldp-label", parentId && "is-variant")}
       style={style}
       data-site={row.siteId}
       aria-current={focused ? "true" : undefined}
       title={variantText ? `${variantText}, chosen by TrueSouth. Focus it.` : `Focus ${name}`}
-      onClick={() => onFocusSite(row.siteId)}
+      onClick={compact ? undefined : () => onFocusSite(row.siteId)}
     >
       {lamp}
       <span className="ldp-name">{parentId ? "Best-lit variant" : name}</span>
       {parentId ? <span className="tag tag-chosen">chosen by TrueSouth</span> : null}
       {site?.terrain_tier === "sphere" ? <span className="ldp-note">terrain not modelled</span> : null}
       {row.entry.state === "error" ? <span className="ldp-note">could not load</span> : null}
-    </button>
+    </Tag>
   );
 });
 

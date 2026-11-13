@@ -142,6 +142,8 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
 
   // ── Placement: written straight to the elements, after every frame and every render ──
   const layerRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
+  const footRef = useRef<HTMLDivElement>(null);
   const leadersRef = useRef<SVGSVGElement>(null);
   const spotRefs = useRef(new Map<string, HTMLButtonElement>());
   const labelRefs = useRef(new Map<string, HTMLDivElement>());
@@ -169,7 +171,15 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
     const placed = placeSpots(points, scale);
     const order = [...list].sort((a, b) => b.priority - a.priority);
     const shown = placed.filter((p) => p.visible);
-    const bounds: Box = { l: fs.x + 6, r: fs.x + fs.width - 6, t: fs.y + 6, b: fs.y + fs.height - 6 };
+    // Labels keep clear of the plates at the top (notes) and the foot (summary, controls).
+    const topPlates = topRef.current?.getBoundingClientRect();
+    const footPlates = footRef.current?.getBoundingClientRect();
+    const bounds: Box = {
+      l: fs.x + 6,
+      r: fs.x + fs.width - 6,
+      t: Math.max(fs.y + 6, topPlates && topPlates.height > 0 ? topPlates.bottom + 4 : 0),
+      b: Math.min(fs.y + fs.height - 6, footPlates && footPlates.height > 0 ? footPlates.top - 4 : Infinity),
+    };
     // Measure each label while shown, then place them in priority order.
     const labels = order
       .map((m) => {
@@ -287,7 +297,7 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
 
       {tiny ? null : (
         <>
-          <div className="slip-top" style={{ left: freeSpace.x + 8, top: freeSpace.y + 8, maxWidth: Math.max(0, freeSpace.width - 16) }}>
+          <div ref={topRef} className="slip-top" style={{ left: freeSpace.x + 8, top: freeSpace.y + 8, maxWidth: Math.max(0, freeSpace.width - 16) }}>
             {flat ? (
               <div className="plate slip-note" role="note">
                 <p>{FLAT_NOTE}</p>
@@ -303,7 +313,7 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
             ))}
           </div>
 
-          <div className="slip-foot" style={fsFoot}>
+          <div ref={footRef} className="slip-foot" style={fsFoot}>
             {summary ? (
               <div className="plate slip-summary" role="status">
                 <p>{summary}</p>

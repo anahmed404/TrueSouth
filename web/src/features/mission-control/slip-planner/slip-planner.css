@@ -121,6 +121,7 @@
     margin-left: auto;
   }
 
+
   .ldp-link {
     padding: 0;
     border: 0;
@@ -475,7 +476,12 @@
   }
 
   .ldp[data-compact="true"] .seg-option {
+    min-width: 44px;
     min-height: 44px;
+  }
+
+  .ldp[data-compact="true"] .ldp-label {
+    pointer-events: none;
   }
 
   .ldp[data-compact="true"] .ldp-tip {
@@ -833,4 +839,16 @@
     mask-size: 100% 100%;
     mask-repeat: no-repeat;
   }
+}
+
+/*
+  Outside the layer on purpose: in this panel the shared segmented control lost its padding
+  to a reset elsewhere, and its three zoom words ran together.
+*/
+.ldp-controls .seg {
+  padding: 3px;
+}
+
+.ldp-controls .seg-option {
+  padding: 0 10px;
 }
