@@ -201,10 +201,11 @@ worst of those hours the direction on the sky differs by 0.00017°. At every oth
 and hour the raw compass azimuth differs by at most 0.0093°, and at the polar sites by at
 most 0.0060°.
 
-Gate G2 in [`validation.md`](validation.md) is worded as "azimuth and elevation match".
-Read as a direction on the sky it is met everywhere with a wide margin. Read as raw
-compass azimuth it is not met at those 28 hours. Which reading the gate means is the
-team lead's decision; until it is made, G2 is reported with both numbers.
+Gate G2 in [`validation.md`](validation.md) compares $\delta_A$ and $\delta_e$, each
+against 0.02°: directions on the sky, not raw compass bearings. The team lead decided
+this on 2026-11-13
+([`decisions/0011`](decisions/0011-g2-compares-directions-on-the-sky.md)). The raw
+compass azimuth is still measured and reported beside the gate.
 For each component, report the maximum, its UTC hour, and
 $\operatorname{RMS}(\delta)=\sqrt{\operatorname{mean}(\delta^2)}$. Also report the full
 direction separation, computed from local east/north/up unit vectors $\hat d$ and

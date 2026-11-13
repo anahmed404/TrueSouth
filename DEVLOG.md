@@ -56,7 +56,8 @@ each integration checkpoint.
   Fable 5.2) reran the full comparison offline from the saved responses and checked the
   result against known facts; Cursor, grok-4.7 recomputed it with its own vector code and
   checked the conventions against the Horizons headers and manual
-- **State:** built; gate G1 verified; gate G2 awaiting the team lead's decision on its wording
+- **State:** verified (gates G1 and G2; the team lead decided on 2026-11-13 that G2
+  compares directions on the sky, see `docs/decisions/0011`)
 - **Changed:** `science/src/truesouth/horizons.py`, `ephemeris.py`,
   `commands/fetch_ephemeris.py`, `science/tests/`, `data/derived/system.bin`,
   `docs/science.md` section 3
