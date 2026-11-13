@@ -10,7 +10,7 @@ import { surfacePointScene } from "../../../lib/geo";
 import { useEvaluation } from "../../../lib/scoring";
 import { groupPins, moreSitesLine, type ScreenPin } from "./pins";
 import type { Plate } from "./plates";
-import { sightGood, sightLabel, type SightState } from "./sight";
+import { bodyLabel, sightGood, sightLabel, type SightState } from "./sight";
 import type { Anchors, WorldSite } from "./world";
 
 /**
@@ -29,7 +29,15 @@ export type OverlayBus = {
   controls: { beginDrag: () => void; orbit: (dx: number, dy: number) => void; zoom: (factor: number) => void } | null;
 };
 
-type SightInfo = { state: SightState | null; sunEl: number; earthEl: number } | null;
+type SightInfo = {
+  state: SightState | null;
+  sunEl: number;
+  earthEl: number;
+  sunFrac: number;
+  earthFrac: number;
+  sunClear: number;
+  earthClear: number;
+} | null;
 
 type OverlayProps = {
   bus: { current: OverlayBus };
@@ -331,13 +339,13 @@ export function Overlay(props: OverlayProps) {
       <div ref={bodyRefs.earth} className="plate scene-label scene-label-row" aria-hidden="true">
         <BodyIcon body="earth" size={14} />
         <span className="scene-label-main">
-          {view === "panorama" && sight ? `Earth, ${sight.earthEl.toFixed(1)}° up${state ? `: ${state.earth === "link" ? "link" : "no link"}` : ""}` : "Earth"}
+          {view === "panorama" && sight ? bodyLabel("earth", sight.earthEl, sight.earthFrac, sight.earthClear) : "Earth"}
         </span>
       </div>
       <div ref={bodyRefs.sun} className="plate scene-label scene-label-row" aria-hidden="true">
         <BodyIcon body="sun" size={14} />
         <span className="scene-label-main">
-          {view === "panorama" && sight ? `Sun, ${sight.sunEl.toFixed(1)}° up${state ? `: ${state.sun}` : ""}` : "Sun"}
+          {view === "panorama" && sight ? bodyLabel("sun", sight.sunEl, sight.sunFrac, sight.sunClear) : "Sun"}
         </span>
       </div>
       <div ref={markerRef} className="plate scene-label scene-label-row scene-marker" aria-hidden="true">

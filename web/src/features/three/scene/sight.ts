@@ -25,3 +25,29 @@ export function sightLabel(body: "sun" | "earth", state: SightState): string {
 export function sightGood(body: "sun" | "earth", state: SightState): boolean {
   return body === "sun" ? state.sun === "lit" : state.earth === "link";
 }
+
+/** A signed angle with one decimal and a true minus sign (DESIGN.md, "Numbers and units"). */
+export function formatSignedDeg(deg: number): string {
+  const rounded = Math.round(deg * 10) / 10;
+  const text = Math.abs(rounded).toFixed(1);
+  return rounded < 0 ? `−${text}°` : `${text}°`;
+}
+
+/**
+ * A body's label in Lander's eye (docs/features/panorama.md): its height and whether it is
+ * in view, for example "Earth, 0.9° up · in view" or "Sun, 0.8° up · behind the ridge".
+ * Height is the series' elevation; below the level it says so instead of a negative "up".
+ * In view or not is the series' disc fraction, with its clearance to tell terrain in the way
+ * ("behind the ridge") from a body that is simply down ("below the horizon"). Never from the
+ * scene.
+ */
+export function bodyLabel(body: "sun" | "earth", elevationDeg: number, discFraction: number, clearanceDeg: number): string {
+  const name = body === "sun" ? "Sun" : "Earth";
+  const rounded = Math.round(elevationDeg * 10) / 10;
+  const height = rounded < 0 ? `${Math.abs(rounded).toFixed(1)}° below level` : `${rounded.toFixed(1)}° up`;
+  let state: string;
+  if (discFraction >= 0.999) state = "in view";
+  else if (discFraction > 0) state = "partly in view";
+  else state = elevationDeg > 0 && clearanceDeg < 0 ? "behind the ridge" : "below the horizon";
+  return `${name}, ${height} · ${state}`;
+}

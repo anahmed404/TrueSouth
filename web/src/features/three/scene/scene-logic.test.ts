@@ -25,7 +25,7 @@ import {
   type Subjects,
 } from "./camera";
 import { groupPins, moreSitesLine } from "./pins";
-import { sightGood, sightLabel, sightState } from "./sight";
+import { bodyLabel, formatSignedDeg, sightGood, sightLabel, sightState } from "./sight";
 import { cross, dot, len, norm, sub } from "./vec";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -230,5 +230,28 @@ describe("sight-line states come from the fixture series through the hour flags"
   it("has no state outside the time grid", () => {
     expect(sightState(flags, -1)).toBeNull();
     expect(sightState(flags, flags.lit.length)).toBeNull();
+  });
+});
+
+describe("the body labels in Lander's eye", () => {
+  it("say up above the level and below level under it, never a negative up", () => {
+    // Connecting Ridge, 2028-03-01T00:00Z: sun_el −1.07°, sun_frac 1.00 (the ridge sees past the level).
+    expect(bodyLabel("sun", -1.07, 1, 0.7)).toBe("Sun, 1.1° below level · in view");
+    expect(bodyLabel("earth", 0.9, 1, 1.4)).toBe("Earth, 0.9° up · in view");
+  });
+
+  it("take in view or not from the disc fraction, and the reason from the clearance", () => {
+    expect(bodyLabel("sun", 0.8, 0, -0.6)).toBe("Sun, 0.8° up · behind the ridge");
+    expect(bodyLabel("sun", 0.3, 0.4, -0.05)).toBe("Sun, 0.3° up · partly in view");
+    expect(bodyLabel("earth", -2.4, 0, -3.1)).toBe("Earth, 2.4° below level · below the horizon");
+  });
+
+  it("never prints an ASCII hyphen for a negative number", () => {
+    expect(formatSignedDeg(-1.07)).toBe("\u22121.1°");
+    expect(formatSignedDeg(0.04)).toBe("0.0°");
+    expect(formatSignedDeg(-0.04)).toBe("0.0°");
+    for (const el of [-12.3, -0.06, 0, 0.06, 45]) {
+      expect(bodyLabel("sun", el, 0.5, 0.1)).not.toMatch(/-/);
+    }
   });
 });

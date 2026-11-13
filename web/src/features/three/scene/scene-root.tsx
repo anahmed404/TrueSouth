@@ -266,7 +266,19 @@ function Scene3D(props: SceneProps) {
     return { id: focusedSite.id, name: focusedSite.name, latDeg: lat, lonDeg: lon, groundHeightM, frame, sphere };
   }, [focusedSite, focusReady?.apron, apronEntry]);
 
-  const sight = useMemo((): { state: SightState | null; sunDir: V3; earthDir: V3; sunEl: number; earthEl: number; sunAz: number; earthAz: number } | null => {
+  const sight = useMemo((): {
+    state: SightState | null;
+    sunDir: V3;
+    earthDir: V3;
+    sunEl: number;
+    earthEl: number;
+    sunAz: number;
+    earthAz: number;
+    sunFrac: number;
+    earthFrac: number;
+    sunClear: number;
+    earthClear: number;
+  } | null => {
     if (!worldSite || !focusReady?.series || hourIndex === null) return null;
     const s = focusReady.series;
     const sunAz = s.sun_az[hourIndex];
@@ -282,6 +294,10 @@ function Scene3D(props: SceneProps) {
       sunEl,
       earthAz,
       earthEl,
+      sunFrac: s.sun_frac[hourIndex] ?? Number.NaN,
+      earthFrac: s.earth_frac[hourIndex] ?? Number.NaN,
+      sunClear: s.sun_clear[hourIndex] ?? Number.NaN,
+      earthClear: s.earth_clear[hourIndex] ?? Number.NaN,
     };
   }, [worldSite, focusReady?.series, focusReady?.flags, hourIndex]);
 
