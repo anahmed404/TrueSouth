@@ -47,7 +47,7 @@ export const l4Card: UnderTheHoodCard = {
       { label: "Earth's [[elevation]]", value: "{{example.l4.example_earth_el}}°" },
       { label: "Earth's clearance above the skyline", value: "{{example.l4.example_earth_clear}}°" },
       { label: "An hour is a [[link]] when (science notes, section 9)", value: "`earth_clear ≥ antenna_mask_deg`" },
-      { label: "Link time over the month, with no margin", value: "{{example.l4.link_pct_mask0}}%" },
+      { label: "Link time over the story month, with no margin", value: "{{example.l4.link_pct_mask0}}%" },
       { label: "With a 1° margin", value: "{{example.l4.link_pct_mask1}}%" },
       { label: "With a 5° margin", value: "{{example.l4.link_pct_mask5}}%" },
     ],
@@ -67,7 +67,7 @@ export const l4Card: UnderTheHoodCard = {
     },
   ],
   whatCanGoWrong: [
-    "Fixed thresholds copied from another latitude. A rule such as \"Earth well above the horizon\" suits Apollo 11's site, where Earth hangs high; at my pole it fails every site.",
+    "Fixed thresholds copied from another latitude. A rule such as \"Earth well above the horizon\" suits Apollo 11's site, where Earth hangs high; at my pole Earth stays near the horizon, so the rule throws away sites that work.",
     "Measuring the mask from the wrong line. The antenna mask is clearance above the skyline; measured from the level line, it lets terrain block the signal or throws away hours that work.",
     "Judging the whole month. Pip needs a link during its own mission window, not for half of every month. That is lesson 7.",
   ],

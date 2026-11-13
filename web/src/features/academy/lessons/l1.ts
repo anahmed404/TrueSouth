@@ -54,8 +54,8 @@ export const lesson1 = {
     {
       id: "l1-directions",
       luna: { mood: "thinking", says: "Over that month, which directions does the Sun visit?" },
-      hint: "The Sun is low all month long. Where can a low Sun go?",
-      explain: "All the way round. Here the Sun circles the whole horizon about once a month, and stays low the whole time.",
+      hint: "This month the Sun stays low the whole time. Where can a low Sun go?",
+      explain: "All the way round. This month the Sun's direction circles the whole horizon; it stays low, and for part of the month it is just below level.",
       kind: "predict",
       options: ["Only east and west", "All the way round", "Only north"],
       answer: 1,
@@ -63,7 +63,7 @@ export const lesson1 = {
         kind: "panel",
         panel: "SystemView",
         caption:
-          "Over the month the Sun goes all the way round Pip's compass, while its height stays between {{example.l1.sun_el_min_deg}}° and {{example.l1.sun_el_max_deg}}°.",
+          "Over the month the Sun's direction goes all the way round Pip's compass. Its height stays between {{example.l1.sun_el_min_deg}}° and {{example.l1.sun_el_max_deg}}°, so for part of the month it is just below level.",
         scene: flatMonth,
         when: oneMonth("{{example.l1.example_utc}}"),
       },

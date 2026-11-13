@@ -9,7 +9,7 @@ import { oneMonth, storyScene } from "./story";
 const month = storyScene("smooth", oneMonth("{{example.l4.example_utc}}"));
 
 const rulesLuna =
-  "A 5° margin held for half of every month can never be met: with a 5° margin Pip can talk only {{example.l4.link_pct_mask5}}% of the time. Judge the mission's own days, not the whole month. Lesson 7.";
+  "In this month a 5° margin gives Pip a link only {{example.l4.link_pct_mask5}}% of the time, far short of half, so line 3 calls the site NO-GO. Judge the mission's own days, not the whole month. Lesson 7.";
 const range =
   "This month Earth climbs to {{example.l4.earth_el_max_deg}}° at its highest and sinks to {{example.l4.earth_el_min_deg}}° at its lowest.";
 
@@ -38,7 +38,7 @@ export const lesson4 = {
       id: "l4-highest",
       luna: { mood: "thinking", says: "Drag Earth through a month. Find its highest moment." },
       hint: "Earth rises and sinks slowly over the month. Drag back and forth near the top.",
-      explain: `${range} Below 0° it is under the horizon, out of Pip's sight.`,
+      explain: `${range} Below 0° it is below level; whether Pip still sees it depends on the ground in that direction.`,
       kind: "drag-body",
       body: "earth",
       panel: "LandersEye",
@@ -53,9 +53,9 @@ export const lesson4 = {
     },
     {
       id: "l4-up",
-      luna: { mood: "thinking", says: "Over a month, how much of the time is Earth above Pip's horizon?" },
-      hint: "Earth spends part of each month above the horizon and part below it.",
-      explain: "About {{example.l4.earth_up_pct}}%. The rest of the month Earth is below Pip's horizon, and Pip cannot call home.",
+      luna: { mood: "thinking", says: "Over this month, how much of the time is Earth above Pip's horizon?" },
+      hint: "This month Earth spends part of the time above the horizon and part below it.",
+      explain: "About {{example.l4.earth_up_pct}}% of this month. The rest of the time Earth is hidden behind Pip's horizon, and Pip cannot call home.",
       kind: "predict",
       options: ["Always", "Almost never", "About {{example.l4.earth_up_pct}}%"],
       answer: 2,
@@ -71,11 +71,11 @@ export const lesson4 = {
       id: "l4-margin",
       luna: {
         mood: "thinking",
-        says: "Pip's antenna needs Earth to clear the ground by some margin. Raise the margin until Pip can talk less than 15% of the time.",
+        says: "Pip's antenna needs Earth to clear the ground by some margin. Raise the margin until Pip can talk less than 15% of this month.",
       },
       hint: "The higher the margin, the less often Earth clears it. Keep raising it and watch the link time.",
       explain:
-        "From {{example.l4.mask_for_15pct_deg}}° up, Pip can talk less than 15% of the time. A bigger margin is kinder to the radio, but it costs link time.",
+        "From {{example.l4.mask_for_15pct_deg}}° up, Pip can talk less than 15% of this month. A bigger margin is kinder to the radio, but it costs link time.",
       kind: "tune-slider",
       slider: {
         kind: "number",
@@ -101,9 +101,9 @@ export const lesson4 = {
       id: "l4-bug",
       luna: {
         mood: "thinking",
-        says: "An early TrueSouth used these rules and called every polar site NO-GO. Which rule can never be met here?",
+        says: "An early TrueSouth used these rules and called every polar site NO-GO. Which rule made them all fail?",
       },
-      hint: "Which rule asks for more than Earth can give? Think about how long Earth stays high in a month.",
+      hint: "Which rule asks for more than Earth gave this month? Think about how long Earth stays high.",
       explain: rulesLuna,
       kind: "spot-bug",
       title: "The early link rules",

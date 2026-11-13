@@ -9,7 +9,7 @@ import type { Lesson } from "../types";
 const tipReveal =
   "A side view of the curved Moon. At 130 km the ground has dropped {{example.l3.drop_at_130km_m}} m, so only the top of the mountain shows.";
 const whyLuna =
-  "At 20 km the drop is a third of a degree. That is a big slice of a Sun that never gets above {{example.l1.sun_el_max_deg}}°.";
+  "At 20 km the drop is a third of a degree. That is a big slice of a Sun that never gets above {{example.l1.sun_el_max_deg}}° this month.";
 
 export const lesson3 = {
   id: "l3_horizon",

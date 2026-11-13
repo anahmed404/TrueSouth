@@ -229,6 +229,11 @@ describe("multiple-choice answers on the real data", () => {
     expect(90 - Math.abs(num("l1.site_lat_deg")) + 5.1).toBeGreaterThan(5);
   });
 
+  it("lesson 1 step 3: the month's Sun dips just below level, so 'circles' never reads as 'always visible'", () => {
+    expect(num("l1.sun_el_min_deg")).toBeLessThan(0);
+    expect(num("l1.sun_el_min_deg")).toBeGreaterThan(-1);
+  });
+
   it("lesson 2: from the lesson 2 site the ridge stands above Pip and higher than the Sun, so Pip is in shadow", () => {
     expect(num("l2.sun_el_deg")).toBeGreaterThan(0);
     expect(num("l2.ridge_rise_m")).toBeGreaterThan(0);
