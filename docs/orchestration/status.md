@@ -35,59 +35,24 @@ team lead allowed a sixth once, for the space-first design.
 | :--- | :--- | :--- | :--- |
 | C2 design: space-first Mission Control | `design/c2-space-first` | Claude Code, `claude-opus-5-5`, high | running since about 19:00 |
 | MC5: timeline, scrubber, countdowns, "why is it dark" card | `mc/mc5-timeline` | Claude Code, `claude-opus-5-5`, high | running |
-| A4 review fixes (#54) | `academy/a4-card` | Claude Code, `claude-opus-5-5`, high | eight fixes sent back after the Codex review |
-| S8 part 2: slope and meshes in `build-sites`, all 20 catalog sites | `science/s8b-build-all-sites` | Codex, `gpt-6.1-terra`, high | running |
-| Our own sunlight at every map pixel within 160 m of the five sunlit-peak sites (background command, not an agent) | — | — | four of five sites done; log in the session scratchpad, numbers copied below when it ends |
+| Review of S8 part 2 (#56, all 20 catalog sites) | — | Antigravity, `gemini-4-hydrogen`, high | running |
+| Academy lesson types for lessons 1 to 8, typed skeletons for lessons 1 to 4 | `academy/a5a-lesson-types` | Cursor, `grok-4.7`, high | running |
+| Sunlit-peak placement, part A: contract fields and `placement.py` | `science/s15a-placement` | Codex, `gpt-6.1-sol`, high | running |
 
-## The site-placement question
+## Site placement: decided
 
-Raised by the S6 review. It is a property of the method, not a defect. **Nothing in the
-method has been changed; every site is built at its listed coordinates.** The team lead
-is owed a table and two options.
+Decision [`../decisions/0012`](../decisions/0012-sunlit-peaks-keep-their-listed-point.md),
+taken by the team lead on 2026-11-13: every catalog site is evaluated at its listed
+coordinates; each `sunlit_peak` site also reports the range of mean sunlight within
+160 m and gets a second, labelled site at its best-lit map pixel. The rule is
+docs/science.md section 7.1. The measured table, what was rejected (including the
+orchestrator's own first rule) and the comparison with NASA's maps are in the decision
+file. The choice of a best-lit pixel must never use NASA's average-sunlight map.
 
-The observer stands 2 m above the ground. A site whose coordinates fall a little way down
-the side of a ridge has the uphill part of its own map pixel above eye level within 80 to
-160 m, which hides the low polar Sun. Slope from the 80 m map also changes in steps from
-pixel to pixel (4.05° at Connecting Ridge's listed point, 1.89° one pixel east).
-
-**Our method agrees with NASA's own maps** (PGDA product 69, 60 m, observer on the
-surface, 18.6 years; ours is 2 m and 6 years). Reproduced independently by the S7
-reviewer:
-
-| At Connecting Ridge | Our mean `sun_frac` | NASA sunlight map | Our hours with any Earth | NASA Earth map |
-| :--- | :--- | :--- | :--- | :--- |
-| Listed coordinates | 59.9% | 66.1% | 54.9% | 55.7% |
-| Highest map pixel within 160 m (149 m away) | 87.0% | 86.4% | 58.2% | 57.9% |
-
-NASA's map itself runs from 0% to 86% across neighbouring 60 m pixels there.
-
-**The first rule the orchestrator recommended, "the highest point within 160 m", was
-withdrawn on 2026-11-13.** Measured at all five sunlit-peak sites (mean `sun_frac`):
-
-| Site | Listed point | Highest pixel within 160 m | Best-lit pixel within 160 m |
-| :--- | :--- | :--- | :--- |
-| `connecting_ridge` | 0.599 | 0.870 | 0.870 |
-| `shackleton_rim` | 0.747 | 0.810 | 0.810 |
-| `de_gerlache_rim` | 0.607 | 0.553 | 0.696 |
-| `peak_near_shackleton` | 0.602 | 0.602 | 0.638 |
-| `malapert_peak` | 0.728 | 0.724 | still being measured |
-
-- **The published 92.27% is hours with any Sun, not mean disc fraction** (Gläser et al.
-  2014, abstract: locations "receiving sunlight for 92.27% of the time at 2 m"). Our
-  hours with any Sun at Connecting Ridge's best pixel are 91.5%. The catalog's wording
-  for this site must say which measure it is, whatever is decided.
-- The S7 reviewer said the listed coordinates are the centre of the paper's study area
-  and the best spot is about 480 m away. That is **unverified** (the paper is behind a
-  paywall); do not put it in the catalog.
-- **Options for the team lead:** (1) evaluate sunlit-peak sites (catalog group
-  `sunlit_peak`) at the best-lit 80 m pixel within 160 m by our own calculation, and show
-  the offset on screen; (2) keep the listed coordinates exactly and let the Polar map's
-  nudge tool and the sensitivity grid show how much the answer moves. Option 1 costs
-  about nine minutes of computing per site, once, and needs a derived field for the
-  evaluated point. It must never use NASA's map to pick the point: that map is what we
-  validate against.
-- Whichever is chosen is a change to docs/science.md first, then the code, and gets a
-  file in docs/decisions/.
+Still to do after the pipeline part: the catalog description for Connecting Ridge must
+say that the published 92.27% is hours with any Sun; validation R1 must be published
+for the listed point and the variant, including the large gaps at `de_gerlache_rim` and
+`malapert_peak`.
 
 ## What to do next
 
@@ -100,19 +65,25 @@ withdrawn on 2026-11-13.** Measured at all five sunlit-peak sites (mean `sun_fra
 2. **MC5:** when its pull request arrives: checks on the merge with `main`, open it on the
    fixtures and on the real site, review by Codex or Antigravity, merge. Then send
    checkpoint C2.
-3. **A4 (#54):** when the fixes arrive, run the checks, look at the card, merge. Then,
-   before the real lessons: widen the lesson types for what lessons 1 to 4 need (see
-   "Follow-ups"), on Cursor; then lesson text on Claude Sonnet; then A3 and A5 on Opus
-   once the panels they embed exist.
+3. **Academy:** A4 is merged (#54). The lesson types are being widened on Cursor, with
+   typed skeletons for lessons 1 to 4. Next: lesson text on Claude Sonnet; then A3 and A5
+   on Opus once the panels they embed exist. Lessons 5 to 8 are out of scope for the
+   deadline.
 4. **S8 part 2:** when its pull request arrives: check the site table, that Connecting
    Ridge's series is byte-identical, the total size of `data/derived/`; heavy review by a
    provider other than Codex (Antigravity `gemini-4-hydrogen`, or `gemini-4-argon` if the
    numbers look odd); merge. Then S12 (validation and worked examples) on Codex
    `gpt-6.1-sol`, and a minimal S10 (health and static mounts) for Docker (S13).
-5. **Site placement:** bring the finished table and the two options to the team lead.
-6. **Scope:** unanswered since the first estimate; the recommendation stands (submit at
-   M2 plus the validation page, Docker and the submission text; drop custom sites, the
-   sensitivity grid and lessons 5 to 8).
+5. **Site placement is decided** (decision 0012, #57): listed coordinates stay; each
+   sunlit-peak site reports a nearby range and gets a labelled best-lit variant. Part A
+   (contract fields and `placement.py`) is running on Codex `gpt-6.1-sol`. After it and
+   S8 part 2 merge: part B on Codex (wire into `build-sites`, cache the candidate
+   skylines, build the five variants, fix the catalog wording for Connecting Ridge), then
+   a small Opus task to show the range and the variant label in the panels.
+6. **Scope is decided** (2026-11-13): submit at M2 plus the validation page, Docker and
+   the submission text. Dropped for the deadline: custom sites and "compute for my
+   dates" (S10's job queue, T8), the sensitivity grid (S11), lessons 5 to 8 (A6). The
+   API shrinks to health and static mounts for Docker.
 7. **Update the status board in `DEVLOG.md`** at each checkpoint.
 
 ## How to brief and check agents: lessons so far
@@ -233,6 +204,7 @@ withdrawn on 2026-11-13.** Measured at all five sunlit-peak sites (mean `sun_fra
 | 2026-11-13 | S9 (#48) was reviewed by the orchestrator, not a second agent. | All slots were in use; the orchestrator is a different provider from the author, read the code and checked the outputs independently. The team lead was told. |
 | 2026-11-13 | A sixth child ran for a time (the space-first design). | The team lead asked for it to start at once. |
 | 2026-11-13 | Numbers on screen never contradict a verdict: a value and its limit gain decimals until they differ, and scores round down. Angles from data show at least one decimal. | From the MC4b and A4 reviews. |
+| 2026-11-13 | **The team lead: "Go with your recommendations till now."** That settled: site placement (decision 0012); the scope for the deadline; solid panels as the default for the space-first design unless the prototype changes their mind; Pip's power meter carries no provenance tag; the unused confetti is removed; weights stay number boxes; the "worst broken rule" order; the orchestrator's own review of S9. | Unanswered questions were holding up nothing yet, but the placement question blocked honest results at five sites. |
 
 ## Model tiers
 
@@ -258,10 +230,10 @@ Ids are from [`../build-plan.md`](../build-plan.md). Anything not listed is not 
 
 | Track | Verified | In review | In progress |
 | :--- | :--- | :--- | :--- |
-| Science (S0–S14) | S0 to S7, S8 part 1, S9 | — | S8 part 2 |
+| Science (S0–S14) | S0 to S7, S8 part 1, S9 | S8 part 2 (#56) | placement part A (decision 0012) |
 | Mission Control (MC0–MC7, MC9, MC11) | MC0 to MC3, MC4a, MC4b, MC7a (the sweep worker) | — | MC5 |
 | 3D and Map (T0–T8) | T0 | — | — (waits on the space-first design) |
-| Academy (A0–A11) | A0, A1, A2, A7 (first draft) | A4 (#54, fixes) | — |
+| Academy (A0–A11) | A0, A1, A2, A4, A7 (first draft) | — | lesson types for A5 |
 | Design | C1: the approved look (C2), the Mission Control flow. C2: the Academy screens and flow (picked and built); four Mission Control views (superseded by space-first; their content carries over) | — | C2: space-first Mission Control |
 
 ## Waiting on the team lead
@@ -271,8 +243,6 @@ An unanswered question takes the orchestrator's recommendation.
 | Question | Asked at | Blocks | Running meanwhile |
 | :--- | :--- | :--- | :--- |
 | Space-first Mission Control: solid or see-through panels, and a continuous camera flight or a cross-fade to the polar map? | to be asked with the prototype | every centre view in its final form (T1 to T7, MC6, MC7 UI, Compare) | panels, timeline, sweep worker, science, the Academy |
-| Where is a sunlit-peak site evaluated: at the best-lit map pixel within 160 m with the offset shown, or at its listed coordinates exactly? | 2026-11-13; the table is nearly complete | real results at five catalog sites; the Academy's story site reads NO-GO at its listed point | everything is built at the listed coordinates |
-| Scope: submit at M2 plus the validation page, Docker and the submission text, and drop custom sites, the sensitivity grid and lessons 5 to 8? | first asked with the time estimate on 2026-11-13; not answered | nothing yet; it decides the order of work after M1 | everything |
 | Links for the five retagged profile values | 2026-11-13 | nothing; they show as assumed until a link arrives | — |
 
 ## Design choices
@@ -359,7 +329,11 @@ One line per delegated task: date, work package, provider, model, effort, outcom
 | 2026-11-13 | A4 | Claude Code | `claude-opus-5-5` | high | pull request #54; review fixes running |
 | 2026-11-13 | Review of A4 | Codex | `gpt-6.1-terra` | high | six must-fix findings |
 | 2026-11-13 | MC5 | Claude Code | `claude-opus-5-5` | high | running |
-| 2026-11-13 | S8 part 2 | Codex | `gpt-6.1-terra` | high | running |
+| 2026-11-13 | S8 part 2 | Codex | `gpt-6.1-terra` | high | pull request #56, in review |
+| 2026-11-13 | Review of S8 part 2 | Antigravity | `gemini-4-hydrogen` | high | running |
+| 2026-11-13 | A4 review fixes | Claude Code | `claude-opus-5-5` | high | merged (#54) |
+| 2026-11-13 | Academy lesson types and skeletons for lessons 1 to 4 | Cursor | `grok-4.7` | high | running |
+| 2026-11-13 | Sunlit-peak placement, part A (decision 0012) | Codex | `gpt-6.1-sol` | high | running |
 
 Totals so far: Claude Code 15 (14 Opus, 1 Sonnet), Codex 23 (19 terra, 4 sol), Cursor 15
 (14 `grok-4.7`, 1 `grok-4.6`), Antigravity 10 (3 flash, 5 hydrogen, 2 argon). Codex hit its
@@ -372,6 +346,5 @@ Opus tasks often run at once because every screen goes to Opus; watch for its li
    [`../site-catalog.md`](../site-catalog.md). Until the file arrives the build follows
    that page's fallback.
 2. Luna's reference photos, needed at checkpoint C4.
-3. Scope for the deadline (see "Waiting on the team lead").
-4. Links for the Times of India interview on Chandrayaan-3's Sun-elevation limits, and a
+3. Links for the Times of India interview on Chandrayaan-3's Sun-elevation limits, and a
    citable statement that IM-2 and Chandrayaan-3 used no relay.
