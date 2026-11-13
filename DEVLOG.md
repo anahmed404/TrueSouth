@@ -41,8 +41,8 @@ each integration checkpoint.
 
 | Milestone | State |
 | :--- | :--- |
-| M0 Foundations | not started |
-| M1 Thin slice | not started |
+| M0 Foundations | complete, 2026-11-13: S0 to S2, MC0 to MC2, T0, A0 and A1 verified; 151 Python and 1,058 web tests pass; the app loads all five fixture sites |
+| M1 Thin slice | in progress: S3 to S6, MC4a and A7 verified; S7 and MC3 in review; A2 and S9 being built |
 | M2 Mission Control complete on catalog data | not started |
 | M3 Everything | not started |
 | M4 Tuned and submitted | not started |

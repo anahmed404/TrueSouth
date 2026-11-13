@@ -5,23 +5,28 @@ The prompt that drives the orchestrator is [`orchestrator-prompt.md`](orchestrat
 
 ## Now
 
-- **Milestone:** M0 Foundations is one pull request from done (MC1, #40, in review
-  fixes). M1 science is running alongside it. Started 2026-11-13.
+- **Milestone:** **M0 Foundations is complete** (2026-11-13). M1, the thin slice, is in
+  progress.
 - **Checkpoint C0 (kickoff):** sent 2026-11-13. It needs no answer.
-- **Checkpoint C1:** the design half was sent early and **answered on 2026-11-13** (see
-  "Design choices"). The other half, the app running on fixtures with test results, is
-  owed as soon as MC1 merges.
-- **On `main`:** S0 to S6, the scoring reference and the fixtures (S2), MC0, MC2, MC4a,
-  T0, A0, A1, A7, the generated TypeScript types, and all design prototypes with their
-  screenshots. `uv run pytest` passes 151 tests; `pnpm --dir web test` passes 1,025;
-  typecheck and build are clean.
+- **Checkpoint C1:** the design half was answered on 2026-11-13 (see "Design choices").
+  The other half, the app on fixtures with test results, was sent on 2026-11-13 when
+  MC1 merged. It needs no answer.
+- **On `main`:** S0 to S6, the scoring reference and the fixtures (S2), MC0, MC1, MC2,
+  MC4a, T0, A0, A1, A7, the generated TypeScript types, and all design prototypes with
+  their screenshots. `uv run pytest` passes 151 tests; `pnpm --dir web test` passes
+  1,058; typecheck, build and `gen:types` (no diff) are clean.
+- **Fixture check in the browser:** with `VITE_DATA=fixtures` the data hooks load the
+  series, skyline and meshes for all five fixture sites (52,584 hours each; the
+  sphere-tier site correctly has no terrain), with no failed requests.
 - **Gates verified:** G1, G2 (as a direction on the sky, decision 0011), G3, G4, G5, G6,
-  G9, G10, G11.
+  G9, G10, G11. G7 is in review with S7.
 - **Real data on this machine** (`C:\Users\abdal\TrueSouth\data`, never committed): the
-  80 m and 240 m terrain maps, raw and prepared; 128 MB of saved Horizons responses.
-  `data/derived/system.bin` is the real ephemeris and is committed.
+  80 m and 240 m terrain maps, raw and prepared; NASA's 60 m average sunlight and
+  Earth-visibility maps; 128 MB of saved Horizons responses. `data/derived/system.bin`
+  is the real ephemeris and is committed.
 - **Open method question: where a catalog site is evaluated.** See "The site-placement
-  question" below. Nothing in the method has been changed.
+  question" below. A firm recommendation is with the team lead; nothing in the method
+  has been changed.
 
 ## Running now
 
@@ -29,11 +34,14 @@ Each child works in its own worktree and opens a pull request.
 
 | Task | Branch | Provider, model, effort | State |
 | :--- | :--- | :--- | :--- |
-| MC1 review fixes (#40) | `mc/mc1-data` | Cursor, `grok-4.7`, high | six fixes sent back on 2026-11-13 after the Codex review |
-| MC3: scenario store, URL sync, evaluation hooks | `mc/mc3-scenario` (stacked on MC1) | Cursor, `grok-4.7`, high | running |
-| S7: disc fractions (G7), series, `build-sites` | `science/s7-series` (started on S6 before it merged) | Codex, `gpt-6.1-sol`, high | running |
-| C2 design: Slip Planner, polar map, System view, Local terrain | `design/c2-mission-views` | Claude Code, `claude-opus-5-5`, high | running |
-| NASA average sunlight and Earth-visibility maps (background command, not an agent) | — | — | `fetch-raw --group visibility` into the shared data folder, with retries |
+| Review of S7 (#42) | — | Antigravity, `gemini-4-argon`, high | running; also reproducing the NASA-map comparison independently |
+| Review of MC3 (#45) | — | Codex, `gpt-6.1-terra`, high | running |
+| A2 and the Academy screens in the picked form | `academy/a2-screens` | Claude Code, `claude-opus-5-5`, high | running |
+| S9: `maps.py` and `build-maps` | `science/s9-maps` | Codex, `gpt-6.1-terra`, high | running |
+| NASA's wider 120 m sunlight and Earth-visibility maps (background command, not an agent) | — | — | `fetch-raw --group visibility` into the shared data folder, with retries; the 60 m pair is complete |
+
+S7 (#42) and MC3 (#45) are finished and waiting on those reviews. MC3 was built on MC1
+before MC1's review fixes: merge `main` into it before checking it.
 
 ## The site-placement question
 
@@ -57,25 +65,38 @@ within 80 to 160 m and hides the low polar Sun. Connecting Ridge's catalog coord
 The published sunlight share at that point is 92.27% (Gläser et al. 2014, their point
 CR1).
 
-- **Provisional recommendation:** evaluate each catalog site at the highest point within
-  one map pixel of its coordinates and say so on screen with the offset.
-- **Alternative:** keep exact coordinates and ignore terrain closer than about two pixels.
-  Simpler, but it would also ignore real slopes beside a lander.
-- **Evidence still coming:** S7 was asked for mean `sun_frac` at Connecting Ridge against
-  92.27%, and for the effect of ignoring terrain closer than 100, 250 and 500 m. NASA's
-  own average-sunlight map is downloading for a comparison at the same pixel.
+**Measured on 2026-11-13** with S7's code (#42) and NASA's 60 m average maps (PGDA product
+69; the file's values times its own scale, 4e-05):
+
+| Where the site is evaluated | Our mean `sun_frac` | NASA sunlight map, same pixel | Our hours with any Earth | NASA Earth map |
+| :--- | :--- | :--- | :--- | :--- |
+| Catalog coordinates | 59.9% | 66.1% | 54.9% | 55.7% |
+| Highest point within 80 m | 82.9% | 73.9% | 58.2% | 56.8% |
+| Highest point within 160 m (it is 148 m away) | 86.9% | 86.4% | 58.2% | 57.9% |
+
+S7 also measured the effect of ignoring terrain closer than 100, 250 and 500 m at the
+catalog coordinates: 63.3%, 78.2% and 82.8%. NASA's own map varies from 0% to 86% across
+neighbouring 60 m pixels around the catalog point. So the method agrees with NASA's
+product; the gap to the published figure comes from where the point sits.
+
+- **Firm recommendation, sent to the team lead on 2026-11-13:** evaluate catalog sites
+  that are defined as sunlight peaks at the highest point of the 80 m map within 160 m
+  (two pixels) of their listed coordinates, and show the offset on screen. Sites of real
+  landings keep their exact coordinates. It needs a per-site field in the catalog and
+  the contract.
+- **Not chosen:** ignoring terrain closer than about two pixels. It would also ignore
+  real slopes beside a lander, and it reaches only 78 to 83%.
+- The S7 reviewer is reproducing the table independently. If it holds and the team lead
+  does not object, make the change as its own pull request after S7 merges.
 - Whichever is chosen is a change to docs/science.md first, then the code, and gets a
   file in docs/decisions/.
 
 ## What to do next
 
-1. **MC1 (#40):** when the fixes arrive, run typecheck, test and build reading each exit
-   code, confirm each review finding is closed, mark verified, merge. That completes M0.
-   Then mount `DataCheck` once to confirm the data loads for all five fixture sites, and
-   send the rest of checkpoint C1.
-2. **MC3:** when its pull request arrives, merge `main` into it (it is stacked on MC1;
-   take `main`'s copy of MC1's files), run the checks, get a review from a provider
-   other than Cursor, merge.
+1. **MC1:** merged (#40) on 2026-11-13 after six review fixes. M0 is complete.
+2. **MC3 (#45):** when the Codex review returns, send the findings to its author (Cursor),
+   merge `main` into it (it is stacked on MC1; take `main`'s copy of MC1's files), run
+   the checks, merge.
 3. **After MC1 and MC3, on Opus with the impeccable skill:** MC4b (the shell on real
    hooks, replacing `web/src/app/mission/sample.ts` and the TEMP profile), then MC5
    (timeline and countdowns) and MC6 (Lander's eye), as in the C2 prototypes.
@@ -83,9 +104,10 @@ CR1).
    files), check G7, run `build-sites` for Connecting Ridge on the real data, get a heavy
    review from a provider other than Codex, merge. Then settle the site-placement
    question with the team lead. That is the M1 thin slice and checkpoint C2.
-5. **C2 design, Mission Control views:** when it arrives, merge, take screenshots into
-   `docs/design/c2/` (serve `design/` with `python -m http.server`; the browser tool
-   refuses `file:`), and show the team lead the variants for their pick.
+5. **C2 design, Mission Control views:** merged (#41) with screenshots (#44) and shown to
+   the team lead on 2026-11-13 for a pick. The designer and the orchestrator recommend
+   variant a for all four views, with the designer's fold for the timeline. With no
+   answer, that stands. S9 (`build-maps`) is running so the polar map (T7) has data.
 6. **Academy:** the team lead picked on 2026-11-13 (see "Design choices"). Opus builds
    the Academy screens in that form with the impeccable skill: first the lesson path,
    the split lesson screen, the lesson-complete screen and the step components that
@@ -212,11 +234,11 @@ Ids are from [`../build-plan.md`](../build-plan.md). Anything not listed is not 
 
 | Track | Verified | In review | In progress |
 | :--- | :--- | :--- | :--- |
-| Science (S0–S14) | S0, S1, S2, S3, S4, S5, S6 | — | S7 |
-| Mission Control (MC0–MC7, MC9, MC11) | MC0, MC2, MC4a | MC1 (#40, fixes) | MC3 |
+| Science (S0–S14) | S0, S1, S2, S3, S4, S5, S6 | S7 (#42) | S9 |
+| Mission Control (MC0–MC7, MC9, MC11) | MC0, MC1, MC2, MC4a | MC3 (#45) | — |
 | 3D and Map (T0–T8) | T0 | — | — |
-| Academy (A0–A11) | A0, A1, A7 (first draft) | — | — |
-| Design | C1: directions A, B, C, the refined C2, the Mission Control flow. C2: the Academy screens and flow | — | C2: Mission Control views |
+| Academy (A0–A11) | A0, A1, A7 (first draft) | — | A2 with the three screens |
+| Design | C1: directions A, B, C, the refined C2, the Mission Control flow. C2: the Academy screens and flow (picked); the Mission Control views (waiting for a pick) | — | — |
 
 ## Waiting on the team lead
 
@@ -224,7 +246,8 @@ An unanswered question takes the orchestrator's recommendation.
 
 | Question | Asked at | Blocks | Running meanwhile |
 | :--- | :--- | :--- | :--- |
-| Where is a catalog site evaluated? Provisional recommendation: the highest point within one map pixel, with the offset shown. | 2026-11-13; firm recommendation owed once S7's numbers are in | real derived data for the catalog sites | S7 on Connecting Ridge at its catalog coordinates |
+| Mission Control views: variant a or b for the Slip Planner, Polar map, System view and Local terrain? Recommended: a for all four, with the timeline fold. | 2026-11-13, with the screenshots | MC7, T1, T3, T7 in their final form | their data and logic |
+| Where is a catalog site evaluated? Firm recommendation: sunlight-peak sites at the highest point within 160 m, with the offset shown; landed sites at their exact coordinates. | 2026-11-13, with the measured table | real derived data for the catalog sites | S7's review |
 | Scope: submit at M2 plus the validation page, Docker and the submission text, and drop custom sites, the sensitivity grid and lessons 5 to 8? | first asked with the time estimate on 2026-11-13; not answered | nothing yet; it decides the order of work after M1 | everything |
 | Links for the five retagged profile values | 2026-11-13 | nothing; they show as assumed until a link arrives | — |
 
@@ -288,15 +311,19 @@ One line per delegated task: date, work package, provider, model, effort, outcom
 | 2026-11-13 | Review of MC2 | Codex | `gpt-6.1-terra` | high | approved, with follow-ups |
 | 2026-11-13 | S6 | Codex | `gpt-6.1-sol` | high | merged (#35); gates G4 to G6 |
 | 2026-11-13 | Review of S6 | Antigravity | `gemini-4-argon` | high | one missing orientation test, fixed by the orchestrator; measured the site-placement sensitivity on real data |
-| 2026-11-13 | MC1 | Cursor | `grok-4.7` | high | pull request #40 |
+| 2026-11-13 | MC1 | Cursor | `grok-4.7` | high | merged (#40) after six review fixes |
 | 2026-11-13 | Review of MC1 | Codex | `gpt-6.1-terra` | high | changes needed: five must-fix findings, two can-follow |
-| 2026-11-13 | MC1, review fixes | Cursor | `grok-4.7` | high | running |
-| 2026-11-13 | MC3 | Cursor | `grok-4.7` | high | running |
-| 2026-11-13 | S7 | Codex | `gpt-6.1-sol` | high | running |
-| 2026-11-13 | C2 design, Mission Control views | Claude Code | `claude-opus-5-5` | high | running |
+| 2026-11-13 | MC1, review fixes | Cursor | `grok-4.7` | high | all six closed in one run |
+| 2026-11-13 | MC3 | Cursor | `grok-4.7` | high | pull request #45, in review |
+| 2026-11-13 | S7 | Codex | `gpt-6.1-sol` | high | pull request #42, in review; reported the sunlight gap plainly and measured it |
+| 2026-11-13 | C2 design, Mission Control views | Claude Code | `claude-opus-5-5` | high | merged (#41); waiting for the team lead's pick |
+| 2026-11-13 | Review of S7 | Antigravity | `gemini-4-argon` | high | running |
+| 2026-11-13 | Review of MC3 | Codex | `gpt-6.1-terra` | high | running |
+| 2026-11-13 | A2 and the Academy screens | Claude Code | `claude-opus-5-5` | high | running |
+| 2026-11-13 | S9 | Codex | `gpt-6.1-terra` | high | running |
 
-Totals so far: Claude Code 9 (8 Opus, 1 Sonnet), Codex 14 (11 terra, 3 sol), Cursor 12
-(11 `grok-4.7`, 1 `grok-4.6`), Antigravity 8 (3 flash, 4 hydrogen, 1 argon). No provider
+Totals so far: Claude Code 10 (9 Opus, 1 Sonnet), Codex 16 (13 terra, 3 sol), Cursor 12
+(11 `grok-4.7`, 1 `grok-4.6`), Antigravity 9 (3 flash, 4 hydrogen, 2 argon). No provider
 has hit a limit.
 
 ## Open questions for the team lead
