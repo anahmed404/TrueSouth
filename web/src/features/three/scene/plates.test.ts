@@ -14,11 +14,9 @@ describe("what the scene draws for each load state", () => {
   it("draws everything when every file is in", () => {
     const content = sceneContent(input());
     expect(content).toMatchObject({ bodies: true, sightLines: true, ground: "terrain" });
-    expect(content.plates.map((p) => p.text)).toEqual(["Distances not to scale. Every direction is true."]);
-  });
-
-  it("says true scale when it is on", () => {
-    expect(sceneContent(input({ trueScale: true })).plates[0]?.text).toBe("True scale. Every direction is true.");
+    // No plate at all: the scale is explained in the view's About text, not on the scene.
+    expect(content.plates).toEqual([]);
+    expect(sceneContent(input({ trueScale: true })).plates).toEqual([]);
   });
 
   it("without system.bin: no Sun, no Earth, no distance, and a plate that says why", () => {

@@ -49,6 +49,30 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-14 · S10b integration · Merge main's placement builder
+- **Who:** Codex implementation agent
+- **AI use:** Codex resolved build-sites and DEVLOG conflicts, preserved main's placement flow, adapted the custom-site wrapper to main's helpers, and added integration tests; human and orchestrator review pending.
+- **State:** verified (425 Python tests (1 skipped: the real-map test, run separately by the author and passed), 1,900 web tests and the typecheck pass on the merge with main; regenerating the schema and types leaves no diff; no derived data changed; reviewed by Gemini (pipeline reuse and byte-identity at Connecting Ridge confirmed; eleven findings on failure handling, all fixed with tests); the catalog build and the API share one site builder on top of the variants work; a full catalog rebuild under the new source fingerprint is still to be run)
+- **Changed:** build_site now composes _derive, _record and _stage_site; catalog callers reuse prederived parts and placement metadata, variants still reuse the winning skyline/series. Custom publication retains cancellation, storage hook and internal site.json without touching the index or candidate cache. Placement imports are local to the catalog command. API storage prunes the reserved placement directory before traversal so catalog candidates do not consume the custom quota. Every DEVLOG line from both merge parents was retained.
+- **Checks:** Full Python run 424 passed, 1 real-map skip, exit 0. After the placement-quota interaction fix, affected API/integration checks 106 passed, 1 skipped, exit 0. Explicit real-map test: 1 passed, exit 0, Connecting Ridge custom series.bin/skyline.bin/terrain.bin byte-identical to catalog in 36.617 s (37.90 s test); meta differs only site_id. Catalog verification ran --only chandrayaan3 apollo11 --force in a staging copy and rebuilt Connecting Ridge's listed point with the shared builder, retaining its published nearby range. All 25 staged folders and sites.json match origin/main Git blob hashes; tracked derived files also match before and after. Full 25-site recomputation was not run: placement key 0826b46027c9dc5fdfbb91366e2b4a200804f04c6669ce577f9463b7f19b0254 has no shared cache; --only on a peak would also trigger the cold candidate evaluation. API import 1.110 s with no numpy/scipy/pyproj/rasterio/placement_cache modules loaded. Frozen pnpm install, 1,849 web tests (one worker) and typecheck exit 0. Docker skipped as requested; mandatory API dependency closure excludes rasterio.
+- **Notes:** Site fields and custom contracts are unchanged by the merge; main's validation exclusions for variants remain intact. Dockerfile and dependencies are unchanged, so the requested Docker rebuild exception does not apply.
+
+#### 2026-11-14 · S10b review fixes · Public-endpoint failure handling
+- **Who:** Codex implementation agent
+- **AI use:** Codex reproduced the review findings with HTTP/worker regression tests, implemented the fixes and ran targeted checks; human and orchestrator review pending.
+- **State:** verified (425 Python tests (1 skipped: the real-map test, run separately by the author and passed), 1,900 web tests and the typecheck pass on the merge with main; regenerating the schema and types leaves no diff; no derived data changed; reviewed by Gemini (pipeline reuse and byte-identity at Connecting Ridge confirmed; eleven findings on failure handling, all fixed with tests); the catalog build and the API share one site builder on top of the variants work; a full catalog rebuild under the new source fingerprint is still to be run)
+- **Changed:** Strict finite JSON numbers; safe 422 fields without input echoes; 4 KiB streamed body cap; initialization-only compute locking; surviving/restarting workers; bounded recent states and expiring client histories; 2 GiB configured cache budget and health accounting; canonical ASCII ids and printable names; shared science latitude limit with up-front rejection; catalog latitude tiers including raster corners; ephemeris readiness; cancellable atomic publication, 90 s shutdown grace and proxy headers disabled.
+- **Tests:** Each numbered finding reproduced before its fix and pushed separately (small items 9-11 together). Final suite: 409 passed, 1 optional real-map skip, exit 0; explicit real-map test: 1 passed, exit 0 (51.904 s computation, 52.97 s test). All three Connecting Ridge binaries byte-identical; meta only differs in site_id. Frozen pnpm install and typecheck exit 0; all 1,744 web tests pass with maxWorkers=2, unchanged timeouts. Schema export and type generation exit 0. Added 70 review regression cases including invalid UTF-8 and staging rename races. Initial full check found missing contract descriptions; fixed. Under heavy contention the timing check and one default-worker web test timed out; final runs pass without increasing limits. Docker rebuilt and served port 18081: same byte-identical files in 51.141 s, concurrent sphere 0.109 s, corner sphere, safe non-finite 422 and spoofed-proxy 429 checks pass; image 425,121,437 bytes, rasterio absent. Review containers, volume, network and image removed; S13 untouched.
+- **Notes:** Merged origin/main and retained all DEVLOG entries. During the disk-full incident, all changed files were rechecked as nonempty, Python parsed, JSON decoded; no truncated source found. Full suites and Docker paused until the orchestrator confirmed restored space. Tier selection now follows site_tier (core80 <= -80; wide240 to -60; sphere north of -60), superseding the first S10b coverage labels. Error bodies and statuses are documented precisely for the form agent; success/status contracts remain unchanged.
+
+#### 2026-11-13 · S10b · Custom sites in the API
+- **Who:** Codex implementation agent
+- **AI use:** Codex wrote the shared builder extraction, queue, routes, Docker changes and tests; checked with pytest, vitest, typecheck, real terrain byte comparison and HTTP measurement; human review pending.
+- **State:** verified (425 Python tests (1 skipped: the real-map test, run separately by the author and passed), 1,900 web tests and the typecheck pass on the merge with main; regenerating the schema and types leaves no diff; no derived data changed; reviewed by Gemini (pipeline reuse and byte-identity at Connecting Ridge confirmed; eleven findings on failure handling, all fixed with tests); the catalog build and the API share one site builder on top of the variants work; a full catalog rebuild under the new source fingerprint is still to be run)
+- **Changed:** science shared site builder and request contracts; API jobs, routes, settings and health; generated schema/types; Docker and Compose; architecture and API message docs; decision 0013.
+- **Checks:** Final Python suite 339 passed, 1 real-map test skipped by default (exit 0); API suite 31 passed, 1 skipped. Real-map test explicitly run with TRUESOUTH_DATA_ROOT: 1 passed, exit 0. Web 1,581 tests passed, typecheck and frozen install exit 0. Docker image built and ran; Connecting Ridge ready with identical binaries in 43.805 s, cached POST ready after restart in 0.078 s. Image 198,930,368 bytes before (catalog), 423,959,216 bytes after. Rasterio absent; prepared mount read-only; no-maps catalog/503/sphere checks pass. S10b containers, volume, network and image removed. Host 8080 was occupied by S13, so smoke test used temporary host 18080, container 8080; S13 untouched. A temporary host-network build override worked around stalled wheel downloads.
+- **Measured:** Connecting Ridge custom series.bin, skyline.bin and terrain.bin byte-identical to catalog; meta differs only site_id. Real comparison 48.987 s; separate HTTP submission through all four downloads 43.445 s, peak process working set 647.801 MiB (Windows GetProcessMemoryInfo, including mapped pages). API import 1.597 s, no numpy/scipy/rasterio/terrain imports.
+- **Limits:** Existing science rejects within 0.001 degrees of a pole. Custom entries have outcome, variant_of, offset_m and nearby_sun null; sphere also elevation/slope null. source_url is empty (user coordinates), group contrast. Close-up and apron files are not built; loaders skip them from null metadata/missing scene entries. Map coverage selects core80 then wide240 then sphere; nominal polar sites require installed maps when coverage cannot be inspected. Rasterio is a prepare extra, absent from runtime.
 #### 2026-11-13 · S15b · Nearby range and best-lit variants in build-sites
 - **Who:** implementation sub-agent
 - **AI use:** Cursor, grok-4.7 — wired placement into `build-sites`, added the candidate cache, wrote the synthetic tests, built the five variants and their aprons, and reran validation — exit codes below were read from the logs; human review pending.
@@ -937,6 +961,96 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     2 km) for the Lander's eye near ground, already in the contracts as `closeup.bin`; (5) an
     albedo map of the cap in the same projection (the LROC colour map is 2.7 km a pixel at
     the pole).
+
+#### 2026-11-14 · Scene polish · Controls, real stars, and speed on weak machines
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill — wrote the
+  System view's pivot, pan, zoom to the pointer and double-click (`navigate.ts`), the drag
+  fixes in `rig.ts`, the star renderer (`stars.ts`) and the script that makes
+  `web/public/stars.bin` (`web/dev/build-stars.mjs`), the quality stages and the Moon's
+  level of detail (`perf.ts`), vitest tests for all of them, and the doc changes; no
+  AI-generated imagery (the stars are a NASA/ADC catalogue) — checked by the agent with the
+  vitest suite, typecheck, build, pytest, pixel diffs of before and after screenshots, and
+  by eye and by the numbers in Chrome with hardware WebGL (RTX 2060), SwiftShader with 1×,
+  4× and 6× CPU throttling, and real touch events at 390 × 844; a human has not reviewed it
+- **State:** verified (425 Python tests, 1,975 web tests, typecheck and build pass on the merge with main; reviewed by Gemini (the star file checked against five published positions and not mirrored; level-of-detail disposal; zoom to the pointer; two mutations caught); seven findings fixed with tests (a stuck drag, the drag direction in every orientation, pivot continuity, frame timing that ignores a hidden tab and recovers); the team lead's later requests are in: the System view turns freely over both poles, and the distances plate is removed; a real laptop with built-in graphics is still not measured; not yet tried by the team lead)
+- **Changed:** `web/src/features/three/scene/` (`navigate.ts`, `stars.ts`, `perf.ts` and
+  their tests are new; `rig.ts`, `scene-root.tsx`, `overlay.tsx`, and one additive method in
+  `world.ts`, `setMoonSegments`), `web/public/stars.bin` and `web/dev/build-stars.mjs` (new),
+  `web/src/lib/explain.ts` (an optional `controls` line for the System view and Local
+  terrain) and `web/src/components/Explain.tsx` (shows it), `web/src/app/scene.ts` (the
+  `"slow"` comment), `pointers.ts` and its test (new), `docs/features/system-view.md`,
+  `DESIGN.md` (stars), `docs/decisions/0014-the-scene-steps-quality-down.md`,
+  `docs/design/c2/built-scene-polish-*.png`, this entry
+- **Notes:**
+  - **Controls.** Every drag follows "grab the globe": the surface under the pointer moves
+    with it. The sideways drag was inverted in Local terrain, and in the System view
+    whenever the south was at the top of the screen. The System view's drag is a free
+    trackball (team lead, 2026-11-14): a horizontal drag turns the camera about its own up
+    axis, a vertical drag about its own right axis, through the pivot, with no pole limit,
+    over either pole and all the way round. Far out the pivot is the Moon's centre; close in
+    the point of interest (the pole, the followed site, a double-clicked spot, or the centre
+    of the view), sliding between 0.5 and 2 Moon radii; a preset's point fades as it leaves
+    the centre or nears its horizon. A turn never goes below 60 km: it slides along it. Each
+    view's drag is a per-view setting (`ORBIT_STYLE` in `rig.ts`): Local terrain and Lander's
+    eye keep their limits, the Polar map stays north-up. Pan: right-drag, Shift-drag, two
+    fingers. Wheel and pinch zoom toward the pointer. "South pole" frames the whole cap
+    poleward of about 80°S, level; a double-click on empty space flies back to the preset's
+    level framing. Keys: arrows move the camera (the picture moves the other way), Shift and
+    an arrow pans, plus and minus zoom. The first load still lands on home.
+  - **The "Distances not to scale" plate is gone** (team lead). The About text still says
+    distances are squeezed and every direction is true; the "True scale" button's description
+    says what it switches.
+  - **Stars.** The Yale Bright Star Catalogue, 5th revised edition (Hoffleit and Warren
+    1991, CDS V/50), from HEASARC's public `bsc5p` table, reduced to 8,404 stars to
+    magnitude 6.5 in 67 kB. Placed by one fixed rotation: the Moon's pole points where the
+    IAU model says, turned about it as on 2000-01-01, not for the scrubber's time (that
+    would be ephemeris work in the frontend). Nothing on screen claims otherwise.
+  - **Speed.** Before and after, median ms between drawn frames, 1440 × 900:
+    RTX 2060 4.2 → 4.2 (all scenarios, display-capped); SwiftShader orbit 196 → 33, flight
+    to the Polar map 229 → 37; SwiftShader with 6× CPU orbit 213 → 36, flight 225 → 41.
+    The cost was the Moon's 147,000 triangles, not pixels or the main thread (2.5 ms). On a
+    fast machine the still picture is pixel-identical to before in the Moon. Not measured: a
+    real laptop's built-in graphics. Still slow on SwiftShader: Local terrain (about 240 ms
+    a frame at 6× CPU) because of the ground's mesh, left for the ground package; and the
+    first flight into Local terrain has a one-off upload stall (about 375 ms).
+  - **Quality stages** are decided by `QualityGovernor` (`perf.ts`, tested): only visible
+    flight frames count; stalls (over a second, or over four times the last window's median)
+    are dropped; three fast windows step back up; a stage that fails right after recovering
+    is not re-entered. The intro has no separate measurement any more.
+  - **The WebGL context** asks for the fast GPU: `powerPreference: "high-performance"` was
+    already set when the scene was made (#75), and the live context reports it on the RTX
+    2060; no other attribute fights it (`antialias` on, `preserveDrawingBuffer` off but in
+    the dev still capture, `failIfMajorPerformanceCaveat` off). Its cost: on a laptop with
+    two graphics chips it wakes the discrete one, so it uses more battery.
+  - **For the ground package (Local terrain on a weak GPU):** on SwiftShader with 6× CPU,
+    Local terrain draws at about 240 ms a frame (765 ms at a 4K-sized window, DPR 2), against
+    36 ms for the System view after the Moon's level of detail. Main-thread work there is
+    small (render submit 4 to 13 ms, overlay 4 to 8 ms), so the cost is the GPU drawing the
+    apron and patch meshes plus the globe at its full 384-segment mesh. What would fix it,
+    as was done for the Moon: draw fewer apron and patch triangles while the camera moves
+    (a coarser index buffer over the same vertices, swapped in while `inMotion`, full mesh
+    for the rest frame), and skip the globe's hidden pixels under the apron earlier. The
+    first flight into Local terrain also stalls about 375 ms while those meshes upload;
+    uploading them while the camera rests in another view would hide that.
+  - **Review fixes (Gemini review of #88):** a drag can no longer get stuck (pointer
+    bookkeeping in `pointers.ts`: up, cancel, lost capture, window blur, hidden tab, and a
+    mouse moving with no button all end it; tested in every order); after a pan, a sideways
+    drag moves the surface sideways (the trackball; a property test over orientations with
+    the pole up, down, sideways and in the middle); the pivot is continuous (sweeps through
+    the blend zone, across the equator, past a followed site's horizon and off the limb);
+    frame timing ignores hidden tabs and stalls and recovers (governor tests); the rest frame
+    waits 300 ms, longer than the 250 ms motion cutoff; `user-select: none` on the scene.
+    Checked in Chrome on the RTX 2060: an upward drag goes over the pole and round; after
+    panning the pole to each side all four drag directions move the centre point the drag's
+    way; a blur mid-drag leaves nothing turning; zooming out with the minus key from a
+    followed site and dragging moves smoothly; "South pole" levels the view.
+  - The timeline's play button advances one hour per drawn frame at 6 h a second, so its
+    frame gap (about 167 ms) is the play rate, not a cost.
+  - **Dev only:** `?perf` shows frame times over the scene; `window.__truesouthPerf` reads
+    them; `window.__truesouthScene` now also exposes `invalidate`.
+  - During this work the machine's disk filled up twice and the dev server crashed once;
+    every commit was re-checked afterwards.
 
 #### 2026-11-13 · T1, T2 · The 3D scene behind Mission Control
 - **Who:** Claude Code agent, for the orchestrator

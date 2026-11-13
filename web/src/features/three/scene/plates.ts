@@ -65,12 +65,6 @@ export function sceneContent(input: PlateInput): SceneContent {
   const bodies = input.system === "ready";
   const sightLines = Boolean(site) && input.series === "ready";
 
-  if (view === "system" && bodies) {
-    plates.push({
-      id: "scale",
-      text: input.trueScale ? "True scale. Every direction is true." : "Distances not to scale. Every direction is true.",
-    });
-  }
   if (input.system === "error") {
     plates.push({ id: "system-error", text: "The positions of the Sun and Earth could not be loaded, so they are not drawn." });
   }

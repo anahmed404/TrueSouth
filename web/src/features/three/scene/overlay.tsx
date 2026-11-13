@@ -26,7 +26,16 @@ export type LookToward = "earth" | "sun";
 
 export type OverlayBus = {
   overlay: ((anchors: Anchors, camera: THREE.PerspectiveCamera, size: { width: number; height: number }) => void) | null;
-  controls: { beginDrag: () => void; orbit: (dx: number, dy: number) => void; zoom: (factor: number) => void } | null;
+  controls: {
+    beginDrag: () => void;
+    orbit: (dx: number, dy: number) => void;
+    /** Slides the view; false in a view with no pan. */
+    pan: (dx: number, dy: number) => boolean;
+    /** `ndc`: the pointer in normalised device coordinates, kept fixed on screen. */
+    zoom: (factor: number, ndc?: { x: number; y: number } | null) => void;
+    /** Centres and moves in on the spot under `ndc`; false when it is off the Moon. */
+    focusOn: (ndc: { x: number; y: number }) => boolean;
+  } | null;
 };
 
 type SightInfo = {
@@ -147,7 +156,8 @@ export function Overlay(props: OverlayProps) {
         for (let pass = 0; pass < 4; pass += 1) {
           const hit = placed.find((r) => lx < r.x + r.w && lx + w > r.x && ly < r.y + r.h && ly + h > r.y);
           if (!hit) break;
-          ly = hit.y + hit.h + 4;
+          // Below the label in the way, or above it when there is no room below.
+          ly = hit.y + hit.h + 4 + h <= bottom ? hit.y + hit.h + 4 : Math.max(top, hit.y - h - 4);
         }
         ly = Math.min(ly, bottom - h);
         lx = Math.min(Math.max(lx, left), right - w);
@@ -386,7 +396,12 @@ export function Overlay(props: OverlayProps) {
             {view === "system" ? (
               <div className="plate scene-controls scene-plate-interactive" style={fit}>
                 <SegmentedControl label="Camera" options={PRESETS.map((p) => ({ ...p, disabled: p.value === "follow_site" && !focusedId }))} value={props.preset} onChange={props.onPreset} />
-                <Button aria-pressed={trueScale} className="scene-toggle" onClick={() => props.onTrueScale(!trueScale)}>
+                <Button
+                  aria-pressed={trueScale}
+                  className="scene-toggle"
+                  onClick={() => props.onTrueScale(!trueScale)}
+                  title="Earth at its real distance and size. Off, distances are squeezed so everything fits; every direction is true either way."
+                >
                   True scale
                 </Button>
                 <Button aria-pressed={props.moon8k} className="scene-toggle" onClick={() => props.onMoon8k(!props.moon8k)} title="Loads two more images, 3 MB">

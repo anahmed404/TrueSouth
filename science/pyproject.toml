@@ -2,7 +2,7 @@
 name = "truesouth"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
-dependencies = ["numpy", "scipy", "pyproj", "pydantic>=2,<3", "rasterio", "httpx", "truststore", "pillow"]
+dependencies = ["numpy", "scipy", "pyproj", "pydantic>=2,<3", "httpx", "truststore", "pillow"]
 
 [project.scripts]
 truesouth = "truesouth.cli:main"
@@ -10,3 +10,6 @@ truesouth = "truesouth.cli:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[project.optional-dependencies]
+prepare = ["rasterio"]
