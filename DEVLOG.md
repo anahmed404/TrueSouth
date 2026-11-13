@@ -919,7 +919,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   vitest suite, typecheck, build, pytest, pixel diffs of before and after screenshots, and
   by eye and by the numbers in Chrome with hardware WebGL (RTX 2060), SwiftShader with 1×,
   4× and 6× CPU throttling, and real touch events at 390 × 844; a human has not reviewed it
-- **State:** built, not verified
+- **State:** verified (425 Python tests, 1,975 web tests, typecheck and build pass on the merge with main; reviewed by Gemini (the star file checked against five published positions and not mirrored; level-of-detail disposal; zoom to the pointer; two mutations caught); seven findings fixed with tests (a stuck drag, the drag direction in every orientation, pivot continuity, frame timing that ignores a hidden tab and recovers); the team lead's later requests are in: the System view turns freely over both poles, and the distances plate is removed; a real laptop with built-in graphics is still not measured; not yet tried by the team lead)
 - **Changed:** `web/src/features/three/scene/` (`navigate.ts`, `stars.ts`, `perf.ts` and
   their tests are new; `rig.ts`, `scene-root.tsx`, `overlay.tsx`, and one additive method in
   `world.ts`, `setMoonSegments`), `web/public/stars.bin` and `web/dev/build-stars.mjs` (new),
