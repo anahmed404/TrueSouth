@@ -1,16 +1,19 @@
 /**
  * The custom-site client: `POST /api/sites/custom`, `GET /api/sites/custom/{id}` and
- * `GET /api/health`, as documented in docs/data-contracts.md ("API messages") and
+ * `GET /api/health`, as documented in docs/data-contracts.md ("API messages", "Errors") and
  * docs/architecture.md ("The API").
  *
- * Every answer is read defensively. A server body is never shown as it came: only a short
- * plain `message` string from it, and each field's `message`, and otherwise our own words.
- * No request is made until a caller asks for one.
+ * Rules:
+ * - A POST is made only by `requestCustomSite`, which only a button press calls. Waiting,
+ *   links, focus and reconnecting use GET.
+ * - Every answer is read defensively, and an answer about another place is refused.
+ * - A server body is never shown as it came: only a short plain `message` string from it,
+ *   each field's `message`, and otherwise our own words.
  */
 
 import type { Site } from "../contracts/generated.ts";
-import { isRecord, parseSites } from "./parse.ts";
-import { isCustomSiteId } from "./paths.ts";
+import { canonicalCustomId, cleanSiteName, idCoordinates, isCanonicalCustomId } from "./custom-site-id.ts";
+import { isRecord } from "./parse.ts";
 
 export type CustomFetch = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -26,15 +29,15 @@ export const customApi = {
 
 /** Why a request did not give a usable answer. */
 export type ProblemKind =
-  /** No answer: the network failed, or something other than the API answered. */
+  /** No answer: the network failed, timed out, or something other than the API answered. */
   | "offline"
-  /** This server cannot compute custom sites (an older server, or no terrain maps). */
+  /** This server cannot compute custom sites (an older server, no maps, no ephemeris, shutting down). */
   | "unavailable"
-  /** Too many new jobs from this client this hour (429 with Retry-After). */
+  /** Too many new jobs from this computer this hour (429). */
   | "rate_limited"
-  /** The server's queue is full (429 without Retry-After). */
+  /** The server's queue is full (429). */
   | "queue_full"
-  /** The server's custom-site storage is full (507, or 503 saying so). */
+  /** The server's custom-site storage is full (507, or a job that failed for it). */
   | "storage_full"
   /** The request itself was refused (413, 422). */
   | "refused"
@@ -44,7 +47,7 @@ export type ProblemKind =
   | "lost"
   /** Still not ready after the waiting ceiling. */
   | "timeout"
-  /** An answer we could not read. */
+  /** An answer we could not read, or one about another place. */
   | "unreadable"
   /** Any other server error. */
   | "server_error";
@@ -57,7 +60,7 @@ export type Problem = {
   message: string;
   /** Messages for single form fields, from a 422 answer. */
   fields: FieldMessage[];
-  /** Seconds from the answer until a new start is allowed, when the server said. */
+  /** Seconds until a new start is allowed, when the server said; clamped to 1 s to 1 h. */
   retryAfterS: number | null;
 };
 
@@ -68,7 +71,7 @@ export type SubmitReply =
   | ({ ok: false } & Problem);
 
 export type StatusReply =
-  | { ok: true; siteId: string; status: JobStatus; site: Site | null; failure: string | null }
+  | { ok: true; siteId: string; status: JobStatus; site: Site | null; failure: Problem | null; position: number | null }
   | { ok: false; unknown: true }
   | ({ ok: false; unknown?: false } & Problem);
 
@@ -87,15 +90,22 @@ export const TEXT = {
   lost: "The server no longer has this job. It may have restarted.",
   timeout: "Still not ready after 15 minutes. The server may be busy.",
   unreadable: "The server sent an answer TrueSouth could not read.",
+  unreadableSite: "The server's answer for this site could not be read.",
+  otherPlace: "The server answered about a different place, so TrueSouth did not use it.",
   serverError: "The server had a problem with this request.",
 } as const;
 
 const MAX_MESSAGE = 240;
+/** Each request gives up after this long. */
+export const REQUEST_TIMEOUT_MS = 15_000;
+/** `Retry-After` is kept between these bounds. */
+export const RETRY_AFTER_MIN_S = 1;
+export const RETRY_AFTER_MAX_S = 3600;
 
-/** A server's plain sentence, if it is one: a short string with no markup. */
+/** A server's plain sentence, if it is one: a short string with no markup or control text. */
 function plainMessage(value: unknown): string | null {
   if (typeof value !== "string") return null;
-  const text = value.trim();
+  const text = value.replace(/[\u0000-\u001f\u007f-\u009f؜‎‏‪-‮⁦-⁩]/g, "").trim();
   if (text.length === 0 || text.length > MAX_MESSAGE || /[<>{}]/.test(text)) return null;
   return text;
 }
@@ -111,33 +121,46 @@ function isJson(response: Response): boolean {
 async function readJson(response: Response): Promise<{ ok: true; value: unknown } | { ok: false }> {
   try {
     return { ok: true, value: await response.json() };
-  } catch {
+  } catch (error) {
+    if (isAbort(error)) throw error;
     return { ok: false };
   }
 }
 
-/** `Retry-After`: whole seconds, or an HTTP date. */
+/**
+ * `Retry-After` as whole seconds from now, kept between 1 s and 1 h: integer seconds or an
+ * HTTP date. Negative, empty, fractional or unreadable values are null (no wait known).
+ */
 export function parseRetryAfter(raw: string | null, nowMs: number = Date.now()): number | null {
   if (raw === null) return null;
   const text = raw.trim();
-  if (/^\d+$/.test(text)) return Number(text);
-  const date = Date.parse(text);
-  if (Number.isNaN(date)) return null;
-  return Math.max(0, Math.ceil((date - nowMs) / 1000));
+  let seconds: number;
+  if (/^\d{1,12}$/.test(text)) {
+    seconds = Number(text);
+  } else if (/^[A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(text)) {
+    const date = Date.parse(text);
+    if (Number.isNaN(date)) return null;
+    seconds = Math.ceil((date - nowMs) / 1000);
+  } else {
+    return null;
+  }
+  if (!Number.isFinite(seconds)) return null;
+  return Math.min(RETRY_AFTER_MAX_S, Math.max(RETRY_AFTER_MIN_S, seconds));
 }
 
-/** The documented error body: `{ message, fields? }`. Older servers send `{ message }`, or FastAPI's `{ detail }`. */
+const FIELDS = new Set(["lat_deg", "lon_deg", "name", "body"]);
+
+/** The documented error body: `{ message, fields? }`. FastAPI's own `{ detail }` is read too. */
 function fieldMessages(body: unknown): FieldMessage[] {
   if (!isRecord(body)) return [];
   const out: FieldMessage[] = [];
   if (Array.isArray(body.fields)) {
     for (const item of body.fields) {
-      if (!isRecord(item) || typeof item.field !== "string") continue;
+      if (!isRecord(item) || typeof item.field !== "string" || !FIELDS.has(item.field)) continue;
       const message = plainMessage(item.message);
       if (message) out.push({ field: item.field, message });
     }
   } else if (Array.isArray(body.detail)) {
-    // FastAPI's own 422: name the field, in our words; its text is not shown.
     for (const item of body.detail) {
       if (!isRecord(item) || !Array.isArray(item.loc)) continue;
       const field = item.loc[item.loc.length - 1];
@@ -150,11 +173,12 @@ function fieldMessages(body: unknown): FieldMessage[] {
 }
 
 /** Turns a failed HTTP answer into a problem, whatever its body. */
-async function problemFrom(response: Response, nowMs: number, route: "submit" | "status" | "health"): Promise<Problem> {
+async function problemFrom(response: Response, nowMs: number, route: "submit" | "status"): Promise<Problem> {
   const json = isJson(response) ? await readJson(response) : { ok: false as const };
   const body = json.ok ? json.value : null;
   const said = isRecord(body) ? plainMessage(body.message) ?? (isRecord(body.error) ? plainMessage(body.error.message) : null) : null;
   const status = response.status;
+  const retry = parseRetryAfter(response.headers.get("retry-after"), nowMs);
 
   // Something other than the API answered: Vite's proxy with no API, or a gateway.
   if (!json.ok && status >= 500) return problem("offline", TEXT.offline);
@@ -162,11 +186,12 @@ async function problemFrom(response: Response, nowMs: number, route: "submit" | 
   if (status === 404 && route === "submit") return problem("unavailable", TEXT.unavailable);
   if (status === 413) return problem("refused", said ?? TEXT.tooLarge);
   if (status === 422 || status === 400) return problem("refused", said ?? TEXT.refused, { fields: fieldMessages(body) });
-  const retry = parseRetryAfter(response.headers.get("retry-after"), nowMs);
   if (status === 429) {
-    // A full queue says so (and sends Retry-After: 1); the hourly limit sends the wait.
-    if (said ? /queue/i.test(said) : retry === null || retry <= 5) return problem("queue_full", said ?? TEXT.queueFull, { retryAfterS: retry });
-    return problem("rate_limited", said ?? TEXT.rateLimited, { retryAfterS: retry });
+    // Both cases send Retry-After. Until the server sends a code, the message tells them apart.
+    const queue = said ? /queue/i.test(said) : false;
+    return queue
+      ? problem("queue_full", said ?? TEXT.queueFull, { retryAfterS: retry })
+      : problem("rate_limited", said ?? TEXT.rateLimited, { retryAfterS: retry });
   }
   if (status === 507) return problem("storage_full", said ?? TEXT.storageFull);
   if (status === 503) {
@@ -179,15 +204,39 @@ async function problemFrom(response: Response, nowMs: number, route: "submit" | 
 }
 
 function isAbort(error: unknown): boolean {
-  return error instanceof DOMException ? error.name === "AbortError" : isRecord(error) && error.name === "AbortError";
+  return isRecord(error) && (error as { name?: unknown }).name === "AbortError";
 }
 
-async function send(fetchImpl: CustomFetch, url: string, init: RequestInit): Promise<Response | Problem> {
+/**
+ * One request with its own timeout, also ended by `signal`. A timeout counts as no answer;
+ * an abort from `signal` is thrown on to the caller.
+ */
+async function send(fetchImpl: CustomFetch, url: string, init: RequestInit, signal: AbortSignal | undefined, timeoutMs: number): Promise<Response | Problem> {
+  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+  const controller = new AbortController();
+  const onAbort = () => controller.abort();
+  signal?.addEventListener("abort", onAbort, { once: true });
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, Math.max(1, timeoutMs));
   try {
-    return await fetchImpl(url, init);
+    const response = await Promise.race([
+      fetchImpl(url, { ...init, signal: controller.signal }),
+      // A fetch that ignores its signal still ends here.
+      new Promise<never>((_, reject) =>
+        controller.signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true }),
+      ),
+    ]);
+    return response;
   } catch (error) {
-    if (isAbort(error)) throw error;
-    return problem("offline", TEXT.offline);
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+    if (timedOut || !isAbort(error)) return problem("offline", TEXT.offline);
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", onAbort);
   }
 }
 
@@ -201,77 +250,116 @@ function asStatus(value: unknown): JobStatus | null {
   return typeof value === "string" && (STATUSES as readonly string[]).includes(value) ? (value as JobStatus) : null;
 }
 
-/** Ask the server to compute a site, or find the one it has. Numbers go as JSON numbers. */
-export async function requestCustomSite(
-  latDeg: number,
-  lonDeg: number,
-  name?: string | null,
-  options: { fetchImpl?: CustomFetch; signal?: AbortSignal; nowMs?: number } = {},
-): Promise<SubmitReply> {
+function asPosition(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 && value < 1_000_000 ? value : null;
+}
+
+type RequestOptions = { fetchImpl?: CustomFetch; signal?: AbortSignal; nowMs?: number; timeoutMs?: number };
+
+/**
+ * Ask the server to compute a site, or find the one it has. Call this only from a button
+ * press. Numbers go as JSON numbers. The answer's id must be the one these coordinates make.
+ */
+export async function requestCustomSite(latDeg: number, lonDeg: number, name?: string | null, options: RequestOptions = {}): Promise<SubmitReply> {
   const fetchImpl = options.fetchImpl ?? defaultCustomFetch;
-  if (!Number.isFinite(latDeg) || !Number.isFinite(lonDeg)) {
-    return { ok: false, ...problem("refused", TEXT.refused) };
-  }
+  const expected = canonicalCustomId(latDeg, lonDeg);
+  if (expected === null) return { ok: false, ...problem("refused", TEXT.refused) };
   const body: { lat_deg: number; lon_deg: number; name?: string } = { lat_deg: latDeg, lon_deg: lonDeg };
-  const trimmed = name?.trim();
-  if (trimmed) body.name = trimmed;
-  const response = await send(fetchImpl, customApi.submit, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify(body),
-    signal: options.signal,
-  });
+  const clean = cleanSiteName(name);
+  if (clean) body.name = clean;
+  const response = await send(
+    fetchImpl,
+    customApi.submit,
+    { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(body) },
+    options.signal,
+    options.timeoutMs ?? REQUEST_TIMEOUT_MS,
+  );
   if (isProblem(response)) return { ok: false, ...response };
   if (!response.ok) return { ok: false, ...(await problemFrom(response, options.nowMs ?? Date.now(), "submit")) };
   const json = await readJson(response);
   if (!json.ok || !isRecord(json.value)) return { ok: false, ...problem("unreadable", TEXT.unreadable) };
   const value = json.value;
   const status = asStatus(value.status);
-  if (typeof value.site_id !== "string" || !isCustomSiteId(value.site_id) || status === null) {
-    return { ok: false, ...problem("unreadable", TEXT.unreadable) };
-  }
-  const position = typeof value.position_in_queue === "number" && Number.isInteger(value.position_in_queue) && value.position_in_queue > 0
-    ? value.position_in_queue
-    : null;
-  return { ok: true, siteId: value.site_id, status, position: status === "queued" ? position : null };
+  if (status === null || typeof value.site_id !== "string") return { ok: false, ...problem("unreadable", TEXT.unreadable) };
+  if (value.site_id !== expected) return { ok: false, ...problem("unreadable", TEXT.otherPlace) };
+  return { ok: true, siteId: expected, status, position: status === "queued" ? asPosition(value.position_in_queue) : null };
 }
 
-/** One `sites.json`-shaped entry from a status answer, checked as carefully as the catalog. */
-export function parseCustomSite(value: unknown, siteId: string): Site | null {
-  if (!isRecord(value)) return null;
+// ── A ready site's entry ─────────────────────────────────────────────────────
+
+const TIERS = new Set(["core80", "wide240", "sphere"]);
+
+function finiteIn(value: unknown, min: number, max: number): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= min && value <= max;
+}
+
+function safeUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  if (value === "") return "";
   try {
-    const [site] = parseSites([value]);
-    if (!site || site.id !== siteId) return null;
-    if (typeof site.name !== "string" || !Number.isFinite(site.lat_deg) || !Number.isFinite(site.lon_deg)) return null;
-    if (!["core80", "wide240", "sphere"].includes(site.terrain_tier)) return null;
-    if (site.elevation_m !== null && !Number.isFinite(site.elevation_m)) return null;
-    if (site.slope !== null && (!isRecord(site.slope) || !Number.isFinite(site.slope.deg))) return null;
-    return {
-      ...site,
-      name: site.name.trim() || "Custom site",
-      quickmap_url: typeof site.quickmap_url === "string" ? site.quickmap_url : "",
-      moontrek_url: typeof site.moontrek_url === "string" ? site.moontrek_url : "",
-      has_closeup: false,
-      // A custom site is never a variant or a sunlit-peak entry, whatever the entry says.
-      variant_of: null,
-      offset_m: null,
-      nearby_sun: null,
-    };
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
   } catch {
     return null;
   }
 }
 
-/** Ask where a job is. A 404 means the server does not know the id (`unknown`). */
-export async function customSiteStatus(
-  siteId: string,
-  options: { fetchImpl?: CustomFetch; signal?: AbortSignal; nowMs?: number } = {},
-): Promise<StatusReply> {
+/**
+ * One `sites.json`-shaped entry from a status answer, checked field by field: every field the
+ * app reads, its type, its range, and nulls only where the contract allows. The entry must
+ * name the id that was asked for, at the same coordinates to four decimals. Anything else is
+ * null: a failed row, never a half-drawn site.
+ */
+export function parseCustomSite(value: unknown, siteId: string): Site | null {
+  if (!isRecord(value)) return null;
+  if (value.id !== siteId) return null;
+  if (!finiteIn(value.lat_deg, -90, 90) || !finiteIn(value.lon_deg, 0, 360) || value.lon_deg === 360) return null;
+  if (canonicalCustomId(value.lat_deg, value.lon_deg) !== siteId) return null;
+  if (typeof value.terrain_tier !== "string" || !TIERS.has(value.terrain_tier)) return null;
+  if (value.elevation_m !== null && !finiteIn(value.elevation_m, -20_000, 20_000)) return null;
+  let slope: Site["slope"] = null;
+  if (value.slope !== null) {
+    const s = value.slope;
+    if (!isRecord(s) || !finiteIn(s.deg, 0, 90) || !finiteIn(s.baseline_m, 0.001, 1_000_000) || typeof s.source !== "string") return null;
+    slope = { deg: s.deg, baseline_m: s.baseline_m, source: s.source.slice(0, 200) };
+  }
+  if (value.has_closeup !== undefined && typeof value.has_closeup !== "boolean") return null;
+  if (value.name !== undefined && typeof value.name !== "string") return null;
+  if (value.description !== undefined && typeof value.description !== "string") return null;
+  if (value.outcome !== undefined && value.outcome !== null && typeof value.outcome !== "string") return null;
+  // A custom site is never a variant or a sunlit-peak entry.
+  for (const field of ["variant_of", "offset_m", "nearby_sun"] as const) {
+    if (value[field] !== undefined && value[field] !== null) return null;
+  }
+  const quickmap = safeUrl(value.quickmap_url ?? "");
+  const moontrek = safeUrl(value.moontrek_url ?? "");
+  if (quickmap === null || moontrek === null) return null;
+  if (value.terrain_tier === "sphere" && slope !== null) return null;
+  return {
+    id: siteId,
+    name: cleanSiteName(value.name as string | undefined) ?? "Custom site",
+    group: "contrast",
+    lat_deg: value.lat_deg,
+    lon_deg: value.lon_deg,
+    terrain_tier: value.terrain_tier as Site["terrain_tier"],
+    elevation_m: value.elevation_m as number | null,
+    slope,
+    has_closeup: false,
+    description: "",
+    source_url: "",
+    outcome: null,
+    quickmap_url: quickmap,
+    moontrek_url: moontrek,
+    variant_of: null,
+    offset_m: null,
+    nearby_sun: null,
+  };
+}
+
+/** Ask where a job is. A 404 means the server does not know the id (`unknown`). Never a POST. */
+export async function customSiteStatus(siteId: string, options: RequestOptions = {}): Promise<StatusReply> {
   const fetchImpl = options.fetchImpl ?? defaultCustomFetch;
-  const response = await send(fetchImpl, customApi.status(siteId), {
-    headers: { Accept: "application/json" },
-    signal: options.signal,
-  });
+  const response = await send(fetchImpl, customApi.status(siteId), { headers: { Accept: "application/json" } }, options.signal, options.timeoutMs ?? REQUEST_TIMEOUT_MS);
   if (isProblem(response)) return { ok: false, ...response };
   if (response.status === 404 && isJson(response)) return { ok: false, unknown: true };
   if (!response.ok) return { ok: false, ...(await problemFrom(response, options.nowMs ?? Date.now(), "status")) };
@@ -279,23 +367,27 @@ export async function customSiteStatus(
   if (!json.ok || !isRecord(json.value)) return { ok: false, ...problem("unreadable", TEXT.unreadable) };
   const value = json.value;
   const status = asStatus(value.status);
-  if (status === null || value.site_id !== siteId) return { ok: false, ...problem("unreadable", TEXT.unreadable) };
+  if (status === null) return { ok: false, ...problem("unreadable", TEXT.unreadable) };
+  if (value.site_id !== siteId) return { ok: false, ...problem("unreadable", TEXT.otherPlace) };
   if (status === "ready") {
     const site = parseCustomSite(value.site, siteId);
-    if (!site) return { ok: false, ...problem("unreadable", TEXT.unreadable) };
-    return { ok: true, siteId, status, site, failure: null };
+    if (!site) return { ok: false, ...problem("unreadable", TEXT.unreadableSite) };
+    return { ok: true, siteId, status, site, failure: null, position: null };
   }
   if (status === "failed") {
-    const error = isRecord(value.error) ? plainMessage(value.error.message) : null;
-    return { ok: true, siteId, status, site: null, failure: error ?? TEXT.failed };
+    const error = isRecord(value.error) ? value.error : null;
+    const said = error ? plainMessage(error.message) : null;
+    const kind: ProblemKind = error?.code === "storage_full" ? "storage_full" : "failed";
+    return { ok: true, siteId, status, site: null, failure: problem(kind, said ?? (kind === "storage_full" ? TEXT.storageFull : TEXT.failed)), position: null };
   }
-  return { ok: true, siteId, status, site: null, failure: null };
+  // The status answer has no queue position today; a later server may add one.
+  return { ok: true, siteId, status, site: null, failure: null, position: status === "queued" ? asPosition(value.position_in_queue) : null };
 }
 
 /** Whether this server computes custom sites. A server that is not there counts as `offline`. */
-export async function customSitesAvailability(options: { fetchImpl?: CustomFetch; signal?: AbortSignal } = {}): Promise<Availability> {
+export async function customSitesAvailability(options: RequestOptions = {}): Promise<Availability> {
   const fetchImpl = options.fetchImpl ?? defaultCustomFetch;
-  const response = await send(fetchImpl, customApi.health, { headers: { Accept: "application/json" }, signal: options.signal });
+  const response = await send(fetchImpl, customApi.health, { headers: { Accept: "application/json" } }, options.signal, options.timeoutMs ?? REQUEST_TIMEOUT_MS);
   if (isProblem(response)) return "offline";
   if (!isJson(response)) return "offline";
   const json = await readJson(response);
@@ -304,7 +396,7 @@ export async function customSitesAvailability(options: { fetchImpl?: CustomFetch
   return json.value.custom_sites === "available" ? "available" : "not_available";
 }
 
-// ── Driving one job ─────────────────────────────────────────────────────────
+// ── Waiting for one job ──────────────────────────────────────────────────────
 
 export type JobPhase = "queued" | "running" | "ready" | "failed" | "not_computed";
 
@@ -319,148 +411,188 @@ export type JobSnapshot = {
 };
 
 export type JobStart =
+  /** A button press: one POST, then GET. */
   | { kind: "submit"; latDeg: number; lonDeg: number; name?: string | null }
-  /** Look up an id from a link. Never starts a job. */
+  /** An id from a link, a remount or a return to the page: GET only, never a job. */
   | { kind: "check"; siteId: string };
+
+/** When to wait, and when to look again at once. Defaults to the page's own events. */
+export type Wakeups = {
+  hidden: () => boolean;
+  /** Calls back when the page is shown again or the network comes back. Returns an unsubscribe. */
+  onWake: (callback: () => void) => () => void;
+};
+
+export function pageWakeups(): Wakeups {
+  const doc = typeof document === "undefined" ? null : document;
+  const win = typeof window === "undefined" ? null : window;
+  return {
+    hidden: () => doc?.visibilityState === "hidden",
+    onWake: (callback) => {
+      const onVisible = () => {
+        if (doc?.visibilityState !== "hidden") callback();
+      };
+      doc?.addEventListener("visibilitychange", onVisible);
+      win?.addEventListener("online", callback);
+      return () => {
+        doc?.removeEventListener("visibilitychange", onVisible);
+        win?.removeEventListener("online", callback);
+      };
+    },
+  };
+}
 
 export type DriveOptions = {
   signal: AbortSignal;
   onUpdate: (snapshot: JobSnapshot) => void;
   fetchImpl?: CustomFetch;
-  sleep?: (ms: number, signal: AbortSignal) => Promise<void>;
   now?: () => number;
-  /** Between two status checks. */
+  /** Between two status checks while all is well. */
   intervalMs?: number;
-  /** Stop waiting after this long, with a plain message. */
+  /** Stop waiting after this long, with a plain message. Ends any request still open. */
   ceilingMs?: number;
-  /** While queued, refresh the queue position every this many checks. */
-  positionEvery?: number;
-  /** Give up after this many answers in a row that were not usable. */
+  /** Give up after this many unusable answers in a row. */
   maxErrors?: number;
+  /** The longest wait between checks after errors. */
+  maxBackoffMs?: number;
+  requestTimeoutMs?: number;
+  wakeups?: Wakeups;
 };
 
 export const POLL_INTERVAL_MS = 2000;
 export const POLL_CEILING_MS = 15 * 60 * 1000;
+export const MAX_BACKOFF_MS = 30_000;
 
-export function abortableSleep(ms: number, signal: AbortSignal): Promise<void> {
+/** Waits `ms`, or less if woken; never while the page is hidden; ends on abort or the deadline. */
+function pause(ms: number, signal: AbortSignal, wakeups: Wakeups, deadline: number, now: () => number): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal.aborted) {
       reject(new DOMException("Aborted", "AbortError"));
       return;
     }
-    const timer = setTimeout(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let wakeTimer: ReturnType<typeof setTimeout> | null = null;
+    const finish = (error?: Error) => {
+      if (timer) clearTimeout(timer);
+      if (wakeTimer) clearTimeout(wakeTimer);
+      unsubscribe();
       signal.removeEventListener("abort", onAbort);
-      resolve();
-    }, ms);
-    const onAbort = () => {
-      clearTimeout(timer);
-      reject(new DOMException("Aborted", "AbortError"));
+      if (error) reject(error);
+      else resolve();
     };
+    const onAbort = () => finish(new DOMException("Aborted", "AbortError"));
+    const arm = () => {
+      if (timer) clearTimeout(timer);
+      // While hidden, only the deadline ends the wait; a wake event resumes it.
+      const left = Math.max(0, deadline - now());
+      const wait = wakeups.hidden() ? left : Math.min(ms, left);
+      timer = setTimeout(() => {
+        if (wakeups.hidden() && now() < deadline) arm();
+        else finish();
+      }, wait);
+    };
+    // A wake (page shown, network back) looks again at once: one GET.
+    const unsubscribe = wakeups.onWake(() => {
+      if (wakeTimer) return;
+      wakeTimer = setTimeout(() => finish(), 0);
+    });
     signal.addEventListener("abort", onAbort, { once: true });
+    arm();
   });
 }
 
-/** The coordinates written in a custom id. Used only to recognise an id from a link. */
-export function coordinatesOfId(siteId: string): { latDeg: number; lonDeg: number } | null {
-  if (!isCustomSiteId(siteId)) return null;
-  const [, lat, lon] = siteId.split("_");
-  const latDeg = Number(lat);
-  const lonDeg = Number(lon);
-  return Number.isFinite(latDeg) && Number.isFinite(lonDeg) ? { latDeg, lonDeg } : null;
-}
-
 /**
- * Drives one job from a request (or a link's id) to ready or failed, checking about every
- * two seconds. It stops on ready or failed, when `signal` aborts (without a last update),
- * after three unusable answers in a row, and after the ceiling. Resolves to the last state.
+ * Drives one job to ready or failed. A submit makes exactly one POST; everything after it,
+ * and every check, is GET. It stops on ready, failed, abort (with no last update), after
+ * `maxErrors` unusable answers in a row (waiting longer after each), and at the ceiling,
+ * which also ends a request still open.
  */
 export async function driveCustomSite(start: JobStart, options: DriveOptions): Promise<JobSnapshot | null> {
   const fetchImpl = options.fetchImpl ?? defaultCustomFetch;
-  const sleep = options.sleep ?? abortableSleep;
   const now = options.now ?? Date.now;
   const interval = options.intervalMs ?? POLL_INTERVAL_MS;
   const ceiling = options.ceilingMs ?? POLL_CEILING_MS;
-  const positionEvery = options.positionEvery ?? 5;
-  const maxErrors = options.maxErrors ?? 3;
-  const { signal } = options;
+  const maxErrors = options.maxErrors ?? 5;
+  const maxBackoff = options.maxBackoffMs ?? MAX_BACKOFF_MS;
+  const requestTimeout = options.requestTimeoutMs ?? REQUEST_TIMEOUT_MS;
+  const wakeups = options.wakeups ?? pageWakeups();
+  const deadline = now() + ceiling;
 
+  // The ceiling ends everything, including a request that never returns.
+  const local = new AbortController();
+  const onOuterAbort = () => local.abort();
+  options.signal.addEventListener("abort", onOuterAbort, { once: true });
+  const ceilingTimer = setTimeout(() => local.abort(), Math.max(1, ceiling));
+  const signal = local.signal;
+  const timeLeft = () => Math.max(1, Math.min(requestTimeout, deadline - now()));
+  const request = { fetchImpl, signal, get nowMs() { return now(); } };
+
+  let siteId: string | null = null;
   const emit = (snapshot: JobSnapshot): JobSnapshot | null => {
-    if (signal.aborted) return null;
+    if (options.signal.aborted) return null;
     options.onUpdate(snapshot);
     return snapshot;
   };
-  const fail = (siteId: string | null, reason: Problem) =>
-    emit({ siteId, phase: "failed", position: null, site: null, problem: reason });
+  const fail = (id: string | null, reason: Problem) => emit({ siteId: id, phase: "failed", position: null, site: null, problem: reason });
 
   try {
-    let siteId: string;
-    let coords: { latDeg: number; lonDeg: number } | null;
-    let name: string | null = null;
     let position: number | null = null;
-
+    // A check looks at once; a submit looks at once only when the server says it is ready
+    // (its answer has no site entry), otherwise after one interval.
+    let first = start.kind === "check";
     if (start.kind === "submit") {
-      const reply = await requestCustomSite(start.latDeg, start.lonDeg, start.name, { fetchImpl, signal, nowMs: now() });
+      const reply = await requestCustomSite(start.latDeg, start.lonDeg, start.name, { ...request, timeoutMs: timeLeft() });
       if (!reply.ok) return fail(null, reply);
       siteId = reply.siteId;
-      coords = { latDeg: start.latDeg, lonDeg: start.lonDeg };
-      name = start.name ?? null;
       position = reply.position;
-      if (reply.status === "failed") {
-        return fail(siteId, problem("failed", TEXT.failed));
-      }
-      if (reply.status !== "ready") {
-        if (!emit({ siteId, phase: reply.status, position, site: null, problem: null })) return null;
-      }
-      if (reply.status === "ready") {
-        // The submit answer has no site entry: ask for it once.
-        const status = await customSiteStatus(siteId, { fetchImpl, signal, nowMs: now() });
-        if (status.ok && status.status === "ready") {
-          return emit({ siteId, phase: "ready", position: null, site: status.site, problem: null });
-        }
-        // Not ready after all (another tab, a restart): fall through to waiting.
-        if (!status.ok && !status.unknown) return fail(siteId, status);
-      }
+      if (reply.status === "failed") return fail(siteId, problem("failed", TEXT.failed));
+      if (reply.status === "ready") first = true;
+      else if (!emit({ siteId, phase: reply.status, position, site: null, problem: null })) return null;
     } else {
       siteId = start.siteId;
-      coords = coordinatesOfId(siteId);
-      const status = await customSiteStatus(siteId, { fetchImpl, signal, nowMs: now() });
-      if (!status.ok) {
-        if (status.unknown) return emit({ siteId, phase: "not_computed", position: null, site: null, problem: null });
-        return fail(siteId, status);
-      }
-      if (status.status === "ready") return emit({ siteId, phase: "ready", position: null, site: status.site, problem: null });
-      if (status.status === "failed") return fail(siteId, problem("failed", status.failure ?? TEXT.failed));
-      if (!emit({ siteId, phase: status.status, position: null, site: null, problem: null })) return null;
     }
 
-    const started = now();
+    // Look now (a check, or a submit that came back ready), then every interval.
     let errors = 0;
-    let tick = 0;
     for (;;) {
-      if (now() - started >= ceiling) return fail(siteId, problem("timeout", TEXT.timeout));
-      await sleep(interval, signal);
-      tick += 1;
-      const status = await customSiteStatus(siteId, { fetchImpl, signal, nowMs: now() });
+      if (!first) {
+        const wait = errors === 0 ? interval : Math.min(maxBackoff, interval * 2 ** errors);
+        await pause(wait, signal, wakeups, deadline, now);
+      }
+      if (now() >= deadline) return fail(siteId, problem("timeout", TEXT.timeout));
+      const status = await customSiteStatus(siteId, { ...request, timeoutMs: timeLeft() });
       if (!status.ok) {
-        if (status.unknown) return fail(siteId, problem("lost", TEXT.lost));
+        if (status.unknown) {
+          // A link's id the server does not have; or, after a start, a job it forgot.
+          if (first && start.kind === "check") return emit({ siteId, phase: "not_computed", position: null, site: null, problem: null });
+          return fail(siteId, problem("lost", TEXT.lost));
+        }
+        // A link's first look that cannot reach the server: say so now, not in a minute.
+        if (first && start.kind === "check") return fail(siteId, status);
         errors += 1;
+        first = false;
         if (errors >= maxErrors) return fail(siteId, status);
         continue;
       }
       errors = 0;
+      first = false;
       if (status.status === "ready") return emit({ siteId, phase: "ready", position: null, site: status.site, problem: null });
-      if (status.status === "failed") return fail(siteId, problem("failed", status.failure ?? TEXT.failed));
-      if (status.status === "queued" && coords && tick % positionEvery === 0) {
-        // The status answer has no queue position; asking again for a queued job costs
-        // nothing on the server (docs/architecture.md) and returns it.
-        const again = await requestCustomSite(coords.latDeg, coords.lonDeg, name, { fetchImpl, signal, nowMs: now() });
-        if (again.ok && again.siteId === siteId && again.status === "queued") position = again.position;
-      }
-      if (status.status === "running") position = null;
+      if (status.status === "failed") return fail(siteId, status.failure ?? problem("failed", TEXT.failed));
+      position = status.status === "queued" ? status.position : null;
       if (!emit({ siteId, phase: status.status, position, site: null, problem: null })) return null;
     }
   } catch (error) {
-    if (isAbort(error) || signal.aborted) return null;
+    if (options.signal.aborted) return null;
+    if (signal.aborted) return fail(siteId, problem("timeout", TEXT.timeout));
+    if (isAbort(error)) return null;
     throw error;
+  } finally {
+    clearTimeout(ceilingTimer);
+    options.signal.removeEventListener("abort", onOuterAbort);
   }
+}
+
+/** The coordinates of a valid custom id, or null. Used only to recognise an id from a link. */
+export function coordinatesOfId(siteId: string): { latDeg: number; lonDeg: number } | null {
+  return isCanonicalCustomId(siteId) ? idCoordinates(siteId) : null;
 }

@@ -6,6 +6,7 @@
  */
 
 import { formatNumber } from "../../components/format";
+import { NAME_MAX, siteNameTooLong } from "../../data/custom-site-id";
 
 /**
  * The server's documented limits (docs/architecture.md, "The API", and
@@ -13,7 +14,7 @@ import { formatNumber } from "../../components/format";
  * a point within 0.001° of a pole is refused; a name is at most 120 characters.
  */
 export const POLE_MARGIN_DEG = 0.001;
-export const NAME_MAX = 120;
+export { NAME_MAX } from "../../data/custom-site-id";
 
 /**
  * The latitude bounds of each terrain tier, as the server documents them: the 80 m map at
@@ -69,8 +70,9 @@ export function checkLongitude(text: string): FieldCheck {
   return { value: east, message: null, note };
 }
 
+/** The name is cleaned the same way as a server's (`cleanSiteName`); only its length can be wrong. */
 export function checkName(text: string): string | null {
-  return text.trim().length > NAME_MAX ? `A name can have at most ${NAME_MAX} characters.` : null;
+  return siteNameTooLong(text) ? `A name can have at most ${NAME_MAX} characters.` : null;
 }
 
 export type TierHint = "core80" | "wide240" | "sphere";

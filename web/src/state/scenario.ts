@@ -10,6 +10,7 @@
 
 import { createStore, type StoreApi } from "zustand/vanilla";
 import type { MissionProfile, TimeGrid, Weights } from "../contracts/generated.ts";
+import { looksLikeCustomId } from "../data/custom-site-id.ts";
 import { isCustomSiteId } from "../data/paths.ts";
 import { windowLength } from "../lib/scoring/scoring.ts";
 import { hourIndexToUtc, utcToHourIndex } from "../lib/time/index.ts";
@@ -615,9 +616,12 @@ function readView(raw: string | null, notices: string[]): ViewId {
   return DEFAULT_VIEW;
 }
 
+export const INVALID_PLACE_NOTICE = "A site in this link is not a valid place and was left out.";
+
 function parseSites(raw: string, catalog: ScenarioCatalog, notices: string[]): string[] {
   const ids: string[] = [];
   const seen = new Set<string>();
+  let invalidPlace = false;
   for (const part of raw.split(",")) {
     const id = part.trim();
     if (id.length === 0) continue;
@@ -626,6 +630,13 @@ function parseSites(raw: string, catalog: ScenarioCatalog, notices: string[]): s
       continue;
     }
     seen.add(id);
+    // A custom id the server would never make (out of range, or not canonical) is no place:
+    // leave it out, with one notice for the whole link.
+    if (looksLikeCustomId(id) && !isCustomSiteId(id) && !catalog.sites.some((site) => site.id === id)) {
+      if (!invalidPlace) notices.push(INVALID_PLACE_NOTICE);
+      invalidPlace = true;
+      continue;
+    }
     if (!catalog.sites.some((site) => site.id === id) && !isCustomSiteId(id)) {
       notices.push(`Ignored unknown site ${quote(id)}.`);
       continue;

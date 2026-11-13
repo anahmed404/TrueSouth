@@ -1,5 +1,5 @@
 import { ChevronDown, X } from "lucide-react";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useStore } from "zustand";
 import { Button, IconButton } from "../../components/Button";
 import { Explain } from "../../components/Explain";
@@ -16,16 +16,42 @@ export function useCustomEntry(key: string): CustomEntry | undefined {
   return useStore(customSitesStore, (state) => state.entries[key]);
 }
 
-/** The time now, ticking once a second while `active`, for the "so far" line. */
+/**
+ * One clock for every pending row: a single one-second timer, running only while some row
+ * shows a time.
+ */
+const ticker = (() => {
+  const listeners = new Set<() => void>();
+  let timer: ReturnType<typeof setInterval> | null = null;
+  let now = Date.now();
+  return {
+    subscribe(listener: () => void) {
+      listeners.add(listener);
+      if (!timer) {
+        now = Date.now();
+        timer = setInterval(() => {
+          now = Date.now();
+          listeners.forEach((l) => l());
+        }, 1000);
+      }
+      return () => {
+        listeners.delete(listener);
+        if (listeners.size === 0 && timer) {
+          clearInterval(timer);
+          timer = null;
+        }
+      };
+    },
+    get: () => now,
+  };
+})();
+
+const idle = () => () => undefined;
+
+/** The shared clock while `active`; a fixed time otherwise, so idle rows never re-render. */
 function useNow(active: boolean): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!active) return;
-    setNow(Date.now());
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [active]);
-  return now;
+  const now = useSyncExternalStore(active ? ticker.subscribe : idle, ticker.get);
+  return active ? now : ticker.get();
 }
 
 /** The row's view, kept current: the clock ticks while the job is busy or a retry waits. */
@@ -34,6 +60,22 @@ export function useCustomRowView(entry: CustomEntry): CustomRowView {
   const busy = entry.phase === "sending" || entry.phase === "queued" || entry.phase === "running" || entry.phase === "checking";
   const now = useNow(busy || waiting);
   return customRowView(entry, now);
+}
+
+/**
+ * A name typed by someone, safely shown: isolated from the text around it (`dir="auto"`,
+ * `unicode-bidi: isolate`), on one line with an ellipsis, and always with "Your site" beside
+ * it, so it cannot pass for a catalog site.
+ */
+export function CustomName({ name, tag = "plain" }: { name: string; tag?: "plain" | "tip" | "none" }) {
+  return (
+    <span className="cs-name-line">
+      <bdi className="cs-name" dir="auto" title={name}>
+        {name}
+      </bdi>
+      {tag === "none" ? null : tag === "tip" ? <YourSiteTag /> : <span className="tag tag-yours">{YOUR_SITE_TAG}</span>}
+    </span>
+  );
 }
 
 /** "Your site": a filled tag, unlike sourced (solid), assumed (dashed) and chosen by TrueSouth (dotted). */
@@ -53,7 +95,7 @@ export function YourSiteTag() {
  * The state of a custom site that is not a normal site yet, with its one action. Used in
  * its rail row and in the focused-site panel.
  */
-export function CustomState({ entry, onAnnounce, compact = false }: { entry: CustomEntry; onAnnounce?: (text: string) => void; compact?: boolean }) {
+export function CustomState({ entry, compact = false }: { entry: CustomEntry; onAnnounce?: (text: string) => void; compact?: boolean }) {
   const scenario = useScenarioStore();
   const view = useCustomRowView(entry);
   return (
@@ -68,10 +110,7 @@ export function CustomState({ entry, onAnnounce, compact = false }: { entry: Cus
         <Button
           className="cs-action"
           disabled={view.primary.disabled}
-          onClick={() => {
-            retryCustomSite(scenario, entry.key);
-            onAnnounce?.(`Asking the server for ${view.title} again.`);
-          }}
+          onClick={() => retryCustomSite(scenario, entry.key)}
         >
           {view.primary.label}
         </Button>
@@ -95,12 +134,12 @@ export function CustomPendingRow({ entry, handle, onAnnounce }: { entry: CustomE
   };
   return (
     <div className="site-row cs-row" data-site={entry.siteId ?? entry.key} aria-busy={view.busy || undefined}>
-      <span className="site-name">{view.title}</span>
-      <span className="cs-sub tabular">
-        {view.coordinates}
-        <YourSiteTag />
+      <span className="site-name">
+        <CustomName name={view.title} tag="tip" />
       </span>
-      <span role="status" className="cs-live">
+      <span className="cs-sub tabular">{view.coordinates}</span>
+      {/* The state changes are announced once by the rail; the ticking time is not live. */}
+      <span className="cs-live" aria-live="off">
         <CustomState entry={entry} onAnnounce={onAnnounce} />
       </span>
       <span className="site-actions cs-actions">

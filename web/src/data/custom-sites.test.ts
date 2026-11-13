@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   TEXT,
   coordinatesOfId,
@@ -10,6 +10,7 @@ import {
   requestCustomSite,
   type CustomFetch,
   type JobSnapshot,
+  type Wakeups,
 } from "./custom-sites.ts";
 
 const ID = "c_-88.5000_45.0000";
@@ -78,10 +79,31 @@ describe("requestCustomSite", () => {
     expect(none.calls).toHaveLength(0);
   });
 
-  it("uses the id the server returns, even when it differs from the typed point", async () => {
-    const other = "c_-88.5001_45.0000";
-    const { fetchImpl } = scripted([json(200, { site_id: other, status: "ready", position_in_queue: 0 })]);
-    expect(await requestCustomSite(-88.50005, 45, null, { fetchImpl })).toMatchObject({ ok: true, siteId: other });
+  it("refuses an answer about another place", async () => {
+    for (const other of ["c_-10.0000_20.0000", "c_-88.5001_45.0000", "c_-88.5000_45.0000 "]) {
+      const { fetchImpl } = scripted([json(200, { site_id: other, status: "queued", position_in_queue: 1 })]);
+      expect(await requestCustomSite(-88.5, 45, null, { fetchImpl })).toMatchObject({ ok: false, kind: "unreadable", message: TEXT.otherPlace });
+    }
+  });
+
+  it("expects the id the server's own rules make", async () => {
+    const cases: [number, number, string][] = [
+      [-88.50004, 45, "c_-88.5000_45.0000"],
+      [-88.50005, 45, "c_-88.5001_45.0000"],
+      [10, 359.99995, "c_10.0000_0.0000"],
+      [10, -45, "c_10.0000_315.0000"],
+      [-0.00001, 10, "c_0.0000_10.0000"],
+    ];
+    for (const [lat, lon, id] of cases) {
+      const { fetchImpl } = scripted([json(200, { site_id: id, status: "running", position_in_queue: 0 })]);
+      expect(await requestCustomSite(lat, lon, null, { fetchImpl })).toMatchObject({ ok: true, siteId: id });
+    }
+  });
+
+  it("sends a cleaned name", async () => {
+    const { fetchImpl, calls } = scripted([json(200, { site_id: ID, status: "queued", position_in_queue: 1 })]);
+    await requestCustomSite(-88.5, 45, "\u202eRidge\u0007   east\n", { fetchImpl });
+    expect(JSON.parse(String(calls[0]?.init?.body)).name).toBe("Ridge east");
   });
 
   it.each([
@@ -120,11 +142,16 @@ describe("requestCustomSite", () => {
     if (!reply.ok) expect(reply.fields).toEqual([{ field: "lat_deg", message: "Latitude must be at least 0.001° away from a pole." }]);
   });
 
-  it("reads Retry-After as seconds or a date", async () => {
+  it("reads Retry-After as seconds or a date, kept between 1 s and 1 h", async () => {
     const { fetchImpl } = scripted([json(429, { message: "Slow down." }, { "retry-after": "90" })]);
     expect(await requestCustomSite(-88.5, 45, null, { fetchImpl })).toMatchObject({ kind: "rate_limited", retryAfterS: 90 });
-    expect(parseRetryAfter("Wed, 01 Jan 2031 00:01:00 GMT", Date.parse("2031-01-01T00:00:00Z"))).toBe(60);
-    expect(parseRetryAfter("soon")).toBeNull();
+    const base = Date.parse("2031-01-01T00:00:00Z");
+    expect(parseRetryAfter("Wed, 01 Jan 2031 00:01:00 GMT", base)).toBe(60);
+    expect(parseRetryAfter("Thu, 01 Jan 2032 00:00:00 GMT", base)).toBe(3600);
+    expect(parseRetryAfter("Mon, 01 Jan 2029 00:00:00 GMT", base)).toBe(1);
+    expect(parseRetryAfter("0")).toBe(1);
+    expect(parseRetryAfter("99999999999")).toBe(3600);
+    for (const bad of ["soon", "-5", "1.5", "", "1e9", "Infinity", "NaN", "12 34"]) expect(parseRetryAfter(bad)).toBeNull();
     expect(parseRetryAfter(null)).toBeNull();
   });
 
@@ -137,7 +164,7 @@ describe("requestCustomSite", () => {
   it("treats a malformed success as unreadable", async () => {
     for (const body of [{ status: "queued" }, { site_id: "c_bad", status: "queued" }, { site_id: ID, status: "done" }, [], "ok"]) {
       const { fetchImpl } = scripted([json(200, body)]);
-      expect(await requestCustomSite(-88.5, 45, null, { fetchImpl })).toMatchObject({ ok: false, kind: "unreadable", message: TEXT.unreadable });
+      expect(await requestCustomSite(-88.5, 45, null, { fetchImpl })).toMatchObject({ ok: false, kind: "unreadable" });
     }
     const { fetchImpl } = scripted([text(200, "not json")]);
     expect(await requestCustomSite(-88.5, 45, null, { fetchImpl })).toMatchObject({ ok: false, kind: "unreadable" });
@@ -164,7 +191,7 @@ describe("customSiteStatus", () => {
     expect(await customSiteStatus(ID, { fetchImpl })).toMatchObject({
       ok: true,
       status: "failed",
-      failure: "The custom site could not be computed. Please try again.",
+      failure: { kind: "failed", message: "The custom site could not be computed. Please try again." },
     });
     expect(calls[0]?.url).toBe(`/api/sites/custom/${ID}`);
   });
@@ -176,18 +203,66 @@ describe("customSiteStatus", () => {
     expect(await customSiteStatus(ID, { fetchImpl })).toMatchObject({ ok: false, kind: "offline" });
   });
 
-  it("refuses a ready answer whose site cannot be read, or belongs to another id", async () => {
-    for (const site of [null, siteEntry({ id: "c_-80.0000_0.0000" }), siteEntry({ lat_deg: "x" }), siteEntry({ terrain_tier: "moon" }), siteEntry({ slope: { deg: "steep" } })]) {
+  it("refuses a ready answer whose site cannot be read, or is about another place", async () => {
+    const bad = [
+      null,
+      siteEntry({ id: "c_-80.0000_0.0000" }),
+      siteEntry({ lat_deg: -10 }),
+      siteEntry({ lon_deg: 45.0002 }),
+      siteEntry({ lat_deg: "x" }),
+      siteEntry({ lon_deg: 360 }),
+      siteEntry({ terrain_tier: "moon" }),
+      siteEntry({ slope: { deg: "steep" } }),
+      siteEntry({ slope: { deg: 4.2, source: "LOLA" } }),
+      siteEntry({ slope: { deg: 120, baseline_m: 80, source: "LOLA" } }),
+      siteEntry({ slope: { deg: 4.2, baseline_m: 0, source: "LOLA" } }),
+      siteEntry({ elevation_m: 1e9 }),
+      siteEntry({ elevation_m: "1520" }),
+      siteEntry({ has_closeup: "no" }),
+      siteEntry({ name: 7 }),
+      siteEntry({ variant_of: "connecting_ridge", offset_m: 3 }),
+      siteEntry({ nearby_sun: { radius_m: 160, points: 1, min: 0, max: 1 } }),
+      siteEntry({ quickmap_url: "javascript:alert(1)" }),
+      siteEntry({ terrain_tier: "sphere" }),
+    ];
+    for (const site of bad) {
       const { fetchImpl } = scripted([json(200, { site_id: ID, status: "ready", site, error: null })]);
-      expect(await customSiteStatus(ID, { fetchImpl })).toMatchObject({ ok: false, kind: "unreadable" });
+      expect(await customSiteStatus(ID, { fetchImpl })).toMatchObject({ ok: false, kind: "unreadable", message: TEXT.unreadableSite });
     }
     const { fetchImpl } = scripted([json(200, { site_id: "c_-1.0000_1.0000", status: "queued" })]);
     expect(await customSiteStatus(ID, { fetchImpl })).toMatchObject({ ok: false, kind: "unreadable" });
   });
 
-  it("keeps a sphere site's nulls, and drops variant fields a custom site cannot have", () => {
+  it("keeps a sphere site's nulls, and never carries variant fields", () => {
     const site = parseCustomSite(siteEntry({ terrain_tier: "sphere", slope: null, elevation_m: null, name: "  " }), ID);
     expect(site).toMatchObject({ terrain_tier: "sphere", slope: null, elevation_m: null, name: "Custom site", variant_of: null, nearby_sun: null, has_closeup: false });
+  });
+
+  it("cleans a server's name like a typed one", () => {
+    const names: [string, string][] = [
+      ["\u202eetis ruoy", "etis ruoy"],
+      ["Ridge\u2066\u2067\u2068\u2069\u200e\u200f\u061c\u202a\u202b\u202c\u202d", "Ridge"],
+      ["Ri\u0000dg\u001be\u007f", "Ridge"],
+      ["  Ridge \t\n east  ", "Ridge east"],
+      ["x".repeat(500), "x".repeat(60)],
+    ];
+    for (const [raw, clean] of names) expect(parseCustomSite(siteEntry({ name: raw }), ID)?.name).toBe(clean);
+  });
+
+  it("reads a queue position from the status answer when a server sends one", async () => {
+    const { fetchImpl } = scripted([
+      json(200, { site_id: ID, status: "queued", site: null, error: null, position_in_queue: 3 }),
+      json(200, { site_id: ID, status: "queued", site: null, error: null }),
+      json(200, { site_id: ID, status: "queued", site: null, error: null, position_in_queue: -1 }),
+    ]);
+    expect(await customSiteStatus(ID, { fetchImpl })).toMatchObject({ position: 3 });
+    expect(await customSiteStatus(ID, { fetchImpl })).toMatchObject({ position: null });
+    expect(await customSiteStatus(ID, { fetchImpl })).toMatchObject({ position: null });
+  });
+
+  it("reads a storage-full job failure", async () => {
+    const { fetchImpl } = scripted([json(200, { site_id: ID, status: "failed", site: null, error: { code: "storage_full", message: TEXT.storageFull } })]);
+    expect(await customSiteStatus(ID, { fetchImpl })).toMatchObject({ failure: { kind: "storage_full", message: TEXT.storageFull } });
   });
 });
 
@@ -212,90 +287,137 @@ describe("customSitesAvailability", () => {
 });
 
 describe("coordinatesOfId", () => {
-  it("recognises a link's id and nothing else", () => {
+  it("recognises a valid link id and nothing else", () => {
     expect(coordinatesOfId(ID)).toEqual({ latDeg: -88.5, lonDeg: 45 });
-    expect(coordinatesOfId("connecting_ridge")).toBeNull();
-    expect(coordinatesOfId("c_-88.5_45")).toBeNull();
+    for (const bad of ["connecting_ridge", "c_-88.5_45", "c_999.0000_999.0000", "c_-0.0000_10.0000", "c_10.0000_360.0000"]) {
+      expect(coordinatesOfId(bad)).toBeNull();
+    }
   });
 });
 
+/** A page that can be hidden, shown again and go back online, on demand. */
+function fakeWakeups() {
+  let hidden = false;
+  const listeners = new Set<() => void>();
+  const wakeups: Wakeups = {
+    hidden: () => hidden,
+    onWake: (callback) => {
+      listeners.add(callback);
+      return () => listeners.delete(callback);
+    },
+  };
+  return {
+    wakeups,
+    hide: () => {
+      hidden = true;
+    },
+    show: () => {
+      hidden = false;
+      listeners.forEach((l) => l());
+    },
+    online: () => listeners.forEach((l) => l()),
+    listeners,
+  };
+}
+
 describe("driveCustomSite", () => {
-  function harness(replies: Parameters<typeof scripted>[0], options: { ceilingMs?: number } = {}) {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function harness(replies: Parameters<typeof scripted>[0], options: { ceilingMs?: number; requestTimeoutMs?: number } = {}) {
     const { fetchImpl, calls } = scripted(replies);
-    let clock = 0;
     const updates: JobSnapshot[] = [];
     const controller = new AbortController();
+    const page = fakeWakeups();
     const run = (start: Parameters<typeof driveCustomSite>[0]) =>
       driveCustomSite(start, {
         signal: controller.signal,
         onUpdate: (snapshot) => updates.push(snapshot),
         fetchImpl,
-        now: () => clock,
-        sleep: async (ms) => {
-          clock += ms;
-        },
+        wakeups: page.wakeups,
         ceilingMs: options.ceilingMs,
+        requestTimeoutMs: options.requestTimeoutMs,
       });
-    return { run, updates, calls, controller };
+    const posts = () => calls.filter((c) => c.init?.method === "POST").length;
+    return { run, updates, calls, controller, page, posts };
   }
 
-  it("polls from queued through running to ready, about every two seconds", async () => {
+  /** Runs the job to its end, moving the fake clock along. */
+  async function finish<T>(promise: Promise<T>, ms = 20 * 60 * 1000): Promise<T> {
+    let done = false;
+    void promise.finally(() => {
+      done = true;
+    });
+    for (let t = 0; t < ms && !done; t += 500) await vi.advanceTimersByTimeAsync(500);
+    return promise;
+  }
+
+  it("polls with GET from queued through running to ready, after one POST", async () => {
     const h = harness([
       json(200, { site_id: ID, status: "queued", position_in_queue: 3 }),
       json(200, { site_id: ID, status: "queued", site: null, error: null }),
       json(200, { site_id: ID, status: "running", site: null, error: null }),
       json(200, { site_id: ID, status: "ready", site: siteEntry(), error: null }),
     ]);
-    const last = await h.run({ kind: "submit", latDeg: -88.5, lonDeg: 45 });
+    const last = await finish(h.run({ kind: "submit", latDeg: -88.5, lonDeg: 45 }));
     expect(h.updates.map((u) => u.phase)).toEqual(["queued", "queued", "running", "ready"]);
-    expect(h.updates[0]?.position).toBe(3);
-    expect(h.updates[2]?.position).toBeNull();
+    // The POST's position, then "Queued" without a number: the status answer has none.
+    expect(h.updates.map((u) => u.position)).toEqual([3, null, null, null]);
     expect(last).toMatchObject({ phase: "ready", siteId: ID, site: { name: "My ridge" } });
     expect(h.calls.map((c) => c.init?.method ?? "GET")).toEqual(["POST", "GET", "GET", "GET"]);
   });
 
-  it("refreshes the queue position while queued", async () => {
+  it("never POSTs while queued, whatever happens between two looks", async () => {
     const queued = () => json(200, { site_id: ID, status: "queued", site: null, error: null });
     const h = harness([
       json(200, { site_id: ID, status: "queued", position_in_queue: 4 }),
-      queued(), queued(), queued(), queued(), queued(),
-      json(200, { site_id: ID, status: "queued", position_in_queue: 2 }),
-      json(200, { site_id: ID, status: "ready", site: siteEntry(), error: null }),
+      queued(), queued(), queued(), queued(), queued(), queued(), queued(),
+      json(200, { site_id: ID, status: "failed", site: null, error: { code: "computation_failed", message: "Broke." } }),
     ]);
-    await h.run({ kind: "submit", latDeg: -88.5, lonDeg: 45 });
-    expect(h.updates.map((u) => u.position)).toEqual([4, 4, 4, 4, 4, 2, null]);
+    const last = await finish(h.run({ kind: "submit", latDeg: -88.5, lonDeg: 45 }));
+    expect(last).toMatchObject({ phase: "failed", problem: { message: "Broke." } });
+    expect(h.posts()).toBe(1);
   });
 
   it("asks once for the site of a point the server already has", async () => {
     const h = harness([
-      json(200, { site_id: ID, status: "ready", position_in_queue: 0 }),
-      json(200, { site_id: ID, status: "ready", site: siteEntry({ terrain_tier: "sphere", slope: null }), error: null }),
+      json(200, { site_id: "c_10.0000_20.0000", status: "ready", position_in_queue: 0 }),
+      json(200, { site_id: "c_10.0000_20.0000", status: "ready", site: siteEntry({ id: "c_10.0000_20.0000", lat_deg: 10, lon_deg: 20, terrain_tier: "sphere", slope: null }), error: null }),
     ]);
-    const last = await h.run({ kind: "submit", latDeg: 10, lonDeg: 20 });
+    const last = await finish(h.run({ kind: "submit", latDeg: 10, lonDeg: 20 }));
     expect(h.updates).toHaveLength(1);
     expect(last).toMatchObject({ phase: "ready", site: { terrain_tier: "sphere" } });
   });
 
-  it("stops on a failed job with the server's message", async () => {
-    const h = harness([
-      json(200, { site_id: ID, status: "running", position_in_queue: 0 }),
-      json(200, { site_id: ID, status: "failed", site: null, error: { code: "computation_failed", message: "The custom site could not be computed. Please try again." } }),
-    ]);
-    const last = await h.run({ kind: "submit", latDeg: -88.5, lonDeg: 45 });
-    expect(last).toMatchObject({ phase: "failed", problem: { kind: "failed", message: "The custom site could not be computed. Please try again." } });
-  });
-
   it("fails a refused start without an id", async () => {
-    const h = harness([json(429, { message: "You may start 6 custom sites per hour." }, { "retry-after": "600" })]);
-    const last = await h.run({ kind: "submit", latDeg: -88.5, lonDeg: 45 });
+    const h = harness([json(429, { message: "You may start 6 custom sites per hour. Please try again later." }, { "retry-after": "600" })]);
+    const last = await finish(h.run({ kind: "submit", latDeg: -88.5, lonDeg: 45 }));
     expect(last).toMatchObject({ siteId: null, phase: "failed", problem: { kind: "rate_limited", retryAfterS: 600 } });
   });
 
-  it("says the job was lost when the server forgets it, and gives up after three bad answers", async () => {
-    const lost = harness([json(200, { site_id: ID, status: "queued", position_in_queue: 1 }), json(404, { message: "gone" })]);
-    expect(await lost.run({ kind: "submit", latDeg: -88.5, lonDeg: 45 })).toMatchObject({ phase: "failed", problem: { kind: "lost", message: TEXT.lost } });
-    const flaky = harness([json(200, { site_id: ID, status: "running", position_in_queue: 0 }), new TypeError("x"), new TypeError("x"), new TypeError("x")]);
-    expect(await flaky.run({ kind: "submit", latDeg: -88.5, lonDeg: 45 })).toMatchObject({ phase: "failed", problem: { kind: "offline" } });
+  it("says the job was lost when the server forgets it", async () => {
+    const h = harness([json(200, { site_id: ID, status: "queued", position_in_queue: 1 }), json(404, { message: "gone" })]);
+    expect(await finish(h.run({ kind: "submit", latDeg: -88.5, lonDeg: 45 }))).toMatchObject({ phase: "failed", problem: { kind: "lost", message: TEXT.lost } });
+  });
+
+  it("waits longer after each error, then gives up", async () => {
+    const page = fakeWakeups();
+    const backoff: number[] = [];
+    const flaky: CustomFetch = async (_url, init) => {
+      backoff.push(Date.now());
+      if (init?.method === "POST") return json(200, { site_id: ID, status: "running", position_in_queue: 0 });
+      throw new TypeError("x");
+    };
+    const last = await finish(
+      driveCustomSite({ kind: "submit", latDeg: -88.5, lonDeg: 45 }, { signal: new AbortController().signal, onUpdate: () => undefined, fetchImpl: flaky, wakeups: page.wakeups }),
+    );
+    expect(last).toMatchObject({ phase: "failed", problem: { kind: "offline" } });
+    const gaps = backoff.slice(1).map((t, i) => t - (backoff[i] ?? 0));
+    expect(gaps).toEqual([2000, 4000, 8000, 16000, 30000]);
   });
 
   it("rides out one bad answer", async () => {
@@ -304,50 +426,114 @@ describe("driveCustomSite", () => {
       text(502, ""),
       json(200, { site_id: ID, status: "ready", site: siteEntry(), error: null }),
     ]);
-    expect(await h.run({ kind: "submit", latDeg: -88.5, lonDeg: 45 })).toMatchObject({ phase: "ready" });
+    expect(await finish(h.run({ kind: "submit", latDeg: -88.5, lonDeg: 45 }))).toMatchObject({ phase: "ready" });
   });
 
-  it("stops after the ceiling with a plain message", async () => {
-    const running = () => json(200, { site_id: ID, status: "running", site: null, error: null });
-    const h = harness([json(200, { site_id: ID, status: "running", position_in_queue: 0 }), running(), running(), running()], { ceilingMs: 6000 });
-    expect(await h.run({ kind: "submit", latDeg: -88.5, lonDeg: 45 })).toMatchObject({ phase: "failed", problem: { kind: "timeout", message: TEXT.timeout } });
-    expect(h.calls).toHaveLength(4);
+  it("stops after the ceiling, even with a request that never returns", async () => {
+    const hanging: CustomFetch = (_url, init) =>
+      init?.method === "POST" ? Promise.resolve(json(200, { site_id: ID, status: "running", position_in_queue: 0 })) : new Promise<Response>(() => undefined);
+    const page = fakeWakeups();
+    const last = await finish(
+      driveCustomSite(
+        { kind: "submit", latDeg: -88.5, lonDeg: 45 },
+        { signal: new AbortController().signal, onUpdate: () => undefined, fetchImpl: hanging, wakeups: page.wakeups, ceilingMs: 60_000, requestTimeoutMs: 1_000_000 },
+      ),
+    );
+    expect(last).toMatchObject({ phase: "failed", problem: { kind: "timeout", message: TEXT.timeout } });
   });
 
-  it("stops quietly when aborted", async () => {
-    const h = harness([json(200, { site_id: ID, status: "queued", position_in_queue: 1 }), (call) => {
-      h.controller.abort();
-      return json(200, { site_id: ID, status: "ready", site: siteEntry(), error: null, url: call.url });
-    }]);
-    expect(await h.run({ kind: "submit", latDeg: -88.5, lonDeg: 45 })).toBeNull();
+  it("times out one request that never returns, and counts it as no answer", async () => {
+    let n = 0;
+    const slow: CustomFetch = (_url, init) => {
+      if (init?.method === "POST") return Promise.resolve(json(200, { site_id: ID, status: "running", position_in_queue: 0 }));
+      n += 1;
+      return n === 1 ? new Promise<Response>(() => undefined) : Promise.resolve(json(200, { site_id: ID, status: "ready", site: siteEntry(), error: null }));
+    };
+    const page = fakeWakeups();
+    const last = await finish(
+      driveCustomSite({ kind: "submit", latDeg: -88.5, lonDeg: 45 }, { signal: new AbortController().signal, onUpdate: () => undefined, fetchImpl: slow, wakeups: page.wakeups, requestTimeoutMs: 5000 }),
+    );
+    expect(last).toMatchObject({ phase: "ready" });
+  });
+
+  it("stops quietly when aborted, with no last update", async () => {
+    const h = harness([
+      json(200, { site_id: ID, status: "queued", position_in_queue: 1 }),
+      () => {
+        h.controller.abort();
+        return json(200, { site_id: ID, status: "ready", site: siteEntry(), error: null });
+      },
+    ]);
+    expect(await finish(h.run({ kind: "submit", latDeg: -88.5, lonDeg: 45 }))).toBeNull();
     expect(h.updates.map((u) => u.phase)).toEqual(["queued"]);
   });
 
-  describe("an id from a link", () => {
+  it("does not poll while the page is hidden, and looks once at once when it is shown", async () => {
+    const running = () => json(200, { site_id: ID, status: "running", site: null, error: null });
+    const h = harness([json(200, { site_id: ID, status: "running", position_in_queue: 0 }), running(), running(), json(200, { site_id: ID, status: "ready", site: siteEntry(), error: null })]);
+    const job = h.run({ kind: "submit", latDeg: -88.5, lonDeg: 45 });
+    await vi.advanceTimersByTimeAsync(2100);
+    expect(h.calls).toHaveLength(2);
+    h.page.hide();
+    await vi.advanceTimersByTimeAsync(2100);
+    const whileHidden = h.calls.length;
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(h.calls.length).toBe(whileHidden);
+    h.page.show();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(h.calls.length).toBe(whileHidden + 1);
+    expect(await finish(job)).toMatchObject({ phase: "ready" });
+    expect(h.posts()).toBe(1);
+  });
+
+  it("looks again at once when the network comes back, with GET", async () => {
+    const h = harness([json(200, { site_id: ID, status: "running", position_in_queue: 0 }), json(200, { site_id: ID, status: "ready", site: siteEntry(), error: null })]);
+    const job = h.run({ kind: "submit", latDeg: -88.5, lonDeg: 45 });
+    await vi.advanceTimersByTimeAsync(100);
+    h.page.online();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(await finish(job)).toMatchObject({ phase: "ready" });
+    expect(h.calls.map((c) => c.init?.method ?? "GET")).toEqual(["POST", "GET"]);
+    expect(h.page.listeners.size).toBe(0);
+  });
+
+  describe("an id from a link: GET only", () => {
     it("loads a site the server already has, with one request", async () => {
       const h = harness([json(200, { site_id: ID, status: "ready", site: siteEntry(), error: null })]);
-      expect(await h.run({ kind: "check", siteId: ID })).toMatchObject({ phase: "ready" });
+      expect(await finish(h.run({ kind: "check", siteId: ID }))).toMatchObject({ phase: "ready" });
       expect(h.calls).toHaveLength(1);
-      expect(h.calls[0]?.init?.method).toBeUndefined();
+      expect(h.posts()).toBe(0);
     });
 
     it("never starts a job for an unknown id", async () => {
       const h = harness([json(404, { message: "Custom site is not ready. Start it with POST /api/sites/custom." })]);
-      expect(await h.run({ kind: "check", siteId: ID })).toMatchObject({ phase: "not_computed", siteId: ID });
-      expect(h.calls.every((c) => (c.init?.method ?? "GET") === "GET")).toBe(true);
+      expect(await finish(h.run({ kind: "check", siteId: ID }))).toMatchObject({ phase: "not_computed", siteId: ID });
+      expect(h.posts()).toBe(0);
     });
 
-    it("follows a job that is already running", async () => {
-      const h = harness([json(200, { site_id: ID, status: "running", site: null, error: null }), json(200, { site_id: ID, status: "ready", site: siteEntry(), error: null })]);
-      expect(await h.run({ kind: "check", siteId: ID })).toMatchObject({ phase: "ready" });
-      expect(h.calls.every((c) => (c.init?.method ?? "GET") === "GET")).toBe(true);
+    it("follows a queued job, and shows a failed one, without a POST", async () => {
+      const queued = harness([
+        json(200, { site_id: ID, status: "queued", site: null, error: null }),
+        json(200, { site_id: ID, status: "queued", site: null, error: null }),
+        json(200, { site_id: ID, status: "failed", site: null, error: { code: "computation_failed", message: "Broke." } }),
+      ]);
+      expect(await finish(queued.run({ kind: "check", siteId: ID }))).toMatchObject({ phase: "failed" });
+      expect(queued.posts()).toBe(0);
+      const failed = harness([json(200, { site_id: ID, status: "failed", site: null, error: { code: "computation_failed", message: "Broke." } })]);
+      expect(await finish(failed.run({ kind: "check", siteId: ID }))).toMatchObject({ phase: "failed", problem: { message: "Broke." } });
+      expect(failed.posts()).toBe(0);
     });
 
     it("says so when the server is offline or answers 503", async () => {
       const offline = harness([new TypeError("down")]);
-      expect(await offline.run({ kind: "check", siteId: ID })).toMatchObject({ phase: "failed", problem: { kind: "offline" } });
+      expect(await finish(offline.run({ kind: "check", siteId: ID }))).toMatchObject({ phase: "failed", problem: { kind: "offline" } });
       const noMaps = harness([json(503, { message: TEXT.mapsMissing })]);
-      expect(await noMaps.run({ kind: "check", siteId: ID })).toMatchObject({ phase: "failed", problem: { message: TEXT.mapsMissing } });
+      expect(await finish(noMaps.run({ kind: "check", siteId: ID }))).toMatchObject({ phase: "failed", problem: { message: TEXT.mapsMissing } });
+    });
+
+    it("refuses a status answer about another id", async () => {
+      const h = harness([json(200, { site_id: "c_-10.0000_20.0000", status: "ready", site: siteEntry({ id: "c_-10.0000_20.0000", lat_deg: -10, lon_deg: 20 }), error: null })]);
+      expect(await finish(h.run({ kind: "check", siteId: ID }))).toMatchObject({ phase: "failed", problem: { message: TEXT.otherPlace } });
     });
   });
 });

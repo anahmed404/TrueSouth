@@ -22,6 +22,7 @@ import {
 } from "../data/load.ts";
 import { isRecord } from "../data/parse.ts";
 import { isCustomSiteId } from "../data/paths.ts";
+import { forgetScoringSite } from "../lib/scoring/cache.ts";
 import { customSitesStore } from "./custom-sites.ts";
 
 export type ResourceStatus = "loading" | "ready" | "error";
@@ -36,6 +37,8 @@ export type DataState = {
   entries: Record<string, ResourceEntry>;
   ensure: (key: string) => Promise<unknown>;
   dropSite: (siteId: string) => void;
+  /** Drop everything held for one site, its meta included, and ignore loads still running. */
+  forgetSite: (siteId: string) => void;
 };
 
 export type DataStore = StoreApi<DataState>;
@@ -229,8 +232,15 @@ export function createDataStore(fetchImpl: FetchLike = defaultFetch, customGate?
       throw new Error(`unknown data key ${kind}:${siteId}`);
     }
 
+    function forgetSite(siteId: string): void {
+      dropKeys([metaKey(siteId), ...LARGE_KINDS.map((kind) => `${kind}:${siteId}`)]);
+    }
+
     function dropSite(siteId: string): void {
-      const keys = LARGE_KINDS.map((kind) => `${kind}:${siteId}`);
+      dropKeys(LARGE_KINDS.map((kind) => `${kind}:${siteId}`));
+    }
+
+    function dropKeys(keys: string[]): void {
       for (const key of keys) {
         generations.set(key, (generations.get(key) ?? 0) + 1);
         inflight.delete(key);
@@ -242,8 +252,14 @@ export function createDataStore(fetchImpl: FetchLike = defaultFetch, customGate?
       });
     }
 
-    return { entries: {}, ensure, dropSite };
+    return { entries: {}, ensure, dropSite, forgetSite };
   });
 }
 
 export const dataStore = createDataStore(defaultFetch, (siteId) => customSitesStore.getState().whenReady(siteId));
+
+// A removed, failed or suspended custom site leaves nothing behind: no files, no scores.
+customSitesStore.onRelease((siteId) => {
+  dataStore.getState().forgetSite(siteId);
+  forgetScoringSite(siteId);
+});

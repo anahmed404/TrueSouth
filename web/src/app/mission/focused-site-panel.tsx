@@ -17,7 +17,7 @@ import type { Evaluation } from "../../lib/scoring";
 import { windowLength } from "../../lib/scoring";
 import { describeEvaluation, describeMetrics, describeUtilities, railFact, scoreText, scoreTitle, type RuleView } from "./rules";
 import { formatCoordinates } from "./custom-site-form";
-import { CustomState, YourSiteTag } from "./custom-site-ui";
+import { CustomName, CustomState, YourSiteTag } from "./custom-site-ui";
 import { SettingsTag } from "./settings-tag";
 import { useScenario, useScenarioStore } from "./scenario-context";
 import {
@@ -72,7 +72,7 @@ export const FocusedSitePanel = memo(function FocusedSitePanel({ collapsed, onTo
       <Panel as="aside" ref={regionRef} id={REGION_ID} aria-label="Focused site" className="shell-focus focus-sheet" data-collapsed={collapsed}>
         <div className="sheet-head">
           <div className="sheet-title">
-            <h2 className="focus-name">{siteId ? siteName(site, siteId) : "No site selected"}</h2>
+            <h2 className="focus-name">{siteId ? <SiteTitle siteId={siteId} site={site} /> : "No site selected"}</h2>
             {siteId ? <SheetSummary siteId={siteId} profile={profile} landingUtc={landingUtc} /> : null}
           </div>
           {sheet.actions}
@@ -103,7 +103,11 @@ export const FocusedSitePanel = memo(function FocusedSitePanel({ collapsed, onTo
   return (
     <Panel as="aside" ref={regionRef} id={REGION_ID} aria-label="Focused site" className="shell-focus" data-collapsed={collapsed}>
       <div className="focus-head">
-        {collapsed || !siteId ? null : <h2 className="focus-name">{siteName(site, siteId)}</h2>}
+        {collapsed || !siteId ? null : (
+          <h2 className="focus-name">
+            <SiteTitle siteId={siteId} site={site} />
+          </h2>
+        )}
         {collapsed || !site ? null : (
           <p className="focus-coords tabular">
             {formatNumber(site.lat_deg, 4)}°, {formatNumber(site.lon_deg, 4)}° E
@@ -136,6 +140,12 @@ export const FocusedSitePanel = memo(function FocusedSitePanel({ collapsed, onTo
 });
 
 const EMPTY: readonly Site[] = [];
+
+/** A site's name; a custom site's name is someone's text, so it is isolated and cut to one line. */
+function SiteTitle({ siteId, site }: { siteId: string; site: Site | null }) {
+  const name = siteName(site, siteId);
+  return isCustomSiteId(siteId) ? <CustomName name={name} tag="none" /> : <>{name}</>;
+}
 
 /**
  * What the point is, when that needs saying (decision 0012, docs/site-catalog.md): a site

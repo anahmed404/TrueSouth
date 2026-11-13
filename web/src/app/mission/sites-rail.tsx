@@ -14,8 +14,8 @@ import { isCustomSiteId } from "../../data/paths";
 import { customSitesStore, isLocalKey, type CustomEntry } from "../../state/custom-sites";
 import { MAX_SITES } from "../../state/scenario";
 import { removeCustomSite } from "./custom-site-actions";
-import { COMPUTING_TEXT, NOT_COMPUTED_TEXT, YOUR_SITE_TAG } from "./custom-site-row";
-import { CustomCoordinates, CustomPendingRow } from "./custom-site-ui";
+import { COMPUTING_TEXT, NOT_COMPUTED_TEXT } from "./custom-site-row";
+import { CustomCoordinates, CustomName, CustomPendingRow } from "./custom-site-ui";
 import { CHOSEN_TAG, isVariant, pickerOrder, variantLine } from "./site-labels";
 import { dropIndex, moveById, moveItem } from "./reorder";
 import { moreBroken, railFact, scoreTitle, worstBrokenVeto } from "./rules";
@@ -52,6 +52,7 @@ export const SitesRail = memo(function SitesRail({ collapsed, onToggle, regionRe
 
   return (
     <Panel as="aside" ref={regionRef} id={REGION_ID} aria-label="Selected sites" className="shell-rail" data-collapsed={collapsed}>
+      <CustomAnnouncements />
       <div className="rail-head">
         {collapsed ? null : (
           <h2 className="rail-title">
@@ -166,12 +167,26 @@ function placeholderEntry(siteId: string): CustomEntry {
 function useCustomSitesInScenario(siteIds: readonly string[]) {
   useEffect(() => {
     const store = customSitesStore.getState();
+    // GET only: a link, a remount or Back never starts a job.
     for (const id of siteIds) if (isCustomSiteId(id)) store.check(id);
+    // A site that left the scenario (Back, a new link) stops waiting and lets go of its data.
     for (const entry of Object.values(store.entries)) {
-      if (isLocalKey(entry.key) || entry.phase === "ready" || siteIds.includes(entry.key)) continue;
+      if (isLocalKey(entry.key) || siteIds.includes(entry.key)) continue;
       store.forget(entry.key);
     }
   }, [siteIds]);
+  // Leaving Mission Control stops every job; coming back looks the ids up again (GET).
+  useEffect(() => () => customSitesStore.getState().suspend(), []);
+}
+
+/** State changes of custom sites, announced once each: computing, ready, could not be computed. */
+function CustomAnnouncements() {
+  const announcement = useStore(customSitesStore, (state) => state.announcement);
+  return (
+    <p className="sr-only" role="status" aria-live="polite">
+      {announcement ? <span key={announcement.id}>{announcement.text}</span> : null}
+    </p>
+  );
 }
 
 /** The best-lit variant's parent's name, for "149 m from Connecting Ridge". */
@@ -367,15 +382,7 @@ const SiteRow = memo(function SiteRow({
         aria-current={focused ? "true" : undefined}
         onClick={() => store.getState().focusSite(siteId)}
       >
-        <span className="site-name">
-          {name}
-          {custom ? (
-            <>
-              {" "}
-              <span className="tag tag-yours site-name-tag">{YOUR_SITE_TAG}</span>
-            </>
-          ) : null}
-        </span>
+        <span className="site-name">{custom ? <CustomName name={name} /> : name}</span>
         <RowLine status={status} />
         {status.kind === "ready" && moreBroken(status.evaluation) ? <span className="site-note">{moreBroken(status.evaluation)}</span> : null}
         {isSphere(site) ? <span className="site-note">Terrain not modelled</span> : null}

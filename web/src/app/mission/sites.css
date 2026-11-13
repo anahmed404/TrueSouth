@@ -17,6 +17,28 @@
     color: var(--ink-2);
   }
 
+  /* Someone's name: isolated from the text around it, one line, cut with an ellipsis. */
+  .cs-name-line {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    min-width: 0;
+  }
+
+  .cs-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    unicode-bidi: isolate;
+  }
+
+  .cs-name-line .tag {
+    flex: none;
+    font-size: var(--t-sm);
+    font-weight: 400;
+  }
+
   .site-name-tag {
     margin-left: var(--s2);
     font-weight: 400;

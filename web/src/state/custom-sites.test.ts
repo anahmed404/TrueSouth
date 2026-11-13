@@ -1,20 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Site } from "../contracts/generated.ts";
-import type { CustomFetch } from "../data/custom-sites.ts";
+import type { CustomFetch, Wakeups } from "../data/custom-sites.ts";
 import { mergeSites } from "../data/hooks.ts";
 import { siteSlopeDeg } from "../lib/scoring/cache.ts";
-import { createCustomSitesStore } from "./custom-sites.ts";
-import { createDataStore, metaKey } from "./data.ts";
+import { createCustomSitesStore, type CustomSitesStore } from "./custom-sites.ts";
+import { createDataStore, metaKey, seriesKey } from "./data.ts";
 
 const ID = "c_-88.5000_45.0000";
 
-function siteEntry(id = ID): Record<string, unknown> {
+function siteEntry(id = ID, lat = -88.5, lon = 45): Record<string, unknown> {
   return {
     id,
     name: "My ridge",
     group: "contrast",
-    lat_deg: -88.5,
-    lon_deg: 45,
+    lat_deg: lat,
+    lon_deg: lon,
     terrain_tier: "core80",
     elevation_m: 1520,
     slope: { deg: 4.2, baseline_m: 80, source: "LOLA 80 m" },
@@ -31,9 +31,11 @@ function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 }
 
-/** A fake server: answers by route, and lets the test move a job along. */
+type Job = "queued" | "running" | "ready" | "failed";
+
+/** A fake server: answers by route; the test moves jobs along. Counts every POST. */
 function fakeServer() {
-  const jobs = new Map<string, "queued" | "running" | "ready" | "failed">();
+  const jobs = new Map<string, Job>();
   const calls: string[] = [];
   const fetchImpl: CustomFetch = async (url, init) => {
     const method = init?.method ?? "GET";
@@ -45,96 +47,169 @@ function fakeServer() {
       if (!jobs.has(id) || jobs.get(id) === "failed") jobs.set(id, "queued");
       return json(200, { site_id: id, status: jobs.get(id), position_in_queue: jobs.get(id) === "queued" ? 1 : 0 });
     }
-    const id = url.split("/").pop() ?? "";
+    const id = decodeURIComponent(url.split("/").pop() ?? "");
     const status = jobs.get(id);
     if (!status) return json(404, { message: "Custom site is not ready. Start it with POST /api/sites/custom." });
-    return json(200, { site_id: id, status, site: status === "ready" ? siteEntry(id) : null, error: null });
+    const [, lat, lon] = id.split("_");
+    return json(200, {
+      site_id: id,
+      status,
+      site: status === "ready" ? siteEntry(id, Number(lat), Number(lon)) : null,
+      error: status === "failed" ? { code: "computation_failed", message: "The custom site could not be computed. Please try again." } : null,
+    });
   };
-  return { jobs, calls, fetchImpl };
+  const posts = () => calls.filter((c) => c.startsWith("POST")).length;
+  return { jobs, calls, fetchImpl, posts };
 }
 
-/** Lets queued promises and the store's job loop run. */
-async function settle(times = 20) {
-  for (let i = 0; i < times; i += 1) await Promise.resolve();
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  for (let i = 0; i < times; i += 1) await Promise.resolve();
+function fakePage() {
+  let hidden = false;
+  const listeners = new Set<() => void>();
+  const wakeups: Wakeups = {
+    hidden: () => hidden,
+    onWake: (callback) => {
+      listeners.add(callback);
+      return () => listeners.delete(callback);
+    },
+  };
+  return {
+    wakeups,
+    hide: () => {
+      hidden = true;
+    },
+    show: () => {
+      hidden = false;
+      listeners.forEach((l) => l());
+    },
+    online: () => listeners.forEach((l) => l()),
+  };
 }
 
-function makeStore(server: ReturnType<typeof fakeServer>) {
-  const ticks: (() => void)[] = [];
-  const store = createCustomSitesStore({
-    fetchImpl: server.fetchImpl,
-    sleep: (_ms, signal) =>
-      new Promise((resolve, reject) => {
-        ticks.push(resolve);
-        signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
-      }),
+/** Lets the fake clock and the promises run. */
+async function run(ms = 2500) {
+  await vi.advanceTimersByTimeAsync(ms);
+}
+
+function makeStore(server: ReturnType<typeof fakeServer>, page = fakePage()) {
+  const store = createCustomSitesStore({ fetchImpl: server.fetchImpl, wakeups: page.wakeups });
+  return { store, page };
+}
+
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+describe("a POST only on a button press", () => {
+  it("never POSTs for a link: unknown, queued, failed or ready", async () => {
+    for (const state of [undefined, "queued", "running", "failed", "ready"] as const) {
+      const server = fakeServer();
+      if (state) server.jobs.set(ID, state);
+      const { store } = makeStore(server);
+      store.getState().check(ID);
+      await run(10_000);
+      expect(server.posts()).toBe(0);
+      expect(server.calls.length).toBeGreaterThan(0);
+      store.getState().suspend();
+    }
   });
-  const tick = async () => {
-    ticks.splice(0).forEach((resolve) => resolve());
-    await settle();
-  };
-  return { store, tick };
-}
 
-describe("custom sites store", () => {
+  it("never POSTs for a double effect run, a remount, the tab coming back or the network coming back", async () => {
+    const server = fakeServer();
+    server.jobs.set(ID, "running");
+    const { store, page } = makeStore(server);
+    // React strict mode: effect, cleanup, effect.
+    store.getState().check(ID);
+    store.getState().suspend();
+    store.getState().check(ID);
+    await run();
+    // A remount.
+    store.getState().suspend();
+    store.getState().check(ID);
+    await run();
+    // The tab is hidden, then shown again; the network drops, then comes back.
+    page.hide();
+    await run(30_000);
+    page.show();
+    await run();
+    page.online();
+    await run();
+    expect(server.posts()).toBe(0);
+    server.jobs.set(ID, "ready");
+    await run();
+    expect(store.getState().entries[ID]?.phase).toBe("ready");
+    expect(server.posts()).toBe(0);
+  });
+
+  it("makes exactly one POST per press", async () => {
+    const server = fakeServer();
+    const { store } = makeStore(server);
+    store.getState().check(ID);
+    await run();
+    expect(store.getState().entries[ID]?.phase).toBe("not_computed");
+    // "Compute this site", pressed twice quickly: the second press finds a busy row.
+    store.getState().retry(ID);
+    store.getState().retry(ID);
+    await run();
+    expect(server.posts()).toBe(1);
+    // "Your own coordinates" → "Compute this site".
+    store.getState().submit(-80, 10, null);
+    await run(10_000);
+    expect(server.posts()).toBe(2);
+    // A failure, then "Try again": one more.
+    server.jobs.set(ID, "failed");
+    await run();
+    expect(store.getState().entries[ID]?.phase).toBe("failed");
+    store.getState().retry(ID);
+    await run();
+    expect(server.posts()).toBe(3);
+    store.getState().suspend();
+  });
+});
+
+describe("the custom sites store", () => {
   it("shows a typed point at once, then moves it to the server's id", async () => {
     const server = fakeServer();
-    const { store, tick } = makeStore(server);
+    const { store } = makeStore(server);
     const named: [string, string][] = [];
-    const key = store.getState().submit(-88.5, 45, " My ridge ", (siteId, previous) => named.push([siteId, previous]));
+    const key = store.getState().submit(-88.5, 45, " My‮ ridge ", (siteId, previous) => named.push([siteId, previous]));
     expect(store.getState().entries[key]).toMatchObject({ phase: "sending", siteId: null, name: "My ridge" });
-    await settle();
+    await run(10);
     expect(named).toEqual([[ID, key]]);
     expect(store.getState().entries[key]).toBeUndefined();
-    expect(store.getState().entries[ID]).toMatchObject({ phase: "queued", position: 1, siteId: ID, key: ID });
+    expect(store.getState().entries[ID]).toMatchObject({ phase: "queued", position: 1, key: ID });
     server.jobs.set(ID, "running");
-    await tick();
-    expect(store.getState().entries[ID]?.phase).toBe("running");
+    await run();
+    expect(store.getState().entries[ID]).toMatchObject({ phase: "running", position: null });
     server.jobs.set(ID, "ready");
-    await tick();
+    await run();
     expect(store.getState().entries[ID]).toMatchObject({ phase: "ready", site: { id: ID, name: "My ridge" } });
     expect(store.getState().readySites.map((s) => s.id)).toEqual([ID]);
   });
 
-  it("checks a link's id without starting a job, and computes it only on a click", async () => {
+  it("announces each change of state once, and never the ticking time", async () => {
     const server = fakeServer();
     const { store } = makeStore(server);
-    store.getState().check(ID);
-    store.getState().check(ID);
-    await settle();
-    expect(store.getState().entries[ID]?.phase).toBe("not_computed");
-    expect(server.calls).toEqual([`GET /api/sites/custom/${ID}`]);
-    store.getState().retry(ID);
-    store.getState().retry(ID);
-    await settle();
-    expect(server.calls.filter((c) => c.startsWith("POST"))).toHaveLength(2);
-    expect(server.jobs.size).toBe(1);
-    expect(store.getState().entries[ID]?.phase).toBe("queued");
-  });
-
-  it("stops waiting when forgotten", async () => {
-    const server = fakeServer();
-    const { store, tick } = makeStore(server);
-    store.getState().submit(-88.5, 45, null);
-    await settle();
-    store.getState().forget(ID);
-    const before = server.calls.length;
-    await tick();
-    expect(server.calls.length).toBe(before);
-    expect(store.getState().entries[ID]).toBeUndefined();
-  });
-
-  it("keeps readySites stable while nothing changes", async () => {
-    const server = fakeServer();
+    const said: string[] = [];
+    store.subscribe((state, before) => {
+      if (state.announcement && state.announcement !== before.announcement) said.push(state.announcement.text);
+    });
+    store.getState().submit(-88.5, 45, "Ridge", undefined);
+    await run(10_000);
     server.jobs.set(ID, "ready");
-    const { store } = makeStore(server);
-    store.getState().check(ID);
-    await settle();
-    const first = store.getState().readySites;
-    store.getState().check("c_-80.0000_10.0000");
-    await settle();
-    expect(store.getState().readySites).toBe(first);
+    await run();
+    store.getState().submit(-80, 10, null);
+    await run(10);
+    server.jobs.set("c_-80.0000_10.0000", "failed");
+    await run();
+    expect(said).toEqual([
+      "Computing terrain for Ridge…",
+      "My ridge is ready",
+      "Computing terrain for Custom site…",
+      "Custom site could not be computed: The custom site could not be computed. Please try again.",
+    ]);
   });
 
   it("asks /api/health once", async () => {
@@ -142,7 +217,7 @@ describe("custom sites store", () => {
     const { store } = makeStore(server);
     store.getState().checkAvailability();
     store.getState().checkAvailability();
-    await settle();
+    await run(10);
     store.getState().checkAvailability();
     expect(store.getState().availability.state).toBe("available");
     expect(server.calls.filter((c) => c.endsWith("/api/health"))).toHaveLength(1);
@@ -155,6 +230,93 @@ describe("custom sites store", () => {
   });
 });
 
+describe("removing and failing leave nothing behind", () => {
+  function wired(server: ReturnType<typeof fakeServer>) {
+    const { store, page } = makeStore(server);
+    const files: string[] = [];
+    const data = createDataStore(
+      async (url) => {
+        files.push(url);
+        if (url.endsWith("meta.json")) return json(200, { site_id: ID });
+        return json(404, {});
+      },
+      (siteId) => store.getState().whenReady(siteId),
+    );
+    store.onRelease((siteId) => data.getState().forgetSite(siteId));
+    return { store, page, data, files };
+  }
+
+  function nothingHeld(store: CustomSitesStore, data: ReturnType<typeof createDataStore>, id: string) {
+    expect(store.held(id)).toEqual({ waiters: 0, polling: false });
+    expect(Object.keys(data.getState().entries).filter((key) => key.endsWith(`:${id}`))).toEqual([]);
+  }
+
+  it("add, remove, add the same id again", async () => {
+    const server = fakeServer();
+    const { store, data, files } = wired(server);
+    store.getState().submit(-88.5, 45, null);
+    await run(10);
+    const waiting = data.getState().ensure(metaKey(ID));
+    const outcome = waiting.then(() => "loaded", () => "released");
+    await run(10);
+    expect(store.held(ID)).toEqual({ waiters: 1, polling: true });
+    store.getState().forget(ID);
+    expect(await outcome).toBe("released");
+    await run(10_000);
+    nothingHeld(store, data, ID);
+    expect(files).toEqual([]);
+    const callsAfterRemove = server.calls.length;
+    await run(10_000);
+    expect(server.calls.length).toBe(callsAfterRemove);
+    // The same id again, and this time it gets ready: only now are its files asked for.
+    store.getState().submit(-88.5, 45, null);
+    await run(10);
+    const again = data.getState().ensure(metaKey(ID)).catch(() => "a test meta file");
+    server.jobs.set(ID, "ready");
+    await run();
+    await again;
+    expect(files).toEqual([`/api/custom/${ID}/meta.json`]);
+    store.getState().forget(ID);
+    nothingHeld(store, data, ID);
+  });
+
+  it("add, fail, retry", async () => {
+    const server = fakeServer();
+    const { store, data } = wired(server);
+    store.getState().submit(-88.5, 45, null);
+    await run(10);
+    const first = data.getState().ensure(seriesKey(ID)).then(() => "loaded", () => "released");
+    await run(10);
+    server.jobs.set(ID, "failed");
+    await run();
+    expect(await first).toBe("released");
+    expect(store.getState().entries[ID]?.phase).toBe("failed");
+    nothingHeld(store, data, ID);
+    store.getState().retry(ID);
+    await run(10);
+    expect(store.held(ID).polling).toBe(true);
+    const second = data.getState().ensure(metaKey(ID)).catch(() => "a test meta file");
+    server.jobs.set(ID, "ready");
+    await run();
+    await second;
+    expect(store.getState().entries[ID]?.phase).toBe("ready");
+    expect(store.held(ID)).toEqual({ waiters: 0, polling: false });
+  });
+
+  it("stops waiting on Stop waiting, and lets the server finish", async () => {
+    const server = fakeServer();
+    const { store, data } = wired(server);
+    store.getState().submit(-88.5, 45, null);
+    await run(10);
+    store.getState().forget(ID);
+    const calls = server.calls.length;
+    await run(60_000);
+    expect(server.calls.length).toBe(calls);
+    expect(server.jobs.get(ID)).toBe("queued");
+    nothingHeld(store, data, ID);
+  });
+});
+
 describe("a custom site through the data layer", () => {
   it("is found by id next to the catalog once ready", () => {
     const catalog = [{ ...siteEntry("connecting_ridge"), group: "sunlit_peak" }] as unknown as Site[];
@@ -164,28 +326,6 @@ describe("a custom site through the data layer", () => {
     expect(siteSlopeDeg(merged ?? [], ID)).toBe(4.2);
     expect(mergeSites(catalog, [])).toBeNull();
     expect(mergeSites(custom, custom)).toBeNull();
-  });
-
-  it("asks for no file of a custom site until its job is ready", async () => {
-    const server = fakeServer();
-    const { store, tick } = makeStore(server);
-    const files: string[] = [];
-    const data = createDataStore(
-      async (url) => {
-        files.push(url);
-        return json(200, { site_id: ID });
-      },
-      (siteId) => store.getState().whenReady(siteId),
-    );
-    store.getState().submit(-88.5, 45, null);
-    await settle();
-    const meta = data.getState().ensure(metaKey(ID)).catch(() => null);
-    await tick();
-    expect(files).toEqual([]);
-    server.jobs.set(ID, "ready");
-    await tick();
-    await meta;
-    expect(files).toEqual([`/api/custom/${ID}/meta.json`]);
   });
 
   it("does not wait for a catalog site", async () => {

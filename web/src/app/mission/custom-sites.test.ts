@@ -52,15 +52,16 @@ describe("the coordinates form", () => {
 
   it("limits the name to what the server accepts", () => {
     expect(checkName("Ridge")).toBeNull();
-    expect(checkName(`  ${"a".repeat(120)}  `)).toBeNull();
-    expect(checkName("a".repeat(121))).toBe("A name can have at most 120 characters.");
+    expect(checkName(`  ${"a".repeat(60)}  `)).toBeNull();
+    expect(checkName(`‮${"a".repeat(60)}‬`)).toBeNull();
+    expect(checkName("a".repeat(61))).toBe("A name can have at most 60 characters.");
   });
 
   it("is ready only with two good numbers", () => {
     expect(checkForm("-88.5", "45", "").ready).toBe(true);
     expect(checkForm("-88.5", "", "").ready).toBe(false);
     expect(checkForm("-95", "45", "").ready).toBe(false);
-    expect(checkForm("-88.5", "45", "a".repeat(130)).ready).toBe(false);
+    expect(checkForm("-88.5", "45", "a".repeat(61)).ready).toBe(false);
   });
 
   it("says before computing what will happen, from the documented tier bounds", () => {
