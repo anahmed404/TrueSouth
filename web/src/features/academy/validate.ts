@@ -1,4 +1,4 @@
-import { resolveValue, type WorkedExamples } from "./placeholders";
+import { hasExample, resolveValue, type WorkedExamples } from "./placeholders";
 import { clockwiseWidthDeg } from "./skyline-score";
 import type { GoalSpec, Lesson, Step } from "./types";
 import { FIXTURE_TIME_GRID, hourOnGrid, parseUtcHour } from "./utc";
@@ -158,6 +158,24 @@ export function validateLesson(lesson: Lesson, check: LessonCheck): readonly str
   }, "lesson");
 
   return problems;
+}
+
+/**
+ * Worked-example keys the lesson needs that `examples` has no usable value for: absent,
+ * null, NaN, an empty string and so on (see `hasExample`). A lesson with any of these must
+ * not open, or the learner would see a raw placeholder.
+ */
+export function missingExampleKeys(lesson: Lesson, examples: WorkedExamples): string[] {
+  const keys = new Set<string>();
+  walkStrings(lesson, (text) => {
+    for (const match of text.matchAll(EXAMPLE_KEY)) keys.add(match[1] ?? "");
+  }, "lesson");
+  for (const step of lesson.steps) {
+    if (step.kind === "tune-slider" && step.slider.kind === "number" && step.slider.readout?.kind === "example-list") {
+      keys.add(step.slider.readout.key);
+    }
+  }
+  return [...keys].filter((key) => !hasExample(examples, key)).sort();
 }
 
 /** What to show when the lesson is opened. A lesson that fails validation uses the unwritten screen. */

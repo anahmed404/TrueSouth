@@ -30,6 +30,22 @@ export const PLOT = {
 /** Narrower than this, the plot uses the narrow gutter and the labels flow. */
 export const NARROW_PLOT = 520;
 
+/** Clear space kept between the scrubber's pill and an axis label, in px. */
+export const PILL_CLEARANCE = 4;
+
+/**
+ * Which axis labels the scrubber's pill would cover: any label whose box comes within
+ * `PILL_CLEARANCE` of the pill. Those are hidden while the pill is there, so no label shows
+ * half under it; the pill itself names the day under the scrubber.
+ */
+export function coveredLabels(
+  labels: readonly { left: number; right: number }[],
+  pill: { left: number; right: number },
+  clearance = PILL_CLEARANCE,
+): boolean[] {
+  return labels.map((label) => label.right > pill.left - clearance && label.left < pill.right + clearance);
+}
+
 /** Vertical positions of the plot's rows. */
 export type PlotLayout = {
   chartTop: number;

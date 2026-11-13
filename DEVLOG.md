@@ -49,6 +49,99 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-14 · S10b integration · Merge main's placement builder
+- **Who:** Codex implementation agent
+- **AI use:** Codex resolved build-sites and DEVLOG conflicts, preserved main's placement flow, adapted the custom-site wrapper to main's helpers, and added integration tests; human and orchestrator review pending.
+- **State:** verified (425 Python tests (1 skipped: the real-map test, run separately by the author and passed), 1,900 web tests and the typecheck pass on the merge with main; regenerating the schema and types leaves no diff; no derived data changed; reviewed by Gemini (pipeline reuse and byte-identity at Connecting Ridge confirmed; eleven findings on failure handling, all fixed with tests); the catalog build and the API share one site builder on top of the variants work; a full catalog rebuild under the new source fingerprint is still to be run)
+- **Changed:** build_site now composes _derive, _record and _stage_site; catalog callers reuse prederived parts and placement metadata, variants still reuse the winning skyline/series. Custom publication retains cancellation, storage hook and internal site.json without touching the index or candidate cache. Placement imports are local to the catalog command. API storage prunes the reserved placement directory before traversal so catalog candidates do not consume the custom quota. Every DEVLOG line from both merge parents was retained.
+- **Checks:** Full Python run 424 passed, 1 real-map skip, exit 0. After the placement-quota interaction fix, affected API/integration checks 106 passed, 1 skipped, exit 0. Explicit real-map test: 1 passed, exit 0, Connecting Ridge custom series.bin/skyline.bin/terrain.bin byte-identical to catalog in 36.617 s (37.90 s test); meta differs only site_id. Catalog verification ran --only chandrayaan3 apollo11 --force in a staging copy and rebuilt Connecting Ridge's listed point with the shared builder, retaining its published nearby range. All 25 staged folders and sites.json match origin/main Git blob hashes; tracked derived files also match before and after. Full 25-site recomputation was not run: placement key 0826b46027c9dc5fdfbb91366e2b4a200804f04c6669ce577f9463b7f19b0254 has no shared cache; --only on a peak would also trigger the cold candidate evaluation. API import 1.110 s with no numpy/scipy/pyproj/rasterio/placement_cache modules loaded. Frozen pnpm install, 1,849 web tests (one worker) and typecheck exit 0. Docker skipped as requested; mandatory API dependency closure excludes rasterio.
+- **Notes:** Site fields and custom contracts are unchanged by the merge; main's validation exclusions for variants remain intact. Dockerfile and dependencies are unchanged, so the requested Docker rebuild exception does not apply.
+
+#### 2026-11-14 · S10b review fixes · Public-endpoint failure handling
+- **Who:** Codex implementation agent
+- **AI use:** Codex reproduced the review findings with HTTP/worker regression tests, implemented the fixes and ran targeted checks; human and orchestrator review pending.
+- **State:** verified (425 Python tests (1 skipped: the real-map test, run separately by the author and passed), 1,900 web tests and the typecheck pass on the merge with main; regenerating the schema and types leaves no diff; no derived data changed; reviewed by Gemini (pipeline reuse and byte-identity at Connecting Ridge confirmed; eleven findings on failure handling, all fixed with tests); the catalog build and the API share one site builder on top of the variants work; a full catalog rebuild under the new source fingerprint is still to be run)
+- **Changed:** Strict finite JSON numbers; safe 422 fields without input echoes; 4 KiB streamed body cap; initialization-only compute locking; surviving/restarting workers; bounded recent states and expiring client histories; 2 GiB configured cache budget and health accounting; canonical ASCII ids and printable names; shared science latitude limit with up-front rejection; catalog latitude tiers including raster corners; ephemeris readiness; cancellable atomic publication, 90 s shutdown grace and proxy headers disabled.
+- **Tests:** Each numbered finding reproduced before its fix and pushed separately (small items 9-11 together). Final suite: 409 passed, 1 optional real-map skip, exit 0; explicit real-map test: 1 passed, exit 0 (51.904 s computation, 52.97 s test). All three Connecting Ridge binaries byte-identical; meta only differs in site_id. Frozen pnpm install and typecheck exit 0; all 1,744 web tests pass with maxWorkers=2, unchanged timeouts. Schema export and type generation exit 0. Added 70 review regression cases including invalid UTF-8 and staging rename races. Initial full check found missing contract descriptions; fixed. Under heavy contention the timing check and one default-worker web test timed out; final runs pass without increasing limits. Docker rebuilt and served port 18081: same byte-identical files in 51.141 s, concurrent sphere 0.109 s, corner sphere, safe non-finite 422 and spoofed-proxy 429 checks pass; image 425,121,437 bytes, rasterio absent. Review containers, volume, network and image removed; S13 untouched.
+- **Notes:** Merged origin/main and retained all DEVLOG entries. During the disk-full incident, all changed files were rechecked as nonempty, Python parsed, JSON decoded; no truncated source found. Full suites and Docker paused until the orchestrator confirmed restored space. Tier selection now follows site_tier (core80 <= -80; wide240 to -60; sphere north of -60), superseding the first S10b coverage labels. Error bodies and statuses are documented precisely for the form agent; success/status contracts remain unchanged.
+
+#### 2026-11-13 · S10b · Custom sites in the API
+- **Who:** Codex implementation agent
+- **AI use:** Codex wrote the shared builder extraction, queue, routes, Docker changes and tests; checked with pytest, vitest, typecheck, real terrain byte comparison and HTTP measurement; human review pending.
+- **State:** verified (425 Python tests (1 skipped: the real-map test, run separately by the author and passed), 1,900 web tests and the typecheck pass on the merge with main; regenerating the schema and types leaves no diff; no derived data changed; reviewed by Gemini (pipeline reuse and byte-identity at Connecting Ridge confirmed; eleven findings on failure handling, all fixed with tests); the catalog build and the API share one site builder on top of the variants work; a full catalog rebuild under the new source fingerprint is still to be run)
+- **Changed:** science shared site builder and request contracts; API jobs, routes, settings and health; generated schema/types; Docker and Compose; architecture and API message docs; decision 0013.
+- **Checks:** Final Python suite 339 passed, 1 real-map test skipped by default (exit 0); API suite 31 passed, 1 skipped. Real-map test explicitly run with TRUESOUTH_DATA_ROOT: 1 passed, exit 0. Web 1,581 tests passed, typecheck and frozen install exit 0. Docker image built and ran; Connecting Ridge ready with identical binaries in 43.805 s, cached POST ready after restart in 0.078 s. Image 198,930,368 bytes before (catalog), 423,959,216 bytes after. Rasterio absent; prepared mount read-only; no-maps catalog/503/sphere checks pass. S10b containers, volume, network and image removed. Host 8080 was occupied by S13, so smoke test used temporary host 18080, container 8080; S13 untouched. A temporary host-network build override worked around stalled wheel downloads.
+- **Measured:** Connecting Ridge custom series.bin, skyline.bin and terrain.bin byte-identical to catalog; meta differs only site_id. Real comparison 48.987 s; separate HTTP submission through all four downloads 43.445 s, peak process working set 647.801 MiB (Windows GetProcessMemoryInfo, including mapped pages). API import 1.597 s, no numpy/scipy/rasterio/terrain imports.
+- **Limits:** Existing science rejects within 0.001 degrees of a pole. Custom entries have outcome, variant_of, offset_m and nearby_sun null; sphere also elevation/slope null. source_url is empty (user coordinates), group contrast. Close-up and apron files are not built; loaders skip them from null metadata/missing scene entries. Map coverage selects core80 then wide240 then sphere; nominal polar sites require installed maps when coverage cannot be inspected. Rasterio is a prepare extra, absent from runtime.
+#### 2026-11-13 · S15b · Nearby range and best-lit variants in build-sites
+- **Who:** implementation sub-agent
+- **AI use:** Cursor, grok-4.7 — wired placement into `build-sites`, added the candidate cache, wrote the synthetic tests, built the five variants and their aprons, and reran validation — exit codes below were read from the logs; human review pending.
+- **State:** verified (333 Python tests, 1,756 web tests and the typecheck pass on the merge with main; reviewed by Codex (the five variants match decision 0012; a real-data recomputation of one winning pixel matched; three mutations caught); review fixes: the cache key covers every science module, comparison R5 keeps its catalog sites, two build-level tests, a byte-identical rebuild recorded; only the five new site folders differ from main)
+- **Changed:** `commands/build_sites.py`, `placement_cache.py`, `commands/validate.py` (G2 skips a variant), build-sites and G2 tests, `data/derived/sites.json`, five new `sites/*_best_lit/` folders, five new aprons, `scene/meta.json`, `validation.json`, the generated-variants section of `docs/site-catalog.md`, this entry.
+- **Checks:** `uv run pytest`: 300 passed in 168.67 s, exit 0, before the merge. `uv run truesouth export-schema` exit 0, then `pnpm --dir web gen:types` exit 0, and `git status --short` showed no contract or generated-type change. `pnpm --dir web typecheck` exit 0. `pnpm --dir web test`: 1,504 passed, exit 0. `pnpm --dir web build` exit 0. Real `build-sites`: first run 2370.6 s, exit 0; up-to-date rerun 1.8 s, exit 0; `--force` rerun 181.2 s (parents recomputed, candidates from cache), exit 0. `build-scene-assets` 31.6 s, exit 0. `validate` 228.9 s, exit 0. All new and edited source files are UTF-8 without a BOM and use LF. NASA data was read only.
+- **After merging origin/main:** `uv run pytest -q`: 328 passed in 210.32 s, exit 0. `pnpm --dir web install --frozen-lockfile` exit 0. `pnpm --dir web test`: 1,581 passed, exit 0. `pnpm --dir web typecheck` exit 0. `pnpm --dir web build` exit 0. Schema export and `gen:types` again left no diff. `data/derived/academy/worked_examples.json` matches `origin/main`. Nothing in `web/src` assumes 20 sites, so no web file was changed.
+- **Notes:** Decision 0012's table agrees to three decimals. Listed mean `sun_frac`, the range within 160 m, the best-lit mean, the offset rounded to the nearest metre, and the variant latitude and east longitude:
+
+| Site | Listed mean | Range within 160 m | Best-lit mean | Offset (m) | Variant latitude, east longitude |
+| :--- | ---: | :--- | ---: | ---: | :--- |
+| `connecting_ridge` | 0.599 | 0.397 to 0.870 | 0.870 | 149 | −89.45116, 222.85728 |
+| `shackleton_rim` | 0.747 | 0.429 to 0.810 | 0.810 | 94 | −89.77725, 203.37680 |
+| `de_gerlache_rim` | 0.607 | 0.276 to 0.696 | 0.696 | 144 | −88.69910, 291.59644 |
+| `peak_near_shackleton` | 0.602 | 0.498 to 0.638 | 0.638 | 71 | −88.73810, 124.43758 |
+| `malapert_peak` | 0.728 | 0.377 to 0.767 | 0.767 | 72 | −85.97437, 357.91641 |
+
+Each variant, from its own published record and series. Ground height is metres. Slope is degrees. "Any Sun" is the share of hours with `sun_frac` above zero. "Earth ≥ 1°" is the share of hours with Earth clearance at or above 1°.
+
+| Variant | Ground height | Slope | Any Sun | Earth ≥ 1° |
+| :--- | ---: | ---: | ---: | ---: |
+| `connecting_ridge_best_lit` | 1956.826 | 0.582 | 0.915 | 0.488 |
+| `shackleton_rim_best_lit` | 1735.207 | 5.800 | 0.866 | 0.458 |
+| `de_gerlache_rim_best_lit` | 1780.174 | 2.694 | 0.745 | 0.515 |
+| `peak_near_shackleton_best_lit` | 1455.077 | 2.666 | 0.653 | 0.343 |
+| `malapert_peak_best_lit` | 4972.435 | 2.449 | 0.809 | 0.653 |
+
+New R1 rows (mean Sun disc fraction). Difference is ours minus NASA. Existing R1, R2 and R3 rows are unchanged.
+
+| Site | Ours | NASA | Difference | Outside mark |
+| :--- | ---: | ---: | ---: | :--- |
+| `connecting_ridge_best_lit` | 0.869614909 | 0.864200000 | +0.005414909 | no |
+| `de_gerlache_rim_best_lit` | 0.695897674 | 0.464160000 | +0.231737674 | yes |
+| `malapert_peak_best_lit` | 0.767453454 | 0.507600000 | +0.259853454 | yes |
+| `peak_near_shackleton_best_lit` | 0.637824196 | 0.585400000 | +0.052424196 | no |
+| `shackleton_rim_best_lit` | 0.810021349 | 0.728480000 | +0.081541349 | no |
+
+`de_gerlache_rim_best_lit`: NASA's 60 m pixel is 0.464. Neighbours run from 0.056 to 0.669. NASA's 120 m map is 0.529. Ours is 0.696. NASA models an observer on the surface, 18.6 years and its own terrain grid; ours uses an observer 2 m above the ground, six years and the 80 m map. `malapert_peak_best_lit`: NASA's 60 m pixel is 0.508. Neighbours run from 0.487 to 0.748. NASA's 120 m map is 0.665. Ours is 0.767. Same method sentence. The three inside-mark rows quote the NASA pixel, scale, offset and no-data value.
+
+New R2 rows (share of hours with any Earth). `de_gerlache_rim_best_lit` is outside the mark: NASA's 60 m pixel is 0.500, neighbours 0.112 to 0.610, the 120 m map is 0.530, ours is 0.610, and the same method sentence. The other four are inside.
+
+| Site | Ours | NASA | Difference | Outside mark |
+| :--- | ---: | ---: | ---: | :--- |
+| `connecting_ridge_best_lit` | 0.581888027 | 0.579400000 | +0.002488027 | no |
+| `de_gerlache_rim_best_lit` | 0.610223642 | 0.500440000 | +0.109783642 | yes |
+| `malapert_peak_best_lit` | 0.771356306 | 0.678480000 | +0.092876306 | no |
+| `peak_near_shackleton_best_lit` | 0.442929408 | 0.434640000 | +0.008289408 | no |
+| `shackleton_rim_best_lit` | 0.551251331 | 0.478640000 | +0.072611331 | no |
+
+New R3 rows (slope, degrees). All five are inside the 2° mark. Explanations are the in-mark slope provenance: the unit tag is absent, NASA product 90 says degrees, and the file does not give the baseline, so it is not assumed equal to our 160 m central difference.
+
+| Site | Ours | NASA | Difference | Outside mark |
+| :--- | ---: | ---: | ---: | :--- |
+| `connecting_ridge_best_lit` | 0.581659092 | 0.525682867 | +0.055976225 | no |
+| `de_gerlache_rim_best_lit` | 2.693887354 | 1.791804075 | +0.902083278 | no |
+| `malapert_peak_best_lit` | 2.448834609 | 2.670941591 | −0.222106983 | no |
+| `peak_near_shackleton_best_lit` | 2.666082544 | 2.723110676 | −0.057028132 | no |
+| `shackleton_rim_best_lit` | 5.799812470 | 5.988375187 | −0.188562717 | no |
+
+R5 selects the first three catalog `sunlit_peak` ids, sorted by id, and never a variant. The rows are back to `connecting_ridge` (outside, 0.120816809), `de_gerlache_rim` (inside, 0.014725153) and `malapert_peak` (inside, 0.038990643). `connecting_ridge_best_lit` is not in R5. Against `origin/main`, every comparison that already existed is unchanged, including those three R5 rows, and `generated_utc` stays `2026-11-13T00:00:00Z`. The only added rows are R1, R2 and R3 for the five variants. G2 skips variants because they have no saved Horizons response; its measured value and sample count (2,103,360) are unchanged, and G1–G9 passed.
+
+The candidate cache now hashes every `truesouth` module, the contract version and the rule parameters, plus the maps, the ephemeris, the site coordinates and the pixel. `git diff --stat 4608cac HEAD -- science/src/truesouth` is not empty (`contracts.py` and the worked-example modules arrived from main), so the published sites were recomputed under the new key with zero cache hits: 2469 s, exit 0. `git status` afterwards showed no change to the site files, so the new calculation reproduced the same bytes. Each of the five variants was then published twice from that cache (0 candidates computed). The five `*_best_lit` folders and `sites.json` hashed identical between the two runs, 21 files. A second attempt that recomputed the parent skylines ran out of memory and was not used.
+
+The 20 existing sites' `series.bin`, `skyline.bin` and `terrain.bin` are byte-identical to the commit this branch started from. `sites.json` differs only by `variant_of`, `offset_m` and `nearby_sun` (null except on the five peaks and their variants) and the five new records. Scene files other than `meta.json` are byte-identical; five aprons were added. `data/derived/` was 62,193,036 bytes before and 72,108,557 bytes after.
+
+IM-2 Athena, landing at 00:00 UTC, from `scoring.py`. Both points are GO on 2028-01-01 (score 100, fully lit). On 2028-03-01 both are NO-GO (score 40, darkness and blackout); the listed point has mean Sun 0.417 and a 130 h dark stretch, the variant 0.551 and 78 h, and both land in light. On 2028-03-08 both are NO-GO (score 40, darkness, blackout and a dark landing hour). The listed point is dark for the whole window (240 h). The variant still has mean Sun 0.714 and a longest dark stretch of 26 h, but the landing hour itself is dark.
+
+`--only connecting_ridge` builds the listed site and `connecting_ridge_best_lit`. `--only connecting_ridge_best_lit` does the same, by selecting the catalog parent. `--only apollo11_best_lit` raises before any write, because Apollo 11 is not a core80 sunlit peak. The site picker lists each variant as an ordinary site in Sunlit peaks. The default selection for a new visitor is still Connecting Ridge plus three Artemis sites, and does not include a variant. Showing the nearby range and a variant label in the panels is another package.
+
 #### 2026-11-13 · S12b · Worked examples from the stored series
 - **Who:** Cursor implementation agent
 - **AI use:** Cursor, grok-4.7 — wrote the selection tests first, then the worked-example command, the contract keys and the smallest Academy wiring — human and orchestrator review pending.
@@ -488,6 +581,79 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-14 · MC shell feedback · No view sentence; the landing date joins the timeline; "Next GO"
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (a rearrangement
+  of the approved C2 shell, no redesign) — removed the view's sentence plate (its text now in
+  an "About" button inside the current tab and in the tab's accessible description), wrote
+  `LandingDateControl` and moved the landing date from the app bar to the head of the
+  bottom strip, wrote `nextGoDay` and the "Next GO" button with its states, Undo and polite
+  status line, updated the specs and DESIGN.md, and wrote 34 vitest tests (fixture tests of
+  `nextGoDay`, the button's states, the control's reads and writes, and a render-count test
+  that a scrub does not re-render the control, on a small fake DOM) — checked by the agent
+  with typecheck, the vitest suite, the build, `uv run pytest`, impeccable's detector (no
+  findings), and by eye on the real data at 1440 × 900, 1024 × 768 and 390 × 844 in the four
+  camera views and with Compare open, folded, by keyboard and in an accessibility snapshot;
+  then fixed the review of PR #83 (Cursor, approve with fixes): the window's end and the
+  duration's tag at every width, the note cleared on a site or profile change, a clamping
+  Undo test (fails without the restore), focusable reasons at the ends of the grid, the
+  scrubber's pill hiding the day labels under it, and a fake DOM that honours `disabled` —
+  checked again by eye at 1440 × 900, 1024 × 768 (open and folded) and 390 × 844, keyboard
+  only on the control and the picker sheet; a human has not reviewed it yet
+- **State:** verified (333 Python tests, 1,900 web tests, typecheck and build pass on the merge with main; reviewed by Cursor (Next GO equals the ordinary evaluation on three fixture sites and two profiles; time zones; two mutations caught); six findings fixed: the window's end and the duration's tag show at every width, the note clears on a site or profile change, Undo is tested where the time clamps, disabled buttons give a reason, the pill no longer covers day labels; the layout is not yet judged by the team lead)
+  build pass on the merge with main; the team lead has not judged the layout)
+- **Changed:** `web/src/app/mission/` (new `landing-date-control.tsx`, `next-go-button.tsx`,
+  `landing-control.ts`, `fake-dom.ts` and their tests; `view-bar.tsx`, `top-bar.tsx`,
+  `free-space.ts`, `timeline/timeline.tsx`, `timeline/axis.ts`, `timeline/timeline.css`),
+  `web/src/app/mission-screen.tsx` (three small lines), `web/src/app/shell.css`,
+  `web/src/lib/scoring/next-go.ts` (new), `docs/features/` (mission-control, site-detail,
+  local-terrain, polar-map, panorama, slip-planner), `DESIGN.md`,
+  `docs/design/c2/built-shell-feedback-*.png`
+- **Notes:**
+  - The free space now starts 8 px under the view bar: at 1440 × 900 it is 59 px taller,
+    and the camera's centre rises by half that.
+  - Changing the landing date keeps the current time's offset from the landing, clamped to
+    the timeline (window ± 3 days), as `moveLandingKeepingOffset` did before; each change
+    pushes one history entry, so Back undoes it.
+  - "Next GO" searches from the day after the landing date's day, over the sweep's 00:00 UTC
+    landings, and lands at 00:00 UTC. With Chandrayaan-3 and Malapert Massif from 2029-01-10
+    it says "No GO date before 2032".
+  - The Slip Planner can mount `LandingDateControl` in its panel's header as it is; it
+    reads and writes only the scenario store.
+  - The header shows, after the date, "→ 11 Mar · 10 d [sourced]": where the window ends,
+    its length and the duration's tag, in the open, folded and phone strips; screen readers
+    hear "Mission window ends 11 Mar 2028 00:00 UTC, 10 d after landing." To keep the open
+    header at one row at 1440, "Slip +7 d" and "+14 d" live in the date's picker.
+  - At the ends of the grid the day and slip buttons stay focusable, do nothing, and give
+    the reason with the real dates ("The data starts at 2026-01-01 00:00 UTC …").
+  - Not done: a draggable start of the window on the timeline (the timeline's range follows
+    the landing, so a handle would drag its own axis), and a "Previous GO" twin.
+
+#### 2026-11-14 · MC6b · Lander's eye: the horizon chart folds away, closed by default
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (keeping the
+  approved look) — wrote the fold (one arrow button in the panel's foot row, the session
+  memory, the rise), the shell's measurement of the foot stack, and 12 vitest tests — checked
+  by the agent with typecheck, the vitest suite, the build and `uv run pytest`, and by eye
+  with hardware WebGL at 1440 × 900, 1024 × 768 and 390 × 844, folded and open, lit and dark
+  hours, Apollo 11, keyboard only and reduced motion; a human has not reviewed it yet
+- **State:** verified (322 Python tests, 1,756 web tests, typecheck and build pass on the merge with main; reviewed by Gemini (approve with fixes; two mutations caught); the orchestrator made the two small fixes: no aria-controls while the chart is unmounted, and the foot stack is left out of the free space while a window is open; asked for by the team lead, not yet seen by them)
+- **Changed:** `web/src/features/panorama/` (new `fold.ts`, `fold.test.ts`,
+  `collapse.test.ts`; `index.tsx`, `panorama.css`), `web/src/app/mission-screen.tsx` (the
+  free space ends at the foot stack's top), `docs/features/panorama.md`,
+  `docs/design/c2/built-landers-eye-collapsed-*.png`, this entry
+- **Notes:**
+  - In Mission Control the chart starts folded: one 46 px row with the arrow ("Horizon
+    chart", named "Show the horizon chart") and the panel's one-line answer. In a lesson it
+    is always open, with no arrow.
+  - The arrow sits at the start of the foot row in both states and does not move (measured
+    0 px at 1440 × 900); the chart rises above the row.
+  - Kept in sessionStorage (`truesouth.landers-eye-chart.v1`), with the shell's load and save
+    pattern. The shell's side panels use localStorage, which would carry the choice into a
+    new visit; the brief asked for a fresh visit to start folded.
+  - The free space reads the foot stack, which is already where the panel ends up, so the
+    camera reframes once with no jump at the end of the rise.
+
 #### 2026-11-13 · MC6 · Lander's eye: the horizon chart
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (building the
@@ -811,6 +977,77 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - `|latitude| > 89.999°` throws for the local frame and for walking. The sphere point and the Sun-elevation formula still accept the poles.
 
 ## Academy
+
+#### 2026-11-13 · A5 · Lessons 1 to 4 playable, with their cards
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the final hints, explanations, reveals
+  and panel-step previews of lessons 1 to 4 (and the matching "Words" lists in
+  `lessons.md`), the four Under-the-hood cards, the routing, path and completion changes,
+  the slider readout, the "not ready" form of panel steps and their vitest tests; checked
+  each multiple-choice answer against `worked_examples.json` and the story month's
+  series. **AI-generated images:** the side view of the curved Moon for lesson 3's reveal
+  (inline SVG in `lesson/scenes.tsx`, a labelled schematic, not to scale). Checked by the
+  agent with the tests, typecheck, build and pytest, by playing lessons 1 to 4 in a
+  browser at 1440 × 900 and 390 × 844 (and once with `VITE_DATA=fixtures`, and once by
+  keyboard only), and with the Impeccable detector. A human has not played the lessons.
+- **State:** verified (333 Python tests, 1,849 web tests and the typecheck pass on the merge with main; reviewed by Codex, which recomputed every answer of lessons 1 to 4 from the real data; five findings fixed (the highest-Sun formula uses the distance from the pole and is called an estimate; the ridge is said to be toward the Sun; the 20 km slider goal is exact; story-month numbers say this month; the wording test covers every visible string); played by the builder by keyboard at two sizes; not yet played by the team lead)
+- **Changed:** `web/src/features/academy/` (`lessons/l1.ts`–`l4.ts`, `lessons/index.ts`,
+  `lessons/story.ts`, `lessons/COVERAGE.md`, `cards/`, `index.tsx`, `path-map.tsx`,
+  `complete-screen.tsx`, `lesson-screen.tsx`, `lesson/stage.tsx`, `lesson/scenes.tsx`,
+  `lesson/conversation.tsx`, `step-view.ts`, `types.ts`, `academy.css`, tests),
+  `docs/academy/lessons.md` (a "Words" list per lesson and two card notes),
+  `docs/design/c2/built-lessons-*.png`
+- **Notes:**
+  - `/academy/l1_sun` to `/academy/l4_link` open with the real worked examples, with plain
+    loading and failed-to-load pages. Every lesson is open from the start, as
+    `overview.md` says; lessons 5 to 8 show "Not written yet" on the path. The sample is
+    no longer linked from the path; it still opens at `/academy/sample`.
+  - Panel steps (`drag-body`, `draw-skyline`, `drop-pin`) wait for A3. Until then each
+    shows a `preview` (a new optional field): Luna says what the learner will do there,
+    the stage shows the real answer, and "Continue" moves on for no XP. A skipped step
+    is not counted for the stars; `starsFor(0, 0)` already gave 1 star and no patch.
+  - Number sliders now show their readout (the s²/2R drop in lesson 3, the link time
+    from `l4.link_pct_by_mask` in lesson 4). Lesson 3's illustration reveal is now drawn.
+  - `docs/science.md` has no 1.54° tilt (lesson 1's card) and no 0.26° off-centre shift
+    (lesson 4's card); the cards describe both in words. §9 names
+    `web/src/lib/scoring/metrics.ts`, which does not exist; the code is `scoring.ts`.
+  - On the fixture the lessons validate and play, but its synthetic numbers do not fit
+    the story (lesson 2's Sun is above the ridge; lesson 1's maximum is 4.4°).
+  - Review fixes (Codex review of PR #81), each its own commit:
+    1. Lesson 1 step 4 asks "Highest Sun ≈ (90° − how far south you are) + ( ? )". After a
+       math review, the rule is worded as an estimate, not a limit (the stored six years
+       reach a little higher than its 2.08°): Luna says "about 2° at Pip's latitude in the
+       best season ... one is an estimate for the best season, the other is this month",
+       no 2.08 is typed, and a test fails if any lesson or card source words it as a limit.
+       A test checks that 90 − |`l1.site_lat_deg`| + 1.54 rounds to 2. The miss explanation says what 23.4° and 5.1° really are. The
+       lesson 1 card quotes `docs/science.md` §3.4's highest-Sun rule with |φ|, the lesson 4
+       card its 0.26° off-centre shift.
+    2. Lesson 2 step 1 says the ridge lies in the Sun's direction; step 3 sketches the
+       skyline towards the Sun; step 5 compares two features in the same direction.
+    3. Lesson 3's slider goal is exactly 20 km (19 and 21 km read 104 and 127 m and are
+       misses). A test tries every position of both sliders: an answer is accepted exactly
+       when its own readout answers the question. Lesson 4's "6.5° or more" passes it.
+    4. Story-month numbers say "this month". Lesson 4 step 5 asks "Which rule made them all
+       fail?" and says only that a 5° margin gives `l4.link_pct_mask5`% this month. Lesson 1
+       step 3 says the Sun's direction circles and for part of the month it is just below
+       level; the 511 hours and twelve 30° sectors are not typed.
+    5. The drift test covers every learner-visible string, every option in order, no
+       duplicate options and every marked answer in range. Card text is pinned by a
+       snapshot.
+    6. Played by keyboard only at 1440 × 900 and 390 × 844, all four lessons end to end:
+       focus visible on every control, no control under 44 px, no sideways scroll, no
+       console errors. Fixed: the result and a right option said "Correct" twice to a screen
+       reader; a degree slider read "6.5 °" (now "6.5°"). Progress: tests on lesson 1 played
+       wrong then right, quit halfway, replayed better and worse, and reloaded (XP is
+       best-of, never added twice, quitting saves nothing); in the browser a replay of
+       lesson 4 earned 35 XP and the total stayed 160. A missing, null, NaN or empty
+       worked-example key: the lesson does not open and says some of its numbers are not
+       built yet.
+    7. The Lander's eye chart is not wired into the panel steps (A3).
+  - Worked-example keys worth adding later: the hours the Sun is above level in the story
+    month (511 of 720), the number of 30° compass sectors the Sun visits (12), and the
+    5° link time for other 30-day windows (about 32.6% from February and 32.9% from
+    October 2028), so lesson 4 could show the month-to-month spread.
 
 #### 2026-11-13 · A9 · Math review of all fifteen science sections
 - **Who:** Codex review agent, for the orchestrator

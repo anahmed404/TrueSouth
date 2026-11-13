@@ -13,7 +13,10 @@
     "elevation_m": null,
     "slope": null,
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": null
   },
   {
     "id": "apollo17",
@@ -29,7 +32,10 @@
     "elevation_m": null,
     "slope": null,
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": null
   },
   {
     "id": "artemis_de_gerlache_rim_2",
@@ -49,7 +55,10 @@
       "source": "LDEM_80S_80MPP_ADJ.TIF, central difference"
     },
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": null
   },
   {
     "id": "artemis_haworth",
@@ -69,7 +78,10 @@
       "source": "LDEM_80S_80MPP_ADJ.TIF, central difference"
     },
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": null
   },
   {
     "id": "artemis_malapert",
@@ -89,7 +101,10 @@
       "source": "LDEM_80S_80MPP_ADJ.TIF, central difference"
     },
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": null
   },
   {
     "id": "artemis_mouton",
@@ -109,7 +124,10 @@
       "source": "LDEM_80S_80MPP_ADJ.TIF, central difference"
     },
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": null
   },
   {
     "id": "artemis_nobile_rim_1",
@@ -129,7 +147,10 @@
       "source": "LDEM_80S_80MPP_ADJ.TIF, central difference"
     },
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": null
   },
   {
     "id": "artemis_nobile_rim_2",
@@ -149,7 +170,10 @@
       "source": "LDEM_80S_80MPP_ADJ.TIF, central difference"
     },
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": null
   },
   {
     "id": "blue_ghost1",
@@ -165,7 +189,10 @@
     "elevation_m": null,
     "slope": null,
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": null
   },
   {
     "id": "chandrayaan3",
@@ -185,7 +212,10 @@
       "source": "LDEM_60S_240MPP_ADJ.TIF, central difference"
     },
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": null
   },
   {
     "id": "change4",
@@ -201,7 +231,10 @@
     "elevation_m": null,
     "slope": null,
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": null
   },
   {
     "id": "change6",
@@ -217,7 +250,10 @@
     "elevation_m": null,
     "slope": null,
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": null
   },
   {
     "id": "connecting_ridge",
@@ -237,7 +273,43 @@
       "source": "LDEM_80S_80MPP_ADJ.TIF, central difference"
     },
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": {
+      "radius_m": 160.0,
+      "points": 13,
+      "min": 0.3974903475727703,
+      "max": 0.8696149458331431
+    }
+  },
+  {
+    "id": "connecting_ridge_best_lit",
+    "name": "Connecting Ridge, best-lit point",
+    "group": "sunlit_peak",
+    "lat_deg": -89.45116022024943,
+    "lon_deg": 222.8572798355214,
+    "description": "TrueSouth chose this best-lit 80 m map pixel within 160 m of Connecting Ridge's listed point by its own sunlight calculation. It is 148.5 m from the listed point. It is not a published site; its sunlight is an upper reading.",
+    "source_url": "https://github.com/anahmed404/TrueSouth/blob/main/docs/science.md#71-how-much-a-sunlit-peak-depends-on-where-you-stand",
+    "outcome": null,
+    "terrain_tier": "core80",
+    "has_closeup": false,
+    "elevation_m": 1956.8255615234375,
+    "slope": {
+      "deg": 0.5816590917756863,
+      "baseline_m": 160.0,
+      "source": "LDEM_80S_80MPP_ADJ.TIF, central difference"
+    },
+    "quickmap_url": "https://quickmap.lroc.asu.edu/",
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": "connecting_ridge",
+    "offset_m": 148.53657861694535,
+    "nearby_sun": {
+      "radius_m": 160.0,
+      "points": 13,
+      "min": 0.3974903475727703,
+      "max": 0.8696149458331431
+    }
   },
   {
     "id": "de_gerlache_rim",
@@ -257,7 +329,43 @@
       "source": "LDEM_80S_80MPP_ADJ.TIF, central difference"
     },
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": {
+      "radius_m": 160.0,
+      "points": 12,
+      "min": 0.27591430638815545,
+      "max": 0.695897714185242
+    }
+  },
+  {
+    "id": "de_gerlache_rim_best_lit",
+    "name": "de Gerlache rim, best-lit point",
+    "group": "sunlit_peak",
+    "lat_deg": -88.69909905134233,
+    "lon_deg": 291.59643581536733,
+    "description": "TrueSouth chose this best-lit 80 m map pixel within 160 m of de Gerlache rim's listed point by its own sunlight calculation. It is 143.9 m from the listed point. It is not a published site; its sunlight is an upper reading.",
+    "source_url": "https://github.com/anahmed404/TrueSouth/blob/main/docs/science.md#71-how-much-a-sunlit-peak-depends-on-where-you-stand",
+    "outcome": null,
+    "terrain_tier": "core80",
+    "has_closeup": false,
+    "elevation_m": 1780.174072265625,
+    "slope": {
+      "deg": 2.693887353681419,
+      "baseline_m": 160.0,
+      "source": "LDEM_80S_80MPP_ADJ.TIF, central difference"
+    },
+    "quickmap_url": "https://quickmap.lroc.asu.edu/",
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": "de_gerlache_rim",
+    "offset_m": 143.9157630492975,
+    "nearby_sun": {
+      "radius_m": 160.0,
+      "points": 12,
+      "min": 0.27591430638815545,
+      "max": 0.695897714185242
+    }
   },
   {
     "id": "im1_odysseus",
@@ -277,7 +385,10 @@
       "source": "LDEM_80S_80MPP_ADJ.TIF, central difference"
     },
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": null
   },
   {
     "id": "im2_athena",
@@ -297,7 +408,10 @@
       "source": "LDEM_80S_80MPP_ADJ.TIF, central difference"
     },
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": null
   },
   {
     "id": "luna25_target",
@@ -317,7 +431,10 @@
       "source": "LDEM_60S_240MPP_ADJ.TIF, central difference"
     },
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": null
   },
   {
     "id": "malapert_peak",
@@ -337,7 +454,43 @@
       "source": "LDEM_80S_80MPP_ADJ.TIF, central difference"
     },
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": {
+      "radius_m": 160.0,
+      "points": 14,
+      "min": 0.3773240447879916,
+      "max": 0.7674534299628355
+    }
+  },
+  {
+    "id": "malapert_peak_best_lit",
+    "name": "Malapert Massif peak, best-lit point",
+    "group": "sunlit_peak",
+    "lat_deg": -85.97437299359193,
+    "lon_deg": 357.91641174575597,
+    "description": "TrueSouth chose this best-lit 80 m map pixel within 160 m of Malapert Massif peak's listed point by its own sunlight calculation. It is 71.8 m from the listed point. It is not a published site; its sunlight is an upper reading.",
+    "source_url": "https://github.com/anahmed404/TrueSouth/blob/main/docs/science.md#71-how-much-a-sunlit-peak-depends-on-where-you-stand",
+    "outcome": null,
+    "terrain_tier": "core80",
+    "has_closeup": false,
+    "elevation_m": 4972.4345703125,
+    "slope": {
+      "deg": 2.4488346087377,
+      "baseline_m": 160.0,
+      "source": "LDEM_80S_80MPP_ADJ.TIF, central difference"
+    },
+    "quickmap_url": "https://quickmap.lroc.asu.edu/",
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": "malapert_peak",
+    "offset_m": 71.81760145779519,
+    "nearby_sun": {
+      "radius_m": 160.0,
+      "points": 14,
+      "min": 0.3773240447879916,
+      "max": 0.7674534299628355
+    }
   },
   {
     "id": "peak_near_shackleton",
@@ -357,7 +510,43 @@
       "source": "LDEM_80S_80MPP_ADJ.TIF, central difference"
     },
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": {
+      "radius_m": 160.0,
+      "points": 11,
+      "min": 0.498286745988051,
+      "max": 0.6378241738183864
+    }
+  },
+  {
+    "id": "peak_near_shackleton_best_lit",
+    "name": "Peak near Shackleton, best-lit point",
+    "group": "sunlit_peak",
+    "lat_deg": -88.73810351351248,
+    "lon_deg": 124.43757804794741,
+    "description": "TrueSouth chose this best-lit 80 m map pixel within 160 m of Peak near Shackleton's listed point by its own sunlight calculation. It is 71.0 m from the listed point. It is not a published site; its sunlight is an upper reading.",
+    "source_url": "https://github.com/anahmed404/TrueSouth/blob/main/docs/science.md#71-how-much-a-sunlit-peak-depends-on-where-you-stand",
+    "outcome": null,
+    "terrain_tier": "core80",
+    "has_closeup": false,
+    "elevation_m": 1455.0770263671875,
+    "slope": {
+      "deg": 2.666082544124815,
+      "baseline_m": 160.0,
+      "source": "LDEM_80S_80MPP_ADJ.TIF, central difference"
+    },
+    "quickmap_url": "https://quickmap.lroc.asu.edu/",
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": "peak_near_shackleton",
+    "offset_m": 71.01693311678522,
+    "nearby_sun": {
+      "radius_m": 160.0,
+      "points": 11,
+      "min": 0.498286745988051,
+      "max": 0.6378241738183864
+    }
   },
   {
     "id": "shackleton_rim",
@@ -377,6 +566,42 @@
       "source": "LDEM_80S_80MPP_ADJ.TIF, central difference"
     },
     "quickmap_url": "https://quickmap.lroc.asu.edu/",
-    "moontrek_url": "https://trek.nasa.gov/moon/"
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": null,
+    "offset_m": null,
+    "nearby_sun": {
+      "radius_m": 160.0,
+      "points": 12,
+      "min": 0.428843161670182,
+      "max": 0.8100213920707863
+    }
+  },
+  {
+    "id": "shackleton_rim_best_lit",
+    "name": "Shackleton rim, best-lit point",
+    "group": "sunlit_peak",
+    "lat_deg": -89.77725327254329,
+    "lon_deg": 203.37680387209534,
+    "description": "TrueSouth chose this best-lit 80 m map pixel within 160 m of Shackleton rim's listed point by its own sunlight calculation. It is 93.6 m from the listed point. It is not a published site; its sunlight is an upper reading.",
+    "source_url": "https://github.com/anahmed404/TrueSouth/blob/main/docs/science.md#71-how-much-a-sunlit-peak-depends-on-where-you-stand",
+    "outcome": null,
+    "terrain_tier": "core80",
+    "has_closeup": false,
+    "elevation_m": 1735.207275390625,
+    "slope": {
+      "deg": 5.799812469849449,
+      "baseline_m": 160.0,
+      "source": "LDEM_80S_80MPP_ADJ.TIF, central difference"
+    },
+    "quickmap_url": "https://quickmap.lroc.asu.edu/",
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "variant_of": "shackleton_rim",
+    "offset_m": 93.64619885150447,
+    "nearby_sun": {
+      "radius_m": 160.0,
+      "points": 12,
+      "min": 0.428843161670182,
+      "max": 0.8100213920707863
+    }
   }
 ]

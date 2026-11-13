@@ -1,8 +1,11 @@
+from truesouth.constants import MAX_SITE_LATITUDE_DEG
+from pydantic_core import PydanticCustomError
+
 from datetime import datetime
 import math
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, RootModel, StringConstraints, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, RootModel, StringConstraints, field_validator, model_validator
 
 
 def _valid_utc(value: str) -> str:
@@ -564,9 +567,41 @@ class WorkedExamples(Contract):
 class CustomSiteRequest(Contract):
     """Request to compute a custom site."""
 
-    lat_deg: Latitude = Field(description='Latitude in degrees north.')
-    lon_deg: Longitude = Field(description='East longitude in degrees.')
-    name: str = Field(description='Custom site display name.')
+    lat_deg: Latitude = Field(strict=True, allow_inf_nan=False, description='Latitude in degrees north.')
+    lon_deg: float = Field(strict=True, allow_inf_nan=False, description='Finite east longitude; normalised to [0, 360).')
+    name: Annotated[str, StringConstraints(strict=True, strip_whitespace=True, max_length=120)] = Field(default='Custom site', description='Optional display name, trimmed and length limited.')
+
+    @field_validator('lat_deg')
+    @classmethod
+    def usable_local_frame(cls, value):
+        if abs(value) > MAX_SITE_LATITUDE_DEG:
+            raise PydanticCustomError('pole_proximity', 'Latitude must be at least 0.001\u00b0 away from a pole.')
+        return value
+
+    @field_validator('name', mode='before')
+    @classmethod
+    def printable_name(cls, value):
+        if isinstance(value, str):
+            return ''.join(character for character in value if character.isprintable()).strip()
+        return value
+
+    @field_validator('lon_deg')
+    @classmethod
+    def normalise_longitude(cls, value):
+        return value % 360
+
+
+
+class ValidationField(Contract):
+    """A safe field identifier and plain validation advice; never the submitted value."""
+    field: Literal['lat_deg', 'lon_deg', 'name', 'body'] = Field(description='Safe field identifier; body covers malformed JSON and unknown fields.')
+    message: str = Field(description='Plain validation advice without submitted values.')
+
+
+class APIValidationError(Contract):
+    """HTTP 422 body, without client values or internal validator details."""
+    message: str = Field(description='Plain request validation summary.')
+    fields: list[ValidationField] = Field(description='Safe field identifiers and validation advice.')
 
 
 class CustomSiteQueued(Contract):
@@ -580,7 +615,7 @@ class CustomSiteQueued(Contract):
 class ErrorDetail(Contract):
     """Structured API error."""
 
-    code: Literal['invalid_coordinates', 'date_outside_time_grid', 'rate_limited', 'queue_full', 'terrain_unavailable', 'not_found'] = Field(description='Stable error code.')
+    code: Literal['invalid_coordinates', 'date_outside_time_grid', 'rate_limited', 'queue_full', 'terrain_unavailable', 'not_found', 'computation_failed', 'storage_full'] = Field(description='Stable error code.')
     message: str = Field(description='Plain-language error message.')
 
 
