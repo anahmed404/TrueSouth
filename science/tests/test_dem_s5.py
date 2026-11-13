@@ -4,7 +4,7 @@ import rasterio
 from rasterio.transform import from_origin
 
 from truesouth.frames import polar_stereo_inverse
-from truesouth.dem import DemStore, prepare_map
+from truesouth.dem import DemStore, prepare_map, site_tier
 
 CRS = "+proj=stere +lat_0=-90 +lat_ts=-90 +lon_0=0 +a=1737400 +b=1737400 +units=m +no_defs"
 
@@ -45,3 +45,31 @@ def test_wrong_projection(tmp_path):
     raster(tmp_path / "wrong.tif", np.ones((4, 4)), crs="EPSG:4326")
     with pytest.raises(ValueError, match="projection"):
         prepare_map(tmp_path / "wrong.tif", tmp_path / "wrong.npy")
+
+
+def test_plane_rows_edge_and_site_tier(tmp_path):
+    y, x = np.mgrid[0:4, 0:4]
+    raster(tmp_path / 'core.tif', 2*x + 3*y)
+    raster(tmp_path / 'wide.tif', np.full((8, 8), 10.), (-40, 40))
+    prepare_map(tmp_path / 'core.tif', tmp_path / 'core.npy')
+    prepare_map(tmp_path / 'wide.tif', tmp_path / 'wide.npy')
+    store = DemStore(tmp_path / 'core.npy', tmp_path / 'wide.npy')
+    lat, lon = point(np.array([-15., -10., 15., 25.]), np.array([15., 10., -15., -15.]))
+    values, count = store.sample(lat, lon)
+    np.testing.assert_allclose(values, [0, 2.5, 15, 10], atol=1e-8)
+    assert count == 0
+    assert list(site_tier(np.array([-90., -80., -79., -60., -59.]))) == ['core80', 'core80', 'wide240', 'wide240', 'sphere']
+
+
+def test_nan_nodata_and_scaled_heights(tmp_path):
+    source = tmp_path / 'scaled.tif'
+    with rasterio.open(source, 'w', driver='GTiff', width=2, height=2, count=1,
+                       dtype='float32', crs=CRS, transform=from_origin(-10, 10, 10, 10), nodata=np.nan) as dst:
+        dst.write(np.array([[1, 2], [3, np.nan]], dtype='float32'), 1)
+        dst.scales = (2.,)
+        dst.offsets = (5.,)
+    prepare_map(source, tmp_path / 'scaled.npy')
+    store = DemStore(tmp_path / 'scaled.npy')
+    values, count = store.sample(*point(np.array([-5, 5]), np.array([5, -5])))
+    assert values[0] == pytest.approx(7)
+    assert np.isnan(values[1]) and count == 1
