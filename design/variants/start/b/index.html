@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>TrueSouth start, direction B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:ital,wght@0,400;0,500;0,600;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
+<style>
+/* Direction B, Lunar atlas: tokens. Mirrors design/variants/direction-b.md */
+:root {
+  --paper-0: #1a1814;   /* page: warm charcoal */
+  --paper-1: #211e1a;   /* panels */
+  --paper-2: #2a2721;   /* raised, focused */
+  --paper-3: #343028;   /* wells, inputs */
+  --rule: #3a352d;      /* hairline */
+  --rule-2: #554e41;    /* strong hairline, frames */
+  --ink: #ede6d6;       /* off-white ink */
+  --ink-2: #bfb5a2;
+  --ink-3: #8f8675;
+  --ink-4: #665e51;
+  --accent: #d39ba6;    /* overprint rose: selection, scrubber, focus */
+  --accent-ink: #2b1b1f;
+  --accent-wash: rgba(211, 155, 166, .11);
+  --status-go: #93c27f;
+  --status-caution: #e6b645;
+  --status-nogo: #e66b53;
+  --sun: #efe0b6;
+  --earth: #94b5c7;
+  --ground: #37322a;
+  --sky: #1e1c18;
+
+  --font-display: "Newsreader", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-data: "IBM Plex Sans Condensed", "Roboto Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+
+  --t-micro: 10.5px;
+  --t-label: 11.5px;
+  --t-data: 12.5px;
+  --t-body: 14px;
+  --t-h3: 17px;
+  --t-h2: 22px;
+  --t-h1: 30px;
+  --t-display: 68px;
+
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px; --s-7: 48px;
+  --radius: 2px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--paper-0);
+  color: var(--ink);
+  font-family: var(--font-data);
+  font-size: var(--t-data);
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums lining-nums;
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; }
+a { color: inherit; }
+:focus-visible { outline: 1.5px solid var(--accent); outline-offset: 2px; }
+
+.serif { font-family: var(--font-display); }
+.name { font-family: var(--font-display); font-style: italic; font-weight: 400; }
+.muted { color: var(--ink-3); }
+
+/* prototype marker */
+.proto {
+  position: absolute; right: 12px; top: 10px; z-index: 50;
+  font-size: var(--t-micro); color: var(--ink-3);
+  border: 1px solid var(--rule-2); padding: 1px 6px; background: var(--paper-0);
+}
+
+/* provenance tags: solid = sourced, dashed + italic = assumed */
+.prov {
+  display: inline-block; font-size: var(--t-micro); line-height: 14px; padding: 0 4px;
+  border: 1px solid var(--ink-4); border-radius: var(--radius); color: var(--ink-2);
+  vertical-align: 1px; white-space: nowrap; text-decoration: none; font-style: normal;
+}
+.prov.s::before { content: "\2197\00a0"; color: var(--ink-3); }
+.prov.a { border-style: dashed; font-style: italic; color: var(--ink-3); }
+
+/* status: map-legend symbol + word */
+.st { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; }
+.st i { display: inline-block; width: 9px; height: 9px; flex: none; }
+.st.go { color: var(--status-go); } .st.go i { background: var(--status-go); border-radius: 50%; }
+.st.caution { color: var(--status-caution); }
+.st.caution i { background: var(--status-caution); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.st.nogo { color: var(--status-nogo); }
+.st.nogo i { border: 1.4px solid var(--status-nogo);
+  background: linear-gradient(45deg, transparent 43%, var(--status-nogo) 43% 57%, transparent 57%),
+              linear-gradient(-45deg, transparent 43%, var(--status-nogo) 43% 57%, transparent 57%); }
+
+.info {
+  display: inline-grid; place-items: center; width: 13px; height: 13px; border-radius: 50%;
+  border: 1px solid var(--ink-4); color: var(--ink-3); font: italic 600 9px/1 var(--font-display);
+  vertical-align: 1px; cursor: help;
+}
+
+/* SVG text classes shared by the drawings */
+.tl text, .pv text { font-family: var(--font-data); }
+.tl-day { font-size: 11px; fill: var(--ink-2); }
+.tl-ctx { font-size: 10px; fill: var(--ink-4); font-style: italic; }
+.tl-ax { font-size: 10px; fill: var(--ink-3); }
+.tl-earthc { fill: var(--earth); }
+.tl-row { font-family: var(--font-display) !important; font-size: 14px; fill: var(--ink); }
+.tl-sub { font-size: 10px; fill: var(--ink-3); }
+.tl-date { font-size: 10px; fill: var(--ink-3); }
+.tl-call { font-family: var(--font-display) !important; font-style: italic; font-size: 12.5px; fill: var(--ink); }
+.tl-call-ok { fill: var(--ink-3); font-size: 11.5px; }
+.tl-call-bad { fill: var(--status-nogo); }
+.tl-flag { font-size: 10.5px; fill: var(--accent-ink); font-weight: 600; }
+.pv-ax { font-size: 10px; fill: var(--ink-3); }
+.pv-lab { font-size: 10.5px; fill: var(--ink-3); }
+.pv-earthc { fill: var(--earth); }
+.pv-zero { fill: var(--ink-2); font-style: italic; }
+.pv-tick { font-size: 9.5px; fill: var(--ink-3); }
+.pv-disc { font-family: var(--font-display) !important; font-style: italic; font-size: 14px; fill: var(--ink); }
+.pv-compass { font-family: var(--font-display) !important; font-size: 14px; fill: var(--ink); font-weight: 500; }
+.pv-compass2 { font-size: 9.5px; fill: var(--ink-3); }
+.pv-sun { stroke: var(--sun); stroke-width: 1.3; stroke-dasharray: 1 0; opacity: .9; }
+.pv-earth { stroke: var(--earth); stroke-width: 1.3; opacity: .9; }
+.pv-sun-tick { stroke: var(--sun); stroke-width: 1.2; }
+.pv-earth-tick { stroke: var(--earth); stroke-width: 1.2; }
+
+/* countdown cards (shared) */
+.cd h3 { grid-column: 1 / -1; margin: 0; display: flex; align-items: baseline; gap: 8px; font: 400 15px/1.2 var(--font-display); }
+.cd h3 small { font: var(--t-label) var(--font-data); color: var(--ink-3); }
+.card { border: 1px solid var(--rule-2); border-radius: var(--radius); padding: 7px 9px; display: flex; flex-direction: column; gap: 2px; background: var(--paper-0); }
+.card .ev { color: var(--ink-2); font-size: var(--t-label); display: flex; justify-content: space-between; align-items: center; }
+.card .big { font: 500 22px/1.05 var(--font-data); letter-spacing: -.01em; }
+.card .at { color: var(--ink-3); font-size: var(--t-micro); }
+.card.next { border-color: var(--ink-3); }
+.card.amber { border-color: var(--status-caution); box-shadow: inset 3px 0 0 var(--status-caution); }
+.card.amber .big { color: var(--status-caution); }
+.soon { display: inline-flex; align-items: center; gap: 4px; color: var(--status-caution); font-size: var(--t-micro); font-weight: 600; }
+.soon i { width: 8px; height: 8px; background: var(--status-caution); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+
+html, body { height: 100%; overflow: hidden; }
+.page { width: 1440px; height: 900px; padding: 30px 48px 0; display: grid; grid-template-rows: auto 1fr auto; position: relative; }
+.mast { display: grid; grid-template-columns: auto 1fr auto; align-items: end; gap: 28px; padding-bottom: 14px; border-bottom: 1px solid var(--rule-2); box-shadow: 0 3px 0 -2px var(--rule); }
+.word { display: flex; align-items: center; gap: 14px; font: 400 46px/1 var(--font-display); letter-spacing: -.02em; }
+.mast .q { font: italic 400 21px/1.25 var(--font-display); color: var(--ink-2); padding-bottom: 4px; }
+.mast .ed { text-align: right; color: var(--ink-3); font-size: var(--t-label); line-height: 1.5; padding-bottom: 4px; }
+.spread { display: grid; grid-template-columns: 1fr 56px 1fr; padding: 26px 0 18px; min-height: 0; }
+.fold { position: relative; }
+.fold::before { content: ""; position: absolute; left: 50%; top: 10px; bottom: 10px; border-left: 1px dashed var(--rule-2); }
+.fold::after { content: "or"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--paper-0); padding: 8px 0; font: italic 400 17px/1 var(--font-display); color: var(--ink-3); }
+.plate { border: 1px solid var(--rule-2); outline: 1px solid var(--rule); outline-offset: 4px; background: var(--paper-1); display: grid; grid-template-rows: auto auto 1fr; margin: 4px; }
+.plate .head { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 16px 7px; border-bottom: 1px solid var(--rule); color: var(--ink-3); font-size: var(--t-label); }
+.plate .head em { font: italic 400 13.5px var(--font-display); color: var(--ink-2); }
+.fig { display: block; border-bottom: 1px solid var(--rule); }
+.body { padding: 16px 26px 20px; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto 1fr; column-gap: 24px; }
+.body h2 { margin: 0; font: 400 50px/1 var(--font-display); letter-spacing: -.02em; }
+.body .for { grid-column: 1 / -1; margin: 10px 0 0; font: 400 17px/1.4 var(--font-display); color: var(--ink); max-width: 540px; }
+.body ul { margin: 14px 0 0; padding: 0; list-style: none; color: var(--ink-2); font-size: 13px; display: grid; gap: 5px; align-self: end; }
+.body li { display: flex; gap: 9px; align-items: baseline; }
+.body li::before { content: ""; width: 5px; height: 5px; border: 1px solid var(--ink-3); transform: rotate(45deg); flex: none; position: relative; top: -2px; }
+.go { align-self: end; justify-self: end; height: 42px; padding: 0 20px; border: 1px solid var(--ink); border-radius: var(--radius); background: none; color: var(--ink); font: 500 15px/1 var(--font-data); cursor: pointer; display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
+.go:hover { background: var(--ink); color: var(--paper-0); }
+.colo { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--rule-2); padding: 10px 0 14px; color: var(--ink-3); font-size: var(--t-label); }
+.colo em { font: italic 400 13.5px var(--font-display); color: var(--ink-2); }
+.map text { font-family: var(--font-data); }
+.m-lat { font-size: 9.5px; fill: var(--ink-3); }
+.m-feat { font-family: var(--font-display) !important; font-style: italic; font-size: 11.5px; fill: var(--ink-3); }
+.m-site { font-family: var(--font-display) !important; font-style: italic; font-size: 13.5px; fill: var(--ink); }
+.m-small { font-size: 9.5px; fill: var(--ink-3); }
+.a-les { font-family: var(--font-display) !important; font-style: italic; font-size: 12px; fill: var(--ink-2); }
+.a-num { font-family: var(--font-display) !important; font-size: 12px; fill: var(--ink); }
+.a-say { font-family: var(--font-display) !important; font-size: 13px; fill: var(--ink); }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="mast">
+    <div class="word">
+      <svg width="44" height="44" viewBox="-22 -22 44 44" aria-hidden="true">
+        <circle r="19" fill="none" stroke="var(--ink-3)" stroke-width=".7"/><circle r="15.5" fill="none" stroke="var(--rule-2)" stroke-width=".6"/>
+        <g stroke="var(--ink-3)" stroke-width=".6"><line x1="0" y1="-19" x2="0" y2="-16"/><line x1="0" y1="19" x2="0" y2="16"/><line x1="-19" y1="0" x2="-16" y2="0"/><line x1="19" y1="0" x2="16" y2="0"/></g>
+        <path d="M0 -21L2.6 0L0 21L-2.6 0Z" fill="var(--ink)"/><path d="M-21 0L0 2.2L21 0L0 -2.2Z" fill="var(--ink-3)"/>
+        <path d="M0 6L2.6 0L0 21L-2.6 0Z" fill="var(--accent)"/>
+      </svg>
+      TrueSouth
+    </div>
+    <div class="q">Where and when can a mission land at the Moon’s south pole?</div>
+    <div class="ed">A lunar landing site navigator<br>NASA Space Apps 2026</div>
+  </header>
+
+  <main class="spread">
+    <section class="plate" aria-labelledby="mc">
+      <div class="head"><em>The south polar region, 84°S to the pole</em><span>polar stereographic projection</span></div>
+      <svg class="fig map" id="map" width="636" height="430" viewBox="0 0 636 430" role="img" aria-label="Map of the lunar south pole with candidate landing sites"></svg>
+      <div class="body">
+        <h2 id="mc">Mission Control</h2>
+        <span></span>
+        <p class="for">For mission planners. Pick a mission profile and sites, find every landing date that works, and inspect any site and date from four linked views.</p>
+        <ul>
+          <li>Opens on IM-2 Athena and four polar sites</li>
+          <li>Every landing date in the time grid, 2026 to 2031</li>
+          <li>Every limit tagged sourced or assumed</li>
+        </ul>
+        <button class="go">Open Mission Control</button>
+      </div>
+    </section>
+
+    <div class="fold" aria-hidden="true"></div>
+
+    <section class="plate" aria-labelledby="ac">
+      <div class="head"><em>The way to Connecting Ridge, in eight lessons</em><span>horizon profile, not to scale</span></div>
+      <svg class="fig" id="route" width="636" height="430" viewBox="0 0 636 430" role="img" aria-label="Route of the eight Academy lessons across a lunar horizon"></svg>
+      <div class="body">
+        <h2 id="ac">Academy</h2>
+        <span></span>
+        <p class="for">For students, teachers and the curious. Luna guides you as you rebuild the tool’s logic step by step, to land a small lander called Pip.</p>
+        <ul>
+          <li>Eight short lessons, 10 to 15 minutes in all</li>
+          <li>The same NASA data Mission Control uses</li>
+          <li>Works on a phone</li>
+        </ul>
+        <button class="go">Start the Academy</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="colo">
+    <em>Planning aid, not flight certification.</em>
+    <span>Sun and Earth positions from JPL Horizons. Terrain from the LOLA laser altimeter, NASA PGDA.</span>
+  </footer>
+  <div class="proto">prototype · mock data</div>
+</div>
+<script>
+/* Mock model shared by every direction-B page. Deterministic, no randomness.
+   Site: de Gerlache rim (-88.6952, 291.7154 E), profile im2_athena,
+   landing date 2028-03-01T00:00Z, window 240 h. t = hours from landing. */
+var TS = (function () {
+  var RAD = Math.PI / 180;
+  var LANDING = Date.UTC(2028, 2, 1, 0, 0, 0);
+  var WIN = 240, CTX = 72;
+  function wrap(d) { return ((d % 360) + 540) % 360 - 180; }
+  function bump(az, c, w, h, p) { var x = Math.abs(wrap(az - c)) / w; return h * Math.exp(-Math.pow(x, p)); }
+  function noise(az) {
+    var a = az * RAD;
+    return 0.16 * Math.sin(3 * a + 0.7) + 0.11 * Math.sin(7 * a + 1.9) + 0.07 * Math.sin(13 * a + 0.3)
+      + 0.045 * Math.sin(29 * a + 2.2) + 0.03 * Math.sin(53 * a + 1.1) + 0.018 * Math.sin(97 * a + 0.4)
+      + 0.01 * Math.sin(211 * a + 2.7);
+  }
+  function sky(az) {
+    az = ((az % 360) + 360) % 360;
+    return -0.62 + noise(az)
+      + bump(az, 75.2, 4.5, 2.75, 1.6)    // Haworth rim: the Earth blocker
+      + bump(az, 69.5, 1.2, 0.6, 1.3)
+      + bump(az, 90, 13, 0.85, 2)         // Mons Malapert flank
+      + bump(az, 251.6, 4, 1.32, 1.15)   // de Gerlache far rim: the Sun blocker
+      + bump(az, 272, 22, 0.75, 2)        // de Gerlache rim arc
+      + bump(az, 221.4, 4.2, 1.33, 1.2)   // ridge toward Sverdrup
+      + bump(az, 140, 10, 0.6, 2)         // Shoemaker rim
+      + bump(az, 35, 8, 0.35, 2)
+      + bump(az, 184, 7, -0.45, 2);       // low toward Shackleton and the pole
+  }
+  var SUN_R = 0.2665, EARTH_R = 0.95, MASK = 1.0;
+  function sunAt(t) { var az = 330 - 0.50792 * t; az = ((az % 360) + 360) % 360; var el = 1.5 + 1.3048 * Math.cos(az * RAD); return { az: az, el: el }; }
+  function earthAt(t) {
+    var az = 68.3 + 7.6 * Math.sin(2 * Math.PI * (t - 120) / 661.3);
+    var el = 0.49 + 6.7 * Math.cos(2 * Math.PI * (t - 81) / 653);
+    return { az: az, el: el };
+  }
+  function frac(c, r) { var x = Math.max(-1, Math.min(1, c / r)); return 1 - (Math.acos(x) - x * Math.sqrt(1 - x * x)) / Math.PI; }
+  function hour(t) {
+    var s = sunAt(t), e = earthAt(t);
+    var sc = s.el - sky(s.az), ec = e.el - sky(e.az);
+    return { t: t, sun_az: s.az, sun_el: s.el, sun_clear: sc, sun_frac: frac(sc, SUN_R),
+      earth_az: e.az, earth_el: e.el, earth_clear: ec, earth_frac: frac(ec, EARTH_R),
+      lit: frac(sc, SUN_R) >= 0.5, link: ec >= MASK };
+  }
+  var series = [];
+  for (var t = -CTX; t <= WIN + CTX; t++) series.push(hour(t));
+  function at(t) { return series[t + CTX]; }
+  function runs(key, val) { // runs inside the window [0, WIN)
+    var out = [], start = null;
+    for (var t = 0; t < WIN; t++) {
+      var v = at(t)[key] === val;
+      if (v && start === null) start = t;
+      if ((!v || t === WIN - 1) && start !== null) { out.push({ start: start, end: v ? t + 1 : t }); start = null; }
+    }
+    return out;
+  }
+  function longest(rs) { var b = null; rs.forEach(function (r) { if (!b || r.end - r.start > b.end - b.start) b = r; }); return b; }
+  function nextCross(t0, fn) { // fn(t) returns signed value; find next sign change after t0 (fractional hour)
+    var a = Math.floor(t0), va = fn(a);
+    for (var t = a + 1; t <= 2000; t++) { var vb = fn(t); if ((va >= 0) !== (vb >= 0)) { var f = t - 1 + va / (va - vb); if (f > t0) return f; } va = vb; }
+    return null;
+  }
+  function iso(t) { var d = new Date(LANDING + t * 3600e3); return d.toISOString().slice(0, 16).replace('T', ' ') + ' UTC'; }
+  function dur(h) {
+    if (h >= 48) { var d = Math.floor(h / 24); return d + ' d ' + Math.round(h - d * 24) + ' h'; }
+    var hh = Math.floor(h), mm = Math.round((h - hh) * 60); if (mm === 60) { hh++; mm = 0; }
+    return hh + ' h ' + (mm < 10 ? '0' : '') + mm + ' m';
+  }
+  var dark = runs('lit', false), black = runs('link', false);
+  var sumFrac = 0, lit = 0, link = 0;
+  for (var i = 0; i < WIN; i++) { sumFrac += at(i).sun_frac; if (at(i).lit) lit++; if (at(i).link) link++; }
+  var metrics = { sun_fraction_mean: sumFrac / WIN, lit_fraction: lit / WIN, link_fraction: link / WIN,
+    longest_dark: longest(dark), longest_blackout: longest(black), dark: dark, black: black,
+    landing_sun_el: at(0).sun_el };
+  function sunVal(t) { var h = hour(t); return h.sun_clear; }
+  function earthVal(t) { var h = hour(t); return h.earth_clear - MASK; }
+  return { RAD: RAD, sky: sky, hour: hour, at: at, series: series, WIN: WIN, CTX: CTX, SUN_R: SUN_R, EARTH_R: EARTH_R,
+    MASK: MASK, metrics: metrics, iso: iso, dur: dur, wrap: wrap,
+    nextSun: function (t) { return nextCross(t, sunVal); }, nextEarth: function (t) { return nextCross(t, earthVal); } };
+})();
+
+/* Hand-drawn SVG for the direction-B prototypes: timeline bands and the Lander's eye. */
+var DRAW = (function () {
+  var RAD = Math.PI / 180;
+  function n(v, d) { return (+v).toFixed(d == null ? 1 : d); }
+  function sgn(v, d) { return (v < 0 ? '−' : v > 0 ? '+' : '') + Math.abs(v).toFixed(d == null ? 1 : d); }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function sym(kind, x, y, s) { // map-legend status symbols, centred on x,y
+    s = s || 9;
+    if (kind === 'go') return '<circle cx="' + x + '" cy="' + y + '" r="' + s / 2 + '" fill="var(--status-go)"/>';
+    if (kind === 'caution') return '<path d="M' + x + ' ' + (y - s / 2) + 'L' + (x + s / 2) + ' ' + (y + s / 2) + 'L' + (x - s / 2) + ' ' + (y + s / 2) + 'Z" fill="var(--status-caution)"/>';
+    var h = s / 2;
+    return '<rect x="' + (x - h) + '" y="' + (y - h) + '" width="' + s + '" height="' + s + '" fill="none" stroke="var(--status-nogo)" stroke-width="1.4"/>' +
+      '<path d="M' + (x - h + 2) + ' ' + (y - h + 2) + 'L' + (x + h - 2) + ' ' + (y + h - 2) + 'M' + (x + h - 2) + ' ' + (y - h + 2) + 'L' + (x - h + 2) + ' ' + (y + h - 2) + '" stroke="var(--status-nogo)" stroke-width="1.4"/>';
+  }
+
+  /* ---------------- Timeline ---------------- */
+  function timeline(o) {
+    var W = o.w, L = o.left || 92, RM = 10, x0 = -TS.CTX, x1 = TS.WIN + TS.CTX;
+    var X = function (t) { return L + (t - x0) / (x1 - x0) * (W - L - RM); };
+    var hw = X(1) - X(0);
+    var p = [], y = 0;
+    var yFlag = 0, yDay = 30, yBar = 36, yChart = 48, CH = o.clearance ? (o.chartH || 128) : 0;
+    var yCall1 = yChart + (CH ? CH + 16 : 0), BH = o.bandH || 40;
+    var ySun = yCall1 + 18, yEarth = ySun + BH + 12, yCall2 = yEarth + BH + 2, yDate = yCall2 + 38;
+    var H = yDate + 4;
+    var id = o.id || 'tl';
+    p.push('<defs><pattern id="' + id + 'hx" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="var(--rule-2)" stroke-width="1"/></pattern></defs>');
+    // day scale bar (alternating segments, like a map's scale bar)
+    for (var d = 0; d < 10; d++) {
+      var a = X(d * 24), b = X(d * 24 + 24);
+      p.push('<rect x="' + a + '" y="' + yBar + '" width="' + (b - a) + '" height="5" fill="' + (d % 2 ? 'var(--paper-0)' : 'var(--ink-2)') + '" stroke="var(--ink-2)" stroke-width=".6"/>');
+      p.push('<text x="' + ((a + b) / 2) + '" y="' + yDay + '" class="tl-day" text-anchor="middle">Day ' + (d + 1) + '</text>');
+    }
+    p.push('<line x1="' + X(x0) + '" x2="' + X(0) + '" y1="' + (yBar + 2.5) + '" y2="' + (yBar + 2.5) + '" stroke="var(--ink-4)" stroke-dasharray="2 3"/>');
+    p.push('<line x1="' + X(240) + '" x2="' + X(x1) + '" y1="' + (yBar + 2.5) + '" y2="' + (yBar + 2.5) + '" stroke="var(--ink-4)" stroke-dasharray="2 3"/>');
+    p.push('<text x="' + ((X(x0) + X(0)) / 2) + '" y="' + yDay + '" class="tl-ctx" text-anchor="middle">3 days before landing</text>');
+    p.push('<text x="' + ((X(240) + X(x1)) / 2) + '" y="' + yDay + '" class="tl-ctx" text-anchor="middle">3 days after the window</text>');
+    // graticule: day lines through everything below the bar
+    for (var dd = -3; dd <= 13; dd++) {
+      var gx = X(dd * 24);
+      p.push('<line x1="' + gx + '" x2="' + gx + '" y1="' + (yBar + 6) + '" y2="' + (yEarth + BH) + '" stroke="var(--rule)" stroke-width="' + (dd === 0 || dd === 10 ? 1 : .5) + '"/>');
+    }
+    // clearance chart
+    if (CH) {
+      var lo = -4, hi = 8, Y = function (v) { return yChart + (hi - Math.max(lo, Math.min(hi, v))) / (hi - lo) * CH; };
+      for (var g = lo; g <= hi; g += 2) {
+        p.push('<line x1="' + L + '" x2="' + (W - RM) + '" y1="' + Y(g) + '" y2="' + Y(g) + '" stroke="var(--rule)" stroke-width=".5"/>');
+        p.push('<text x="' + (L + 4) + '" y="' + (Y(g) - 2.5) + '" class="tl-ax">' + sgn(g, 0) + '°</text>');
+      }
+      p.push('<line x1="' + L + '" x2="' + (W - RM) + '" y1="' + Y(0) + '" y2="' + Y(0) + '" stroke="var(--ink-3)" stroke-width="1"/>');
+      p.push('<line x1="' + L + '" x2="' + (W - RM) + '" y1="' + Y(TS.MASK) + '" y2="' + Y(TS.MASK) + '" stroke="var(--earth)" stroke-width="1" stroke-dasharray="5 3"/>');
+      p.push('<text x="' + (X(30)) + '" y="' + (Y(0) + 12) + '" class="tl-ax">0°, the skyline at the body’s azimuth</text>');
+      p.push('<text x="' + (X(30)) + '" y="' + (Y(TS.MASK) - 4) + '" class="tl-ax tl-earthc">antenna mask 1.0° (assumed)</text>');
+      var sp = '', ep = '';
+      TS.series.forEach(function (h, i) { sp += (i ? 'L' : 'M') + n(X(h.t + .5), 1) + ' ' + n(Y(h.sun_clear), 1); ep += (i ? 'L' : 'M') + n(X(h.t + .5), 1) + ' ' + n(Y(h.earth_clear), 1); });
+      p.push('<path d="' + sp + '" fill="none" stroke="var(--sun)" stroke-width="1.5"/>');
+      p.push('<path d="' + ep + '" fill="none" stroke="var(--earth)" stroke-width="1.5"/>');
+      p.push('<text x="' + (L - 66) + '" y="' + (yChart + 10) + '" class="tl-row">Clearance</text>');
+      p.push('<text x="' + (L - 66) + '" y="' + (yChart + 24) + '" class="tl-sub">degrees</text>');
+      p.push('<rect x="' + (L - 66) + '" y="' + (yChart + 36) + '" width="10" height="2" fill="var(--sun)"/><text x="' + (L - 52) + '" y="' + (yChart + 40) + '" class="tl-sub">Sun</text>');
+      p.push('<rect x="' + (L - 66) + '" y="' + (yChart + 50) + '" width="10" height="2" fill="var(--earth)"/><text x="' + (L - 52) + '" y="' + (yChart + 54) + '" class="tl-sub">Earth</text>');
+    }
+    // band frames
+    [ySun, yEarth].forEach(function (yy) {
+      p.push('<line x1="' + L + '" x2="' + (W - RM) + '" y1="' + (yy + BH) + '" y2="' + (yy + BH) + '" stroke="var(--rule-2)" stroke-width=".8"/>');
+      p.push('<line x1="' + L + '" x2="' + (W - RM) + '" y1="' + yy + '" y2="' + yy + '" stroke="var(--rule)" stroke-width=".5" stroke-dasharray="1 3"/>');
+    });
+    p.push('<text x="' + (L - 66) + '" y="' + (ySun + 16) + '" class="tl-row">Sun</text><text x="' + (L - 66) + '" y="' + (ySun + 30) + '" class="tl-sub">disc fraction</text>');
+    p.push('<text x="' + (L - 66) + '" y="' + (yEarth + 16) + '" class="tl-row">Earth</text><text x="' + (L - 66) + '" y="' + (yEarth + 30) + '" class="tl-sub">link</text>');
+    // hours
+    var sunLit = '', sunCtx = '', earthLink = '', earthCtx = '', darkStep = '';
+    TS.series.forEach(function (h) {
+      var x = X(h.t), ctx = h.t < 0 || h.t >= TS.WIN;
+      if (h.lit) { var hh = h.sun_frac * BH; var r = 'M' + n(x, 2) + ' ' + n(ySun + BH - hh, 2) + 'h' + n(hw + .05, 2) + 'v' + n(hh, 2) + 'h-' + n(hw + .05, 2) + 'Z'; if (ctx) sunCtx += r; else sunLit += r; }
+      else { darkStep += 'M' + n(x, 2) + ' ' + n(ySun + BH - h.sun_frac * BH, 2) + 'h' + n(hw, 2); }
+      if (h.link) { var e = 'M' + n(x, 2) + ' ' + yEarth + 'h' + n(hw + .05, 2) + 'v' + BH + 'h-' + n(hw + .05, 2) + 'Z'; if (ctx) earthCtx += e; else earthLink += e; }
+    });
+    p.push('<path d="' + sunCtx + '" fill="var(--sun)" opacity=".28"/><path d="' + sunLit + '" fill="var(--sun)"/>');
+    p.push('<path d="' + earthCtx + '" fill="var(--earth)" opacity=".28"/><path d="' + earthLink + '" fill="var(--earth)"/>');
+    p.push('<path d="' + darkStep + '" stroke="var(--ink-3)" stroke-width="1" fill="none"/>');
+    // context hatching
+    p.push('<rect x="' + X(x0) + '" y="' + ySun + '" width="' + (X(0) - X(x0)) + '" height="' + (yEarth + BH - ySun) + '" fill="url(#' + id + 'hx)" opacity=".55"/>');
+    p.push('<rect x="' + X(240) + '" y="' + ySun + '" width="' + (X(x1) - X(240)) + '" height="' + (yEarth + BH - ySun) + '" fill="url(#' + id + 'hx)" opacity=".55"/>');
+    // outlines: longest dark stretch and longest blackout
+    var m = TS.metrics, ld = m.longest_dark, lb = m.longest_blackout;
+    if (o.outlines !== false) {
+      var dxa = X(ld.start), dxb = X(ld.end), darkLen = ld.end - ld.start, darkVeto = darkLen > 6;
+      p.push('<rect x="' + (dxa - 1.5) + '" y="' + (ySun - 3) + '" width="' + (dxb - dxa + 3) + '" height="' + (BH + 6) + '" fill="none" stroke="' + (darkVeto ? 'var(--status-nogo)' : 'var(--ink)') + '" stroke-width="1.4"/>');
+      p.push('<path d="M' + ((dxa + dxb) / 2) + ' ' + (ySun - 3) + 'V' + (yCall1 + 6) + 'H' + ((dxa + dxb) / 2 - 18) + '" stroke="var(--ink-2)" stroke-width=".7" fill="none"/>');
+      p.push('<text x="' + ((dxa + dxb) / 2 - 22) + '" y="' + (yCall1 + 9.5) + '" class="tl-call" text-anchor="end">Longest dark stretch ' + darkLen + ' h <tspan class="tl-call-ok">within the 6 h limit (assumed)</tspan></text>');
+      var bxa = X(lb.start), bxb = X(lb.end), blLen = lb.end - lb.start;
+      p.push('<rect x="' + (bxa - 1.5) + '" y="' + (yEarth - 3) + '" width="' + (bxb - bxa + 3) + '" height="' + (BH + 6) + '" fill="none" stroke="var(--status-nogo)" stroke-width="1.6"/>');
+      p.push('<path d="M' + ((bxa + bxb) / 2) + ' ' + (yEarth + BH + 3) + 'V' + (yCall2 + 14) + 'H' + ((bxa + bxb) / 2 - 18) + '" stroke="var(--status-nogo)" stroke-width=".8" fill="none"/>');
+      p.push(sym('nogo', (bxa + bxb) / 2 - 27, yCall2 + 14, 9));
+      p.push('<text x="' + ((bxa + bxb) / 2 - 36) + '" y="' + (yCall2 + 17.5) + '" class="tl-call tl-call-bad" text-anchor="end">Longest blackout ' + blLen + ' h, breaks the 12 h limit (assumed)</text>');
+    }
+    // dates
+    for (var k = -3; k <= 12; k++) {
+      var dx = X(k * 24), dt = TS.iso(k * 24).slice(0, 10);
+      if (k % 1 === 0) p.push('<text x="' + (dx + 3) + '" y="' + (yDate - 2) + '" class="tl-date' + (k < 0 || k > 9 ? ' tl-ctx' : '') + '">' + dt.slice(5) + '</text>');
+    }
+    p.push('<text x="' + (L - 66) + '" y="' + (yDate - 2) + '" class="tl-sub">UTC dates</text>');
+    // scrubber
+    if (o.t != null) {
+      var sx = X(o.t + .5);
+      p.push('<line x1="' + sx + '" x2="' + sx + '" y1="' + (yBar - 2) + '" y2="' + (yEarth + BH + 2) + '" stroke="var(--accent)" stroke-width="1.6"/>');
+      p.push('<path d="M' + (sx - 5) + ' ' + (yBar - 8) + 'L' + (sx + 5) + ' ' + (yBar - 8) + 'L' + sx + ' ' + (yBar - 1) + 'Z" fill="var(--accent)"/>');
+      var day = Math.floor(o.t / 24) + 1, lab = 'Day ' + day + ', ' + TS.iso(o.t);
+      var tw = lab.length * 6.1 + 16, fx = Math.min(Math.max(sx - tw / 2, L), W - RM - tw);
+      p.push('<rect x="' + fx + '" y="' + (yFlag + 2) + '" width="' + tw + '" height="17" rx="1" fill="var(--accent)"/>');
+      p.push('<text x="' + (fx + tw / 2) + '" y="' + (yFlag + 14) + '" class="tl-flag" text-anchor="middle">' + lab + '</text>');
+    }
+    return { svg: '<svg class="tl" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="Mission timeline">' + p.join('') + '</svg>', h: H, X: X };
+  }
+
+  /* ---------------- Lander's eye ---------------- */
+  // sphere-tier contrast site: Apollo 11, smooth Moon
+  var A11 = { lat: 0.67416, lon: 23.47314 };
+  function a11Sun(t) {
+    var H = (-84 + 0.50792 * t) * RAD, dec = -1.2 * RAD, phi = A11.lat * RAD;
+    var el = Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H));
+    var az = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(phi) - Math.tan(dec) * Math.cos(phi)) / RAD + 180;
+    return { az: (az + 360) % 360, el: el / RAD };
+  }
+  function a11Earth(t) {
+    var bE = 4.1 * Math.cos(2 * Math.PI * (t - 81) / 653) * RAD, lE = 6.2 * Math.sin(2 * Math.PI * (t - 120) / 661.3) * RAD;
+    var phi = A11.lat * RAD, lam = A11.lon * RAD, dl = lE - lam;
+    var el = Math.asin(Math.sin(phi) * Math.sin(bE) + Math.cos(phi) * Math.cos(bE) * Math.cos(dl));
+    var az = Math.atan2(Math.sin(dl) * Math.cos(bE), Math.cos(phi) * Math.sin(bE) - Math.sin(phi) * Math.cos(bE) * Math.cos(dl)) / RAD;
+    return { az: (az + 360) % 360, el: el / RAD };
+  }
+
+  function pano(o) {
+    var W = o.w, H = o.h, ML = 40, MR = 12, MT = o.mt == null ? 26 : o.mt, MB = o.mb == null ? 30 : o.mb, id = o.id || 'pv';
+    var PW = W - ML - MR, PH = H - MT - MB, lo = o.range[0], hi = o.range[1];
+    var sphere = o.kind === 'sphere', c = o.center;
+    var span = o.span || 360, half = span / 2, pxX = PW / span, pxY = PH / (hi - lo);
+    var X = function (az) { return ML + (TS.wrap(az - c) + half) * pxX; };
+    var inView = function (az) { return Math.abs(TS.wrap(az - c)) <= half + 1e-9; };
+    var Y = function (el) { return MT + (hi - el) * pxY; };
+    var skyF = sphere ? function () { return -0.05; } : TS.sky;
+    var sunF = sphere ? a11Sun : function (t) { var h = TS.at(t); return { az: h.sun_az, el: h.sun_el }; };
+    var earthF = sphere ? a11Earth : function (t) { var h = TS.at(t); return { az: h.earth_az, el: h.earth_el }; };
+    var p = [];
+    // skyline geometry
+    var pts = [];
+    var stp = span < 60 ? 0.05 : 0.25;
+    for (var r = -half; r <= half + 1e-9; r += stp) { var az = c + r; pts.push([ML + (r + half) * pxX, Y(skyF(az))]); }
+    var top = pts.map(function (q, i) { return (i ? 'L' : 'M') + n(q[0], 1) + ' ' + n(q[1], 1); }).join('');
+    var ground = top + 'L' + (ML + PW) + ' ' + (MT + PH) + 'L' + ML + ' ' + (MT + PH) + 'Z';
+    var skyArea = top + 'L' + (ML + PW) + ' ' + MT + 'L' + ML + ' ' + MT + 'Z';
+    p.push('<defs><clipPath id="' + id + 'sky"><path d="' + skyArea + '"/></clipPath><clipPath id="' + id + 'plot"><rect x="' + ML + '" y="' + MT + '" width="' + PW + '" height="' + PH + '"/></clipPath>' +
+      '<pattern id="' + id + 'eng" width="6" height="3" patternUnits="userSpaceOnUse"><line x1="0" y1="1.5" x2="6" y2="1.5" stroke="var(--ink)" stroke-opacity=".09" stroke-width=".8"/></pattern></defs>');
+    p.push('<rect x="' + ML + '" y="' + MT + '" width="' + PW + '" height="' + PH + '" fill="var(--sky)"/>');
+    // graticule
+    var stepEl = o.stepEl || (sphere ? 15 : 2);
+    for (var g = Math.ceil(lo / stepEl) * stepEl; g <= hi; g += stepEl) {
+      p.push('<line x1="' + ML + '" x2="' + (ML + PW) + '" y1="' + Y(g) + '" y2="' + Y(g) + '" stroke="var(--rule)" stroke-width="' + (g === 0 ? 0 : .5) + '"/>');
+      p.push('<text x="' + (ML - 6) + '" y="' + (Y(g) + 3.5) + '" class="pv-ax" text-anchor="end">' + sgn(g, stepEl < 1 ? 1 : 0) + '°</text>');
+    }
+    var stepAz = span < 60 ? 2 : 10, labAz = span < 60 ? 2 : 30;
+    for (var a = 0; a < 360; a += stepAz) {
+      if (!inView(a) || (span < 360 && Math.abs(TS.wrap(a - c)) > half - .01)) continue;
+      var gx = X(a);
+      p.push('<line x1="' + gx + '" x2="' + gx + '" y1="' + MT + '" y2="' + (MT + PH) + '" stroke="var(--rule)" stroke-width="' + (a % labAz ? .35 : .6) + '"/>');
+      if (a % labAz === 0 && MT > 12) p.push('<text x="' + gx + '" y="' + (MT - 8) + '" class="pv-ax" text-anchor="middle">' + a + '°</text>');
+      p.push('<line x1="' + gx + '" x2="' + gx + '" y1="' + MT + '" y2="' + (MT + (a % labAz ? 3 : 6)) + '" stroke="var(--ink-3)" stroke-width=".8"/>');
+    }
+    // ground
+    p.push('<path d="' + ground + '" fill="var(--ground)"/><path d="' + ground + '" fill="url(#' + id + 'eng)"/>');
+    p.push('<path d="' + top + '" fill="none" stroke="var(--ink-2)" stroke-width="1.1" stroke-linejoin="round"/>');
+    // zero line
+    if (lo < 0 && hi > 0) p.push('<line x1="' + ML + '" x2="' + (ML + PW) + '" y1="' + Y(0) + '" y2="' + Y(0) + '" stroke="var(--ink-2)" stroke-width=".9" stroke-dasharray="' + (sphere ? '0' : '6 3') + '" opacity=".85"/>');
+    var zx = o.zeroLabelX != null ? o.zeroLabelX : ML + PW - 6;
+    if (lo < 0 && hi > 0) p.push('<text x="' + zx + '" y="' + (Y(0) + 13) + '" class="pv-lab pv-zero" text-anchor="end">0°, local horizontal</text>');
+    // paths
+    var T0 = 0, T1 = TS.WIN;
+    function track(F, cls) {
+      var s = '', last = null;
+      for (var t = T0; t <= T1; t++) {
+        var q = F(t), x = X(q.az), y = Y(q.el);
+        s += (last === null || Math.abs(x - last) > PW / 2 || !inView(q.az) ? 'M' : 'L') + n(x, 1) + ' ' + n(y, 1); last = x;
+      }
+      var out = '<path d="' + s + '" class="' + cls + '" fill="none" clip-path="url(#' + id + 'plot)"/>';
+      for (var d = 0; d <= 10; d++) {
+        var q2 = F(d * 24), q3 = F(Math.min(d * 24 + 1, T1)), q1 = F(Math.max(d * 24 - 1, 0));
+        var tx = X(q2.az), ty = Y(q2.el), ddx = X(q3.az) - X(q1.az), ddy = Y(q3.el) - Y(q1.el), L2 = Math.hypot(ddx, ddy) || 1;
+        var nx = -ddy / L2 * 5, ny = ddx / L2 * 5;
+        if (!inView(q2.az) || o.ticks === false) continue;
+        out += '<line x1="' + n(tx - nx, 1) + '" y1="' + n(ty - ny, 1) + '" x2="' + n(tx + nx, 1) + '" y2="' + n(ty + ny, 1) + '" class="' + cls + '-tick"/>';
+        if (o.tickLabels !== false) {
+          if (cls === 'pv-earth') { if ([0, 3, 6, 9].indexOf(d) >= 0) out += '<text x="' + n(tx - 8, 1) + '" y="' + n(ty + 3, 1) + '" class="pv-tick" text-anchor="end">' + (d + 1) + '</text>'; }
+          else if (d % (o.tickEvery || 1) === 0) out += '<text x="' + n(tx + nx * 2.2, 1) + '" y="' + n(ty + ny * 2.2 + 3, 1) + '" class="pv-tick" text-anchor="middle">' + (d + 1) + '</text>';
+        }
+      }
+      return out;
+    }
+    p.push(track(sunF, 'pv-sun'));
+    p.push(track(earthF, 'pv-earth'));
+    // antenna mask line around Earth's position
+    if (!sphere && inView(earthF(o.t).az)) {
+      var eMin = 999, eMax = -999;
+      for (var t2 = 0; t2 <= TS.WIN; t2 += 6) { var ea = TS.wrap(earthF(t2).az - c); eMin = Math.min(eMin, ea); eMax = Math.max(eMax, ea); }
+      var ms = '';
+      var m0 = Math.max(eMin - 10, -half), m1 = Math.min(eMax + 10, half);
+      for (var r2 = m0; r2 <= m1; r2 += stp) ms += (ms ? 'L' : 'M') + n(ML + (r2 + half) * pxX, 1) + ' ' + n(Y(TS.sky(c + r2) + TS.MASK), 1);
+      p.push('<path d="' + ms + '" fill="none" stroke="var(--earth)" stroke-width="1" stroke-dasharray="4 3"/>');
+      var mlx = ML + (m1 + half) * pxX;
+      if (o.maskLabel !== false) p.push('<text x="' + (mlx + 6) + '" y="' + (Y(TS.sky(c + m1) + TS.MASK) + 3) + '" class="pv-lab pv-earthc">antenna mask, 1.0° above the skyline (assumed)</text>');
+    } else if (sphere) {
+      p.push('<text x="' + (ML + 10) + '" y="' + (Y(0) - 8) + '" class="pv-lab">Terrain not modelled. Showing a smooth Moon.</text>');
+    }
+    // discs at the scrubber's time
+    function disc(F, R, fill, label, side) {
+      var q = F(o.t); if (!inView(q.az)) return '';
+      var x = X(q.az), y = Y(q.el), rx = Math.max(R * pxX, 1.2), ry = R * pxY;
+      var e = '<ellipse cx="' + n(x, 1) + '" cy="' + n(y, 1) + '" rx="' + n(rx, 2) + '" ry="' + n(ry, 2) + '"';
+      var s = e + ' fill="' + fill + '" opacity=".22"/>' + e + ' fill="none" stroke="' + fill + '" stroke-width=".6" stroke-dasharray="2 2" opacity=".7"/>';
+      s += '<g clip-path="url(#' + id + 'sky)">' + e + ' fill="' + fill + '"/></g>';
+      s = '<g clip-path="url(#' + id + 'plot)">' + s + '</g>';
+      var lx = x + side * (rx + 10), ly = y - ry - (label === 'Sun' ? (o.sunLift || 4) : 4);
+      if (o.discLabels === false) return s;
+      s += '<line x1="' + n(x + side * (rx + 2), 1) + '" y1="' + n(y - ry * .6, 1) + '" x2="' + n(lx, 1) + '" y2="' + n(ly + 4, 1) + '" stroke="var(--ink-3)" stroke-width=".7"/>';
+      s += '<text x="' + n(lx + side * 3, 1) + '" y="' + n(ly, 1) + '" class="pv-disc" text-anchor="' + (side > 0 ? 'start' : 'end') + '">' + label + '</text>';
+      s += '<text x="' + n(lx + side * 3, 1) + '" y="' + n(ly + 13, 1) + '" class="pv-lab" text-anchor="' + (side > 0 ? 'start' : 'end') + '">' + sgn(q.el, 2) + '°, az ' + n(q.az, 1) + '°</text>';
+      return s;
+    }
+    p.push(disc(sunF, TS.SUN_R, 'var(--sun)', 'Sun', o.sunSide || 1));
+    p.push(disc(earthF, TS.EARTH_R, 'var(--earth)', 'Earth', o.earthSide || 1));
+    // hover crosshair
+    var hv = null;
+    if (o.hover != null) {
+      var hx = X(o.hover), hy = Y(skyF(o.hover));
+      p.push('<line x1="' + hx + '" x2="' + hx + '" y1="' + MT + '" y2="' + (MT + PH) + '" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 2"/>');
+      p.push('<circle cx="' + hx + '" cy="' + hy + '" r="4" fill="none" stroke="var(--accent)" stroke-width="1.6"/><circle cx="' + hx + '" cy="' + hy + '" r="1.4" fill="var(--accent)"/>');
+      hv = { x: hx, y: hy };
+    }
+    // frame (neatline: outer and inner rule)
+    p.push('<rect x="' + ML + '" y="' + MT + '" width="' + PW + '" height="' + PH + '" fill="none" stroke="var(--ink-3)" stroke-width=".8"/>');
+    p.push('<rect x="' + (ML - 3) + '" y="' + (MT - 3) + '" width="' + (PW + 6) + '" height="' + (PH + 6) + '" fill="none" stroke="var(--rule-2)" stroke-width=".5"/>');
+    // compass labels
+    if (o.compass !== false) [['N', 0], ['NE', 45], ['E', 90], ['SE', 135], ['S', 180], ['SW', 225], ['W', 270], ['NW', 315]].forEach(function (k) {
+      if (!inView(k[1])) return; var x = X(k[1]); var big = k[0].length === 1;
+      p.push('<text x="' + x + '" y="' + (MT + PH + (big ? 20 : 17)) + '" class="' + (big ? 'pv-compass' : 'pv-compass2') + '" text-anchor="middle">' + k[0] + '</text>');
+    });
+    var ratio = pxY / pxX;
+    return { svg: '<svg class="pv" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="Lander\'s eye panorama">' + p.join('') + '</svg>', hover: hv, ratio: ratio, X: X, Y: Y };
+  }
+
+  var BLOCKERS = [ { az: 251.6, w: 6, dist: 12.4, feature: 'de Gerlache', fdist: 9.8 }, { az: 75.2, w: 6, dist: 58.7, feature: 'Haworth', fdist: 25.7 } ];
+  function blocker(az) {
+    for (var i = 0; i < BLOCKERS.length; i++) if (Math.abs(TS.wrap(az - BLOCKERS[i].az)) < BLOCKERS[i].w) {
+      var b = BLOCKERS[i], el = TS.sky(az), h = Math.tan(el * RAD) * b.dist + b.dist * b.dist / (2 * 1737.4);
+      return { az: az, el: el, dist: b.dist, height_m: h * 1000, feature: b.feature, fdist: b.fdist };
+    }
+    return null;
+  }
+  function countdowns(T) {
+    var h = TS.at(T), ns = TS.nextSun(T), ns2 = TS.nextSun(ns + .01), ne = TS.nextEarth(T), ne2 = TS.nextEarth(ne + .01);
+    function card(ev, dt, cls, tip) {
+      var amber = dt - T < 6;
+      return '<div class="card ' + cls + (amber ? ' amber' : '') + '"><span class="ev"><span>' + ev + ' in</span>' + (amber ? '<span class="soon"><i></i>under 6 h</span>' : '<span class="info" title="' + tip + '">i</span>') + '</span><span class="big">' + TS.dur(dt - T) + '</span><span class="at">' + TS.iso(dt) + '</span></div>';
+    }
+    var sunTip = 'Sunset is the moment the disc fraction falls below 0.5, the profile rule, not the geometric horizon.';
+    var earthTip = 'Earthset is the moment Earth clearance falls below the 1.0 degree antenna mask.';
+    return '<h3>Sun <small>now ' + (h.lit ? 'lit' : 'dark') + ', ' + sgn(h.sun_el, 2) + '° up, disc fraction ' + h.sun_frac.toFixed(2) + '</small></h3>' +
+      card(h.lit ? 'Sunset' : 'Sunrise', ns, 'next', sunTip) + card(h.lit ? 'Sunrise' : 'Sunset', ns2, '', sunTip) +
+      '<h3>Earth <small>now ' + (h.link ? 'linked' : 'in blackout') + ', ' + sgn(h.earth_el, 2) + '° up, clearance ' + sgn(h.earth_clear, 2) + '°</small></h3>' +
+      card(h.link ? 'Earthset' : 'Earthrise', ne, 'next', earthTip) + card(h.link ? 'Earthrise' : 'Earthset', ne2, '', earthTip);
+  }
+  function why(T, body) {
+    var h = TS.at(T), az = body === 'sun' ? h.sun_az : h.earth_az, el = body === 'sun' ? h.sun_el : h.earth_el, b = blocker(az);
+    var name = body === 'sun' ? 'Sun' : 'Earth';
+    return { text: name + ' is ' + n(el, 1) + '° up. The ridge in that direction rises to ' + n(b.el, 1) + '°, ' + n(b.dist, 1) + ' km away, near ' + b.feature + '. Blocked by terrain.', az: az, b: b };
+  }
+  function meanEarthAz() { var s = 0; for (var t = 0; t < TS.WIN; t++) s += TS.at(t).earth_az; return s / TS.WIN; }
+  return { blocker: blocker, countdowns: countdowns, why: why, timeline: timeline, pano: pano, sym: sym, n: n, sgn: sgn, meanEarthAz: meanEarthAz, a11Sun: a11Sun, a11Earth: a11Earth };
+})();
+
+(function () {
+  var RAD = Math.PI / 180, W = 636, H = 430, cx = 412, cy = 196, S = 58, ROT = -90;
+  function P(lat, lon) { var r = (90 + lat) * S, a = (lon + ROT) * RAD; return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; }
+  var p = [];
+  p.push('<defs><clipPath id="mclip"><rect x="0" y="0" width="' + W + '" height="' + H + '"/></clipPath></defs><g clip-path="url(#mclip)">');
+  // graticule
+  for (var d = 1; d <= 7; d++) p.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + d * S + '" fill="none" stroke="var(--rule-2)" stroke-width="' + (d % 5 ? .5 : .9) + '"/>');
+  for (var lon = 0; lon < 360; lon += 30) { var e = P(-83, lon); p.push('<line x1="' + cx + '" y1="' + cy + '" x2="' + e[0] + '" y2="' + e[1] + '" stroke="var(--rule-2)" stroke-width=".5"/>'); }
+  [[-89, 'S'], [-88], [-87], [-86], [-85], [-84]].forEach(function (k) { var q = P(k[0], 150); p.push('<text x="' + (q[0] + 3) + '" y="' + (q[1] - 3) + '" class="m-lat">' + Math.abs(k[0]) + '°S</text>'); });
+  [[0, '0°'], [30, '30°E'], [330, '330°E'], [300, '300°E'], [60, '60°E']].forEach(function (k) { var q = P(-84.35, k[0]); p.push('<text x="' + q[0] + '" y="' + q[1] + '" class="m-lat" text-anchor="middle">' + k[1] + '</text>'); });
+  // craters with inward hachures
+  var craters = [['Shackleton', -89.67, 129.78, 20.92, -1, 1], ['de Gerlache', -88.48, 271.66, 32.71, 0, 1], ['Sverdrup', -88.32, 206.61, 32.83, 0, 1], ['Shoemaker', -88.14, 45.91, 51.82, 0, 1], ['Slater', -88.08, 111.29, 25.12, 0, 1], ['Haworth', -87.45, 354.83, 51.42, 0, 1], ['Faustini', -87.18, 84.31, 42.48, 0, 1], ['Nobile', -85.28, 53.27, 79.27, 0, 1], ['Cabeus', -85.33, 317.87, 100.58, 0, 1], ['Malapert', -85.00, 11.40, 72.38, 0, 1], ['Amundsen', -84.44, 83.07, 103.39, 0, 0], ['Wiechert', -84.03, 164.70, 40.82, 0, 0]];
+  craters.forEach(function (c) {
+    var q = P(c[1], c[2]), r = c[3] / 2 / 30.32 * S;
+    p.push('<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="' + r.toFixed(1) + '" fill="rgba(0,0,0,.18)" stroke="var(--ink-3)" stroke-width=".8"/>');
+    var h = '';
+    for (var a = 0; a < 360; a += Math.max(6, 120 / r)) { var ca = Math.cos(a * RAD), sa = Math.sin(a * RAD), L = 2.5 + (a % 18 === 0 ? 2 : 0); h += 'M' + (q[0] + ca * r).toFixed(1) + ' ' + (q[1] + sa * r).toFixed(1) + 'L' + (q[0] + ca * (r - L)).toFixed(1) + ' ' + (q[1] + sa * (r - L)).toFixed(1); }
+    p.push('<path d="' + h + '" stroke="var(--ink-3)" stroke-width=".6"/>');
+    if (c[5]) p.push('<text x="' + q[0].toFixed(1) + '" y="' + (c[4] < 0 ? q[1] - r - 5 : q[1] + 4).toFixed(1) + '" class="m-feat" text-anchor="middle">' + c[0] + '</text>');
+  });
+  // pole
+  p.push('<path d="M' + (cx - 6) + ' ' + cy + 'h12M' + cx + ' ' + (cy - 6) + 'v12" stroke="var(--ink-2)" stroke-width="1"/>');
+  // sites
+  var sites = [['Connecting Ridge', -89.4555, 222.6192, 1, 10, -8, 'start'], ['de Gerlache rim', -88.6952, 291.7154, 1, -9, 4, 'end'], ['Malapert Massif', -85.9948, 359.7642, 1, -4, 20, 'end'], ['Mons Mouton', -85.4266, 31.7428, 1, 10, 4, 'start'],
+    ['Shackleton rim', -89.7742, 203.4952, 0], ['Peak near Shackleton', -88.74, 124.5, 0], ['Nobile Rim 1', -85.4381, 37.3667, 0], ['Haworth', -86.7639, 337.2230, 0], ['IM-2 Athena', -84.7906, 29.1957, 0, -8, 4, 'end'], ['de Gerlache Rim 2', -88.23, 295.3716, 0]];
+  sites.forEach(function (s) {
+    var q = P(s[1], s[2]);
+    if (s[3]) {
+      p.push('<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="5" fill="var(--paper-1)" stroke="var(--ink)" stroke-width="1.2"/><circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="1.6" fill="var(--accent)"/>');
+      p.push('<text x="' + (q[0] + s[4]).toFixed(1) + '" y="' + (q[1] + s[5]).toFixed(1) + '" class="m-site" text-anchor="' + s[6] + '">' + s[0] + '</text>');
+    } else {
+      p.push('<path d="M' + q[0].toFixed(1) + ' ' + (q[1] - 3.5).toFixed(1) + 'l3 5.5h-6z" fill="none" stroke="var(--ink-2)" stroke-width=".9"/>');
+      if (s[4]) p.push('<text x="' + (q[0] + s[4]).toFixed(1) + '" y="' + (q[1] + s[5]).toFixed(1) + '" class="m-feat" style="fill:var(--ink-2)" text-anchor="' + s[6] + '">' + s[0] + '</text>');
+    }
+  });
+  p.push('</g>');
+  // legend + scale bar
+  var kmpx = S / 30.32, sb = 50 * kmpx, x0 = 18, y0 = H - 22;
+  for (var i = 0; i < 2; i++) p.push('<rect x="' + (x0 + i * sb / 2) + '" y="' + y0 + '" width="' + sb / 2 + '" height="4" fill="' + (i ? 'var(--paper-1)' : 'var(--ink-2)') + '" stroke="var(--ink-2)" stroke-width=".6"/>');
+  p.push('<text x="' + x0 + '" y="' + (y0 + 15) + '" class="m-small">0</text><text x="' + (x0 + sb / 2) + '" y="' + (y0 + 15) + '" class="m-small" text-anchor="middle">25</text><text x="' + (x0 + sb) + '" y="' + (y0 + 15) + '" class="m-small" text-anchor="middle">50 km</text>');
+  p.push('<g transform="translate(' + (W - 170) + ' ' + (H - 56) + ')"><rect x="0" y="0" width="158" height="44" fill="var(--paper-1)" stroke="var(--rule-2)" stroke-width=".6"/>' +
+    '<circle cx="12" cy="14" r="4.5" fill="var(--paper-1)" stroke="var(--ink)" stroke-width="1.1"/><circle cx="12" cy="14" r="1.5" fill="var(--accent)"/><text x="24" y="17.5" class="m-small" style="fill:var(--ink-2)">the four default sites</text>' +
+    '<path d="M12 26.5l3 5.5h-6z" fill="none" stroke="var(--ink-2)" stroke-width=".9"/><text x="24" y="33" class="m-small" style="fill:var(--ink-2)">more catalog sites</text></g>');
+  document.getElementById('map').innerHTML = p.join('');
+
+  // Academy plate: a horizon with the lesson route
+  var q = [], HY = 300; H = 430 - 46;
+  q.push('<defs><pattern id="eng2" width="6" height="3" patternUnits="userSpaceOnUse"><line x1="0" y1="1.5" x2="6" y2="1.5" stroke="var(--ink)" stroke-opacity=".1" stroke-width=".8"/></pattern>' +
+    '<clipPath id="aclip"><rect x="0" y="-46" width="' + W + '" height="' + (H + 46) + '"/></clipPath></defs><g transform="translate(0 46)" clip-path="url(#aclip)">');
+  // star graticule of the sky: faint elevation lines
+  for (var g = 0; g < 4; g++) q.push('<line x1="0" x2="' + W + '" y1="' + (HY - 40 - g * 50) + '" y2="' + (HY - 40 - g * 50) + '" stroke="var(--rule)" stroke-width=".5" stroke-dasharray="1 4"/>');
+  // Sun low on the left, long path skimming the horizon
+  q.push('<path d="M-10 ' + (HY - 22) + ' C 160 ' + (HY - 52) + ', 420 ' + (HY - 58) + ', 650 ' + (HY - 30) + '" fill="none" stroke="var(--sun)" stroke-width="1" stroke-dasharray="2 4" opacity=".7"/>');
+  q.push('<circle cx="34" cy="' + (HY - 30) + '" r="11" fill="var(--sun)"/>');
+  for (var k = 0; k < 12; k++) { var ang = k * 30 * RAD; q.push('<line x1="' + (34 + Math.cos(ang) * 15) + '" y1="' + (HY - 30 + Math.sin(ang) * 15) + '" x2="' + (34 + Math.cos(ang) * 20) + '" y2="' + (HY - 30 + Math.sin(ang) * 20) + '" stroke="var(--sun)" stroke-width="1"/>'); }
+  // Earth, half lit, upper right
+  q.push('<circle cx="64" cy="12" r="17" fill="var(--paper-1)" stroke="var(--earth)" stroke-width="1"/><path d="M64 -5 A17 17 0 0 1 64 29 A8 17 0 0 0 64 -5Z" fill="var(--earth)"/>');
+  q.push('<text x="90" y="16" class="a-les">Earth</text>');
+  // horizon silhouette
+  var top = '', base = function (x) { var az = 40 + x / W * 160; return TS.sky(az + 150) * 16 + Math.sin(x / 47) * 4; };
+  var ridgeY = function (x) { return HY + 18 - base(x) - Math.exp(-Math.pow((x - 548) / 44, 2)) * 58; };
+  for (var x = 0; x <= W; x += 2) top += (x ? 'L' : 'M') + x + ' ' + ridgeY(x).toFixed(1);
+  q.push('<path d="' + top + 'L' + W + ' ' + H + 'L0 ' + H + 'Z" fill="var(--ground)"/><path d="' + top + 'L' + W + ' ' + H + 'L0 ' + H + 'Z" fill="url(#eng2)"/><path d="' + top + '" fill="none" stroke="var(--ink-2)" stroke-width="1.1"/>');
+  // lesson route
+  var px = 548, py = Math.min(ridgeY(538), ridgeY(548), ridgeY(558)) + 1;
+  var les = ['Where’s the Sun?', 'Mountains steal sunlight', 'The Moon is round', 'Phone home', 'Don’t tip over', 'Trade-offs', 'The slip', 'Final mission'];
+  var pts = [[96, 214], [160, 154], [224, 196], [288, 136], [352, 178], [416, 118], [480, 160], [540, 100]];
+  var rt = 'M52 322';
+  pts.forEach(function (pt, i) { var pr = i ? pts[i - 1] : [52, 322]; rt += ' Q ' + ((pr[0] + pt[0]) / 2 + (i % 2 ? 14 : -14)) + ' ' + ((pr[1] + pt[1]) / 2 + (i % 2 ? -18 : 14)) + ' ' + pt[0] + ' ' + pt[1]; });
+  rt += ' Q 566 130 548 ' + (py - 30);
+  q.push('<path d="' + rt + '" fill="none" stroke="var(--accent)" stroke-width="1.3" stroke-dasharray="4 4"/>');
+  pts.forEach(function (pt, i) {
+    q.push('<circle cx="' + pt[0] + '" cy="' + pt[1] + '" r="10" fill="var(--paper-1)" stroke="var(--ink)" stroke-width="1"/>');
+    q.push('<text x="' + pt[0] + '" y="' + (pt[1] + 4) + '" class="a-num" text-anchor="middle">' + (i + 1) + '</text>');
+    var up = i % 2 === 1;
+    q.push('<text x="' + pt[0] + '" y="' + (pt[1] + (up ? -16 : 25)) + '" class="a-les" text-anchor="middle">' + les[i] + '</text>');
+  });
+  // Pip on the ridge: a small lander
+  q.push('<g transform="translate(' + px + ' ' + py + ')"><path d="M-9 0 L-5 -9 H5 L9 0" fill="none" stroke="var(--ink)" stroke-width="1.2"/><rect x="-6" y="-17" width="12" height="9" fill="var(--paper-1)" stroke="var(--ink)" stroke-width="1.2"/><line x1="0" y1="-17" x2="0" y2="-25" stroke="var(--ink)"/><circle cx="0" cy="-26" r="1.6" fill="var(--accent)"/><line x1="-12" y1="0" x2="-6" y2="0" stroke="var(--ink)"/><line x1="6" y1="0" x2="12" y2="0" stroke="var(--ink)"/></g>');
+  q.push('<text x="' + (px - 18) + '" y="' + (py - 4) + '" class="a-les" style="fill:var(--ink)" text-anchor="end">Pip lands here</text>');
+  // Luna placeholder at the start
+  var lx = 44, ly = 344;
+  q.push('<g transform="translate(' + lx + ' ' + ly + ')"><circle r="19" fill="#d9d0bd" stroke="var(--ink)" stroke-width="1"/><circle cx="-8" cy="7" r="3.5" fill="#bcb29d"/><circle cx="9" cy="-9" r="2.5" fill="#bcb29d"/><circle cx="-6" cy="-3" r="2" fill="#2a2721"/><circle cx="6" cy="-3" r="2" fill="#2a2721"/><path d="M-6 5 Q0 10 6 5" fill="none" stroke="#2a2721" stroke-width="1.5" stroke-linecap="round"/></g>');
+  q.push('<path d="M72 355 h158 v-24 h-158 v8 l-7 4 l7 4z" fill="var(--paper-0)" stroke="var(--ink-3)" stroke-width=".8"/>');
+  q.push('<text x="81" y="347.5" class="a-say">I’m Luna. Let’s land Pip.</text>');
+  q.push('</g>');
+  document.getElementById('route').innerHTML = q.join('');
+})();
+</script>
+</body>
+</html>
