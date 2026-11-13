@@ -720,7 +720,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   and by the numbers in a browser with WebGL (NVIDIA RTX 2060, ANGLE D3D11) on the real
   data and the fixtures at 1440 × 900, 1024 × 768 and 390 × 844; a human has not reviewed
   it yet
-- **State:** built, not verified
+- **State:** verified (322 Python tests, 1,637 web tests, typecheck and build pass on the merge with main; reviewed by Gemini (geometry and the data rule confirmed, three mutations caught; six findings, all fixed with tests); seen by the builder on hardware WebGL; a weak laptop and a hidden tab are not measured)
 - **Changed:** `web/src/features/three/scene/` (new), `web/src/lib/geo/placement.ts` and
   its test (new), `web/src/lib/geo/index.ts`, `web/src/app/scene.ts` (adds
   `SceneArrival`, the optional `onArrive` and `STILL_PICTURE_URL`), one line in
