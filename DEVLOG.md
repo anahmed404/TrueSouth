@@ -49,6 +49,14 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-14 · S10b review fixes · Public-endpoint failure handling
+- **Who:** Codex implementation agent
+- **AI use:** Codex reproduced the review findings with HTTP/worker regression tests, implemented the fixes and ran targeted checks; human and orchestrator review pending.
+- **State:** built, not verified
+- **Changed:** Strict finite JSON numbers; safe 422 fields without input echoes; 4 KiB streamed body cap; initialization-only compute locking; surviving/restarting workers; bounded recent states and expiring client histories; 2 GiB configured cache budget and health accounting; canonical ASCII ids and printable names; shared science latitude limit with up-front rejection; catalog latitude tiers including raster corners; ephemeris readiness; cancellable atomic publication, 90 s shutdown grace and proxy headers disabled.
+- **Tests:** Each numbered finding reproduced before its fix and pushed separately (small items 9-11 together). Added invalid UTF-8 and staging-rename probes. Initial full check found missing contract descriptions; fixed and regenerated schema/types. Final full, real-map, web and Docker results will be recorded after completion.
+- **Notes:** Merged origin/main and retained all DEVLOG entries. During the disk-full incident, all changed files were rechecked as nonempty, Python parsed, JSON decoded; no truncated source found. Full suites and Docker paused until the orchestrator confirmed restored space. Tier selection now follows site_tier (core80 <= -80; wide240 to -60; sphere north of -60), superseding the first S10b coverage labels. Error bodies and statuses are documented precisely for the form agent; success/status contracts remain unchanged.
+
 #### 2026-11-13 ? S10b ? Custom sites in the API
 - **Who:** Codex implementation agent
 - **AI use:** Codex wrote the shared builder extraction, queue, routes, Docker changes and tests; checked with pytest, vitest, typecheck, real terrain byte comparison and HTTP measurement; human review pending.

@@ -320,7 +320,7 @@ submitted values, unknown field names, validator types or internal exception det
 | HTTP | Body | Header |
 | :--- | :--- | :--- |
 | 413 | `{ "message": "Custom-site requests must be at most 4096 bytes." }` | None |
-| 422 | `{ "message": "Please check the request fields.", "fields": [{ "field": "lat_deg", "message": "Latitude must be a number from \u221290 to 90." }] }` | None |
+| 422 | `{ "message": "Please check the request fields.", "fields": [{ "field": "lat_deg", "message": "Latitude must be a number from −90 to 90." }] }` | None |
 | 429 | `{ "message": "You may start 6 custom sites per hour. Please try again later." }` | `Retry-After`: integer seconds until a slot becomes available |
 | 429 | `{ "message": "The custom-site queue is full. Please try again later." }` | `Retry-After: 1` |
 | 503 | `{ "message": "Custom sites need the terrain maps, which are not installed on this server." }` | None |
@@ -331,7 +331,7 @@ submitted values, unknown field names, validator types or internal exception det
 
 The 422 `fields` array contains one or more `{ field, message }` objects. `field` is
 only `lat_deg`, `lon_deg`, `name` or `body`. Latitude advice is the message above, or
-`Latitude must be at least 0.001\u00b0 away from a pole.` for a point the science rejects.
+`Latitude must be at least 0.001° away from a pole.` for a point the science rejects.
 Longitude advice is `Longitude must be a finite number.` Name advice is
 `Name must be text of at most 120 characters.` Malformed JSON, a missing/invalid body,
 or extra fields use `body` with `Send a JSON object with latitude, longitude and an

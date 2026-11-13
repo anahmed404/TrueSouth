@@ -195,7 +195,7 @@ FastAPI, one process. Formats are in [`data-contracts.md`](data-contracts.md).
   `c_<lat>_<lon>`, for example `c_-89.2000_130.5000`. The same place is computed once and
   then served from `data/cache/`. Because the id holds the coordinates, a shared link can
   always be recomputed.
-- Jobs run one at a time in a background worker. The queue holds at most 20 jobs.
+- Terrain jobs run one at a time in a background worker. The queue holds at most 20 waiting jobs; synchronous sphere builds run independently.
 - Each client address may start 6 custom-site jobs and 12 sensitivity grids per hour.
 - A custom site outside every terrain map becomes a sphere-tier site and is ready
   immediately.
@@ -208,7 +208,9 @@ Sensitivity grids remain unavailable. The file route serves only meta, series, s
 and terrain, with the catalog's path refusals, no-cache policy and conditional 304s.
 Unknown or unfinished ids return a JSON 404 directing callers to POST.
 
-`jobs.py` runs one background worker thread, FIFO, with at most 20 waiting jobs.
+`jobs.py` runs one terrain worker thread, FIFO, with at most 20 waiting jobs.
+Sphere builds run independently; shared locks cover initialization and atomic publication,
+never the long computation.
 Each client address may start six new jobs per rolling hour. Cached, queued and running
 duplicates cost nothing. Queue/rate exhaustion returns 429; rate exhaustion includes
 Retry-After. A failed job exposes a plain error and can be retried; the worker survives.
