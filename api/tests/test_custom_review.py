@@ -68,3 +68,49 @@ def test_sphere_and_status_do_not_wait_for_terrain(synthetic, monkeypatch):
         finally:
             release.set()
             thread.join(3)
+
+
+@pytest.mark.parametrize('failure', [KeyboardInterrupt, SystemExit])
+def test_base_exception_fails_job_and_worker_survives(tmp_path, failure):
+    entered, release = Event(), Event()
+    class Broken:
+        def tier(self, body): return 'core80'
+        def __call__(self, body, tier):
+            if body.lon_deg == 1:
+                entered.set()
+                assert release.wait(3)
+                raise failure('private detail')
+            return entry(body)
+    jobs = Jobs(tmp_path, Broken())
+    try:
+        first = jobs.submit(request(lon=1), 'one')['site_id']
+        assert entered.wait(2)
+        second = jobs.submit(request(lon=2), 'two')['site_id']
+        release.set()
+        with jobs.condition:
+            assert jobs.condition.wait_for(lambda: jobs.states[first]['status']=='failed', timeout=1)
+            assert jobs.condition.wait_for(lambda: jobs.states[second]['status']=='ready', timeout=1)
+        assert jobs.worker.is_alive()
+    finally:
+        release.set()
+        jobs.close()
+
+
+def test_dead_worker_is_reconciled_and_restarted(tmp_path):
+    class Normal:
+        def tier(self, body): return 'core80'
+        def __call__(self, body, tier): return entry(body)
+    jobs = Jobs(tmp_path, Normal())
+    dead = Thread(target=lambda: None)
+    dead.start(); dead.join()
+    jobs.worker = dead
+    identity = site_id(request(lon=1))
+    jobs.states[identity] = dict(site_id=identity, status='running', site=None, error=None)
+    assert jobs.status(identity)['status'] == 'failed'
+    try:
+        second = jobs.submit(request(lon=2), 'two')['site_id']
+        with jobs.condition:
+            assert jobs.condition.wait_for(lambda: jobs.states[second]['status']=='ready', timeout=1)
+        assert jobs.worker.is_alive()
+    finally:
+        jobs.close()

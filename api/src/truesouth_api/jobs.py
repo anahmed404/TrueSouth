@@ -73,6 +73,7 @@ class Jobs:
         self.starts = {}
         self.worker = None
         self.closed = False
+        self.inline = set()
 
     def cached(self, identity):
         if not ID.fullmatch(identity):
@@ -89,8 +90,19 @@ class Jobs:
             pass
         return None
 
+    def _reconcile_worker(self):
+        if self.worker is None or not self.worker.is_alive():
+            for identity, state in list(self.states.items()):
+                if state['status'] == 'running' and identity not in self.inline:
+                    self.states[identity] = dict(site_id=identity, status='failed', site=None,
+                        error=dict(code='computation_failed', message='The custom-site worker stopped. Please try again.'))
+            if self.waiting and not self.closed:
+                self.worker = Thread(target=self._run, name='custom-sites', daemon=True)
+                self.worker.start()
+
     def status(self, identity):
         with self.condition:
+            self._reconcile_worker()
             site = self.cached(identity)
             if site is not None:
                 return dict(site_id=identity, status='ready', site=site, error=None)
@@ -102,6 +114,9 @@ class Jobs:
         _, lat, lon = identity.split('_')
         request = request.model_copy(update=dict(lat_deg=float(lat), lon_deg=float(lon)))
         with self.condition:
+            if self.closed:
+                raise Rejected(503, 'This server is shutting down. Please try again later.')
+            self._reconcile_worker()
             state = self.status(identity)
             if state and state['status'] != 'failed':
                 position = next((i+1 for i, job in enumerate(self.waiting) if job[0] == identity), 0)
@@ -120,13 +135,16 @@ class Jobs:
             if tier != 'sphere':
                 self.waiting.append((identity, request, tier))
                 position = len(self.waiting)
-                if self.worker is None:
+                if self.worker is None or not self.worker.is_alive():
                     self.worker = Thread(target=self._run, name='custom-sites', daemon=True)
                     self.worker.start()
                 self.condition.notify()
                 return dict(site_id=identity, status='queued', position_in_queue=position)
             self.states[identity]['status'] = 'running'
+            self.inline.add(identity)
         self._compute(identity, request, tier)
+        with self.condition:
+            self.inline.discard(identity)
         return dict(site_id=identity, status=self.status(identity)['status'], position_in_queue=0)
 
     def _compute(self, identity, request, tier):
@@ -135,7 +153,7 @@ class Jobs:
         try:
             site = self.computer(request, tier)
             state = dict(site_id=identity, status='ready', site=site.model_dump(mode='json'), error=None)
-        except Exception:
+        except BaseException:
             logging.exception('Custom site %s failed', identity)
             state = dict(site_id=identity, status='failed', site=None,
                          error=dict(code='computation_failed', message='The custom site could not be computed. Please try again.'))
