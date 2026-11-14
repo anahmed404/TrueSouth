@@ -15,6 +15,7 @@ import { resolveTimeRange } from "../../drag-body";
 import { oneMonth, pipProfile } from "../../lessons/story";
 import { realExamples, realGrid, realSite } from "../../testing/real-site";
 import { hourOnGrid } from "../../utc";
+import { drawnDistance } from "../../../three/scene/proportions";
 import { horizonMoment, monthBands, sunTurnDeg, systemFrame, systemFrames } from "./panel-data";
 
 const repoRoot = fileURLToPath(new URL("../../../../../../", import.meta.url));
@@ -64,9 +65,9 @@ describe("lesson 1 step 3: the System view over the story month", () => {
     if (!frame) throw new Error("no frame");
     const lon = system.subsolar_lon[range.fromIndex] ?? Number.NaN;
     expect(frame.sunAngleDeg).toBeCloseTo(((lon % 360) + 360) % 360, 6);
-    // About three Moon radii out, as proportions.ts draws Earth.
-    expect(frame.earthDistance).toBeGreaterThan(2.8);
-    expect(frame.earthDistance).toBeLessThan(3.1);
+    // At the System view's schematic distance for the stored distance (proportions.ts).
+    expect(frame.earthDistance).toBeCloseTo(drawnDistance(system.earth_dist_km[range.fromIndex] ?? Number.NaN), 9);
+    expect(Math.hypot(frame.earthX, frame.earthY)).toBeLessThanOrEqual(frame.earthDistance + 1e-9);
     const frames = systemFrames(system, range);
     expect(frames[0]?.hour).toBe(range.fromIndex);
     expect(frames[frames.length - 1]?.hour).toBe(range.toIndex);

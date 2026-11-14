@@ -14,6 +14,7 @@ import { resolveValue, type WorkedExamples } from "../../placeholders";
 import type { PanelId, RevealWhen, SceneSpec } from "../../types";
 import { panelName } from "../../ui/panels";
 import { hourOnGrid } from "../../utc";
+import { DRAWN_EARTH_RADIUS } from "../../../three/scene/proportions";
 import { sceneSiteId, useSceneData, type SceneData } from "../scene-data";
 import { horizonMoment, monthBands, sunTurnDeg, systemFrames, type SystemFrame } from "./panel-data";
 
@@ -295,7 +296,7 @@ function SystemPanel({
 
 const VIEW = 260;
 const C = VIEW / 2;
-/** Pixels per Moon radius: Earth, about three Moon radii out, sits well inside the frame. */
+/** Pixels per Moon radius: Earth, drawn three to four Moon radii out, sits well inside the frame. */
 const MOON_PX = 22;
 const SUN_RING = C - 18;
 
@@ -356,7 +357,7 @@ function SystemPicture({
   const when = frame ? hourIndexToUtc(site.grid, frame.hour) : null;
   const first = hourIndexToUtc(site.grid, range.fromIndex);
   const end = hourIndexToUtc(site.grid, range.toIndex);
-  const alt = `${title}, seen from below my south pole, from ${formatUtc(first)} to ${formatUtc(end)}: the Sun's direction turns ${formatNumber(turn, 0)}°, all the way round; Earth stays on one side, about three Moon radii out (not to scale).`;
+  const alt = `${title}, seen from below my south pole, from ${formatUtc(first)} to ${formatUtc(end)}: the Sun's direction turns ${formatNumber(turn, 0)}°, all the way round; Earth stays on one side, about ${formatNumber(frame?.earthDistance ?? Number.NaN, 1)} Moon radii out as the System view draws it (not to scale).`;
   const [sx, sy] = frame ? point(frame.sunAngleDeg, SUN_RING) : [C, 0];
   return (
     <Frame title={title} meta={`${site.name} · one month`} caption={caption}>
@@ -379,7 +380,7 @@ function SystemPicture({
             <>
               <line x1={C} y1={C} x2={sx} y2={sy} className="ac-system-sun-ray" />
               <circle cx={sx} cy={sy} r={7} className="ac-system-sun" />
-              <circle cx={C + frame.earthX * MOON_PX} cy={C - frame.earthY * MOON_PX} r={MOON_PX * 0.5} className="ac-system-earth" />
+              <circle cx={C + frame.earthX * MOON_PX} cy={C - frame.earthY * MOON_PX} r={MOON_PX * DRAWN_EARTH_RADIUS} className="ac-system-earth" />
             </>
           ) : null}
         </svg>
