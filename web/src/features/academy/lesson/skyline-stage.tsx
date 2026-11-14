@@ -258,17 +258,13 @@ function SketchBoard({ data, step, runner, examples, onDraft }: SkylineStageProp
                 rx={Math.max(2, (sunR / widthDeg) * pw)}
                 ry={Math.max(2, (sunR / (range.hi - range.lo)) * ph)}
               />
+              <circle cx={x(sunOffset)} cy={y(sun.elDeg)} r={9} />
               <text x={x(sunOffset) + 10} y={y(sun.elDeg) - 10} className="ac-sketch-sun-label">
                 Sun
               </text>
             </g>
           ) : null}
           {sketchPath ? <path d={sketchPath} className="ac-sketch-line" /> : null}
-          {answered && realPath ? (
-            <text x={plot.right - 4} y={plot.top + 14} textAnchor="end" className="ac-sketch-key">
-              Solid: real skyline · Dashed: your sketch
-            </text>
-          ) : null}
         </svg>
         <div
           className="ac-sketch-surface"

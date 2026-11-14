@@ -35,15 +35,18 @@ Ridge, in 2028. Lesson 2 states its exception: Pip looks from `{{l2.site_name}}`
 
 **Words.** The lines the table does not quote, as the app shows them. A hint follows a
 first miss (a predict step has one guess, so its hint is not shown). An explanation
-follows the answer, right or shown. A panel step's "until it is ready" lines replace
-Luna's question while its panel is not built (work package A3); the step then earns no
-XP and does not count for the stars.
+follows the answer, right or shown. A panel step's "Reveal" line is what the stage shows
+if the site's data does not load: the real answer and "Continue", for no XP, not counted
+for the stars. A `drop-pin` step, whose panel is not wired yet, also has an "until it is
+ready" line that replaces Luna's question.
 
 1. Hint: "My south pole is as far from my equator as you can go. Picture the Sun near the edge of the sky." Explanation: "At my south pole the Sun stays low, skimming the horizon. Pip sees it side-on, never overhead."
-2. Hint: "The Sun's height changes slowly. Drag back and forth near the top of its path." Explanation: Luna's line in the table. Until it is ready, Luna: "Soon you'll drag the Sun through a whole month here, to find its highest moment. For now, here's what you would find." Reveal: Luna's line in the table.
+2. Hint: "The Sun's height changes slowly. Drag back and forth near the top of its path." Explanation: Luna's line in the table. Reveal: Luna's line in the table.
 3. Hint: "This month the Sun stays low the whole time. Where can a low Sun go?" Explanation: "All the way round. This month the Sun's direction circles the whole horizon; it stays low, and for part of the month it is just below level." Reveal caption: "Over the month the Sun's direction goes all the way round Pip's compass. Its height stays between {{l1.sun_el_min_deg}}° and {{l1.sun_el_max_deg}}°, so for part of the month it is just below level."
 4. Hint: "The missing piece is a small angle of my own: how far my equator tilts from my path around the Sun." Explanation: Luna's line in the table: it says what the two wrong options really are.
 5. Hint: "Stand on the very point I spin around. Every step you take leads away from it." Explanation: "Every step away from my south pole is a step north. That is why this tool is called TrueSouth."
+
+**Exact settings:** Step 2 drags the story month (720 hours from the story landing hour; see "Time spans" below) in the Lander's eye view with the ground drawn level at 0°. The goal is `sun_el_deg` equal to `{{l1.sun_el_max_deg}}` within 0.005°, half the series' stored step of 0.01°, so exactly the hours whose stored elevation reads as the month's highest count. The answer is marked at the first such hour.
 
 **Card:** sub-solar point (§3.1) and the Moon's 1.54° tilt (§3.4); direction to the Sun from any
 site (§3.2); the one-line elevation formula (§14); the highest-Sun rule of thumb (§3.4). Worked example: one hour at Pip's site,
@@ -71,17 +74,18 @@ longitudes; assuming the pole has 14 days of light then 14 of dark.
 
 **Words.** The lines the table does not quote, as the app shows them. A hint follows a
 first miss (a predict step has one guess, so its hint is not shown). An explanation
-follows the answer, right or shown. A panel step's "until it is ready" lines replace
-Luna's question while its panel is not built (work package A3); the step then earns no
-XP and does not count for the stars.
+follows the answer, right or shown. A panel step's "Reveal" line is what the stage shows
+if the site's data does not load: the real answer and "Continue", for no XP, not counted
+for the stars. A `drop-pin` step, whose panel is not wired yet, also has an "until it is
+ready" line that replaces Luna's question.
 
 1. Hint: "Compare two angles: how high the Sun is, and how tall the ridge looks from Pip." Explanation: Luna's line in the table. Reveal caption: "The Lander's eye view at that hour. From Pip the ridge looks {{l2.ridge_el_deg}}° tall, and the Sun is {{l2.sun_el_deg}}° up."
 2. Hint: "Start from Pip's eyes. What matters is how far the ridge rises from there." Explanation: "Its height above you. What counts is how far the ridge rises above Pip's eyes, not above some far-off reference."
-3. Hint: "Start with the ridge from the first step, then guess where the ground falls away on each side." Explanation: "Every sketch counts. The closer yours is to the real skyline, the more XP it earns." Until it is ready, Luna: "Soon you'll sketch the skyline you think Pip sees here, then see the real one laid over it. For now, here's the real one, towards the Sun." Reveal: "Towards the Sun, at azimuth {{l2.sun_az_deg}}°, the skyline stands {{l2.ridge_el_deg}}° high. That is the ridge from the first step."
-4. Hint: "Look for a moment when the Sun's centre sits just below the skyline." Explanation: "More than half the disc is behind the ridge. Pip's power falls with the share that shows, not all at once." Until it is ready, Luna: "Soon you'll drag the Sun here and watch Pip's power follow the share of its disc that shows. For now, here's the hour from the first step." Reveal: "At that hour, the share of the Sun's disc above the skyline is {{l2.sun_frac}}, where 0 is fully hidden and 1 is fully clear."
+3. Hint: "Start with the ridge from the first step, then guess where the ground falls away on each side." Explanation: "Every sketch counts. The closer yours is to the real skyline, the more XP it earns." Reveal, also the caption under the real skyline once the sketch is done: "Towards the Sun, at azimuth {{l2.sun_az_deg}}°, the skyline stands {{l2.ridge_el_deg}}° high. That is the ridge from the first step."
+4. Hint: "Look for a moment when the Sun's centre sits just below the skyline." Explanation: "More than half the disc is behind the ridge. Pip's power falls with the share that shows, not all at once." Reveal: "At that hour, the share of the Sun's disc above the skyline is {{l2.sun_frac}}, where 0 is fully hidden and 1 is fully clear."
 5. Hint: "Height matters, but so does distance. Think about how tall each one looks from Pip." Explanation: Luna's line in the table.
 
-**Exact settings:** Steps 1 to 4 look from the site `l2.site_id` (`{{l2.site_name}}`), not from the story site. Step 3 is a 60° azimuth window centred on `l2.sun_az_deg` (−30° to +30°, wrapping at 0°/360°). Step 4 drags the 48 hours centred on `l2.example_utc` (−24 h to +24 h), clamped to the time grid.
+**Exact settings:** Steps 1 to 4 look from the site `l2.site_id` (`{{l2.site_name}}`), not from the story site. Step 3 is a 60° azimuth window centred on `l2.sun_az_deg` (−30° to +30°, wrapping at 0°/360°), drawn empty at the vertical scale the horizon chart takes for the site, with the Sun at `l2.example_utc` for reference; the sketch is one height per degree of azimuth. Step 4 drags the 48 hours centred on `l2.example_utc` (−24 h to +24 h), clamped to the time grid, starting at an hour where at least half the disc shows; a right hour is any whose stored `sun_frac` is under 0.5.
 
 **Card:** elevation angle of terrain (§4, the flat version first); the skyline and its two
 methods (§5); disc fraction (§6). Worked example: the step-1 hour, from the skyline bin to
@@ -107,9 +111,10 @@ methods (§5); disc fraction (§6). Worked example: the step-1 hour, from the sk
 
 **Words.** The lines the table does not quote, as the app shows them. A hint follows a
 first miss (a predict step has one guess, so its hint is not shown). An explanation
-follows the answer, right or shown. A panel step's "until it is ready" lines replace
-Luna's question while its panel is not built (work package A3); the step then earns no
-XP and does not count for the stars.
+follows the answer, right or shown. A panel step's "Reveal" line is what the stage shows
+if the site's data does not load: the real answer and "Continue", for no XP, not counted
+for the stars. A `drop-pin` step, whose panel is not wired yet, also has an "until it is
+ready" line that replaces Luna's question.
 
 1. Hint: "On a ball the ground falls away as you look farther out. How much could fall away in 130 km?" Explanation: "At 130 km the ground has dropped {{l3.drop_at_130km_m}} m. Most of the mountain is hidden below my horizon." The reveal caption is the table's reveal.
 2. Hint: "My radius R is in it, and the drop has to come out in metres." Explanation: "Twice my radius, 2R. At 20 km that is a drop of {{l3.drop_at_20km_m}} m."
@@ -147,17 +152,18 @@ formula at long range.
 
 **Words.** The lines the table does not quote, as the app shows them. A hint follows a
 first miss (a predict step has one guess, so its hint is not shown). An explanation
-follows the answer, right or shown. A panel step's "until it is ready" lines replace
-Luna's question while its panel is not built (work package A3); the step then earns no
-XP and does not count for the stars.
+follows the answer, right or shown. A panel step's "Reveal" line is what the stage shows
+if the site's data does not load: the real answer and "Continue", for no XP, not counted
+for the stars. A `drop-pin` step, whose panel is not wired yet, also has an "until it is
+ready" line that replaces Luna's question.
 
 1. Hint: "Earth hangs over the middle of my near side. My south pole is at the very edge of that face." Explanation: "Seen from my pole, Earth sits on the edge of the sky. My slow wobble lifts it up and lowers it again."
-2. Hint: "Earth rises and sinks slowly over the month. Drag back and forth near the top." Explanation: "This month Earth climbs to {{l4.earth_el_max_deg}}° at its highest and sinks to {{l4.earth_el_min_deg}}° at its lowest. Below 0° it is below level; whether Pip still sees it depends on the ground in that direction." Until it is ready, Luna: "Soon you'll drag Earth through a month here, to find its highest moment. For now, here's what you would find." Reveal: "This month Earth climbs to {{l4.earth_el_max_deg}}° at its highest and sinks to {{l4.earth_el_min_deg}}° at its lowest."
+2. Hint: "Earth rises and sinks slowly over the month. Drag back and forth near the top." Explanation: "This month Earth climbs to {{l4.earth_el_max_deg}}° at its highest and sinks to {{l4.earth_el_min_deg}}° at its lowest. Below 0° it is below level; whether Pip still sees it depends on the ground in that direction." The readouts "highest {{l4.earth_el_max_deg}}°" and "lowest {{l4.earth_el_min_deg}}°" show with the marked answer. Reveal: "This month Earth climbs to {{l4.earth_el_max_deg}}° at its highest and sinks to {{l4.earth_el_min_deg}}° at its lowest."
 3. Hint: "This month Earth spends part of the time above the horizon and part below it." Explanation: "About {{l4.earth_up_pct}}% of this month. The rest of the time Earth is hidden behind Pip's horizon, and Pip cannot call home." Reveal caption: "The timeline's Earth band for the month: Earth is above Pip's horizon about {{l4.earth_up_pct}}% of the time."
 4. Hint: "The higher the margin, the less often Earth clears it. Keep raising it and watch the link time." Explanation: "From {{l4.mask_for_15pct_deg}}° up, Pip can talk less than 15% of this month. A bigger margin is kinder to the radio, but it costs link time."
 5. Title: "The early link rules". Hint: "Which rule asks for more than Earth gave this month? Think about how long Earth stays high." Explanation: Luna's line in the table.
 
-**Exact settings:** Step 4 slides the margin from 0° to 10° in steps of 0.5°. The slider is labelled "Margin", in °, and its readout "Link time", in whole percent. The goal is any margin at or above `{{l4.mask_for_15pct_deg}}`, the first at which link time is under 15%; a lower margin is a miss, because link time there is still 15% or more. Link time at each step is read from `l4.link_pct_by_mask`. Pip's link meter follows that readout. The lesson unlocks both the timeline and the countdowns.
+**Exact settings:** Step 2 drags the story month with the ground drawn level at 0°; the goal is `earth_el_deg` equal to `{{l4.earth_el_max_deg}}` within 0.005°, half the series' stored step, as in lesson 1. Step 4 slides the margin from 0° to 10° in steps of 0.5°. The slider is labelled "Margin", in °, and its readout "Link time", in whole percent. The goal is any margin at or above `{{l4.mask_for_15pct_deg}}`, the first at which link time is under 15%; a lower margin is a miss, because link time there is still 15% or more. Link time at each step is read from `l4.link_pct_by_mask`. Pip's link meter follows that readout. The lesson unlocks both the timeline and the countdowns.
 
 **Card:** sub-Earth point, libration and distance (§3.1); the exact direction to Earth,
 and the 0.26° shift from standing off-centre (§3.2, §3.4); link and antenna mask (§9).

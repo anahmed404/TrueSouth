@@ -2250,6 +2250,7 @@
 .ac-sketch {
   width: 100%;
   max-width: 760px;
+  margin-block: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -2500,6 +2501,14 @@
   fill: var(--sun-core);
 }
 
+/* A disc too small to see at this stretch gets the chart's dashed locator ring. */
+.ac-sketch-sun circle {
+  fill: none;
+  stroke: var(--sun);
+  stroke-width: 1.25;
+  stroke-dasharray: 2 2.5;
+}
+
 .ac-sketch-sun-label {
   fill: var(--sun);
   font-size: var(--t-sm);
@@ -2574,7 +2583,6 @@
   opacity: 0;
 }
 
-.ac-sketch-handle[data-drawn],
 .ac-sketch-handles:focus-within .ac-sketch-handle {
   opacity: 1;
 }

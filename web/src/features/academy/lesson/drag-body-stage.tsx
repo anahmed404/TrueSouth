@@ -87,6 +87,21 @@ function useWidth(): [(node: HTMLDivElement | null) => void, number] {
   return [setNode, width];
 }
 
+const BLANK = new Map<number, Float32Array>();
+
+/** The series with the other body's columns blank (NaN), so the chart draws one body. A drawing choice, not a value. */
+function onlyBody(series: SceneData["series"], body: "sun" | "earth") {
+  const n = series.sun_el.length;
+  let blank = BLANK.get(n);
+  if (!blank) {
+    blank = new Float32Array(n).fill(Number.NaN);
+    BLANK.set(n, blank);
+  }
+  return body === "sun"
+    ? { ...series, earth_az: blank, earth_el: blank, earth_frac: blank, earth_clear: blank }
+    : { ...series, sun_az: blank, sun_el: blank, sun_frac: blank, sun_clear: blank };
+}
+
 /** The step's goal with its placeholder filled, or null when it is not a number goal. */
 function numberGoal(step: DragStep, examples: WorkedExamples): NumberGoal | null {
   if ("comparedTo" in step.goal) return null;
@@ -145,6 +160,11 @@ function DragChart({ data, step, runner, draft, examples, onDraft }: DragBodySta
   // The body's own hour: local while dragging, sent to the lesson as a draft when the drag ends.
   const drafted = draft?.kind === "drag-body" ? draft.hour : null;
   const [hour, setHour] = useState<number>(() => drafted ?? (range ? startHour(series, goal, range) : 0));
+  const dragging = useRef<number | null>(null);
+  // The body follows the lesson's draft when it changes from outside a drag.
+  useEffect(() => {
+    if (drafted !== null && dragging.current === null) setHour(drafted);
+  }, [drafted]);
 
   const draftAt = useCallback(
     (h: number): Draft => {
@@ -177,12 +197,27 @@ function DragChart({ data, step, runner, draft, examples, onDraft }: DragBodySta
   // ── The chart's scales: a level skyline for `flat` and `smooth`, the real one for `terrain` ─
   const terrain: SkylineKind = step.scene.skyline;
   const sky = terrain === "terrain" ? data.skyline : flatSkyline(data.skyline.el_deg.length);
-  const chartWindow = useMemo(() => (range ? { from: range.fromIndex, to: range.toIndex + 1 } : null), [range]);
+  // Keyed on the two hours, not the range object, so the chart's static layer is not
+  // redrawn when the lesson's examples are handed over again.
+  const fromIndex = range?.fromIndex ?? null;
+  const toIndex = range?.toIndex ?? null;
+  const chartWindow = useMemo(
+    () => (fromIndex !== null && toIndex !== null ? { from: fromIndex, to: toIndex + 1 } : null),
+    [fromIndex, toIndex],
+  );
   const radii = useMemo(() => ({ sun: data.radii.sun, earth: data.radii.earth }), [data.radii.sun, data.radii.earth]);
   const [hostRef, width] = useWidth();
   const frame = useMemo(() => chartFrame(width - 2), [width]);
+  // The Sun circles the whole horizon in a month, so the view starts centred on where it
+  // stands; Earth swings about one direction, so the view centres on its mean.
+  const startAz = useRef(bodyAt(series, body, hour)?.azDeg ?? null);
   const bodyAz = body === "sun" ? series.sun_az : series.earth_az;
-  const meanAz = useMemo(() => (chartWindow ? meanAzimuth(bodyAz, chartWindow.from, chartWindow.to) : null), [bodyAz, chartWindow]);
+  const meanAz = useMemo(
+    () => (body === "sun" ? startAz.current : chartWindow ? meanAzimuth(bodyAz, chartWindow.from, chartWindow.to) : null),
+    [body, bodyAz, chartWindow],
+  );
+  // Only the dragged body is drawn: the other's path would be a second line to read.
+  const shown = useMemo(() => onlyBody(series, body), [series, body]);
   const [centre, setCentre] = useState<number | null>(null);
   const centreDeg = centre ?? meanAz ?? 0;
   const auto = useMemo(
@@ -190,15 +225,17 @@ function DragChart({ data, step, runner, draft, examples, onDraft }: DragBodySta
       chartWindow
         ? autoRange({
             skylineEl: terrain === "terrain" ? sky.el_deg : null,
-            sunEl: series.sun_el,
-            earthEl: series.earth_el,
+            // Only the dragged body sets the height, so a Sun that climbs 0.6° is not
+            // flattened by Earth's swing of several degrees.
+            sunEl: body === "sun" ? series.sun_el : null,
+            earthEl: body === "earth" ? series.earth_el : null,
             from: chartWindow.from,
             to: chartWindow.to,
             sunRadiusDeg: radii.sun,
             earthRadiusDeg: radii.earth,
           })
         : LOADING_RANGE,
-    [chartWindow, terrain, sky, series, radii],
+    [chartWindow, terrain, sky, series, radii, body],
   );
   const [zoom, setZoom] = useState<ElevationRange | null>(null);
   const elRange = zoom ?? auto;
@@ -224,7 +261,6 @@ function DragChart({ data, step, runner, draft, examples, onDraft }: DragBodySta
     return answerHour(series, goal, range);
   }, [answered, range, goal, runner.phase, drafted, series]);
 
-  const dragging = useRef<number | null>(null);
   const local = (event: ReactPointerEvent<HTMLElement>) => {
     const box = (event.currentTarget.parentElement ?? event.currentTarget).getBoundingClientRect();
     // The chart's 1 px border sits between the box and the plot's pixels.
@@ -291,7 +327,7 @@ function DragChart({ data, step, runner, draft, examples, onDraft }: DragBodySta
         <HorizonChart
           scales={scales}
           skyline={sky}
-          series={series}
+          series={shown}
           window={chartWindow}
           hour={hour}
           landingHour={range.fromIndex}
