@@ -1,47 +1,60 @@
 # Links checklist
 
-Every link the submission will contain, and what must be true before sending it.
-The last column is for the team to fill: open each link in a **private (incognito)
-window, signed out**, and tick it only if the right page loads.
+Every link the submission will contain, and what must be true before sending it. The last
+column is for the team to fill: open each link in a **private (incognito) window, signed
+out**, and tick it only if the right page loads.
 
-State checked at 2026-11-13 22:14 UTC (`origin/main` at 63d518a).
+State checked at **2026-11-14, `origin/main` at 69bb26e**. The only open pull request then
+was #101 (the production deploy files). It is not merged, so there is no live site yet.
+
+## Open items for the team lead
+
+These need a decision or an action from the team lead. This file does not settle them.
+
+| # | Open item | Why it matters | Status |
+| :--- | :--- | :--- | :--- |
+| 1 | **Repository access.** The repository is private and has no licence file. Judges need a public link or a zip. Decide which, or both. If it goes public, first look for anything that should not be public (personal details, keys), and choose a licence (for example MIT for the code). NASA's data and images keep their own terms. | A private link will not open for judges. Without a licence, others may not reuse the code. | [ ] Open |
+| 2 | **Live demo link.** Production deploy (nginx reverse proxy, HTTPS) is being prepared in #101; it is not merged or live. Add the link only once it opens in a private window. Also decide whether that server has NASA's prepared terrain maps (custom coordinates on) or is catalog-only (the "Enter coordinates" form says "Not available on this server"). | The demo script and the submission form both need it. | [ ] Open |
+| 3 | **Backup video.** Not recorded. The demo script lists no voice-over or music tool; if the video has an AI voice or music, name the tool in [`ai-use.md`](ai-use.md). | The presenter needs a fallback, and the form may ask for a video link. | [ ] Open |
+| 4 | **Apply `README-proposed.md` to the real `README.md`?** The real README still says "No application code exists yet." | Judges read the README first. | [ ] Open |
+| 5 | **Why the data covers six years.** The repository does not record the reason. | A judge may ask; the demo script marks it. | [ ] Open |
+| 6 | **Links for the five assumed profile values** (IM-2 and Chandrayaan-3 `relay_available`; Chandrayaan-3's three Sun-elevation values), and **Luna's reference photos**, and the **Artemis region outlines** (a ScienceBase login is needed). | Until then the values stay tagged **assumed**, Luna's drawings stay placeholders, and the outlines are not drawn. | [ ] Open |
 
 ## Must be true before submitting
 
-- [ ] **The live link opens without logging in**, in a private window, on a different
-  device or network from the one that built it. It opens straight to the start screen.
-- [ ] **The live link is the build that has the 3D scene.** Open
-  `<live>/mission?...&view=system` and check the Moon is drawn.
-- [ ] **Every demo link A to G below opens** and shows the date in the top bar.
-- [ ] **The repository link works for a judge.** The repository is **private today**
-  (`gh repo view` reports `PRIVATE`, and there is no licence). A private link will not open
-  for judges. Either make the repository public, or attach a zip of it, or both. If it
-  goes public, first look for anything that should not be public (personal details,
-  keys). CHECK: who decides this, and when.
-- [ ] **The video link opens without an account** (an unlisted link is fine) and plays to
-  the end. A recorded backup of the demo is also on the presenter's machine.
+- [ ] **The live link opens without logging in**, in a private window, on a different device
+  or network from the one that built it. It opens straight to the start screen.
+- [ ] **The live link is a build with the 3D scene and all five views.** Open a link with
+  `view=system` and check the Moon is drawn, then test "Slip Planner", "Polar map", "Local
+  terrain", "Lander's eye" and "Compare".
+- [ ] **Every demo link below opens** and shows the right landing date and view.
+- [ ] **The repository link works for a judge** (open item 1).
+- [ ] **The video link opens without an account** (an unlisted link is fine) and plays to the
+  end (open item 3).
 - [ ] **No link in the submission text goes to `localhost`**, a pull request, or a page
   behind a login.
-- [ ] The pull requests that the texts depend on are merged, or the texts are edited:
-  #81 (Academy), #83 (landing date in the timeline, "Next GO"), #77 (variants), #80
-  (custom-site server). See
-  [`objectives-map.md`](objectives-map.md).
-- [ ] The Docker image builds from a clean checkout (`docker compose -p truesouth-s13 up -d --build`,
-  then open <http://localhost:8080>), if the repository or zip is what judges will run. CHECK: this was last
-  proved at pull request #71; the image should be rebuilt after the scene merged
-  (`docs/orchestration/status.md`).
-- [ ] The footer line is on screen: "Planning aid, not flight certification. Limits marked
-  assumed are our estimates."
+- [ ] **Check open pull requests before the final deploy** (`gh pr list --state open`) and
+  confirm `docs/submission/` still matches what is live on the day.
+- [ ] **Custom-site availability on the live server:** `/api/health` reports
+  `custom_sites` as `available` or `not_available`. If custom coordinates are part of the
+  demo, confirm that a south-pole site computes (about 44 to 49 seconds on our development
+  machine).
+- [ ] **The Docker image builds from a clean checkout** (`docker compose up -d --build`, then
+  open port 8080 on your own machine), if the repository or zip is what judges will run.
+  `docs/orchestration/status.md` says the team lead's local copy of the image is rebuilt
+  after each batch of merges; rebuild once more on the final commit.
+- [ ] **The footer line is on screen** in Mission Control and on the validation page:
+  "Planning aid, not flight certification. Limits marked assumed are our estimates."
 
 ## 1. The submission's own links
 
 Fill the middle column. The team lead owns these.
 
-| Link | URL | Opens in a private window |
+| Link | Address | Opens in a private window |
 | :--- | :--- | :--- |
-| Live demo | CHECK: not known yet | [ ] |
-| Repository (public link, or "zip attached") | CHECK: not known yet; the repository is private | [ ] |
-| Demo video | CHECK: not recorded yet | [ ] |
+| Live demo | CHECK: open item 2 | [ ] |
+| Repository (public link, or "zip attached") | CHECK: open item 1 | [ ] |
+| Demo video | CHECK: open item 3 | [ ] |
 | Challenge page | <https://www.spaceappschallenge.org/2026/challenges/lunar-landing-site-navigator/> | [ ] |
 
 ## 2. The demo links
@@ -52,38 +65,34 @@ pattern; a date is `2028-01-22T00%3A00Z` in a link. Every one must be tried befo
 | Name | Path | Opens in a private window |
 | :--- | :--- | :--- |
 | A, the start | `/mission?profile=im2_athena&sites=connecting_ridge,artemis_malapert,artemis_mouton,artemis_de_gerlache_rim_2&land=2028-01-01T00%3A00Z&t=0&view=system` | [ ] |
-| B, three weeks later | same, `land=2028-01-22T00%3A00Z` | [ ] |
-| C, the next GO date | same, `land=2028-01-27T00%3A00Z` | [ ] |
-| D, Lander's eye on the GO date | link C with `view=panorama` | [ ] |
-| E, the dark hour, Lander's eye | link B with `view=panorama` | [ ] |
-| F, the dark hour, Local terrain | link B with `view=terrain` | [ ] |
-| G, Apollo 11 | `/mission?profile=im2_athena&sites=apollo11,connecting_ridge&land=2028-01-03T00%3A00Z&t=0&view=system` | [ ] |
+| B, three weeks later | link A with `land=2028-01-22T00%3A00Z` and `view=slip` | [ ] |
+| C, the next GO date | link A with `land=2028-01-27T00%3A00Z` | [ ] |
+| E, the dark hour, Lander's eye | link A with `land=2028-01-22T00%3A00Z` and `view=panorama` | [ ] |
+| G, Apollo 11 (optional) | `/mission?profile=im2_athena&sites=apollo11,connecting_ridge&land=2028-01-03T00%3A00Z&t=120&view=panorama` | [ ] |
+| Polar map (link A) | link A with `view=map` | [ ] |
+| Compare window (link C) | link C with `view=compare` | [ ] |
+| Local terrain (link C) | link C with `view=terrain` | [ ] |
+| Academy path & Lesson 1 | `/academy` and `/academy/l1_sun` | [ ] |
 | Validation page | `/validation` | [ ] |
-| Academy | `/academy` | [ ] |
 
 ## 3. NASA data sources used
 
-From `data/derived/validation.json` (`sources`). The product names are NASA's.
+From `data/derived/validation.json` (`sources`) and the scene/app source files. The product names are NASA's.
 
 | What | Used for | URL | Opens in a private window |
 | :--- | :--- | :--- | :--- |
 | JPL Horizons System | Sun and Earth positions; checks G1 and G2 | <https://ssd.jpl.nasa.gov/horizons/> | [ ] |
-| LOLA 80 m and 240 m polar terrain (PGDA product 90) | Terrain behind every skyline and series | <https://pgda.gsfc.nasa.gov/products/90> | [ ] |
-| LOLA average sunlight and Earth visibility, 60 m and 120 m (PGDA product 69) | Comparisons R1 and R2 | <https://pgda.gsfc.nasa.gov/products/69> | [ ] |
+| LOLA 80 m and 240 m polar terrain (PGDA product 90) | Terrain behind every skyline, slope, and 3D ground | <https://pgda.gsfc.nasa.gov/products/90> | [ ] |
+| LOLA average sunlight and Earth visibility, 60 m and 120 m (PGDA product 69) | Polar map context overlays; comparisons R1 and R2 | <https://pgda.gsfc.nasa.gov/products/69> | [ ] |
 | LOLA 80 m slope map (PGDA product 90) | Comparison R3 | <https://pgda.gsfc.nasa.gov/products/90> | [ ] |
-
-More NASA sources, from [`../site-catalog.md`](../site-catalog.md) and
-[`../architecture.md`](../architecture.md):
-
-| What | Used for | URL | Opens in a private window |
-| :--- | :--- | :--- | :--- |
 | LOLA 5 m close-up maps (PGDA product 78) | Positions of Artemis candidate sites; slope check | <https://pgda.gsfc.nasa.gov/products/78> | [ ] |
 | NASA Scientific Visualization Studio 4720 | The Moon's colour map and height map in the scene | <https://svs.gsfc.nasa.gov/4720> | [ ] |
 | Blue Marble Next Generation, NASA Earth Observatory | The Earth picture in the scene | CHECK: no page link in the repository; the file is `world.topo.bathy.200403.3x5400x2700.jpg` from `assets.science.nasa.gov` (`docs/architecture.md`) | [ ] |
+| Yale Bright Star Catalogue V/50 (NASA/ADC, via HEASARC `bsc5p`) | The 8,404 stars in the System view background | <https://heasarc.gsfc.nasa.gov/FTP/heasarc/dbase/tdat_files/heasarc_bsc5p.tdat.gz> | [ ] |
 | NASA Artemis candidate regions | Names of the nine regions | <https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/> | [ ] |
 | IAU gazetteer of planetary nomenclature | Crater names for map labels | <https://planetarynames.wr.usgs.gov/> | [ ] |
-| Quickmap | Linked from each site (home page) | <https://quickmap.lroc.asu.edu/> | [ ] |
-| Moon Trek | Linked from each site (home page) | <https://trek.nasa.gov/moon/> | [ ] |
+| LROC Quickmap | Deep-linked from Compare's "Open in NASA's maps" (`nasa-links.ts`) | <https://quickmap.lroc.im-ldi.com/> | [ ] |
+| Moon Trek | Deep-linked from Compare's "Open in NASA's maps" (`nasa-links.ts`) | <https://trek.nasa.gov/moon/> | [ ] |
 
 Credit lines, as recorded in `data/derived/scene/meta.json`:
 
@@ -93,7 +102,8 @@ Credit lines, as recorded in `data/derived/scene/meta.json`:
 
 ## 4. Site sources
 
-Each catalog site's coordinates come from one of these (`data/derived/sites.json`).
+Each catalog site's coordinates come from one of these (`data/derived/sites.json`). The five
+`*_best_lit` variants are generated from the `80 m` LOLA map by TrueSouth (`Offset 71–149 m`).
 
 | Sites | URL | Opens in a private window |
 | :--- | :--- | :--- |
@@ -128,7 +138,8 @@ The sourced values in the five presets (`data/derived/profiles.json`,
 | Artemis: lit, no relay, 10° slope | <https://ntrs.nasa.gov/api/citations/20240009596/downloads/ArtemisHLSUpdate_2024.pdf> | [ ] |
 | Blue Ghost 1: 14 days | <https://www.nasa.gov/wp-content/uploads/2025/01/np-2025-01-001-jsc-clps-firefly-press-kit-screen-508-1-10-25-final.pdf> | [ ] |
 
-Five profile values are tagged **assumed** because no link exists for them: the IM-2 and
-Chandrayaan-3 `relay_available` values and Chandrayaan-3's three Sun-elevation values. They
-stay assumed until a link is found ([`../orchestration/status.md`](../orchestration/status.md),
-"Waiting on the team lead").
+Every profile value not listed above is tagged **assumed**, with its reason in
+`data/derived/profiles.json`. Five of them are assumed only because no link exists:
+the IM-2 and Chandrayaan-3 `relay_available` values and Chandrayaan-3's three Sun-elevation
+values. They stay assumed until a link is found (open item 6;
+[`../orchestration/status.md`](../orchestration/status.md), "Waiting on the team lead").
