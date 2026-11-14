@@ -12,6 +12,11 @@ const subjects: Subjects = {
   sun: { dir: [-1, 0, 0], centre: [-2.5, 0, 0], radius: 0.12 },
 };
 
+/** Far out under the south pole with the Moon centred, turned as home is: where the trackball tests start. */
+function moonCentred(): Pose {
+  return { pos: [0, -12, 0], look: [0, 1, 0], up: homePose(subjects, space).up, fov: 30 };
+}
+
 function makeRig(mode: Rig["mode"], pose: Pose): Rig {
   const rig = new Rig(new THREE.PerspectiveCamera(30, 1440 / 900, 1e-7, 5000));
   rig.setFreeSpace(space, 0);
@@ -113,7 +118,7 @@ describe("the System view's drag is a free trackball: the surface moves the way 
   }
 
   it("after pans that put the pole to the side, a sideways drag still moves the surface sideways", () => {
-    const rig = makeRig("system", homePose(subjects, space));
+    const rig = makeRig("system", moonCentred());
     for (let i = 0; i < 40; i += 1) rig.pan(25, 0);
     for (let i = 0; i < 25; i += 1) rig.pan(0, 25);
     for (const [dx, dy] of directions) {
@@ -138,7 +143,7 @@ describe("the System view's drag is a free trackball: the surface moves the way 
     ["diagonally", 17, -17],
   ] as const) {
     it(`a steady drag ${name} goes right round the Moon and back to the start, with no step held back`, () => {
-      const rig = makeRig("system", homePose(subjects, space));
+      const rig = makeRig("system", moonCentred());
       const start = rig.camera.position.clone();
       const radius = start.length();
       let previous = start.clone();

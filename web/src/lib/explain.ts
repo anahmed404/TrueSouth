@@ -284,7 +284,7 @@ const entries = {
     lesson: "l7_slip",
   },
   system_view: {
-    text: "A 3D view you can turn by dragging, showing the Moon, Earth and Sun from outside, so you can see where your site is, where daylight falls and where Earth sits. Distances are squeezed by default so everything fits, but every direction is true.",
+    text: "A 3D view you can turn by dragging, showing the Moon, Earth and Sun from outside: where your site is, where daylight falls and where Earth sits. Sizes and distances are not to scale, but every direction is true; True scale shows the real proportions.",
     controls:
       "Drag (or drag with the wheel pressed) to turn the Moon freely in any direction, over the poles. Right-drag, Shift-drag or two fingers slide; scroll or pinch zooms toward the pointer; double-click centres a spot. South pole shows the whole polar region, level.",
     lesson: "l1_sun",

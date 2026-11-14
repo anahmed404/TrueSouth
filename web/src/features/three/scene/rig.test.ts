@@ -161,3 +161,38 @@ describe("flights between camera views", () => {
     expect(rig.flying).toBe(false);
   });
 });
+
+describe("True scale's arrangement follows the toggle's flight", () => {
+  it("blends Earth's placement in step with the camera, and at once with no flight time", () => {
+    const rig = systemRig();
+    const to = rig.pose();
+    rig.trueScale = true;
+    rig.flyTo({ ...to, pos: [to.pos[0], to.pos[1] * 10, to.pos[2]] }, 1_000, undefined, undefined, { now: 0 });
+    rig.update(0);
+    expect(rig.scaleBlend).toBe(0);
+    rig.update(500);
+    expect(rig.scaleBlend).toBeCloseTo(0.5, 9);
+    rig.update(1_000);
+    expect(rig.scaleBlend).toBe(1);
+    rig.trueScale = false;
+    rig.flyTo(to, 0);
+    expect(rig.scaleBlend).toBe(0);
+  });
+});
+
+describe("a drag during the True-scale flight", () => {
+  it("stops the camera but lets Earth finish its glide instead of snapping", () => {
+    const rig = systemRig();
+    const to = rig.pose();
+    rig.trueScale = true;
+    rig.flyTo({ ...to, pos: [to.pos[0], to.pos[1] * 10, to.pos[2]] }, 1_000, undefined, undefined, { now: 0 });
+    rig.update(300);
+    const mid = rig.scaleBlend;
+    rig.beginDrag(); // stops the flight
+    rig.update(310);
+    expect(rig.scaleBlend).toBeGreaterThan(mid);
+    expect(rig.scaleBlend).toBeLessThan(1);
+    rig.update(1_000);
+    expect(rig.scaleBlend).toBe(1);
+  });
+});

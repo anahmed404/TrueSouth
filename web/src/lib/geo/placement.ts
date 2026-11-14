@@ -42,7 +42,8 @@ export type SystemHour = {
 
 /**
  * docs/science.md §14. Sunlight comes from û(φS, λS) and Earth sits along û(φE, λE), as
- * unit vectors in scene axes. Directions only: the scene squeezes the distances.
+ * unit vectors in scene axes. Directions only: the System view's default drawn sizes and
+ * distances are in web/src/features/three/scene/proportions.ts.
  */
 export function bodyDirections(hour: SystemHour): { sun: Vec3; earth: Vec3 } {
   return {
@@ -56,31 +57,17 @@ export const SUN_RADIUS_KM = 695_700;
 export const EARTH_RADIUS_KM = 6_378.137;
 export const MOON_RADIUS_KM = MOON_RADIUS_M / 1_000;
 
-/**
- * docs/features/system-view.md, "Scale". By default Earth and the Sun are squeezed to 2.5
- * Moon radii from the Moon, so they share the frame with it. Every direction stays true.
- */
-export const SQUEEZED_DISTANCE = 2.5;
-/** The drawn radii of the squeezed bodies, in Moon radii. Chosen for the frame, not to scale. */
-export const SQUEEZED_EARTH_RADIUS = 0.4;
-export const SQUEEZED_SUN_RADIUS = 0.12;
-
+/** A body's drawn centre and radius, in scene units (Moon radii). */
 export type BodyPlacement = { centre: Vec3; radius: number };
 
 /**
- * Where Earth is drawn, in scene units (Moon radii). Squeezed: 2.5 radii along its true
- * direction. True scale: its real distance and its real size.
+ * Earth at true scale: its real distance along its true direction, at its real size, in
+ * scene units (Moon radii). The System view's default (not to scale) arrangement is
+ * web/src/features/three/scene/proportions.ts, the only one.
  */
-export function earthPlacement(hour: SystemHour, trueScale: boolean): BodyPlacement {
+export function trueEarthPlacement(hour: SystemHour): BodyPlacement {
   const { earth } = bodyDirections(hour);
-  if (!trueScale) return { centre: scale(earth, SQUEEZED_DISTANCE), radius: SQUEEZED_EARTH_RADIUS };
   return { centre: scale(earth, hour.earthDistKm / MOON_RADIUS_KM), radius: EARTH_RADIUS_KM / MOON_RADIUS_KM };
-}
-
-/** Where the Sun is drawn when squeezed. At true scale it is only a direction. */
-export function sunPlacement(hour: SystemHour): BodyPlacement {
-  const { sun } = bodyDirections(hour);
-  return { centre: scale(sun, SQUEEZED_DISTANCE), radius: SQUEEZED_SUN_RADIUS };
 }
 
 // ── A site on the globe ─────────────────────────────────────────────────────
