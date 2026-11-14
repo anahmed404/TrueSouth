@@ -589,7 +589,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   status and error with a mocked `fetch`; store; form; row states; labels with made-up
   and real 25-site data), typecheck, and by eye in the browser at 1440 × 900, 1024 × 768
   and 390 × 844, against the PR #80 server running on the real prepared maps
-- **State:** built, not verified
+- **State:** verified (425 Python tests, 2,241 web tests, typecheck and build pass on the merge with main; reviewed by Codex (all five variant labels and ranges match the data; no custom file is requested before a job is ready; three mutations caught); six findings fixed with tests (a compute request is sent only on a button press, with the counts recorded; an answer about another place is refused; ready sites and names are validated; removal frees polling and data; polling backs off and announces once per change; invalid ids in links are dropped); run end to end by the builder against the merged server on the real terrain, including Compute this site on the Polar map; not yet tried by the team lead)
 - **Changed:** `web/src/data/custom-sites.ts`, `web/src/state/custom-sites.ts`,
   `web/src/data/hooks.ts` (`useSites` merges ready custom sites; `useCatalogSites`),
   `web/src/state/data.ts` (a custom site's files wait for its job), `web/src/app/mission/`
