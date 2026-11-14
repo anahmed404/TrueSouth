@@ -62,6 +62,7 @@ type Drawable = CanvasImageSource & { width: number; height: number };
 
 /** Draws only the part of a square image that is on screen, so the 8K image stays cheap. */
 function drawClipped(ctx: CanvasRenderingContext2D, image: Drawable, rect: Box, width: number, height: number): void {
+  if (image.width <= 0 || image.height <= 0) return;
   const x0 = Math.max(0, rect.x);
   const y0 = Math.max(0, rect.y);
   const x1 = Math.min(width, rect.x + rect.width);
@@ -99,7 +100,45 @@ export type DrawInput = {
   /** The lesson box: no catalog names and fewer labels. */
   compact: boolean;
   marker: Marker | null;
+  /** Where labels may go: the free space in the box's pixels. Default: the whole box. */
+  area?: Box;
+  /** Whether the detailed square's border carries its label. Default true. */
+  detailLabel?: boolean;
+  /** The rest of the Moon around the square, drawn under it, quieter (context.ts). */
+  context?: { layers: readonly { canvas: Drawable; level: { half_width_m: number } }[]; alpha: number } | null;
 };
+
+/** The label on the detailed square's border (CONTEXT.md, "Polar cap": the 80 m terrain map). */
+export const DETAIL_LABEL = "Detailed terrain · 80 m map";
+
+/**
+ * Where the detailed square's label goes, inside `area` (the free space, or the whole box):
+ * just outside the top edge from its left corner when that stays in the area, else just
+ * inside the top-left corner; when the top edge is out of the area, the same at the bottom
+ * edge; when neither edge is in it, nowhere. Its size never changes with the zoom.
+ */
+export function detailLabelBox(rect: Box, labelWidth: number, area: Box): Box | null {
+  const h = 20;
+  const w = labelWidth;
+  const gap = 4;
+  const areaRight = area.x + area.width;
+  const areaBottom = area.y + area.height;
+  const rectRight = rect.x + rect.width;
+  const rectBottom = rect.y + rect.height;
+  if (area.width < w + 2 * gap || area.height < h + 2 * gap) return null;
+  if (rectRight < area.x + w || rect.x > areaRight - w || rect.width < w + 2 * gap) return null;
+  const xFor = (inside: boolean) =>
+    Math.max(area.x + gap, Math.min(rect.x + (inside ? gap : 0), rectRight - w - gap, areaRight - gap - w));
+  if (rect.y >= area.y && rect.y <= areaBottom) {
+    if (rect.y - h - gap >= area.y) return { x: xFor(false), y: rect.y - h - gap, width: w, height: h };
+    if (rect.y + gap + h <= areaBottom) return { x: xFor(true), y: rect.y + gap, width: w, height: h };
+  }
+  if (rectBottom >= area.y && rectBottom <= areaBottom) {
+    if (rectBottom + gap + h <= areaBottom) return { x: xFor(false), y: rectBottom + gap, width: w, height: h };
+    if (rectBottom - gap - h >= area.y) return { x: xFor(true), y: rectBottom - gap - h, width: w, height: h };
+  }
+  return null;
+}
 
 /** Draws one frame. */
 export function drawMap(input: DrawInput): void {
@@ -108,6 +147,15 @@ export function drawMap(input: DrawInput): void {
   ctx.fillStyle = palette.space;
   ctx.fillRect(0, 0, width, height);
 
+  if (input.context && input.context.alpha > 0) {
+    ctx.save();
+    ctx.globalAlpha = input.context.alpha;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    for (const layer of input.context.layers) drawClipped(ctx, layer.canvas, imageRect(view, layer.level.half_width_m), width, height);
+    ctx.restore();
+  }
+
   const rect = imageRect(view, halfWidthM);
   if (input.relief) {
     ctx.imageSmoothingEnabled = true;
@@ -115,10 +163,12 @@ export function drawMap(input: DrawInput): void {
     drawClipped(ctx, input.relief, rect, width, height);
   }
   if (input.overlay && input.scratch) drawOverlay(input, rect);
-  drawGraticule(input);
+  const labelBox = detailLabelFor(input, rect);
+  drawGraticule(input, labelBox);
 
   const taken: Box[] = [];
   const plates: (() => void)[] = [];
+  drawDetailBorder(input, rect, labelBox, taken, plates);
   drawTies(input);
   for (const pin of input.pins) drawPin(ctx, pin, palette);
   drawMarker(input);
@@ -165,7 +215,7 @@ function drawOverlay(input: DrawInput, rect: Box): void {
 }
 
 /** Rings every degree from 80°S, meridians every 30°, labelled where they have room. */
-function drawGraticule(input: DrawInput): void {
+function drawGraticule(input: DrawInput, avoid: Box | null): void {
   const { ctx, view, palette } = input;
   const pole = planeToScreen(0, 0, view);
   const outer = latitudeRadiusPx(-80, view);
@@ -197,21 +247,30 @@ function drawGraticule(input: DrawInput): void {
     if (Math.abs(lat) % every !== 0 || lat === -80) continue;
     const r = latitudeRadiusPx(lat, view);
     const at = { x: pole.x + 4, y: pole.y - r };
-    gridLabel(ctx, `${Math.abs(lat)}°S`, at, palette);
+    gridLabel(ctx, `${Math.abs(lat)}°S`, at, palette, "left", avoid);
   }
   if (outer > 90) {
     for (let lon = 0; lon < 360; lon += 30) {
       const at = latLonToScreen(-79.6, lon, view);
-      gridLabel(ctx, lon === 0 ? "0°" : lon === 180 ? "180°" : `${lon}° E`, at, palette, "centre");
+      gridLabel(ctx, lon === 0 ? "0°" : lon === 180 ? "180°" : `${lon}° E`, at, palette, "centre", avoid);
     }
   }
   ctx.restore();
 }
 
-function gridLabel(ctx: CanvasRenderingContext2D, text: string, at: ScreenPoint, palette: Palette, align: "left" | "centre" = "left"): void {
+/** A grid label on a plate; it gives way to the detailed square's label. */
+function gridLabel(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  at: ScreenPoint,
+  palette: Palette,
+  align: "left" | "centre",
+  avoid: Box | null,
+): void {
   const w = ctx.measureText(text).width + 8;
   const x = align === "centre" ? at.x - w / 2 : at.x;
   const y = at.y - 9;
+  if (avoid && overlaps(avoid, { x, y, width: w, height: 18 })) return;
   plateRect(ctx, x, y, w, 18, palette.plate);
   ctx.fillStyle = palette.ink2;
   ctx.textBaseline = "middle";
@@ -429,6 +488,7 @@ function labelPin(input: DrawInput, pin: PlacedPin, taken: Box[], plates: (() =>
   }
   if (pin.parentId !== null) lines.push({ text: "Chosen by TrueSouth", colour: palette.ink2, weight: 400, size: 12 });
   if (isCustomSiteId(pin.site.id)) lines.push({ text: "Your site", colour: palette.ink2, weight: 400, size: 12 });
+  if (!pin.detailed) lines.push({ text: "Outside the detailed map", colour: palette.ink2, weight: 400, size: 12 });
   const gap = (pin.focused ? PIN.focusRing : PIN.selectedRing) + 6;
   plateAt(input, pin.drawAt, gap, lines, taken, plates, pin.focused);
 }
@@ -455,4 +515,39 @@ function labelFeatures(input: DrawInput, taken: Box[], plates: (() => void)[]): 
     if (at.x < -50 || at.y < -50 || at.x > input.width + 50 || at.y > input.height + 50) continue;
     plateAt(input, at, -1, [{ text: feature.name, colour: input.palette.ink2, weight: 400, size: 12 }], taken, plates);
   }
+}
+
+/** The label's box for this frame, or null (a lesson, labels off, or no edge on screen). */
+function detailLabelFor(input: DrawInput, rect: Box): Box | null {
+  if (input.compact || input.detailLabel === false) return null;
+  const { ctx, palette } = input;
+  ctx.font = `400 12px ${palette.font}`;
+  const w = Math.ceil(ctx.measureText(DETAIL_LABEL).width) + 16;
+  return detailLabelBox(rect, w, input.area ?? { x: 0, y: 0, width: input.width, height: input.height });
+}
+
+/**
+ * The detailed square's edge: a 1 px Control Edge hairline (the panels' edge token) along the
+ * relief image's extent, which is also the lookup grids' extent, with its label. It follows
+ * the square, not the 80°S ring: the 80 m data fill the whole square, and the ring is already
+ * drawn as a latitude circle.
+ */
+function drawDetailBorder(input: DrawInput, rect: Box, box: Box | null, taken: Box[], plates: (() => void)[]): void {
+  const { ctx, palette } = input;
+  ctx.save();
+  ctx.strokeStyle = palette.line;
+  ctx.lineWidth = 1;
+  const x = Math.round(rect.x) + 0.5;
+  const y = Math.round(rect.y) + 0.5;
+  ctx.strokeRect(x, y, Math.round(rect.width) - 1, Math.round(rect.height) - 1);
+  ctx.restore();
+  if (!box) return;
+  taken.push(box);
+  plates.push(() => {
+    plateRect(ctx, box.x, box.y, box.width, box.height, palette.plate);
+    ctx.font = `400 12px ${palette.font}`;
+    ctx.fillStyle = palette.ink2;
+    ctx.textBaseline = "middle";
+    ctx.fillText(DETAIL_LABEL, box.x + 8, box.y + box.height / 2 + 0.5);
+  });
 }

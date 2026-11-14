@@ -7,9 +7,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FlatLayer, FlatLayerProps, SceneArrival } from "../../app/scene";
+import { prefetchContext } from "./context";
 import { MapCore } from "./map";
 import { ARRIVAL_TIMEOUT_MS, entryFor, takeoverView } from "./takeover";
-import type { MapView } from "./view";
+import { CONTROLS_FOOT_PX, type MapView } from "./view";
 
 export type PolarMapLayerOptions = {
   /** Compute a custom site at a point (the custom-site API). Without it, no button shows. */
@@ -34,9 +35,10 @@ function makeLayer(options: PolarMapLayerOptions) {
     const arrivalRef = useRef(arrival);
     arrivalRef.current = arrival;
 
-    // Entering and leaving.
+    // Entering and leaving. The Moon around the square starts building during the flight.
     useEffect(() => {
       if (isMap) {
+        prefetchContext();
         const entry = entryFor(mode, reduceMotion);
         setPhase((current) => {
           if (current.kind === "shown") return current;
@@ -110,6 +112,7 @@ function makeLayer(options: PolarMapLayerOptions) {
           scenario={props.scenario}
           mode="mission"
           frame={frame}
+          fitFootPx={CONTROLS_FOOT_PX}
           openAt={phase.openAt}
           active={phase.kind === "shown" && !freeSpace.windowOpen}
           reduceMotion={reduceMotion}

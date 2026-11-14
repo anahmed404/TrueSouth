@@ -131,6 +131,7 @@ selector is scoped to .pm, so nothing here reaches other components.
 
 .pm-values div {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: var(--s4);
 }
@@ -141,6 +142,7 @@ selector is scoped to .pm, so nothing here reaches other components.
 
 .pm-values dd {
   margin: 0;
+  white-space: nowrap;
 }
 
 .pm-range {
