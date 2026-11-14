@@ -590,7 +590,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   temporary fold of the bottom strip while Compare is open (`windowFoldFor`, `toggleStrip`
   in `shell-layout.ts`), trimmed the table's vertical padding, clamped the best-lit line to
   two lines, replaced the copied site wording with imports from `site-labels.ts`, updated the
-  specs, and wrote 9 vitest tests (the fold rule; the header's content on the real window) —
+  specs, and wrote 10 vitest tests (9 for the fold rule; 1 for the header on the real window) —
   checked by the agent with typecheck, the vitest suite, the build and `uv run pytest`, and
   by eye at 1440 × 900, 1024 × 768 and 390 × 844 with one, four and eight sites, the strip
   open before Compare opened, in a camera view and in the Slip Planner, with the strip
