@@ -662,7 +662,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   by eye at 1440 × 900, 1024 × 768 and 390 × 844 with one, four and eight sites, the strip
   open before Compare opened, in a camera view and in the Slip Planner, with the strip
   folded by the user and unfolded by hand; a human has not reviewed it yet
-- **State:** built, not verified
+- **State:** verified (reviewed by Antigravity (gemini-4-hydrogen): approve, two mutations killed; on the tree merged with main d9ea075: 438 Python tests (1 skipped), web tests, typecheck and build all exit 0)
 - **Changed:** `web/src/features/mission-control/compare/` (header items, hidden summary,
   padding, the shared wording; `site-wording.ts` deleted),
   `web/src/app/mission/floating-window.tsx` (an optional header slot and a hidden
