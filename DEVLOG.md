@@ -1325,7 +1325,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   folded, against `main` run side by side, with the True-scale toggle sampled frame by frame;
   reviewed by Codex (gpt-6.1-terra) and Cursor (grok-4.7), findings addressed below; a human
   has not reviewed it
-- **State:** built, not verified
+- **State:** verified (reviewed three times (Codex once, Cursor twice): the opening's guarantees recomputed over all 52,584 hours in four layouts, mutations caught; Cursor's last must-fix (Earth drawn over the Moon when zoomed far out) fixed by the author with an on-screen overlap rule tested over 4,000 sampled cameras, not re-reviewed; sizes and distances chosen with the team lead from captures; on the tree merged with main b6d4a5b: 458 Python tests (1 skipped), 2,627 web tests, typecheck and build all exit 0. The True-scale toggle was not re-checked frame by frame with the final constants)
 - **Changed:** `web/src/features/three/scene/` (`proportions.ts` and its test are new;
   `camera.ts` opening view, `rig.ts` zoom-out limit and glide, `world.ts` placement, the
   in-front rule and fade and Earth's light comment, `materials.ts` Earth opacity and Sun fade,
