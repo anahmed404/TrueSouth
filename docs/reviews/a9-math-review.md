@@ -655,9 +655,13 @@ data was edited.
 ## Repository checks
 
 The clarification-only follow-up preserves both section 3.4 display formulas
-and all of sections 9 to 11 exactly from its main-based branch. Its full-suite
-results are recorded below after the sequential runs. This follow-up changes
-only documents; the original review checks below remain historical evidence.
+and all of sections 9 to 11 exactly from its main-based branch. Its sequential
+checks passed: `uv run pytest -q` **425 passed, 1 skipped**; frozen-lockfile
+install **exit 0**; web tests with one worker **2,017 passed in 85 files**;
+typecheck and build **exit 0**. Every command's native exit code was captured
+immediately and was **0**. The Academy card tests passed without a web edit.
+This follow-up changes only documents; the original review checks below remain
+historical evidence.
 
 At the reviewed `2f258dd` base, `uv run pytest -q` passed **322 tests** with
 three warnings; its directly captured exit code was **0**. It ran with

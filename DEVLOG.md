@@ -49,6 +49,15 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-14 · S10b integration · Merge main's placement builder
+- **Who:** Codex implementation agent
+- **AI use:** Codex resolved build-sites and DEVLOG conflicts, preserved main's placement flow, adapted the custom-site wrapper to main's helpers, and added integration tests; human and orchestrator review pending.
+- **State:** verified (425 Python tests (1 skipped: the real-map test, run separately by the author and passed), 1,900 web tests and the typecheck pass on the merge with main; regenerating the schema and types leaves no diff; no derived data changed; reviewed by Gemini (pipeline reuse and byte-identity at Connecting Ridge confirmed; eleven findings on failure handling, all fixed with tests); the catalog build and the API share one site builder on top of the variants work; a full catalog rebuild under the new source fingerprint is still to be run)
+- **Changed:** build_site now composes _derive, _record and _stage_site; catalog callers reuse prederived parts and placement metadata, variants still reuse the winning skyline/series. Custom publication retains cancellation, storage hook and internal site.json without touching the index or candidate cache. Placement imports are local to the catalog command. API storage prunes the reserved placement directory before traversal so catalog candidates do not consume the custom quota. Every DEVLOG line from both merge parents was retained.
+- **Checks:** Full Python run 424 passed, 1 real-map skip, exit 0. After the placement-quota interaction fix, affected API/integration checks 106 passed, 1 skipped, exit 0. Explicit real-map test: 1 passed, exit 0, Connecting Ridge custom series.bin/skyline.bin/terrain.bin byte-identical to catalog in 36.617 s (37.90 s test); meta differs only site_id. Catalog verification ran --only chandrayaan3 apollo11 --force in a staging copy and rebuilt Connecting Ridge's listed point with the shared builder, retaining its published nearby range. All 25 staged folders and sites.json match origin/main Git blob hashes; tracked derived files also match before and after. Full 25-site recomputation was not run: placement key 0826b46027c9dc5fdfbb91366e2b4a200804f04c6669ce577f9463b7f19b0254 has no shared cache; --only on a peak would also trigger the cold candidate evaluation. API import 1.110 s with no numpy/scipy/pyproj/rasterio/placement_cache modules loaded. Frozen pnpm install, 1,849 web tests (one worker) and typecheck exit 0. Docker skipped as requested; mandatory API dependency closure excludes rasterio.
+- **Notes:** Site fields and custom contracts are unchanged by the merge; main's validation exclusions for variants remain intact. Dockerfile and dependencies are unchanged, so the requested Docker rebuild exception does not apply.
+
+
 #### 2026-11-14 · Science clarifications · A9 findings and implementation limits
 - **Who:** Codex agent, for the orchestrator
 - **AI use:** Codex, gpt-6.1-sol — clarified the science document against the
@@ -69,14 +78,10 @@ each integration checkpoint.
     40 plus 18 variant samples. All 20 terrain-tier catalog files have blockers
     in every bin and report zero missing samples. Only Connecting Ridge was
     independently rebuilt in A9; the other sites were read, not recomputed.
-
-#### 2026-11-14 · S10b integration · Merge main's placement builder
-- **Who:** Codex implementation agent
-- **AI use:** Codex resolved build-sites and DEVLOG conflicts, preserved main's placement flow, adapted the custom-site wrapper to main's helpers, and added integration tests; human and orchestrator review pending.
-- **State:** verified (425 Python tests (1 skipped: the real-map test, run separately by the author and passed), 1,900 web tests and the typecheck pass on the merge with main; regenerating the schema and types leaves no diff; no derived data changed; reviewed by Gemini (pipeline reuse and byte-identity at Connecting Ridge confirmed; eleven findings on failure handling, all fixed with tests); the catalog build and the API share one site builder on top of the variants work; a full catalog rebuild under the new source fingerprint is still to be run)
-- **Changed:** build_site now composes _derive, _record and _stage_site; catalog callers reuse prederived parts and placement metadata, variants still reuse the winning skyline/series. Custom publication retains cancellation, storage hook and internal site.json without touching the index or candidate cache. Placement imports are local to the catalog command. API storage prunes the reserved placement directory before traversal so catalog candidates do not consume the custom quota. Every DEVLOG line from both merge parents was retained.
-- **Checks:** Full Python run 424 passed, 1 real-map skip, exit 0. After the placement-quota interaction fix, affected API/integration checks 106 passed, 1 skipped, exit 0. Explicit real-map test: 1 passed, exit 0, Connecting Ridge custom series.bin/skyline.bin/terrain.bin byte-identical to catalog in 36.617 s (37.90 s test); meta differs only site_id. Catalog verification ran --only chandrayaan3 apollo11 --force in a staging copy and rebuilt Connecting Ridge's listed point with the shared builder, retaining its published nearby range. All 25 staged folders and sites.json match origin/main Git blob hashes; tracked derived files also match before and after. Full 25-site recomputation was not run: placement key 0826b46027c9dc5fdfbb91366e2b4a200804f04c6669ce577f9463b7f19b0254 has no shared cache; --only on a peak would also trigger the cold candidate evaluation. API import 1.110 s with no numpy/scipy/pyproj/rasterio/placement_cache modules loaded. Frozen pnpm install, 1,849 web tests (one worker) and typecheck exit 0. Docker skipped as requested; mandatory API dependency closure excludes rasterio.
-- **Notes:** Site fields and custom contracts are unchanged by the merge; main's validation exclusions for variants remain intact. Dockerfile and dependencies are unchanged, so the requested Docker rebuild exception does not apply.
+  - Checks, all sequential: pytest 425 passed, 1 skipped; web 2,017 passed;
+    frozen install, typecheck and build passed. Each direct exit code was 0.
+    Both section 3.4 formula blocks and all of sections 9–11 are unchanged;
+    the Academy card tests pass without editing web code.
 
 #### 2026-11-14 · S10b review fixes · Public-endpoint failure handling
 - **Who:** Codex implementation agent
