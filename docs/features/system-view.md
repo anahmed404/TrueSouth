@@ -50,10 +50,13 @@ Prototype and designer's notes:
   about 7° of it), so the plane turns smoothly as the hour moves and never flips
   (`orbits.ts`). One-pixel hairlines in the Ridge Line grey at low contrast, no glow, no
   labels; drawn behind every body, mark and label, and stopped at the Moon's and Earth's
-  limbs. They fade out with the flight into the Polar map, Slip Planner, Local terrain and
+  limbs: every step of a circle that meets either sphere is cut where it meets it, so a line
+  ends on the limb (within 1e-9 radii, at any step length) and no chord passes through a
+  body in 3D. They fade out with the flight into the Polar map, Slip Planner, Local terrain and
   Lander's eye. At true scale the Moon's orbit stays (a large circle through the Moon about
   Earth); Earth's orbit is hidden, since the Sun is only a direction there. Cost: two lines
-  of 256 vertices, rewritten only when the bodies' drawn positions change.
+  of 256 steps in fixed buffers (room for 264 segments, for steps a body splits in two),
+  rewritten only when the bodies' drawn positions change; a rewrite allocates nothing.
 - **Site pins** for every selected site. The focused site's pin has a Moonlight ring and a
   name plate.
 - **Two sight-lines** from the focused site: one toward the Sun, one toward Earth.

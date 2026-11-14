@@ -1467,7 +1467,9 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   `world.ts` (construct, place and fade the lines; Earth's glide fade), `proportions.ts`
   (screen-disc helpers; a comment on the distance curve's joins), `scene-root.tsx` (one line:
   the free space to the world), `web/src/lib/explain.ts` (`system_view`),
-  `docs/features/system-view.md`, `docs/design/c2/built-system-orbits-*.png`, this entry
+  `docs/features/system-view.md`, `docs/design/c2/built-system-orbits-*.png`, this entry;
+  after review, `rig.ts`, `drag-directions.test.ts` and `docs/features/slip-planner.md` (the
+  Slip Planner's first drag)
 - **Notes:**
   - **The lines:** the Moon's orbit is the circle centred on the drawn Earth through the
     Moon's centre; Earth's orbit is the circle centred on the drawn Sun through Earth's centre.
@@ -1493,6 +1495,26 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     fade, since the flight's ease still accelerates when Earth leaves). Sampled every frame
     both ways at both sizes: Earth outside the free space on 46 to 67 frames per toggle, shown
     on none of them; fully back at the end. The join note needs no change; a comment says so.
+  - **Review of #115 (Codex), two geometry fixes:** the limb rule tested each step's two ends
+    only, so 366 kept steps of Earth's orbit passed through the Moon over the series (to 0.94
+    Moon radii from its centre), and at true scale, where a step is 5.4 Moon radii long, the
+    Moon's orbit stopped 4 to 4.7 radii short of the limb. Each step is now cut where it meets
+    the Moon's or Earth's sphere (and split if it passes through), so the lines end on the limbs
+    whatever the step length. The test now sweeps every hour in both arrangements: no segment
+    comes nearer either centre than its radius, each line has exactly two ends on its limb
+    (within 1e-9 radii), and the Moon's orbit ends on the limb at the series' extremes. Three
+    mutations (keep a chord through a body; drop a crossing step whole; no cut) each fail it.
+    In the browser the Moon's orbit ends 0.99999997 Moon radii from the centre (Float32) in
+    both arrangements. Even spacing kept: at true scale the circle near the Moon shows no
+    facets by eye. `update` now reuses scratch arrays and allocates nothing. Visible change:
+    Earth's orbit now meets Earth's disc instead of stopping up to a step short (273 pixels at
+    1440 at the opening); the `after-*` captures are retaken, `compare-opening` is the first
+    round's.
+  - **Slip Planner's first drag (separate commit):** `slipMove` looked straight at the sites'
+    centre, but the fit aims 0.2 of the free space above it, so the first drag jumped 83 px at
+    1440 × 900. It now keeps the camera's offset from that look. A new test drags (0, 0) and
+    small steps right after the pose (the old code fails it at 82.9 px); in the browser the
+    centre stays at (684, 444) through a drag of nothing, a 3 px turn and a real 3 px drag.
 
 #### 2026-11-14 · Drag directions · The picture follows the pointer in every view
 - **Who:** Claude Code agent, for the orchestrator

@@ -7,7 +7,7 @@ import type { FreeSpace } from "../../../app/scene";
 import { decodeSystem } from "../../../data/decode/index.ts";
 import { parseManifest } from "../../../data/parse.ts";
 import { bodyDirections, type SystemHour } from "../../../lib/geo";
-import { ORBIT_SEGMENTS, orbitCircle, orbitSegments, type Solid } from "./orbits";
+import { ORBIT_CAPACITY, ORBIT_SEGMENTS, circleInto, orbitCircle, orbitSegments, segmentsInto, type Solid } from "./orbits";
 import { DRAWN_SUN_RADIUS, discInsideSpace, discLeaving, drawnEarth, drawnSun } from "./proportions";
 import type { V3 } from "./vec";
 
@@ -79,27 +79,92 @@ describe("the orbit lines' geometry, over the real series", () => {
     expect(worstEarth).toBeLessThan(0.2);
   });
 
-  it("stops at the Moon's and Earth's limbs: no point of either line inside a body; the Moon's orbit leaves a gap at the Moon", () => {
-    for (let i = 0; i < hours.length; i += 211) {
-      const { earth, sun } = bodiesAt(hours[i]!);
-      for (const segments of [
-        orbitSegments(orbitCircle(earth.centre, [0, 0, 0]), [MOON, earth]),
-        orbitSegments(orbitCircle(sun.centre, earth.centre), [MOON, earth]),
-      ]) {
-        expect(segments.length).toBeLessThanOrEqual(ORBIT_SEGMENTS * 2);
-        let nearestMoon = Infinity;
-        let nearestEarth = Infinity;
-        for (const p of segments) {
-          nearestMoon = Math.min(nearestMoon, dist(p, MOON.centre));
-          nearestEarth = Math.min(nearestEarth, dist(p, earth.centre));
-        }
-        expect(nearestMoon).toBeGreaterThanOrEqual(1);
-        expect(nearestEarth).toBeGreaterThanOrEqual(earth.radius);
+  /**
+   * Every hour, both arrangements, both lines, written as the scene writes them (`segmentsInto`,
+   * in doubles here; the scene's buffer is Float32). `check` sees each segment's two ends.
+   */
+  function sweep(check: (line: "moon" | "earth", trueScale: boolean, h: number, n: number, out: Float64Array, earth: Solid) => void) {
+    const circle = new Float64Array(10);
+    const solids = new Float64Array(8);
+    const out = new Float64Array(ORBIT_CAPACITY * 2 * 3);
+    solids.set([0, 0, 0, 1], 0);
+    for (let i = 0; i < hours.length; i += 1) {
+      const h = hours[i]!;
+      const sunAt = drawnSun(bodyDirections(h).sun, h.sunDistKm).centre;
+      for (const trueScale of [false, true]) {
+        const e = drawnEarth(h, trueScale);
+        solids.set([...e.centre, e.radius], 4);
+        circleInto(e.centre[0], e.centre[1], e.centre[2], 0, 0, 0, circle);
+        check("moon", trueScale, i, segmentsInto(circle, solids, 2, out), out, e);
+        if (trueScale) continue; // at true scale Earth's orbit is not drawn
+        circleInto(sunAt[0], sunAt[1], sunAt[2], e.centre[0], e.centre[1], e.centre[2], circle);
+        check("earth", trueScale, i, segmentsInto(circle, solids, 2, out), out, e);
       }
-      // The Moon's orbit comes back to within a step of the Moon's limb on both sides.
-      const moonOrbit = orbitSegments(orbitCircle(earth.centre, [0, 0, 0]), [MOON, earth]);
-      const nearest = Math.min(...moonOrbit.map((p) => dist(p, MOON.centre)));
-      expect(nearest).toBeLessThan(1 + (2 * Math.PI * dist(earth.centre, [0, 0, 0])) / ORBIT_SEGMENTS);
+    }
+  }
+  /** The squared distance from `c` to the nearest point of segment `k` (points k and k + 1). */
+  const segmentDistanceSq = (out: Float64Array, k: number, cx: number, cy: number, cz: number) => {
+    const ax = out[k * 3]! - cx;
+    const ay = out[k * 3 + 1]! - cy;
+    const az = out[k * 3 + 2]! - cz;
+    const dx = out[k * 3 + 3]! - out[k * 3]!;
+    const dy = out[k * 3 + 4]! - out[k * 3 + 1]!;
+    const dz = out[k * 3 + 5]! - out[k * 3 + 2]!;
+    const t = Math.min(1, Math.max(0, -(ax * dx + ay * dy + az * dz) / (dx * dx + dy * dy + dz * dz)));
+    const x = ax + dx * t;
+    const y = ay + dy * t;
+    const z = az + dz * t;
+    return x * x + y * y + z * z;
+  };
+  /** Geometry tolerance: 1e-9 Moon radii, or 1e-9 of Earth's radius (the sweep is in doubles). */
+  const TOL = 1e-9;
+
+  it(
+    "no segment of either line enters the Moon or Earth anywhere along it, and each line ends on the limb it stops at on both sides, whatever the step length (every hour, both arrangements)",
+    () => {
+      let deepestMoon = Infinity; // the nearest any segment comes to the Moon's centre, in Moon radii
+      let deepestEarth = Infinity; // and to Earth's, in Earth radii
+      let most = 0;
+      const wrong: string[] = [];
+      sweep((line, trueScale, h, n, out, earth) => {
+        most = Math.max(most, n);
+        const [ex, ey, ez] = earth.centre;
+        const er2 = earth.radius * earth.radius;
+        // The body this line passes through: the Moon for the Moon's orbit, Earth for Earth's.
+        const [bx, by, bz, br] = line === "moon" ? [0, 0, 0, 1] : [ex, ey, ez, earth.radius];
+        let ends = 0;
+        for (let k = 0; k < n; k += 2) {
+          deepestMoon = Math.min(deepestMoon, segmentDistanceSq(out, k, 0, 0, 0));
+          deepestEarth = Math.min(deepestEarth, segmentDistanceSq(out, k, ex, ey, ez) / er2);
+          for (let q = k; q <= k + 1; q += 1) {
+            const x = out[q * 3]! - bx;
+            const y = out[q * 3 + 1]! - by;
+            const z = out[q * 3 + 2]! - bz;
+            if (Math.abs(Math.sqrt(x * x + y * y + z * z) - br) < TOL * br) ends += 1;
+          }
+        }
+        if (ends !== 2) wrong.push(`${line} orbit, ${trueScale ? "true scale" : "schematic"}, hour ${h}: ${ends} ends on the limb`);
+      });
+      expect(Math.sqrt(deepestMoon)).toBeGreaterThan(1 - TOL);
+      expect(Math.sqrt(deepestEarth)).toBeGreaterThan(1 - TOL);
+      expect(wrong.slice(0, 5)).toEqual([]);
+      // The fixed buffer is never full (a full buffer would drop the end of a line).
+      expect(most).toBeLessThan(ORBIT_CAPACITY * 2);
+    },
+    60_000,
+  );
+
+  it("at the series' extremes (Earth nearest and farthest), the Moon's orbit ends within 1e-9 Moon radii of the Moon's limb in both arrangements", () => {
+    const byDistance = hours.map((h, i) => [h.earthDistKm, i] as const).sort((a, b) => a[0] - b[0]);
+    for (const i of [byDistance[0]![1], byDistance[byDistance.length - 1]![1]]) {
+      for (const trueScale of [false, true]) {
+        const e = drawnEarth(hours[i]!, trueScale);
+        const segments = orbitSegments(orbitCircle(e.centre, [0, 0, 0]), [MOON, { centre: e.centre, radius: e.radius }]);
+        const nearest = Math.min(...segments.map((p) => dist(p, MOON.centre)));
+        expect(Math.abs(nearest - 1)).toBeLessThan(TOL);
+        // At true scale one step is several Moon radii long: the end is still on the limb.
+        if (trueScale) expect((2 * Math.PI * dist(e.centre, [0, 0, 0])) / ORBIT_SEGMENTS).toBeGreaterThan(4);
+      }
     }
   });
 });

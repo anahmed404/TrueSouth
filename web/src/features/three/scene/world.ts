@@ -680,10 +680,7 @@ export class World {
     const orbitAlpha = this.stepFade(this.orbitFade, !(inputs.bodies && inputs.view === "system")) * (1 - near);
     this.orbits.setOpacity(orbitAlpha);
     if (orbitAlpha > 0.001) {
-      this.orbits.update(
-        { centre: earthPlaced.centre, radius: earthPlaced.radius },
-        this.scaleBlend === 0 ? { centre: sunPlaced.centre, radius: DRAWN_SUN_RADIUS } : null,
-      );
+      this.orbits.update(earthPlaced.centre, earthPlaced.radius, this.scaleBlend === 0 ? sunPlaced.centre : null, DRAWN_SUN_RADIUS);
     }
 
     // Guides fade as the camera nears the ground, and stay off over the Polar map.
