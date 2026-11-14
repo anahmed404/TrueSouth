@@ -916,6 +916,62 @@ export interface Feature {
   name: string;
 }
 /**
+ * G2 evidence separate from the gate's measured value.
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "G2Diagnostics".
+ */
+export interface G2Diagnostics {
+  /**
+   * Location of the elevation maximum.
+   */
+  elevation_location?: G2Location | null;
+  /**
+   * Largest elevation difference in degrees.
+   */
+  elevation_max_deg?: number | null;
+  /**
+   * Site and body hours above the G2 limit.
+   */
+  raw_azimuth_hours_over_limit?: number | null;
+  /**
+   * Location of the raw azimuth maximum.
+   */
+  raw_azimuth_location?: G2Location | null;
+  /**
+   * Largest raw compass azimuth difference in degrees.
+   */
+  raw_azimuth_max_deg?: number | null;
+  /**
+   * Location of the sky separation maximum.
+   */
+  sky_location?: G2Location | null;
+  /**
+   * Largest full direction separation on the sky in degrees.
+   */
+  sky_max_deg?: number | null;
+}
+/**
+ * Location and time of a G2 maximum.
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "G2Location".
+ */
+export interface G2Location {
+  /**
+   * Compared body.
+   */
+  body: "sun" | "earth";
+  /**
+   * Site identifier.
+   */
+  site_id: string;
+  /**
+   * UTC hour of the maximum.
+   */
+  utc: string;
+}
+/**
  * Validation hard gate result. See docs/validation.md, "Hard gates".
  *
  * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
@@ -1876,6 +1932,10 @@ export interface Validation {
    * Reported comparisons.
    */
   comparisons: Comparison[];
+  /**
+   * G2 diagnostic maxima and their locations, when measured.
+   */
+  g2_diagnostics?: G2Diagnostics | null;
   /**
    * Gate G2 over time, for the chart on the validation page. Empty until the check has been run.
    */

@@ -35,6 +35,7 @@ def test_invalid_bodies_are_plain_422(empty_tree, body):
         assert response.status_code == 422
         data = response.json()
         assert set(data) == {'code', 'message', 'fields'}
+        assert data['code'] == 'invalid_request'
         assert data['fields']
         assert all(set(field) == {'field', 'message'} for field in data['fields'])
         assert 'SECRET' not in response.text
@@ -250,6 +251,7 @@ def test_pole_proximity_rejected_before_admission(empty_tree, latitude):
     with TestClient(create_app(derived=derived, prepared=prepared, cache=cache, jobs=jobs)) as client:
         response = client.post('/api/sites/custom', json=dict(lat_deg=latitude, lon_deg=123))
         assert response.status_code == 422
+        assert response.json()['code'] == 'invalid_request'
         assert response.json()['fields'] == [{'field':'lat_deg', 'message':'Latitude must be at least 0.001\u00b0 away from a pole.'}]
         assert jobs.states == {} and jobs.starts == {}
 
@@ -367,3 +369,46 @@ def test_health_size_tolerates_staging_rename():
 def test_canonical_regex_boundaries(identity):
     from truesouth_api.jobs import ID
     assert ID.fullmatch(identity)
+
+
+def test_custom_error_codes_for_queue_address_shutdown_and_missing(tmp_path):
+    class Held:
+        def __init__(self): self.entered, self.release = Event(), Event()
+        def tier(self, body): return 'core80'
+        def __call__(self, body, tier):
+            self.entered.set()
+            assert self.release.wait(10)
+            return entry(body)
+    held = Held()
+    jobs = Jobs(tmp_path/'queue', held, max_addresses=100)
+    try:
+        with TestClient(create_app(cache=tmp_path/'queue', jobs=jobs)) as client:
+            jobs.submit(request(lon=0), '0')
+            assert held.entered.wait(5)
+            for i in range(1, 21): jobs.submit(request(lon=i), str(i))
+            response = client.post('/api/sites/custom', json={'lat_deg':-89.2, 'lon_deg':21})
+            assert response.status_code == 429 and response.json()['code'] == 'queue_full'
+            assert response.headers['retry-after'] == '1'
+            response = client.get('/api/sites/custom/c_0.0000_0.0000')
+            assert response.status_code == 404 and response.json()['code'] == 'not_ready'
+            jobs.closed = True
+            response = client.post('/api/sites/custom', json={'lat_deg':0, 'lon_deg':30})
+            assert response.status_code == 503 and response.json()['code'] == 'shutting_down'
+            held.release.set()
+    finally:
+        held.release.set()
+        jobs.close()
+    limited = Jobs(tmp_path/'address', Instant(), max_addresses=0)
+    with TestClient(create_app(cache=tmp_path/'address', jobs=limited)) as client:
+        response = client.post('/api/sites/custom', json={'lat_deg':0, 'lon_deg':0})
+        assert response.status_code == 503 and response.json()['code'] == 'address_limit'
+        assert response.headers['retry-after'] == '3600'
+
+
+def test_custom_file_missing_code(synthetic):
+    derived, prepared, cache = synthetic
+    jobs = Jobs(cache, Computer(derived, prepared, cache))
+    with TestClient(create_app(derived=derived, prepared=prepared, cache=cache, jobs=jobs)) as client:
+        identity = client.post('/api/sites/custom', json={'lat_deg':0, 'lon_deg':0}).json()['site_id']
+        response = client.get(f'/api/custom/{identity}/unknown.bin')
+        assert response.status_code == 404 and response.json() == {'code':'not_found', 'message':'Not found'}

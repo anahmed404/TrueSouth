@@ -243,7 +243,13 @@ Date__(UT)__HR:MN, , , Azimuth_(a-app), Elevation_(a-app),
         key = hashlib.sha256(json.dumps(site_request(body, -89, 0), sort_keys=True).encode()).hexdigest()[:20]
         (tmp_path/f'test_site-{body}-{key}.json').write_text(json.dumps({
             'result': header+'$$SOE\n'+body_rows+'$$EOE\nclockwise from north'}), encoding='utf-8')
-    gate, charts = directions_gate([site], system, times, tmp_path)
+    diagnostics = {}
+    gate, charts = directions_gate([site], system, times, tmp_path, diagnostics)
+    for field, label in (('raw_azimuth', 'raw'), ('sky', 'sky'), ('elevation', 'el')):
+        location = diagnostics[field+'_location']
+        assert f'{label}: max {diagnostics[field+"_max_deg"]:.12g} deg at {location["site_id"]}/{location["body"]} {location["utc"]}' in gate.detail
+    assert f'{diagnostics["raw_azimuth_hours_over_limit"]} site/body hours above 0.02 deg' in gate.detail
+    assert diagnostics['raw_azimuth_hours_over_limit'] == 4
     found = {name: float(re.search(rf'{name}: max ([0-9.eE+-]+) deg', gate.detail).group(1))
              for name in ('az', 'el', 'sky', 'raw')}
     assert found['raw'] > .02

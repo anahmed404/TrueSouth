@@ -27,8 +27,11 @@ def _plain_missing() -> PlainTextResponse:
     return PlainTextResponse(NOT_FOUND, status_code=404)
 
 
-def _json_missing() -> JSONResponse:
-    return JSONResponse({"code": "not_found", "message": NOT_FOUND}, status_code=404)
+def _json_missing(*, custom: bool = False) -> JSONResponse:
+    body = {"message": NOT_FOUND}
+    if custom:
+        body["code"] = "not_found"
+    return JSONResponse(body, status_code=404)
 
 
 def _serve_data(root: Path, relative: str, headers: Headers) -> Response:
@@ -111,7 +114,7 @@ def create_app(
         path = request.scope.get("path", "")
         if unsafe(raw) or unsafe(path):
             if path.startswith("/api"):
-                return _json_missing()
+                return _json_missing(custom=path.startswith(("/api/sites/custom", "/api/custom/")))
             return _plain_missing()
         return await call_next(request)
 
@@ -141,9 +144,9 @@ def create_app(
         if service.cached(identity) is None:
             return JSONResponse({'code': 'not_ready', 'message': START}, status_code=404)
         if rest not in ('meta.json', 'series.bin', 'skyline.bin', 'terrain.bin'):
-            return _json_missing()
+            return _json_missing(custom=True)
         found = safe_file(cache_root, identity + '/' + rest)
-        return file_response(found, DATA_CACHE, request.headers) if found else _json_missing()
+        return file_response(found, DATA_CACHE, request.headers) if found else _json_missing(custom=True)
 
     @app.api_route("/api/{rest:path}", methods=API_METHODS)
     def unknown_api(rest: str) -> JSONResponse:

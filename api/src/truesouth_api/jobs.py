@@ -156,7 +156,7 @@ class Jobs:
             state = self.states.get(identity)
             if state is None:
                 return None
-            position = next ( (i + 1 for i, job in enumerate(self.waiting) if job[0] == identity), None) if state['status'] == 'queued' else None
+            position = next((i + 1 for i, job in enumerate(self.waiting) if job[0] == identity), None) if state['status'] == 'queued' else None
             return {**state, 'position_in_queue': position}
 
     def submit(self, request: CustomSiteRequest, address):

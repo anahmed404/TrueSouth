@@ -966,6 +966,136 @@
       "title": "Features",
       "type": "array"
     },
+    "G2Diagnostics": {
+      "additionalProperties": false,
+      "description": "G2 evidence separate from the gate's measured value.",
+      "properties": {
+        "elevation_location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/G2Location"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Location of the elevation maximum."
+        },
+        "elevation_max_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Largest elevation difference in degrees.",
+          "title": "Elevation Max Deg"
+        },
+        "raw_azimuth_hours_over_limit": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Site and body hours above the G2 limit.",
+          "title": "Raw Azimuth Hours Over Limit"
+        },
+        "raw_azimuth_location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/G2Location"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Location of the raw azimuth maximum."
+        },
+        "raw_azimuth_max_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Largest raw compass azimuth difference in degrees.",
+          "title": "Raw Azimuth Max Deg"
+        },
+        "sky_location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/G2Location"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Location of the sky separation maximum."
+        },
+        "sky_max_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Largest full direction separation on the sky in degrees.",
+          "title": "Sky Max Deg"
+        }
+      },
+      "title": "G2Diagnostics",
+      "type": "object"
+    },
+    "G2Location": {
+      "additionalProperties": false,
+      "description": "Location and time of a G2 maximum.",
+      "properties": {
+        "body": {
+          "description": "Compared body.",
+          "enum": [
+            "sun",
+            "earth"
+          ],
+          "title": "Body",
+          "type": "string"
+        },
+        "site_id": {
+          "description": "Site identifier.",
+          "title": "Site Id",
+          "type": "string"
+        },
+        "utc": {
+          "description": "UTC hour of the maximum.",
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "Utc",
+          "type": "string"
+        }
+      },
+      "required": [
+        "site_id",
+        "body",
+        "utc"
+      ],
+      "title": "G2Location",
+      "type": "object"
+    },
     "Gate": {
       "additionalProperties": false,
       "description": "Validation hard gate result. See docs/validation.md, \"Hard gates\".",
@@ -2716,6 +2846,18 @@
           },
           "title": "Comparisons",
           "type": "array"
+        },
+        "g2_diagnostics": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/G2Diagnostics"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "G2 diagnostic maxima and their locations, when measured."
         },
         "g2_over_time": {
           "description": "Gate G2 over time, for the chart on the validation page. Empty until the check has been run.",
