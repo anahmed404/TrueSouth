@@ -633,8 +633,42 @@ Planned implementation: `sensitivity.py` (no file exists yet).
 
 ## 13. Local terrain coordinates
 
-The close-up mesh and skyline wall are specified here but are not built in
-this version. The 20 km terrain mesh is built.
+The 20 km terrain mesh and, where a complete valid NASA 5 m window is available,
+the close-up mesh are built. The close-up is a 257 × 257 grid over 2 km
+(7.8125 m vertex spacing), bilinearly interpolated from the source pixel centres.
+This is interpolation, not nearest-pixel decimation or a claim of independent
+measurements at every vertex. NASA reports about 90% interpolated source pixels
+and median RMS height uncertainty of 0.30–0.50 m in its regions of interest
+([PGDA product 78](https://pgda.gsfc.nasa.gov/products/78)).
+
+Close-ups are drawing data only: the site's ground, slope, skyline and series
+continue to use the polar maps. Before meshing, a constant height correction
+sets the close-up height at the site to the polar-map ground height. Thus $z_0$
+below remains the polar-map ground height and the lander stands at the same
+origin. Raw, uncorrected agreement is reported separately. No horizontal
+correction is applied. Source projection, scale, offset and missing-data mask
+are read from each GeoTIFF. Rasterio's transform describes pixel edges; the
+sample location is half a pixel inside the edge, including GMT pixel-registered
+products. Do not apply a second half-pixel shift.
+
+**Close-up agreement check.** Before that drawing correction, area-average the
+5 m raster onto the actual 80 m map cells whose centres are in the local 2 km
+window. Report mean and RMS height difference and the raw height difference at
+the site. Search horizontal offsets in projected X/Y from −160 to +160 m in
+10 m steps by normalised, mean-subtracted cross-correlation. For this lag search,
+an 80 m sliding box mean on the 5 m grid is bilinearly sampled at trial offsets;
+the zero-lag reported height comparison uses area-overlap averaging. No offset
+is applied. A flat comparison cannot determine an offset and reports null.
+
+Refuse a drawing mesh if the absolute site difference exceeds 10 m, the absolute
+window mean exceeds 5 m, the window RMS exceeds 10 m, or the detected horizontal
+offset exceeds 40 m (half an 80 m pixel). These are conservative product-agreement
+limits, not NASA error bounds: the older map smooths small relief and may have
+different track adjustments. A larger bias would make ground registration or
+the join misleading and needs investigation. Source radii, projection scale and
+meridian must match section 2.3; differences in legacy CRS names and axis labels
+are accepted only after numerical projection checks, never by assuming a new
+vertical datum or silently rotating/rescaling a map.
 
 The local terrain mesh is a 257 × 257 grid over a 20 km square centred on the site. A
 vertex at local offsets $(E, N)$ is found by walking distance $s = \sqrt{E^2+N^2}$ along

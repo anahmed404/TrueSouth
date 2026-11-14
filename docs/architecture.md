@@ -128,10 +128,10 @@ whose output is already up to date.
 
 | Command | Does | Reads | Writes |
 | :--- | :--- | :--- | :--- |
-| `fetch-raw` | Downloads the NASA files below. Checks each URL exists first and stops with a clear error if one does not. | network | `data/raw/` |
-| `prepare-dem` | Converts each map to a flat `float32` array plus a JSON sidecar (grid origin, pixel size, projection, missing-data mask). Checks the projection matches [`science.md`](science.md) §2.3. | `data/raw/` | `data/prepared/` |
+| `fetch-raw` | Downloads the NASA files below. Checks each URL exists first and stops with a clear error if one does not. `--group closeup` discovers product 78 surface maps, checks HEAD sizes, reads metadata and only candidate windows by verified HTTP ranges; see below. | network | `data/raw/`; close-up crops in `data/prepared/closeups/` |
+| `prepare-dem` | Converts each polar map to a flat `float32` array plus a JSON sidecar (grid origin, pixel size, projection, missing-data mask). Checks the projection matches [`science.md`](science.md) §2.3. `--group closeup` checks the crops already prepared during fetch. | `data/raw/` | `data/prepared/` |
 | `fetch-ephemeris` | Pulls the global ephemeris from Horizons. | network | `data/derived/system.bin` |
-| `build-sites` | For each catalog site: skyline, series, slope, terrain meshes. | prepared, catalog | `data/derived/sites/` |
+| `build-sites` | For each catalog site: skyline, series, slope, terrain meshes, and an accepted close-up where available. `--closeups-only --only <ids>` preserves existing science bytes, numbers and the manifest timestamp while refreshing drawing meshes through the shared atomic builder (decision 0016). | prepared, catalog | `data/derived/sites/` |
 | `build-maps` | Renders hillshade and overlay images and the lookup grids for the polar map. | prepared, raw | `data/derived/maps/` |
 | `build-scene-assets` | Makes the scene's Moon, Earth and polar-cap images, the two slope maps, and one apron grid per non-sphere site. | raw textures, prepared DEMs, `maps/`, `sites.json` | `data/derived/scene/` |
 | `validate` | Runs the comparisons in [`validation.md`](validation.md). | everything | `data/derived/validation.json` |
@@ -147,7 +147,7 @@ whose output is already up to date.
 | `LDEM_80S_80MPP_ADJ.TIF` | 189 MB | Core terrain, 80–90°S, 80 m pixels |
 | `LDEM_60S_240MPP_ADJ.TIF` | 210 MB | Wide terrain, 60–90°S, 240 m pixels |
 | `LDSM_80S_80MPP_ADJ.TIF` | 241 MB | NASA's slope map. Validation only. |
-| `<Site>_final_adj_5mpp_surf.tif` | about 41–108 MB each | Close-up DEMs for the sites that have one |
+| `<Site>_final_adj_5mpp_surf.tif` | about 41–142 MB each (HEAD checked) | Close-up drawing meshes for fully covered catalog sites and their individually centred best-lit variants |
 | `<Site>_final_adj_5mpp_slp.tif` | similar | NASA's close-up slope. Validation only. |
 | `AVGVISIB_85S_060M_201608.TIF`, `…_EARTH.TIF` | 34 MB, 25 MB | NASA's average sunlight and Earth visibility, 60 m |
 | `AVGVISIB_75S_120M_201608.TIF`, `…_EARTH.TIF` | 83 MB, 43 MB | The same, wider area, 120 m |
@@ -178,6 +178,27 @@ broken; use the plain `.TIF` names.
 
 Prepared maps are read with `numpy.load(..., mmap_mode="r")`, so the API needs about 1 GB
 of RAM, not the full size of the maps.
+
+**Close-up ingestion.** Run `fetch-raw --group closeup`, then `prepare-dem --group
+closeup`. The fetch step reads all surface links on [PGDA product 78](https://pgda.gsfc.nasa.gov/products/78),
+including newer maps absent from its README, and each file's own projection and
+transform. It prints every HEAD size before data reads, refuses a candidate file
+over 150 MB or candidate files totalling over 1.2 GB, and uses verified `httpx` +
+`truststore` ranges through Rasterio's Python opener (never GDAL's HTTP/TLS client).
+The published TIFFs have single-row strips; a bounded 4 MiB cache coalesces crop
+reads into 1 MiB requests. Only roughly 4 km square native 5 m `PreparedMap` crops,
+JSON sidecars and a resumable provenance index remain under `data/prepared/closeups/`.
+Completed sources are skipped on reruns. If ranges are unsupported, the fallback
+checks the conservative total budget, downloads one file, crops it and deletes it
+before opening the next file. Partial downloads are resumable. Neither raw nor
+prepared data is committed. Slope TIFFs are validation only and are not fetched by
+the closeup group. Custom sites still receive no close-up.
+
+Coverage requires the whole 2 km local window's projected envelope and every
+bilinear neighbour to be finite, not merely its centre or mesh vertices. This
+conservative rule also rejects holes between vertices. Agreement checks and
+ground registration follow [`science.md`](science.md) §13. Measurements and source
+selection are recorded in the S8b DEVLOG entry; NASA's slope comparison is deferred.
 
 ## The API
 
