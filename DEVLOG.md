@@ -1469,7 +1469,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   steps in a browser at 1440 × 900 by mouse and by keyboard only, and at 390 × 844 with
   touch emulation, the failed-load fallback (series blocked) and reduced motion. No
   console errors. A human has not played them. No AI-generated images.
-- **State:** built, not verified (after the review fixes, on the merge with main: 2,368 web
+- **State:** verified (438 Python tests, 2,395 web tests, typecheck and build pass on the merge with main; reviewed by Codex, which decoded the stored series itself and confirmed which hours each drag step accepts; findings fixed with tests: a level-ground chart shows no terrain-based reading, a cancelled drag checks the hour on screen, lesson 2 step 4 needs the Sun above level (20 of 49 hours pass), the power meter follows the drag; played by the builder by mouse, keyboard and touch emulation; not yet played by the team lead)
   tests, typecheck and build pass; 425 Python tests pass, 1 skipped; reviewed by Codex
   with changes requested, fixed below; not yet played by the team lead)
 - **Changed:** `web/src/features/academy/` (plus `docs/academy/lessons.md`,
