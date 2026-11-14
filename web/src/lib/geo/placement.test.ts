@@ -9,18 +9,16 @@ import {
   CAP_HALF_WIDTH_M,
   EARTH_RADIUS_KM,
   MOON_RADIUS_KM,
-  SQUEEZED_DISTANCE,
   apronCellLocalKm,
   apronCellOffsetM,
   bodyDirections,
   capUv,
-  earthPlacement,
   localDirectionToScene,
   localKmToSceneOffset,
   sceneDirectionAtSite,
   siteGroundScene,
-  sunPlacement,
   surfacePointScene,
+  trueEarthPlacement,
   type SystemHour,
 } from "./placement";
 import { sceneToLatLon, sunElevationDeg } from "./system";
@@ -51,7 +49,6 @@ describe("the Sun and Earth in the scene (science.md §14)", () => {
     const { sun, earth } = bodyDirections(hour({}));
     expectVec(sun, [1, 0, 0]);
     expectVec(earth, [1, 0, 0]);
-    expectVec(sunPlacement(hour({})).centre, [SQUEEZED_DISTANCE, 0, 0]);
   });
 
   it("a sub-solar point at 90° E on the equator puts the Sun along scene −z", () => {
@@ -73,11 +70,9 @@ describe("the Sun and Earth in the scene (science.md §14)", () => {
     expectVec(earth, [0.99319, -0.104289, 0.051931], 5);
   });
 
-  it("squeezes Earth to 2.5 Moon radii by default and puts it at its real distance at true scale", () => {
+  it("puts Earth at its real distance and size at true scale (the default arrangement is proportions.ts)", () => {
     const h = hour({ subearthLonDeg: 90, earthDistKm: 384_400 });
-    const squeezed = earthPlacement(h, false);
-    expect(Math.hypot(...squeezed.centre)).toBeCloseTo(SQUEEZED_DISTANCE, 12);
-    const real = earthPlacement(h, true);
+    const real = trueEarthPlacement(h);
     expect(Math.hypot(...real.centre)).toBeCloseTo(384_400 / MOON_RADIUS_KM, 9);
     expect(real.radius).toBeCloseTo(EARTH_RADIUS_KM / MOON_RADIUS_KM, 12);
     // Seen from the Moon at true scale, Earth is about 2° wide (system-view.md, "Done when").

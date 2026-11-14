@@ -89,10 +89,13 @@ about 390 times further. Earth is 3.67 times the Moon across and the Sun 109 tim
     the true values beside them.
   - With these, no two bodies ever touch, and a sight-line from any site on the Moon, drawn
     along its true direction, points into the drawn Earth's and the drawn Sun's discs.
-- **True scale toggle.** Earth moves to its real distance at its real size. The camera
-  pulls back to fit both. The Sun stays a direction arrow, labelled with its distance.
-- **True scale toggle.** Earth moves to its real distance at its real size. The camera
-  pulls back to fit both. The Sun stays a direction arrow, labelled with its distance.
+  - Earth is lit from the series' Moon-to-Sun direction, not from the drawn Earth toward the
+    drawn Sun (up to about 8° apart in the schematic). From Earth and from the Moon the
+    Sun's direction agrees to within about 0.15°, so Earth shows its true phase.
+- **True scale toggle.** Earth moves to its real distance at its real size, and the camera
+  flies to the same framing as home: the Moon and Earth side by side, both in frame. The Sun
+  stays a direction arrow at the edge of the free space, labelled with its distance. Earth's
+  fade in front of the Moon and its edge arrow work the same way at true scale.
 
 ## Textures
 
@@ -162,7 +165,9 @@ re-encoded. Sizes are from the prototype; they are budgets for the real files.
   sites here".
 - Pins are not in the tab order. The sites rail is the keyboard path to every site.
 - A sight-line starts at the site and runs along the true direction to the Sun or Earth
-  (from the series' azimuth and elevation, or from the sub-points in `system.bin`).
+  (from the series' azimuth and elevation, or from the sub-points in `system.bin`). In the
+  System view it is a short direction mark, about 1.15 Moon radii long with its label at
+  the end: it shows the direction and does not run all the way to the drawn body.
 - When the focused site changes, the pins and sight-lines update at once.
 
 ## Camera

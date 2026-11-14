@@ -485,6 +485,11 @@ export class World {
     this.inputs = inputs;
     this.moon.uniforms.uNoSun.value = inputs.bodies ? 0 : 1;
     this.moon.uniforms.uSun.value.set(...inputs.sunDir);
+    // Earth is lit from the series' Moon-to-Sun direction, not from the drawn Earth toward the
+    // drawn Sun (which can differ by up to about 8° in the schematic, proportions.ts). Seen
+    // from Earth and from the Moon the Sun's direction agrees to within about 0.15°, so this
+    // draws Earth's true phase; lighting it from the drawn Sun would make the phase false to
+    // flatter the schematic. proportions.test.ts pins it.
     this.earth.uniforms.uSun.value.set(...inputs.sunDir);
     this.groundLook.setBodies(inputs.sunDir, inputs.earthDir, inputs.bodies);
     const site = inputs.site;

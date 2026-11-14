@@ -3,7 +3,7 @@ import {
   MOON_RADIUS_KM,
   SUN_RADIUS_KM,
   bodyDirections,
-  earthPlacement,
+  trueEarthPlacement,
   type BodyPlacement,
   type SystemHour,
 } from "../../../lib/geo";
@@ -42,14 +42,22 @@ export const DISTANCE_SCALE = 0.75;
 export const SYSTEM_MAX_ALTITUDE = 600;
 export const TRUE_SCALE_MAX_ALTITUDE = 900;
 
+/**
+ * A true length the mapping can take: zero, a negative or a non-finite value (a bad record)
+ * maps to zero, so it can never put NaN or Infinity into a position.
+ */
+function usable(km: number): number {
+  return Number.isFinite(km) && km > 0 ? km : 0;
+}
+
 /** The drawn radius, in Moon radii, of a body `radiusKm` across its radius. The Moon is 1. */
 export function drawnRadius(radiusKm: number): number {
-  return Math.pow(radiusKm / MOON_RADIUS_KM, SIZE_EXPONENT);
+  return Math.pow(usable(radiusKm) / MOON_RADIUS_KM, SIZE_EXPONENT);
 }
 
 /** The drawn distance from the Moon's centre, in Moon radii, of a body `distanceKm` away. */
 export function drawnDistance(distanceKm: number): number {
-  return DISTANCE_SCALE * Math.pow(distanceKm / MOON_RADIUS_KM, DISTANCE_EXPONENT);
+  return DISTANCE_SCALE * Math.pow(usable(distanceKm) / MOON_RADIUS_KM, DISTANCE_EXPONENT);
 }
 
 export const DRAWN_EARTH_RADIUS = drawnRadius(EARTH_RADIUS_KM);
@@ -61,7 +69,7 @@ function along(dir: readonly [number, number, number], length: number): [number,
 
 /** Where Earth is drawn at hour `hour`: the schematic, or its true distance and size at true scale. */
 export function drawnEarth(hour: SystemHour, trueScale: boolean): BodyPlacement {
-  if (trueScale) return earthPlacement(hour, true);
+  if (trueScale) return trueEarthPlacement(hour);
   return { centre: along(bodyDirections(hour).earth, drawnDistance(hour.earthDistKm)), radius: DRAWN_EARTH_RADIUS };
 }
 
