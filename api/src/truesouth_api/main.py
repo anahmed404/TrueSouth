@@ -1,6 +1,7 @@
 """Catalog files and on-demand custom sites."""
 
 from contextlib import asynccontextmanager
+import logging
 from pathlib import Path
 
 from truesouth.contracts import CustomSiteRequest, CustomSiteQueued, CustomSiteStatus
@@ -131,7 +132,9 @@ def create_app(
     @app.post('/api/sites/custom', response_model=CustomSiteQueued)
     def submit(request: Request, body: CustomSiteRequest):
         try:
-            return service.submit(body, client_address(request, proxies))
+            address = client_address(request, proxies)
+            logging.getLogger('uvicorn.error').info('custom-site rate-limit client=%s', address)
+            return service.submit(body, address)
         except Rejected as error:
             headers = {'Retry-After': str(error.retry)} if error.retry else {}
             return JSONResponse({'code': error.code, 'message': error.message}, status_code=error.status, headers=headers)

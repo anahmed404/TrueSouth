@@ -54,7 +54,7 @@ each integration checkpoint.
 - **AI use:** Codex built the deployment files, trusted-proxy handling, tests and runbook; automated checks run locally, human review pending.
 - **State:** built, not verified
 - **Changed:** production Compose, deploy scripts and nginx configuration, API and tests, architecture, deployment runbook and decision 0017.
-- **Notes:** Ran Compose config, isolated self-signed nginx smoke checks, `sh -n`, ShellCheck, pytest (447 passed, one skipped), frozen pnpm install, web tests (2395 passed), typecheck and build. A local `system.bin` was 1,262,016 bytes; gzip was 1,030,332 bytes. No real certificate or deployment was attempted; the app's observed forwarded address was not logged independently, and peak terrain-job memory remains unmeasured.
+- **Notes:** Merged main and addressed PR review: strict trusted-proxy CIDRs, mapped addresses and client logging; host refusal, nginx health, fixed app address and proxy-verified updates; JavaScript gzip and runbook fixes. Ran Compose config, isolated bootstrap/TLS, host, health, container recreation, gzip/weak ETag and failure-path checks, `sh -n`, ShellCheck, pytest (458 passed, one skipped), frozen pnpm install, web tests (2465 passed), typecheck and build. Docker Desktop logged the bridge gateway; real Ubuntu visitor addressing and peak terrain-job memory remain unverified. No real certificate or deployment was attempted. Local `system.bin` was 1,262,016 bytes; gzip was 1,030,332 bytes.
 
 #### 2026-11-14 · S10c review · Consistent queue positions
 - **Who:** Codex implementation agent

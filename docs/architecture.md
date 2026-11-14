@@ -323,6 +323,11 @@ is an optional comma-separated list of IP addresses or CIDR ranges. Only when th
 socket peer matches that list does the API use the rightmost `X-Forwarded-For`
 entry, provided it is a valid IP address; a missing or malformed entry falls back to
 the peer. An untrusted peer cannot change its limit using forwarded headers.
-Configure only proxies under your control. The production nginx overwrites the header
+Networks must have no host bits set and be at least /24 (IPv4) or /64 (IPv6);
+invalid, empty list entries and broader networks fail startup. IPv4-mapped IPv6 peers,
+forwarded addresses and mapped IPv6 networks are normalized to IPv4 before matching
+and applying the prefix bound. Configure only proxies under your control.
+The API logs the rate-limit address for each custom-site submission.
+The production nginx overwrites the header
 with its connection's remote address. Keep uvicorn's `--no-proxy-headers` enabled;
 uvicorn must not rewrite the socket peer before this check.
