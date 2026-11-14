@@ -1,6 +1,11 @@
 # Compare
 
-The selected sites (up to eight) side by side, for one mission profile and one landing date.
+Two ways to compare, for one mission profile:
+
+- **Sites** (the default): the selected sites (up to eight) side by side, for one landing
+  date.
+- **Sites and dates** (MC9c): two sites at two landing dates, four columns, so one look
+  answers "which site?", "does waiting help?" and "site A now, or site B later?".
 
 Owner: Mission Control track. Folder: `web/src/features/mission-control/compare/`.
 Math: [`../science.md`](../science.md) §9–10.
@@ -116,6 +121,71 @@ and several GO sites with a tie on the printed score. A custom profile is called
 profile". A list of three or more names, any of which holds a comma ("Connecting Ridge,
 best-lit point"), is split by semicolons.
 
+## Sites and dates
+
+A segmented control in the window's header switches between **Sites** and **Sites and
+dates**, beside the title. Sites is the default; a reload starts there unless the link
+carries the picks (below).
+
+### The picks
+
+- **Site A and site B**, each one of the selected sites. Defaults: the focused site, and
+  the next selected site after it in the rail's order (wrapping to the first). With one
+  site selected, B is the same site as A: one site at two dates.
+- **Date 1 and date 2**, landing dates in UTC with the hour, set with the landing-date
+  control's own fields and limits (`LandingDateFields`): the whole mission window inside
+  the data, a date past the last landing moves to it and says so, a date before the data
+  moves to its first hour. Defaults: date 1 is the scenario's landing date and hour; date 2
+  is site A's next GO day after date 1 (00:00 UTC, the same rule as "Next GO"), or date 1
+  plus 7 days when there is none (or until the GO dates are worked out).
+- The profile is the scenario's.
+- **The picks never change the scenario.** Only "Use this date" does: it sets the
+  scenario's landing date to that column's date and focuses its site.
+- Once the user changes a pick, it stays; a pick whose site leaves the selection falls back
+  to its default.
+
+### The table
+
+Four columns: A on date 1, A on date 2, B on date 1, B on date 2. The header is two rows:
+the site (a picker, spanning its two columns) above its two dates (each a picker), so the
+eye can read across by site or down a column by date. Each column's accessible name is the
+site and the date in full ("Connecting Ridge · 2028-01-27 00:00 UTC"). With A and B the
+same site, the two pairs still show.
+
+The rows are the Sites table's rows, with its wording (`site-labels.ts`) and rules, applied
+across the four columns: "best" on the best printed value in a row (a tie marks every tied
+column; a best-lit point is never best for sunlight), and "Decides between them" on the row
+whose values differ most where a column breaks a rule. The last row is "Use this date", one
+quiet button per column (the NASA links stay in the Sites mode).
+
+**The best column** is marked "best" in the Status row: GO beats CAUTION beats NO-GO, then
+the higher printed score. Columns tied on both are all marked. Nothing is marked when all
+four tie, or when every column is NO-GO (a NO-GO score is not used).
+
+Scores are the real ones: each column is `useSiteStatus` for its site, date and the
+profile, the same hook as the focused-site panel, so a column equals what Mission Control
+shows for that site and date. A site still loading or failed shows so in its two columns
+only.
+
+On a narrow window or a phone the table keeps its fixed first column and scrolls sideways
+inside the window, as the Sites table does.
+
+### The summary, export and share
+
+- The summary sentence (the table's accessible description) gives the four results in one
+  or two sentences and names the best column.
+- **Export CSV / JSON** export the four columns while this mode shows: one row per site and
+  date, with a `landing_utc` column, the same header lines, units and provenance as the
+  Sites export, and both landing dates in the header. File names:
+  `truesouth_compare_dates_<profile>_<date 1>_<date 2>.csv` (and `.json`).
+- **Share** adds the picks to the copied link while this mode shows:
+  `cmp=<site A>,<site B>,<date 1>,<date 2>`, dates as `land` writes them
+  (`2028-01-27T00:00Z`). On load it opens the mode with those picks if both sites are
+  selected and both dates are whole hours whose window fits the data; otherwise the
+  parameter is ignored and the Sites mode shows. Old links have no `cmp` and are unchanged;
+  an older app ignores it. The address bar does not carry it (the scenario owns the address
+  bar): only the Share button's link does.
+
 ## States
 
 - **Fewer than two sites selected.** The table shows what there is, and its notes line
@@ -137,6 +207,10 @@ best-lit point"), is split by semicolons.
   fold is kept and saved.
 - Opening and closing the window does not move the camera, and Escape returns focus to the
   view bar button.
+- Sites and dates: each column equals the scoring engine's result for its site, date and
+  profile; the defaults hold for one, two and eight selected sites; dates are clamped at the
+  data's edges; the best column and the deciding row follow the rules above; the scenario's
+  landing date moves only with "Use this date"; the export and the `cmp` link round-trip.
 - A sunlit-peak site shows its nearby range, a best-lit variant is labelled as chosen by
   TrueSouth with an upper-reading note, and an Artemis candidate entry carries its map-centre
   note.

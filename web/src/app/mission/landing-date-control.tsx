@@ -181,9 +181,46 @@ type LandingDateFormProps = {
   lastReason: string | null;
 };
 
-/** A date and an hour, in UTC, limited to the dates whose mission window fits the grid. */
+/** The scenario's landing date: the shared fields, writing to the store, with the slip buttons. */
 function LandingDateForm({ landingUtc, firstUtc, lastUtc, durationDays, lastReason }: LandingDateFormProps) {
   const store = useScenarioStore();
+  return (
+    <LandingDateFields
+      landingUtc={landingUtc}
+      firstUtc={firstUtc}
+      lastUtc={lastUtc}
+      durationDays={durationDays}
+      onPick={(utc) => store.getState().setLandingDate(utc)}
+    >
+      <div className="date-form-row">
+        <span className="date-form-label">Slip</span>
+        <SlipButtons reason={lastReason} />
+      </div>
+    </LandingDateFields>
+  );
+}
+
+export type LandingDateFieldsProps = {
+  landingUtc: string;
+  /** The grid's first hour and the last landing whose mission window fits the data. */
+  firstUtc: string;
+  lastUtc: string;
+  durationDays: number;
+  /**
+   * The picked date and hour, as typed; the caller clamps it to the limits (the store's
+   * `setLandingDate` does, and `clampLanding` in landing-control.ts gives the same answer).
+   */
+  onPick: (utc: string) => void;
+  /** Rows after the hour, before the window's end (the strip's form puts "Slip" there). */
+  children?: ReactNode;
+};
+
+/**
+ * A date and an hour, in UTC, limited to the dates whose mission window fits the grid, with
+ * the window's end, the limits and a note when a date is moved to a limit. The landing-date
+ * control's form and Compare's "Sites and dates" pickers share it.
+ */
+export function LandingDateFields({ landingUtc, firstUtc, lastUtc, durationDays, onPick, children }: LandingDateFieldsProps) {
   const dateId = useId();
   const hourId = useId();
   const parts = splitUtc(landingUtc) ?? { date: "", hour: 0 };
@@ -195,7 +232,7 @@ function LandingDateForm({ landingUtc, firstUtc, lastUtc, durationDays, lastReas
     if (!utc) return;
     const tooLate = Date.parse(utc) > Date.parse(lastUtc);
     const tooEarly = Date.parse(utc) < Date.parse(firstUtc);
-    store.getState().setLandingDate(utc);
+    onPick(utc);
     if (tooLate) setNote(`Moved to the latest landing date that leaves room for the ${formatLimit(durationDays, "d")} mission window.`);
     else if (tooEarly) setNote("Moved to the first hour of the time grid.");
     else setNote(null);
@@ -230,10 +267,7 @@ function LandingDateForm({ landingUtc, firstUtc, lastUtc, durationDays, lastReas
         </select>
         <span className="date-form-zone">UTC</span>
       </div>
-      <div className="date-form-row">
-        <span className="date-form-label">Slip</span>
-        <SlipButtons reason={lastReason} />
-      </div>
+      {children}
       {end ? (
         <p className="date-form-window">
           The {formatLimit(durationDays, "d")} mission window ends {end.long}.
