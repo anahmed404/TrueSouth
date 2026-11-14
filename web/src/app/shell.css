@@ -157,6 +157,52 @@
     padding: 4px;
   }
 
+  /*
+    On a wide window (from 1,280 px, viewBarInTopRow) the view bar sits in the app bar's
+    row, centred in the gap between the brand and the profile: the same 44 px height, top
+    and card as its neighbours, so the scene gets the row below. Narrower, it keeps its row.
+  */
+  .shell-top-spacer {
+    display: flex;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .shell-top .view-bar {
+    flex: none;
+    height: 44px;
+    margin-top: 0;
+    pointer-events: auto;
+  }
+
+  /*
+    1,280 px to 1,439 px: the row only fits compacted. The profile card drops its "Mission
+    profile" label (the name stays, and the button's accessible name keeps the label),
+    Share shows its icon (as below 1,200 px) and each tab gives up 4 px of padding.
+  */
+  @media (max-width: 1439px) {
+    .mc[data-top="appbar"] .shell-top .field-profile .field-label,
+    .mc[data-top="appbar"] .shell-top .share-button .share-word {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .mc[data-top="appbar"] .shell-top .share-button {
+      width: 44px;
+      min-width: 0;
+      padding: 0;
+      justify-content: center;
+    }
+
+    .mc[data-top="appbar"] .view-bar-item {
+      padding-left: 8px;
+    }
+  }
+
   .view-bar-item {
     position: relative;
     display: inline-flex;

@@ -806,6 +806,27 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-14 · M14 · The view bar moves into the app bar's row
+- **Who:** Claude Code agent, for the orchestrator, from the team lead's request
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (a move, nothing
+  added) — wrote `viewBarInTopRow`, the app bar's middle slot, the placement in the shell, the
+  compaction from 1,280 px to 1,439 px, the spec and DESIGN.md lines and 2 vitest tests —
+  checked by the agent with the vitest suite, typecheck and the build, and by eye at
+  1920 × 1080, 1440 × 900, 1280 × 720 and 1279 × 720 in all five views and with Compare open,
+  with the "About" tip and the profile editor open; a human has not reviewed it yet
+- **State:** built, not verified
+- **Changed:** `web/src/app/mission/shell-layout.ts` (and its test), `web/src/app/mission/top-bar.tsx`
+  (a `middle` slot), `web/src/app/mission-screen.tsx` (where the view bar goes),
+  `web/src/app/shell.css`, `docs/features/mission-control.md`, `DESIGN.md`, this entry
+- **Notes:**
+  - From 1,440 px nothing is compacted; from 1,280 px to 1,439 px the profile card drops its
+    "Mission profile" label, Share shows its icon and the tabs lose 4 px of padding; below
+    1,280 px the view bar keeps its own row. The phone is unchanged.
+  - The free space's top at 1440 × 900 moves from y 124 to y 64 (the notices' bottom): the
+    gap between the panels goes from 792 × 528 to 792 × 588 px. The pinned "1440 open" input in
+    `scene-logic.test.ts` (288, 131, 793, 424) was left alone (PR #123 owns it); with the
+    same 60 px gained (288, 71, 793, 484) the System view's Moon stays 94.2 px in radius.
+
 #### 2026-11-14 · MC9c · Compare two sites at two landing dates
 - **Who:** Claude Code agent, for the orchestrator, from a tester's request
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (a second mode

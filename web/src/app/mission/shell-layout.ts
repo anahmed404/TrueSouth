@@ -135,6 +135,19 @@ export function viewBarFitsBetween(viewportWidth: number, layout: ShellLayout): 
   return between >= viewBar;
 }
 
+/**
+ * The narrowest window at which the view bar sits in the app bar's row, between the brand
+ * and the profile (docs/features/mission-control.md, "Layout"). From 1,440 px it fits as it
+ * is; from 1,280 px to 1,439 px the row is compacted (shell.css): the profile card drops its
+ * "Mission profile" label, Share shows its icon only and the tabs lose 4 px of padding.
+ * Narrower, the view bar keeps its own row under the app bar. Never on a phone.
+ */
+export const VIEW_BAR_IN_TOP_ROW_MIN = 1280;
+
+export function viewBarInTopRow(viewportWidth: number, phone: boolean): boolean {
+  return !phone && viewportWidth >= VIEW_BAR_IN_TOP_ROW_MIN;
+}
+
 export type ShortcutEvent = {
   key: string;
   ctrlKey: boolean;

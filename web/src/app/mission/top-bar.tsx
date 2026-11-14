@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react";
-import { memo } from "react";
+import { memo, type ReactNode } from "react";
 import { Link } from "react-router";
 import { BrandMark } from "../../components/BrandMark";
 import { Popover } from "../../components/Popover";
@@ -11,19 +11,20 @@ import { ShareButton } from "../../features/mission-control/share/share-button";
 import { useScenario } from "./scenario-context";
 
 /**
- * The Mission Control app bar: three floating blocks over the scene (brand and mode switch,
- * the profile picker, Share). The landing date lives in the bottom strip, with the timeline
+ * The Mission Control app bar: floating blocks over the scene (brand and mode switch, the
+ * profile picker, Share). On a wide window the view bar sits between them (`middle`), so the
+ * row reads, and tabs, as brand, views, profile, Share. The landing date lives in the bottom strip, with the timeline
  * it starts (`LandingDateControl`). It reads only the profile from the scenario, so moving
  * the current time does not re-render it.
  */
-export const TopBar = memo(function TopBar() {
+export const TopBar = memo(function TopBar({ middle = null }: { middle?: ReactNode }) {
   return (
     <header className="shell-top">
       <div className="appbar-block appbar-brand">
         <BrandMark />
         <ModeSwitch current="mission" />
       </div>
-      <div className="shell-top-spacer" />
+      <div className="shell-top-spacer">{middle}</div>
       <ProfilePicker />
       <ShareButton />
     </header>

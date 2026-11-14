@@ -67,7 +67,7 @@ them.
 | Element | What it is |
 | :--- | :--- |
 | **App bar** | Mode switch, profile picker, share. Three floating blocks along the top, 44 px tall. The landing date is in the bottom strip. |
-| **View bar** | A floating bar under the app bar that picks the view. See "The view bar". |
+| **View bar** | A floating bar that picks the view. From 1,280 px wide it sits in the app bar's row, centred between the brand and the profile; narrower, on its own row under the app bar. See "The view bar". |
 | **About the view** | The current view's tab carries a small info button, "About System view" and so on. Its tip holds the plain-language text from `explain.ts`, whose first sentence says what the view shows. Nothing is drawn under the view bar, so the scene keeps that room. The same first sentence is the current tab's accessible description and is read out politely when the view changes. |
 | **Sites rail** | Selected sites, each with a status chip for the current landing date. Click to focus. Up to 8 sites. 256 px wide, or 48 px folded. |
 | **Focused-site panel** | Status, the broken rule, passing rules, metrics, slope with its baseline, links out to Quickmap and Moon Trek. 328 px wide, or 48 px folded. Content below. |
@@ -90,6 +90,16 @@ scene sits on a plate.
 One floating bar with six entries. A hairline divides the five views from the one window.
 The window entry carries a small window icon and `aria-expanded`.
 
+**Where it sits** (M14, the team lead's request): from 1,280 px wide, in the app bar's row,
+centred in the gap between the brand-and-mode block and the profile, with the same 44 px
+height, top and card as its neighbours, so the scene gets the row below. From 1,440 px it fits
+as it is. From 1,280 px to 1,439 px the row is compacted: the profile card drops its
+"Mission profile" label (its name, duration and tag stay; the button's accessible name keeps
+the label), Share shows its icon only, and each tab gives up 4 px of padding. No view is
+dropped or renamed. Narrower than 1,280 px, the view bar keeps its own row under the app bar,
+as before; the phone is unchanged. In the app bar's row the tab order is brand and mode, the
+views, the profile, Share.
+
 | Entry | Kind | What happens | Spec |
 | :--- | :--- | :--- | :--- |
 | System view | Camera view | Home. The camera returns to the whole scene. | [`system-view.md`](system-view.md) |
@@ -105,7 +115,8 @@ The window entry carries a small window icon and `aria-expanded`.
   opens on hover, focus or a tap, and holds the view's text from `explain.ts`. It is a 28 px
   target on a wide screen and 44 px on a phone, inside the current tab's Raised fill, so it
   never reads as part of the next tab.
-- The free space starts just under the view bar (and under any notice about the link). An
+- The free space starts just under the app bar's row when the view bar sits in it, else just
+  under the view bar (and under any notice about the link). An
   earlier build put the view's sentence on a plate there; it was removed at the team lead's
   request because it took too much room.
 - A pick during a camera move interrupts the move and starts a new one from where the

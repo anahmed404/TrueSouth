@@ -10,7 +10,9 @@ import {
   setShellPanel,
   OVERLAY_SELECTOR,
   foldAnnouncement,
+  VIEW_BAR_IN_TOP_ROW_MIN,
   viewBarFitsBetween,
+  viewBarInTopRow,
   shortcutPanel,
   toggleShellPanel,
   type ShellLayout,
@@ -140,6 +142,21 @@ describe("foldAnnouncement", () => {
     expect(foldAnnouncement("sitesRail", true)).toBe("Sites rail folded.");
     expect(foldAnnouncement("focusPanel", false)).toBe("Focused-site panel open.");
     expect(foldAnnouncement("timeline", true)).toBe("Timeline folded.");
+  });
+});
+
+describe("viewBarInTopRow (M14)", () => {
+  it("puts the view bar in the app bar's row from 1,280 px wide", () => {
+    expect(viewBarInTopRow(1920, false)).toBe(true);
+    expect(viewBarInTopRow(1440, false)).toBe(true);
+    expect(viewBarInTopRow(VIEW_BAR_IN_TOP_ROW_MIN, false)).toBe(true);
+    expect(VIEW_BAR_IN_TOP_ROW_MIN).toBe(1280);
+  });
+
+  it("keeps its own row below 1,280 px, and on a phone", () => {
+    expect(viewBarInTopRow(1279, false)).toBe(false);
+    expect(viewBarInTopRow(1024, false)).toBe(false);
+    expect(viewBarInTopRow(1440, true)).toBe(false);
   });
 });
 
