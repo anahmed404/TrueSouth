@@ -5,14 +5,16 @@ README is unchanged.
 
 ## Review of the current README
 
-Read against `origin/main` at 2026-11-13 22:14 UTC (`origin/main` at 63d518a):
+Read against `origin/main` at **2026-11-14 (`origin/main` at `5a5fd84`)**:
 
 - **Out of date:** "Planning is complete. No application code exists yet." Code exists:
-  the science pipeline, the API, the web app, the 3D scene and the Docker build.
+  the science pipeline, the FastAPI custom-sites server, the web app, the 3D scene and flat
+  Polar map, all five Mission Control views plus Compare, Academy lessons 1 to 4, the
+  validation page, and the Docker build.
 - **Out of date:** "Quick start (once code exists)". It runs today.
-- **Missing:** a screenshot, the validation headline, the data credits, the licence state,
-  the Docker command and an honest list of what is not built yet.
-- **Still right:** the two modes, the one question, the honesty rules and the table of
+- **Missing:** screenshots, the validation headline, the data credits, the licence state,
+  the Docker command, and an honest list of what is not built yet.
+- **Still right:** the two modes, the one question, the honesty rules, and the table of
   where documents are.
 - **Links in this file** are written to resolve from `docs/submission/`. To apply it, copy
   the part below the line to `README.md` and run, from the repository root:
@@ -28,10 +30,11 @@ CHECK: the team lead decides whether to apply it.
 [Lunar Landing Site Navigator](https://www.spaceappschallenge.org/2026/challenges/lunar-landing-site-navigator/).**
 
 TrueSouth answers one question: **"Where and when can this mission land?"** It turns NASA's
-LOLA terrain and JPL Horizons positions into a skyline and an hourly record of the Sun and
-Earth for 20 sites over six years, so a planner can score any landing date and mission
-profile instantly. Mission Control is for planners and the Academy is for learners, and
-both run on the same real data.
+LOLA terrain and JPL Horizons positions into a 300 km skyline and an hourly record of the Sun
+and Earth over six years (2026–2031) for 20 catalog sites, 5 TrueSouth best-lit variants, and
+on-demand custom lunar coordinates, so a planner can score any landing date and mission profile
+instantly. Mission Control is for planners and the Academy is for learners, and both run on
+the same real data.
 
 Landing at the Moon's south pole is hard for three reasons: the Sun skims the horizon at
 1 to 2 degrees, Earth bobs above and below the horizon each month, and mountains block both.
@@ -39,51 +42,47 @@ A small change in *where* or *when* you land can turn a workable mission into a 
 
 ## Screenshots
 
-Placeholders. Use these files in `docs/design/c2/`; open each and confirm it matches the
-current app before publishing, because some are older than the last merges.
+Current builds in `docs/design/c2/`:
 
 | Picture | File | Shows |
 | :--- | :--- | :--- |
-| Hero | [`built-scene-system.png`](../design/c2/built-scene-system.png) | Mission Control: the 3D System view, the sites rail, a NO-GO verdict, the timeline and the countdowns |
-| Lander's eye | [`built-landers-eye-1440-lit-landing.png`](../design/c2/built-landers-eye-1440-lit-landing.png) | The skyline with the Sun and Earth drawn on it, and the broken rules |
-| Timeline, real data | [`built-timeline-real-connecting-ridge.png`](../design/c2/built-timeline-real-connecting-ridge.png) | The hourly timeline for Connecting Ridge |
-| The pole | [`built-scene-pole.png`](../design/c2/built-scene-pole.png) | The camera over the south pole |
-| Local terrain | [`built-scene-local-terrain.png`](../design/c2/built-scene-local-terrain.png) | The ground around a site, with the lander |
-| Academy path | [`built-academy-path.png`](../design/c2/built-academy-path.png) | The eight lessons on a map of the south pole |
-| Academy lesson | [`built-academy-lesson-choice.png`](../design/c2/built-academy-lesson-choice.png) | One lesson step with Luna |
-
-CHECK: `built-mission-nogo.png` shows an older build ("Not built yet" panels). Do not use it.
+| Mission Control | [`built-shell-feedback-after-1440.png`](../design/c2/built-shell-feedback-after-1440.png) | System view, Selected sites rail, Focused site panel, Timeline with Landing date & Next GO |
+| Slip Planner | [`built-slip-1440.png`](../design/c2/built-slip-1440.png) | Status-and-score spots on the Moon above 6-year landing-date strips |
+| Polar map | [`built-polar-map-1440.png`](../design/c2/built-polar-map-1440.png) | Flat south-polar relief map with pins, overlays, and instant nudge readout |
+| Local terrain | [`built-ground-after-cr-terrain-lit.png`](../design/c2/built-ground-after-cr-terrain-lit.png) | 20 km terrain patch inside 300 km apron with illustrative relief, shadows, and Pip |
+| Lander's eye | [`built-landers-eye-collapsed-1440-lit-open.png`](../design/c2/built-landers-eye-collapsed-1440-lit-open.png) | 2 m horizon view with the collapsible 360° horizon chart expanded |
+| Compare window | [`built-compare-1440-four.png`](../design/c2/built-compare-1440-four.png) | Up to 8 sites side by side with deciding row, CSV/JSON export, and NASA map links |
+| Academy | [`built-lessons-1440-path-after-four.png`](../design/c2/built-lessons-1440-path-after-four.png) | Eight-lesson spiral path over the south pole (lessons 1–4 playable) |
+| Validation | [`built-validation-1440.png`](../design/c2/built-validation-1440.png) | Live verification against JPL Horizons and NASA PGDA maps (`/validation`) |
 
 ## The two modes
 
 | Mode | For | What it does |
 | :--- | :--- | :--- |
-| **Mission Control** | Mission planners | Pick a mission profile and up to eight sites, set a landing date, and see a GO, CAUTION or NO-GO verdict with the rule that fails, an hourly timeline, countdowns to sunset and Earthset, a 3D scene and the Lander's eye view. Share the scenario as a link. |
-| **Academy** | Students, educators, the public | A 10 to 15 minute story. Luna, a moon mascot, guides you through rebuilding the tool's logic to land a small fictional lander called Pip. |
+| **Mission Control** | Mission planners | Pick a mission profile and up to eight sites (or type custom coordinates), test landing dates in the **Slip Planner**, inspect any hour across **System view**, **Polar map**, **Local terrain**, and **Lander's eye**, compare sites in **Compare**, export CSV/JSON, and share scenarios by URL. |
+| **Academy** | Students, educators, the public | Four playable lessons (*Where's the Sun?*, *Mountains steal sunlight*, *The Moon is round*, *Phone home*) with Luna, our moon mascot, and KaTeX "Under the hood" formula cards backed by real pipeline numbers. |
 
 ## What is built, and what is not
 
-State as of 2026-11-13 22:14 UTC (`origin/main` at 63d518a). [`docs/orchestration/status.md`](../orchestration/status.md) is the
-live record.
+State as of **2026-11-14 (`origin/main` at `5a5fd84`)**.
 
-**Built:** the science pipeline and its derived data for 20 sites; validation against
-NASA's maps; the Mission Control shell; the 3D scene (System view, the ground in Local
-terrain); the Lander's eye; the timeline and countdowns; scoring in the browser; the
-shareable link; the validation page; a Docker build; Academy screens and lesson skeletons.
+**Built:**
+- The Python science pipeline (`science/`) and precomputed dataset for 20 catalog sites plus 5 TrueSouth best-lit variants (`data/derived/`).
+- The FastAPI backend (`api/`) with on-demand custom coordinate computation (`POST /api/sites/custom`, requiring prepared NASA maps mounted; returns `501` in catalog-only Docker).
+- Mission Control: all five camera views (**System view**, **Polar map**, **Slip Planner**, **Local terrain**, **Lander's eye**), **Compare** floating window, CSV & JSON exports, confirmed LROC QuickMap & Moon Trek links, URL-synced **Share**, timeline & countdowns, and custom-coordinates UI.
+- Academy lessons 1 to 4 playable with real `worked_examples.json` and KaTeX cards, plus plain-language explanations (`explain.ts`) on every term.
+- Live Validation page (`/validation`) and Docker build (`Dockerfile`, `compose.yaml`).
 
-**In review (open pull requests):** Academy lessons 1 to 4 playable (#81); the landing date
-moving into the timeline, with a "Next GO" button (#83); nearby range and best-lit variants
-for sunlit peaks (#77); a server that computes custom sites (#80).
+**In review at draft time (not described as built yet):**
+- `#93` scoring boundary refinement; `#94` science doc clarifications; `#95` interactive `drag-body` / `draw-skyline` panel steps in Academy lessons 1, 2 and 4 (currently showing Luna's preview and the real answer); `#96` custom-site queue position and G2 diagnostic fields.
 
-**Not built:** the Slip Planner view, the Compare window, the flat Polar map, Local terrain
-overlays, a form for custom coordinates, Academy lessons 5 to 8, Luna's final art.
-
-CHECK: update these three lists from `gh pr list --state open` on the day.
+**Not built / out of scope for the deadline:**
+- Local terrain 3D blocker ring (`T4`), slope/height colour overlays & 5 m close-up mesh (`T5`), the 9×9 sensitivity grid (`S11`/`T8`), official USGS Artemis region outlines (ScienceBase login required), Academy lessons 5 to 8 (`A6`), and Luna's final hand-drawn art (`A10`).
 
 ## Run it
 
 You need Python 3.12 with [`uv`](https://docs.astral.sh/uv/), and Node 22 with `pnpm`.
-The derived data is committed, so you do not need to download NASA files.
+The derived catalog data is committed, so you do not need to download NASA files to run the app.
 
 ```bash
 uv sync                                   # install Python dependencies
@@ -96,7 +95,7 @@ pnpm --dir web test                       # web tests
 pnpm --dir web typecheck
 ```
 
-With Docker (production build, catalog sites only, no downloads at start):
+With Docker (production build, catalog sites only, custom coordinates disabled with HTTP 501 unless prepared NASA maps are mounted):
 
 ```bash
 docker compose -p truesouth-s13 up -d --build   # then open http://localhost:8080
@@ -109,26 +108,29 @@ Development needs no Docker. The stack, the folder layout and the data flow are 
 ## What is real, and what is assumed
 
 - **Real:** the terrain (NASA LOLA), the Sun and Earth positions (JPL Horizons), the
-  skylines and the hourly Sun and Earth record for 20 sites from 2026-01-01 to 2031-12-31.
+  skylines and the hourly Sun and Earth record from 2026-01-01 to 2031-12-31.
   The Academy's lander, Pip, is fictional. Its data is not.
 - **Sourced or assumed:** every number in a mission profile is tagged **sourced** (with a
   link) or **assumed** (our estimate, because none is published). We never show an assumed
-  number as sourced. For IM-2 Athena only the 10-day length is sourced. See
+  number as sourced. For IM-2 Athena only the 10-day length is sourced. Best-lit variants
+  are tagged **chosen by TrueSouth** as upper readings and never win "best" in Compare. See
   [`docs/mission-profiles.md`](../mission-profiles.md).
 - **Planning aid, not flight certification.** It models the stay on the surface only: no
   launch, no transit, no descent, no return.
 
 ## How we know it is right
 
-- Our Sun and Earth directions match NASA's JPL Horizons within **0.0061°** at all 20 sites
-  and every hour of six years: 2,103,360 comparisons (pass mark 0.02°).
-- Nine automated geometry and encoding gates (G1 to G9) pass.
-- Against NASA's average-sunlight map, 13 of 14 polar sites are within 6.3 percentage
-  points. **Two results are outside their marks and are published with their reasons:**
-  sunlight at Peak near Shackleton (24.1 points above NASA's 60 m pixel, on a sharp ridge
-  where neighbouring pixels range from 44.7% to 58.0%) and the skyline's convergence at
-  Connecting Ridge (405 of 1,440 directions move by more than 0.05° when the method's step is
-  halved; terrain within 0.56 km of the site).
+- Our Sun and Earth directions match NASA's JPL Horizons within **0.0061°** at all 20 catalog
+  sites and every hour of six years: 2,103,360 comparisons (pass mark 0.02°). Raw compass
+  azimuth exceeds 0.02° at 28 near-zenith/nadir hours at Apollo 11 (max 0.083°) and is
+  reported openly.
+- Nine pipeline geometry and encoding gates (G1 to G9) pass; TypeScript/Python scoring
+  parity across 58 cases (G10) and generated-type parity (G11) pass in the web tests.
+- Across 59 comparisons against NASA PGDA maps and self-convergence checks (`validation.json`),
+  54 are within their marks and **5 outside-mark rows are published with explanations**
+  (sunlight at Peak near Shackleton, `de_gerlache_rim_best_lit`, and `malapert_peak_best_lit`;
+  Earth visibility at `de_gerlache_rim_best_lit`; and skyline convergence at Connecting Ridge).
+  Close-up 5 m slope (`R4`) and sensitivity (`R6`) checks are not run in this build.
 
 Full results: [`docs/validation.md`](../validation.md) and `data/derived/validation.json`.
 
@@ -138,10 +140,11 @@ Full results: [`docs/validation.md`](../validation.md) and `data/derived/validat
 | :--- | :--- |
 | [JPL Horizons System](https://ssd.jpl.nasa.gov/horizons/) | Sun and Earth positions |
 | LOLA 80 m and 240 m polar terrain, [PGDA product 90](https://pgda.gsfc.nasa.gov/products/90) | Skylines, slope, 3D ground |
-| LOLA average sunlight and Earth visibility, [PGDA product 69](https://pgda.gsfc.nasa.gov/products/69) | Validation only |
+| LOLA average sunlight and Earth visibility, [PGDA product 69](https://pgda.gsfc.nasa.gov/products/69) | Polar map context overlays and validation |
 | LOLA 5 m close-up maps, [PGDA product 78](https://pgda.gsfc.nasa.gov/products/78) | Positions of Artemis candidate sites |
 | [NASA SVS 4720](https://svs.gsfc.nasa.gov/4720) | Moon colour and height maps in the scene |
 | Blue Marble Next Generation, NASA Earth Observatory | The Earth picture in the scene |
+| Yale Bright Star Catalogue V/50 (NASA/ADC, HEASARC `bsc5p`) | Star background in System view |
 
 Credit lines as recorded with the images: "NASA Scientific Visualization Studio; LRO LROC and
 LOLA teams. SVS 4720." and "NASA Earth Observatory, Reto Stöckli. Blue Marble Next
