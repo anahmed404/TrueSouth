@@ -1209,7 +1209,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   Codex, gpt-6.1-sol — resumed the interrupted work, finished label placement and readout
   wrapping, added free-space label tests, ran the checks, updated the spec and captured the
   final opening views and flat Slip Planner. No AI-generated imagery; human review pending.
-- **State:** built, not verified
+- **State:** verified (reviewed by Cursor (grok-4.7): approve with two fixes, both made by the orchestrator (a 240 m point inside the square is no longer called outside the detailed map; the zoom floor in the doc is 40 %); on the tree merged with main 8176241: 438 Python tests (1 skipped), 2,431 web tests, typecheck and build all exit 0)
 - **Changed:** `web/src/features/polar-map/`; `docs/features/polar-map.md`; eight
   `docs/design/c2/built-polar-map-context-*.png` screenshots; this entry.
 - **Notes:**
