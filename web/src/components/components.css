@@ -497,7 +497,11 @@
     overscroll-behavior: contain;
     border: 1px solid var(--line-strong);
     border-radius: var(--r-md);
-    background: var(--raised);
+    /* 99 %, not opaque, on purpose (docs/decisions/0018): an opaque scrolling panel is
+       treated as covering what is under it, and Chrome's software compositor (a laptop
+       whose GPU compositing is off) then wipes a box of the 3D scene beside it to the page
+       colour: "the black box". Measured gone at 99 %; the difference cannot be seen. */
+    background: color-mix(in srgb, var(--raised) 99%, transparent);
     color: var(--ink);
     font-size: var(--t-md);
     font-weight: 400;

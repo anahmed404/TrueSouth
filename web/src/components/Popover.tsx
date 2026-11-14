@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode, type Ref } from "react";
+import { createPortal } from "react-dom";
 import { cx } from "./format";
+import { bridgeTab, overlayHost, placePanel, returnsFocus, tabStopAfter, tabbables } from "./overlay-host";
 
 export type PopoverTriggerProps = {
   ref: (node: HTMLButtonElement | null) => void;
@@ -44,6 +46,10 @@ const GAP = 6;
  * A panel of controls that opens under its button (or above it): a non-modal dialog in the browser's
  * top layer (the popover API), so no panel's scrolling or clipping cuts it off.
  *
+ * - The panel is portalled to the page's body (or into the open popover that holds the
+ *   trigger), never left inside the panel its trigger sits in (overlay-host.ts). Tab still
+ *   moves as if it followed the trigger: from the trigger into it, from its last control on
+ *   to the page, and back to the trigger with Shift+Tab.
  * - The button toggles it; Escape or a click outside closes it (light dismiss).
  * - On open, focus moves to the first control inside. On close, it returns to the button.
  * - Flat Raised surface, Control Edge border and the popover shadow (DESIGN.md, Elevation).
@@ -53,30 +59,60 @@ export function Popover({ label, trigger, children, align = "start", width = 360
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [host, setHost] = useState<Element | null>(null);
+
+  // Where the panel lives: the body, or the open popover the trigger is in.
+  useLayoutEffect(() => {
+    setHost(overlayHost(triggerRef.current));
+  }, []);
+
+  // The panel is out of the page order: bridge Tab between it and its trigger.
+  useEffect(() => {
+    if (!open) return;
+    const panel = panelRef.current;
+    const button = triggerRef.current;
+    if (!panel || !button) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const target = bridgeTab({
+        shift: event.shiftKey,
+        active: document.activeElement,
+        trigger: button,
+        items: tabbables(panel),
+        after: event.shiftKey ? null : tabStopAfter(button, panel),
+      });
+      if (target instanceof HTMLElement) {
+        event.preventDefault();
+        target.focus();
+      }
+    };
+    button.addEventListener("keydown", onKey);
+    panel.addEventListener("keydown", onKey);
+    return () => {
+      button.removeEventListener("keydown", onKey);
+      panel.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   const place = useCallback(() => {
     const button = triggerRef.current;
     const panel = panelRef.current;
     if (!button || !panel) return;
-    const rect = button.getBoundingClientRect();
-    const viewW = document.documentElement.clientWidth;
-    const viewH = window.innerHeight;
-    const w = Math.min(width, viewW - MARGIN * 2);
-    let left = align === "end" ? rect.right - w : rect.left;
-    left = Math.min(Math.max(left, MARGIN), viewW - MARGIN - w);
-    panel.style.width = `${w}px`;
-    panel.style.left = `${left}px`;
-    const above = placement === "above" || (placement === "auto" && rect.top > viewH - rect.bottom);
-    if (above) {
-      panel.style.top = "auto";
-      panel.style.bottom = `${viewH - rect.top + GAP}px`;
-      panel.style.maxHeight = `${Math.max(rect.top - GAP - MARGIN, 160)}px`;
-      return;
-    }
-    const top = rect.bottom + GAP;
-    panel.style.bottom = "auto";
-    panel.style.top = `${top}px`;
-    panel.style.maxHeight = `${Math.max(viewH - top - MARGIN, 160)}px`;
+    const spot = placePanel({
+      trigger: button.getBoundingClientRect(),
+      viewW: document.documentElement.clientWidth,
+      viewH: window.innerHeight,
+      width,
+      align,
+      placement,
+      margin: MARGIN,
+      gap: GAP,
+    });
+    panel.style.width = `${spot.width}px`;
+    panel.style.left = `${spot.left}px`;
+    panel.style.top = spot.top === null ? "auto" : `${spot.top}px`;
+    panel.style.bottom = spot.bottom === null ? "auto" : `${spot.bottom}px`;
+    panel.style.maxHeight = `${spot.maxHeight}px`;
   }, [align, width, placement]);
 
   useEffect(() => {
@@ -89,7 +125,7 @@ export function Popover({ label, trigger, children, align = "start", width = 360
       const isOpen = (event as ToggleEvent).newState === "open";
       setOpen(isOpen);
       if (isOpen) return;
-      if (!document.activeElement || document.activeElement === document.body || panel.contains(document.activeElement)) {
+      if (returnsFocus(document.activeElement, panel, document.body)) {
         triggerRef.current?.focus({ preventScroll: true });
       }
     };
@@ -99,7 +135,8 @@ export function Popover({ label, trigger, children, align = "start", width = 360
       panel.removeEventListener("beforetoggle", onBefore);
       panel.removeEventListener("toggle", onToggle);
     };
-  }, [place]);
+    // The panel mounts once its host is known.
+  }, [place, host]);
 
   // Focus the first control once the content has rendered.
   useEffect(() => {
@@ -150,17 +187,30 @@ export function Popover({ label, trigger, children, align = "start", width = 360
         "aria-controls": id,
         "aria-haspopup": "dialog",
       })}
-      <div
-        ref={panelRef}
-        id={id}
-        popover="auto"
-        role="dialog"
-        aria-label={label}
-        tabIndex={-1}
-        className={cx("popover", className)}
-      >
-        {open ? (typeof children === "function" ? children(close) : children) : null}
-      </div>
+      {portal(
+        host,
+        <div
+          ref={panelRef}
+          id={id}
+          popover="auto"
+          role="dialog"
+          aria-label={label}
+          tabIndex={-1}
+          className={cx("popover", className)}
+        >
+          {open ? (typeof children === "function" ? children(close) : children) : null}
+        </div>,
+      )}
     </>
   );
+}
+
+/**
+ * The panel in its host. Where there is no document (server rendering) it is rendered in
+ * place; in a browser, nothing is rendered until the host is known (the first layout pass).
+ */
+function portal(host: Element | null, node: ReactElement): ReactNode {
+  if (host) return createPortal(node, host);
+  // In a browser, wait for the host rather than mount here and move (a move remounts it).
+  return typeof document === "undefined" ? node : null;
 }

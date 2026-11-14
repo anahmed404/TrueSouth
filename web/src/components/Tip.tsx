@@ -5,9 +5,12 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactElement,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
+import { bridgeTab, overlayHost, tabStopAfter, tabbables, withinEither } from "./overlay-host";
 
 /**
  * A small bubble of text tied to one control: a tooltip, or, with `interactive`, a
@@ -15,8 +18,10 @@ import {
  *
  * - Opens on hover and on keyboard focus. An interactive tip also opens and pins on click.
  * - Escape closes it (WCAG 1.4.13: dismissable, hoverable, persistent).
- * - The bubble stays in the DOM after its trigger, so Tab reaches a link inside it, and
- *   the trigger's `aria-describedby` points at it so screen readers read the text.
+ * - The bubble is portalled to the page's body (or into the open popover that holds the
+ *   trigger), so it is never inside a clipped or rounded panel (overlay-host.ts). Tab still
+ *   reaches a link inside it straight after the trigger, and the trigger's
+ *   `aria-describedby` points at it so screen readers read the text.
  * - The bubble sits in the browser's top layer (the popover API) and is positioned in
  *   viewport coordinates, so a panel's scrolling or clipping never cuts it off.
  */
@@ -68,6 +73,15 @@ export function Tip({ content, children, interactive = false, placement = "top",
   const [pinned, setPinned] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [position, setPosition] = useState<Position | null>(null);
+  const [host, setHost] = useState<Element | null>(null);
+
+  // Where the bubble lives: the body, or the open popover the trigger is in.
+  useLayoutEffect(() => {
+    setHost(overlayHost(triggerRef.current));
+  }, []);
+
+  /** Inside the trigger's wrapper or the (portalled) bubble. */
+  const inside = (node: Node | null) => withinEither(node, wrapRef.current, bubbleRef.current);
 
   const open = (hovered || focused || pinned) && !dismissed;
 
@@ -106,7 +120,8 @@ export function Tip({ content, children, interactive = false, placement = "top",
     } else if (supportsPopover(bubble) && bubble.matches(":popover-open")) {
       bubble.hidePopover();
     }
-  }, [open, place, content]);
+    // The bubble mounts once its host is known.
+  }, [open, place, content, host]);
 
   // Keep it attached to its trigger while the page scrolls or resizes.
   useEffect(() => {
@@ -130,7 +145,7 @@ export function Tip({ content, children, interactive = false, placement = "top",
       if (bubbleRef.current?.contains(document.activeElement)) triggerRef.current?.focus();
     };
     const onPointer = (event: PointerEvent) => {
-      if (!wrapRef.current?.contains(event.target as Node)) setPinned(false);
+      if (!inside(event.target as Node)) setPinned(false);
     };
     document.addEventListener("keydown", onKey);
     document.addEventListener("pointerdown", onPointer);
@@ -149,6 +164,27 @@ export function Tip({ content, children, interactive = false, placement = "top",
   const onPointerLeave = () => {
     window.clearTimeout(closeTimer.current);
     closeTimer.current = window.setTimeout(() => setHovered(false), CLOSE_DELAY_MS);
+  };
+
+  // The bubble is portalled out of the page order, so Tab is bridged: from the trigger into
+  // a link in the bubble, from its last stop on to the page, and back with Shift+Tab.
+  const onKeyDown = (event: ReactKeyboardEvent) => {
+    if (event.key !== "Tab" || !open) return;
+    const bubble = bubbleRef.current;
+    const triggerNode = triggerRef.current;
+    const items = tabbables(bubble);
+    if (!triggerNode || items.length === 0) return;
+    const target = bridgeTab({
+      shift: event.shiftKey,
+      active: document.activeElement,
+      trigger: triggerNode,
+      items,
+      after: event.shiftKey ? null : tabStopAfter(triggerNode, bubble),
+    });
+    if (target instanceof HTMLElement) {
+      event.preventDefault();
+      target.focus();
+    }
   };
 
   const trigger: TipTriggerProps = {
@@ -178,11 +214,14 @@ export function Tip({ content, children, interactive = false, placement = "top",
         if (bubbleRef.current?.contains(target) || target.matches(":focus-visible")) setFocused(true);
       }}
       onBlur={(event) => {
-        if (!wrapRef.current?.contains(event.relatedTarget as Node | null)) setFocused(false);
+        if (!inside(event.relatedTarget as Node | null)) setFocused(false);
       }}
+      onKeyDown={onKeyDown}
     >
       {children(trigger)}
-      <span
+      {portal(
+        host,
+        <span
         ref={bubbleRef}
         id={bubbleId}
         role={interactive ? undefined : "tooltip"}
@@ -195,7 +234,18 @@ export function Tip({ content, children, interactive = false, placement = "top",
         className="tip-bubble"
       >
         {content}
-      </span>
+      </span>,
+      )}
     </span>
   );
+}
+
+/**
+ * The bubble in its host. Where there is no document (server rendering) it is rendered in
+ * place; in a browser, nothing is rendered until the host is known (the first layout pass).
+ */
+function portal(host: Element | null, node: ReactElement): ReactNode {
+  if (host) return createPortal(node, host);
+  // In a browser, wait for the host rather than mount here and move (a move remounts it).
+  return typeof document === "undefined" ? node : null;
 }
