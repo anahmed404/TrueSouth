@@ -14,8 +14,8 @@ import {
  * How big and how far the System view draws Earth and the Sun by default, when "True scale"
  * is off (docs/features/system-view.md, "Scale"). Scene units are Moon radii.
  *
- * A schematic, not a model: the Moon is the subject and leads, with Earth beside it a
- * little smaller and further out, and the Sun far beyond, so the circle the Moon would
+ * A schematic, not a model: the Moon is the subject and leads, with Earth beside it the
+ * same size and further out, and the Sun far beyond, so the circle the Moon would
  * trace around Earth never comes near it (the team lead, 2026-11-14). The true
  * values (docs/science.md §1, and the series):
  * - radii: Moon 1,737.4 km; Earth 6,378.137 km (3.67 Moons); Sun 695,700 km (400 Moons,
@@ -24,33 +24,36 @@ import {
  *   over a month); the Sun about 149.6 million km (86,100 Moon radii, 389 times Earth's).
  *
  * Distances increase with the true value, so a further body is always drawn further. Sizes
- * do not quite: by the team's choice (2026-11-14) Earth is drawn a little smaller than the
- * Moon, so the Moon leads; Earth is still smaller than the Sun, and "True scale" shows the
- * real sizes. Directions are not touched: they come from `system.bin` (computed in Python).
+ * do not quite: by the team's choice (2026-11-14) Earth is drawn the same size as the
+ * Moon (truly 3.67 times it), so a little further from the camera it shows a little
+ * smaller and the Moon leads; Earth is still smaller than the Sun, and "True scale" shows
+ * the real sizes. Directions are not touched: they come from `system.bin` (computed in
+ * Python).
  *
  * To retune, change one constant:
- * - DRAWN_EARTH_RADIUS: 0.83 Moon radii (true 3.67): in the opening view, a little further
- *   from the camera than the Moon, it shows about 0.8 times the Moon. "Earth a bit smaller"
- *   lowers it.
+ * - DRAWN_EARTH_RADIUS: 1 Moon radius (true 3.67; 0.83 before T10): in the opening view, a
+ *   little further from the camera than the Moon, it shows 0.91 to 0.99 times the Moon. Above
+ *   about 1.01 it would show larger than the Moon at 1024 x 768, taking the focus.
  * - DRAWN_SUN_RADIUS: 3.5 Moon radii (true 400): clearly the largest, yet seen behind the
  *   Moon from "From Earth" (around new moon) never more than 1.5 times the Moon.
  * - DISTANCE_EXPONENT: 0.385, for both laws below.
  * - SUN_DISTANCE_SCALE: 0.372 puts the Sun about 29.5 Moon radii out (29.3 to 29.8).
- * - EARTH_DISTANCE_SCALE: 0.4125 puts Earth about 3.3 Moon radii out (3.20 at perigee to 3.37
- *   at apogee; 2.89 to 3.04 before), the furthest that still lets the opening view show it
- *   whole beside a Moon of about 45 px at 1024 x 768 (camera.ts, homePose); the Sun is then
- *   8.7 to 9.3 times further. Larger moves Earth out and shrinks the opening Moon.
+ * - EARTH_DISTANCE_SCALE: 0.56 puts Earth about 4.5 Moon radii out (4.35 at perigee to 4.57
+ *   at apogee; 3.20 to 3.37 before T10, the team lead, 2026-11-14: "further", and a smaller
+ *   Moon). With Earth's radius it sets the opening Moon: about 71 px at 1440 x 900 with the
+ *   panels open, about 34 px at 1024 x 768 (camera.ts, homePose); the Sun is then 6.4 to 6.8
+ *   times further. Larger moves Earth out and shrinks the opening Moon.
  * A true distance up to NEAR_LAW_KM is drawn by Earth's law, from FAR_LAW_KM by the Sun's,
  * and between them on a straight line on log-log axes joining the two, so the mapping still
  * always increases. The curve is continuous but has a corner at each join; no hour of the
  * series falls near either (Earth is under 410,000 km, the Sun over 147 million), so no
  * drawn body ever sits on one.
  */
-export const DRAWN_EARTH_RADIUS = 0.83;
+export const DRAWN_EARTH_RADIUS = 1.0;
 export const DRAWN_SUN_RADIUS = 3.5;
 export const DISTANCE_EXPONENT = 0.385;
 export const SUN_DISTANCE_SCALE = 0.372;
-export const EARTH_DISTANCE_SCALE = 0.4125;
+export const EARTH_DISTANCE_SCALE = 0.56;
 export const NEAR_LAW_KM = 1_000_000;
 export const FAR_LAW_KM = 100_000_000;
 
@@ -77,8 +80,8 @@ function usable(km: number): number {
  * The drawn radius, in Moon radii, of a body `radiusKm` across its radius: straight lines on
  * log-log axes through the Moon (1), Earth (DRAWN_EARTH_RADIUS) and the Sun
  * (DRAWN_SUN_RADIUS), extended past both ends with the end slopes. From Earth up it
- * increases; between the Moon and Earth it falls, by the team's choice (Earth drawn smaller
- * than the Moon). Zero (or a bad value) gives zero.
+ * increases; between the Moon and Earth it is flat, by the team's choice (Earth drawn the
+ * Moon's size). Zero (or a bad value) gives zero.
  */
 export function drawnRadius(radiusKm: number): number {
   const km = usable(radiusKm);
