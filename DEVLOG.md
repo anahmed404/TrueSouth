@@ -1801,6 +1801,53 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Academy
 
+#### 2026-11-14 · A3b · Revisit answered steps; questions get their context
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the review of finished steps
+  (`review.ts`, the runner's per-step `history`, the progress marks in `lesson/top-bar.tsx`,
+  the read-only view in `lesson-screen.tsx`), the context audit of lessons 1 to 4 and the
+  new wording (in `docs/academy/lessons.md` first, then the lesson files), and the vitest
+  tests. Checked by the agent with the tests and typecheck, and in a browser at
+  1440 × 900 and 390 × 844 (touch emulation, and keyboard only): each lesson's progress row
+  at the start, mid-lesson and at the end, reviewing a choice, a drag and the sketch, and
+  returning. Every simplified sentence was checked against `docs/science.md` §3.4 and the
+  CONTEXT.md and `explain.ts` terms. No AI-generated images. A human has not played it.
+- **State:** verified (reviewed by Codex (gpt-6.1-terra): request changes, six items, all fixed by the author (the read-only rule is now tested through the real lesson screen and the injected-XP mutation fails; two prompts reworded); on the tree merged with main f0081ad: 458 Python tests (1 skipped), 2,649 web tests, typecheck and build all exit 0. Not yet played by a person)
+- **Changed:** `web/src/features/academy/` (`review.ts`, `runner.ts`, `step-view.ts`,
+  `lesson-screen.tsx`, `lesson/top-bar.tsx`, `lesson/conversation.tsx`,
+  `lesson/skyline-stage.tsx`, `lesson/scenes.tsx`, `sketch.ts`, `academy.css`,
+  `lessons/l1.ts`–`l4.ts`, tests), `docs/academy/lessons.md`,
+  `docs/design/c2/built-academy-revisit-*.png`, `built-academy-context-*.png`.
+  `explain.ts` unchanged: its texts for the terms used were right.
+- **Notes:**
+  - A finished step's progress mark is a button ("Step 2 of 5, completed. Review"). The
+    step opens read-only: answers, hint, feedback, result and XP, the drag's checked hour,
+    the sketch under the real skyline, and the lesson's card under "Under the hood". One
+    way back: "Back to step N", Esc, Enter, or the current step's mark. Steps not yet
+    reached are never controls; `reviewTarget` ignores any request for them. Nothing is
+    rescored. The current step's unsaved answer (a picked option, the dragged hour, a
+    sketch) waits on return.
+  - Kept for the session in the runner's state: `history`, one record per finished step
+    (attempts, ending, XP, feedback). The lesson screen keeps each finished step's last
+    draft. No new persistence: mid-lesson progress was in memory and a reload restarts the
+    lesson, as before; the lesson's position is not in the URL.
+  - Context: twelve questions now set up their terms first (month and midday, Luna and
+    Pip, elevation, Connecting Ridge, compass directions, how far south, the move to the
+    lesson 2 site, atan, skyline, disc fraction, R, talking to Earth, antenna mask and link
+    time, NO-GO). No number, answer or formula changed. Lesson 1 step 1's stage is now
+    Pip under the sky ruler, so "how high" is an angle before it is asked.
+  - Review fixes (Codex, PR #108): review mode is now tested through the real lesson
+    screen (`review-screen.test.ts`, on a fake DOM that dispatches events): option buttons,
+    number keys, Space, Backspace, the primary button, Enter, Esc, the marks, the drag's
+    keys, body and time bar; XP (from the leave dialog) and saved progress unchanged, and
+    the finished lesson saves exactly 50 XP and 3 stars. An XP award injected into the
+    review button's handler fails it. The sketch's handlers in review are tested too
+    (`skyline-review.test.ts`). Lesson 2 step 2 no longer names atan's numerator; lesson 4
+    step 5 gives NO-GO to a landing, not a site; Esc leaves review from either tab; a
+    one-point sketch survives a review; the step-1 review captures were retaken after the
+    caption and ruler-label fixes (every step type checked in review at 1440 × 900 and
+    390 × 844: no label in the ground or outside the stage, no clipped caption).
+
 #### 2026-11-14 · A11b · Submission materials brought up to date
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-sonnet-5-5 — rewrote the six files in `docs/submission/`

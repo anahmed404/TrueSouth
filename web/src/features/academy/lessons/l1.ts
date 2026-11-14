@@ -32,17 +32,19 @@ export const lesson1 = {
       id: "l1-height",
       luna: {
         mood: "thinking",
-        says: "At my equator the midday Sun is almost overhead. How high does it get at my south pole?",
+        says: "On me, the Moon, a day lasts about a month, and midday is when the Sun is highest. At my equator the midday Sun is almost overhead. How high does it get at my south pole?",
       },
       hint: "My south pole is as far from my equator as you can go. Picture the Sun near the edge of the sky.",
       explain: "At my south pole the Sun stays low, skimming the horizon. Pip sees it side-on, never overhead.",
       kind: "choice",
       options: ["Overhead", "About 45°", "Under 3°"],
       answer: 2,
+      // Pip under a sky ruler, so "how high" is an angle before the question asks it.
+      stage: { scene: "sky-ruler", caption: "Pip, our lander", angles: [90, 45, "{{example.l1.sun_el_max_deg}}"] },
     },
     {
       id: "l1-highest",
-      luna: { mood: "thinking", says: "Drag the Sun through a whole month. Find its highest moment." },
+      luna: { mood: "thinking", says: "Here is one month at Connecting Ridge, where Pip landed: the dotted line is the Sun's path. Drag the Sun to its highest moment, and watch its elevation, its height in degrees, below." },
       hint: "The Sun's height changes slowly. Drag back and forth near the top of its path.",
       explain: highestLuna,
       kind: "drag-body",
@@ -56,7 +58,7 @@ export const lesson1 = {
     },
     {
       id: "l1-directions",
-      luna: { mood: "thinking", says: "Over that month, which directions does the Sun visit?" },
+      luna: { mood: "thinking", says: "Over that month, one of my days, which compass directions does the Sun visit?" },
       hint: "This month the Sun stays low the whole time. Where can a low Sun go?",
       explain: "All the way round. This month the Sun's direction circles the whole horizon; it stays low, and for part of the month it is just below level.",
       kind: "predict",
@@ -73,7 +75,7 @@ export const lesson1 = {
     },
     {
       id: "l1-formula",
-      luna: { mood: "thinking", says: "Highest Sun ≈ (90° − how far south you are) + ( ? )" },
+      luna: { mood: "thinking", says: "How far south you are is counted in degrees: 0° at my equator, 90° at my pole. Highest Sun ≈ (90° − how far south you are) + ( ? )" },
       hint: "The missing piece is a small angle of my own: how far my equator tilts from my path around the Sun.",
       explain: formulaLuna,
       kind: "fill-formula",

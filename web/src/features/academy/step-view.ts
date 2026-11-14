@@ -126,7 +126,9 @@ export type PrimaryAction =
   | { kind: "check"; label: "Check" | "Show me" | "Done"; enabled: boolean }
   | { kind: "continue"; label: "Continue" | "Finish the lesson" }
   /** A panel step shown in its holding form: Continue moves on, for no XP. */
-  | { kind: "skip"; label: "Continue" };
+  | { kind: "skip"; label: "Continue" }
+  /** A finished step shown for review: the one way back to the current step. */
+  | { kind: "back"; label: string };
 
 /**
  * True when a step shows its holding form: its panel is not built (`PENDING_STEP_KINDS`), or

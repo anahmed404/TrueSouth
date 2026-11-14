@@ -26,7 +26,7 @@ export const lesson4 = {
       id: "l4-bob",
       luna: {
         mood: "thinking",
-        says: "From Apollo 11's site, Earth hangs high in the sky all the time. From my south pole?",
+        says: "Pip can talk to Earth only while Earth is in Pip's sky. From Apollo 11's site, Earth hangs high in the sky all the time. From my south pole?",
       },
       hint: "Earth hangs over the middle of my near side. My south pole is at the very edge of that face.",
       explain: "Seen from my pole, Earth sits on the edge of the sky. My slow wobble lifts it up and lowers it again.",
@@ -36,7 +36,7 @@ export const lesson4 = {
     },
     {
       id: "l4-highest",
-      luna: { mood: "thinking", says: "Drag Earth through a month. Find its highest moment." },
+      luna: { mood: "thinking", says: "Drag Earth through the same month. Find its highest moment." },
       hint: "Earth rises and sinks slowly over the month. Drag back and forth near the top.",
       explain: `${range} Below 0° it is below level; whether Pip still sees it depends on the ground in that direction.`,
       kind: "drag-body",
@@ -69,7 +69,7 @@ export const lesson4 = {
       id: "l4-margin",
       luna: {
         mood: "thinking",
-        says: "Pip's antenna needs Earth to clear the ground by some margin. Raise the margin until Pip can talk less than 15% of this month.",
+        says: "Pip's antenna needs Earth to clear the ground by a margin, called the antenna mask. Raise the margin until Pip can talk less than 15% of this month; that share is the link time below.",
       },
       hint: "The higher the margin, the less often Earth clears it. Keep raising it and watch the link time.",
       explain:
@@ -99,7 +99,7 @@ export const lesson4 = {
       id: "l4-bug",
       luna: {
         mood: "thinking",
-        says: "An early TrueSouth used these rules and called every polar site NO-GO. Which rule made them all fail?",
+        says: "TrueSouth calls a landing NO-GO when it breaks one of the mission's hard rules. An early TrueSouth used these rules and called every polar site NO-GO. Which rule made them all fail?",
       },
       hint: "Which rule asks for more than Earth gave this month? Think about how long Earth stays high.",
       explain: rulesLuna,
