@@ -47,6 +47,7 @@ import { FrameMeter, MOON_SEGMENTS_FULL, QualityGovernor, drawDpr, moonSegments,
 import { Stars, starExposure } from "./stars";
 import { mul, type V3 } from "./vec";
 import { World, type WorldInputs, type WorldSite } from "./world";
+import { GL_SWITCHES } from "./gl-switches";
 import "./scene.css";
 
 /**
@@ -599,10 +600,16 @@ function Scene3D(props: SceneProps) {
       {focusedId ? <FocusedSiteData key={focusedId} siteId={focusedId} profile={scenario.profile} onData={onData} /> : null}
       <Canvas
         className="scene-canvas"
-        frameloop="demand"
+        // The four GL switches (gl-switches.ts) are off unless the address asks for them.
+        frameloop={GL_SWITCHES.frameloop}
         dpr={capture ? 1 : [1, 2]}
         flat
-        gl={{ antialias: true, logarithmicDepthBuffer: true, powerPreference: "high-performance", preserveDrawingBuffer: capture }}
+        gl={{
+          antialias: GL_SWITCHES.antialias,
+          logarithmicDepthBuffer: true,
+          powerPreference: GL_SWITCHES.powerPreference,
+          preserveDrawingBuffer: capture || GL_SWITCHES.preserveDrawingBuffer,
+        }}
         camera={{ fov: 30, near: 1e-7, far: 5_000, position: [0, -12, 0] }}
         onCreated={({ gl }) => gl.setClearColor(new THREE.Color(cssVar("--space", "#0b0b0c")), 1)}
       >
@@ -868,6 +875,28 @@ function Director(props: DirectorProps) {
       window.clearTimeout(quality.restTimer);
     };
   }, [quality]);
+
+  // `?diag=1` only: what the capture (app/diag.ts) needs from the scene, to draw one frame and
+  // read it in the same task, and the WebGL state it reports.
+  useEffect(() => {
+    if (!GL_SWITCHES.diag) return;
+    const host = window as unknown as { __truesouthDiag?: unknown };
+    host.__truesouthDiag = {
+      canvas: gl.domElement,
+      context: gl.getContext(),
+      render: () => gl.render(scene, camera),
+      pixelRatio: () => gl.getPixelRatio(),
+      qualityStage: () => quality.stage,
+      switches: GL_SWITCHES,
+      cameraView: () => {
+        const view = (camera as THREE.PerspectiveCamera).view;
+        return view ? { ...view } : null;
+      },
+    };
+    return () => {
+      delete host.__truesouthDiag;
+    };
+  }, [gl, scene, camera, quality]);
 
   // ── Status: report once the first flight lands ──
   // The quality governor (perf.ts) judges the first flight's frames like any other flight's;

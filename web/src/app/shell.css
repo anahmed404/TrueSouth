@@ -618,11 +618,20 @@
   }
 
   /* ── Side panels: shared ────────────────────────────────────────────────── */
+  /*
+    `contain: paint`: a panel's painting never leaves its own box, whatever is inside it. On
+    the team lead's browser the folded sites rail painted its background across the bounding
+    box of the popover and hover cards opened from it ("the black box"); those are now
+    portalled to the body (components/overlay-host.ts), and this keeps the panel's paint to
+    its own box even if something inside overflows. It clips exactly as `overflow: hidden`
+    already did, so focus rings and the fold toggle are unchanged.
+  */
   .shell-rail,
   .shell-focus {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    contain: paint;
   }
 
   .shell-toggle {
