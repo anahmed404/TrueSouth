@@ -680,6 +680,15 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     the flat map; `view=slip` with 3D off shows the map, the placed spots, the panel and the
     note; Polar map and Slip Planner in both orders, in 3D and with 3D off, leave exactly one
     layer mounted; a click on the map in the Slip Planner opens no readout.
+  - After #91 (the ground look): the ground's light (`uLight`) is the Moon's own `uSun`
+    uniform, which this view blends to its fixed light, so the site's ground is lit by the
+    fixed vector at `slip = 1` and gets the real Sun back with the Moon on leaving (tested on
+    the World's uniforms). Its fade is now multiplied by `1 − slip` instead of being cut when
+    the view changes, so it fades out as the fixed light blends in and none is drawn at
+    `slip = 1` (no drawn shadow there). Checked by eye with hardware WebGL, Local terrain to
+    Slip Planner and back. #91's decoration plate shows in Local terrain only, not here.
+  - Fixed while checking: the #89 change cleared the foot plates' `top` in 3D, which left the
+    shading switch above the window and hid every spot label; a mount test now guards it.
 
 #### 2026-11-14 · MC9 · The Compare window, share, CSV and JSON export, confirmed NASA links
 - **Who:** Claude Code agent, for the orchestrator

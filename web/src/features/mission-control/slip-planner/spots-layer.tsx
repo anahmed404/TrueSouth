@@ -210,7 +210,9 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
     if (footEl) {
       const mapFoot = latest.current.flat ? layerRef.current?.querySelector(".slip-flat-map .pm-foot") : null;
       const mapTop = mapFoot ? mapFoot.getBoundingClientRect() : null;
-      footEl.style.top = mapTop && mapTop.height > 0 ? `${(mapTop.top - 8).toFixed(1)}px` : "";
+      // Always a value: clearing it would wipe the top React set, and React would not set it again.
+      const top = mapTop && mapTop.height > 0 ? mapTop.top - 8 : fs.y + fs.height - 8;
+      footEl.style.top = `${top.toFixed(1)}px`;
     }
     // Labels keep clear of the plates at the top (notes) and the foot (summary, controls).
     const topPlates = topRef.current?.getBoundingClientRect();

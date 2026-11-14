@@ -255,6 +255,11 @@ describe("the Slip Planner, mounted", () => {
     );
     await deliver();
 
+    // The foot plates (the shading switch, the before-and-after line) always have a top: the
+    // free space's foot in 3D. Clearing it once left them above the window.
+    const foot = allNodes(host).find((n) => propsOf(n).className === "slip-foot")!;
+    expect(foot.style.top).toBe("492.0px");
+
     const spotWord = (siteId: string) => {
       const node = allNodes(host).find((n) => propsOf(n)["data-site"] === siteId && /slip-(spot|off)/.test(String(propsOf(n).className)));
       const label = String(propsOf(node!)["aria-label"]);
