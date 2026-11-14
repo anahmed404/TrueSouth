@@ -140,11 +140,15 @@ Compare follows these rules. The Slip Planner is a camera view and does not.
 - A window is a solid panel with the popover shadow, centred horizontally, between the
   view bar and the timeline. It is at most 1,120 px wide. On a phone it fills the screen.
 - It has a title, a one-sentence description and a close button. It opens with a 180 ms
-  rise and fade (none under reduced motion).
+  rise and fade (none under reduced motion). Compare keeps its description for assistive
+  technology only, and puts its landing date and exports in the header's row
+  ([`compare.md`](compare.md)).
 - It has `role="dialog"` and `aria-modal="false"`. It is not modal: the app bar, the side
   panels and the timeline stay usable, and the scene stays visible around it.
 - **The timeline stays visible** below the window, and the scrubber keeps driving the
-  windows' content where it depends on the current time.
+  windows' content where it depends on the current time. Compare folds it to its one row
+  while it is open and restores it on close, so the table gets the height
+  ([`compare.md`](compare.md), "Room for the table"); that fold is never saved.
 - **Escape closes it,** and focus returns to the button that opened it. The close button
   does the same.
 - Opening a window does not change the camera or the selected view.
