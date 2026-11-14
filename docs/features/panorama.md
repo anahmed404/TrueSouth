@@ -30,8 +30,8 @@ Layout and the view bar: [`mission-control.md`](mission-control.md). Prototype:
   patch and the terrain around it ([`local-terrain.md`](local-terrain.md)). Earth and the
   Sun are drawn at their true angular size. Each has a label with its height and state, for
   example "Earth, 0.9° up · in view" and "Sun, 0.8° up · behind the ridge". The ground
-  near the lander is the 80 m data, which cannot show regolith at 2 m, with an illustrative
-  regolith texture drawn on it close up ([`local-terrain.md`](local-terrain.md), "What is drawn").
+  near the lander is NASA's 5 m close-up of the site where one exists, and otherwise the 80 m
+  data, which cannot show regolith at 2 m; a fine illustrative grain is drawn on it close up ([`local-terrain.md`](local-terrain.md), "What is drawn").
 - **Floating above it,** under the horizon: a panel holding the horizon chart (below), the
   "Why is it dark?" card and a one-line legend. The app bar, view bar, sites rail,
   focused-site panel and timeline float as in every view. The scene's free space ends above
