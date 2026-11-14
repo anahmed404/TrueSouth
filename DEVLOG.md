@@ -1490,6 +1490,68 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## 3D and Map
 
+#### 2026-11-14 · T10 · Earth further out and the Moon's size; a smaller opening Moon
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — retuned `DRAWN_EARTH_RADIUS`,
+  `EARTH_DISTANCE_SCALE` and the opening's `across` in `web/src/features/three/scene/`,
+  updated their header comments, the pinned vitest tests and the spec — checked by the agent
+  with the vitest suite, typecheck, build, and by eye in a Playwright browser at 1440 × 900
+  and 1280 × 720 (camera read from the dev scene hook); a human has not reviewed it
+- **State:** verified (reviewed twice by Cursor Grok 4.7 with no blockers, the notes applied; on the tree merged with main 5a1239c: 472 Python tests (1 skipped), 2,916 web tests, typecheck and build all exit 0)
+- **Changed:** `web/src/features/three/scene/proportions.ts`, `camera.ts` (`across` 2.1 →
+  2.3 and its comment), `proportions.test.ts`, `scene-logic.test.ts`, `orbits.test.ts` (a
+  stale input only), `web/src/features/academy/lesson/panels/panel-view.tsx` and a comment in
+  `panel-data.ts` (the Academy's folder, by the orchestrator, see the note below),
+  `docs/features/system-view.md`, this entry
+- **Notes:**
+  - **Asked (the team lead, 2026-11-14):** Earth further, then "the moon a bit smaller and
+    the earth a bit bigger and increase distance a little more", with Earth never taking the
+    focus from the Moon.
+  - **Earth's distance:** `EARTH_DISTANCE_SCALE` 0.4125 → 0.56: 4.35 at perigee to 4.57 at
+    apogee Moon radii (was 3.20 to 3.37).
+  - **Earth's size:** `DRAWN_EARTH_RADIUS` 0.83 → 1.0, not the 1.05 suggested: at 1.05 Earth
+    shows larger than the Moon at 1024 × 768 (up to 1.04 times) and at 1440 × 900 (up to
+    1.02). At 1.0 it shows 0.91 to 0.99 times the Moon in all four test layouts.
+  - **Opening, measured in the app** (Moon / Earth radius, panels open, 2028-01-01): 1440 ×
+    900 71.0 / 67.1 px (before T10 94.2 / 74.9); 1280 × 720 49.0 / 46.7 px (before 53.7).
+    From the test layouts: 1024 × 768 open 33.7 px (was 44.7), folded 51.5 (was 56.4); 1440
+    folded 89.5 (was 98.0). Earth is whole in view with its tag, clear of the side panels.
+  - **`across` 2.1 → 2.3:** with Earth larger and further, its tag no longer fit below it at
+    1024 × 768 with the panels folded (4 px short); 2.3 leaves 3.8 px. It shrinks the Moon
+    only where the free space is short (1024 folded, 1440 folded, 1280 × 720).
+  - **Unchanged:** the Sun's drawn size and distance (tested hour by hour), "True scale". The
+    toggle's end points read 4.57 ↔ 233.48 Moon radii and radius 1.0 ↔ 3.671, both ways.
+  - **Moved bounds** (measured value first; "moved" keeps the same width, "tightened" or
+    "widened" says which):
+    - Earth's extremes: 4.35 / 4.57; bounds > 4.34, < 4.58 (were > 3.2, < 3.37: moved).
+    - Sun ÷ Earth distance: 6.411 to 6.840; bounds > 6.4, < 6.85 (were > 8.7, < 9.3; the
+      band is now 0.45 wide, was 0.6: tightened). The redundant "never under 7" line went.
+    - Orbit margin: 2.33; bound > 2.3 (was 3, measured 3.35).
+    - Surface gaps: Moon to Earth 2.35, bound > 2.3 (was > 1.3); Earth to Sun 20.33, bound >
+      20.3 (was > 21).
+    - Lighting offset (drawn Earth-to-Sun against the series' Sun direction): 8.94° at the
+      worst hour; band 8.5 to 9.5 (1.0° wide; was 6 to 7). Under the "up to about 10°" that
+      `world.ts` states.
+    - Opening Moon floor: 1440 open ≥ 70.5 px (71.0), others ≥ 33.5 (33.7); were 90 / 44.5.
+    - Opening Earth ÷ Moon on screen: 0.91 to 0.99; band 0.9 to 1.0 (was 0.75 to 0.85: moved,
+      same width). The upper bound 1.0 is the "never larger than the Moon" rule.
+    - Earth placed for the opening "beside the Moon" check: 4.5 Moon radii (was 4).
+  - **One rule now applies more often:** a body at least 5 % nearer than the Moon, larger on
+    screen and in view is not drawn (`bodyInFront`). Drawn the Moon's size, Earth now meets
+    "larger" whenever it is at least 5 % nearer than the Moon, not only from about 17 % as
+    at 0.83. So when the view is turned so that Earth is on the near side, it hides a little
+    sooner. The test's "From the Sun, beside" case (15 % nearer) now expects it hidden, and
+    a new case keeps it drawn beside the Moon and no nearer. The opening leans Earth behind
+    the Moon, so it is always drawn there; in "From Earth" it stays hidden as before.
+  - **Orbit lines, by eye at 1440 × 900:** the Moon's orbit is centred on Earth through the
+    Moon, so Earth's larger disc never covers it; Earth's orbit runs through Earth's disc and
+    stops at its edge, as before.
+  - **Academy's month diagram** (uses `drawnDistance` and `DRAWN_EARTH_RADIUS`): at 22 px
+    per Moon radius Earth's outer edge would have reached about 122.6 px from the centre of
+    the 260 px view, past the Sun's ring at 112 px, so around new moon Earth's disc would
+    have covered the Sun's dot. The orchestrator set `MOON_PX` to 18 in `panel-view.tsx`:
+    the edge is now at about 100.3 px, inside the ring (the Sun's dot spans 105 to 119 px).
+    Checked by the reviewer from the geometry; not looked at in a browser.
 #### 2026-11-14 · T9 · A Labels toggle hides the name tags on the scene
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — wrote `labels.ts` (the session-only store and the

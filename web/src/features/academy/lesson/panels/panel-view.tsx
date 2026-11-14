@@ -304,8 +304,11 @@ function SystemPanel({
 
 const VIEW = 260;
 const C = VIEW / 2;
-/** Pixels per Moon radius: Earth, drawn three to four Moon radii out, sits well inside the frame. */
-const MOON_PX = 22;
+/**
+ * Pixels per Moon radius: Earth, drawn up to about 4.6 Moon radii out and one Moon radius big
+ * (proportions.ts), keeps its far edge about 100 px from the centre, inside the Sun's ring.
+ */
+const MOON_PX = 18;
 const SUN_RING = C - 18;
 
 function point(angleDeg: number, radius: number): [number, number] {
