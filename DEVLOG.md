@@ -620,6 +620,115 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     flips it to slide in one line); a middle click does nothing; the browser's own middle
     click is prevented over the scene.
 
+#### 2026-11-13 · MC7 · The Slip Planner, a camera view on the Moon
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (design already
+  picked; critique pass run) — moved the Slip Planner from the windows to the camera views;
+  wrote its camera pose, orbit and zoom limits and fixed drawing light, the spots with the
+  close-sites rules, the off-view notes, the landing-date panel (Canvas strips, "Any site",
+  "next GO", slider, keys, hover readouts, zoom, fold), the before-and-after state, the 3D-off
+  ground, the average-sunlight shading and vitest tests — checked by the agent with
+  typecheck, the vitest suite (including the spot = strip = hover = sites rail agreement test
+  on every fixture site), the build, and by eye in headless Chrome on the machine's GPU on
+  the real data at 1440 × 900, 1024 × 768 and 390 × 844; a human has not reviewed it yet
+- **State:** verified (2,317 web tests, typecheck and build (the sweep worker emitted once) pass on the merge with main (the orchestrator's run), and 425 Python tests on the same tree (the builder's run); reviewed by Cursor, which compared the sweep with the ordinary evaluation for every fixture site, two profiles and more than 60 landing days, and checked dates in two other time zones; seven findings fixed with tests (Any site while sites compute; a landing not at 00:00 UTC; spots equal the sites rail during a profile change; a failed sweep; the shading label); it absorbed the scene polish, the flat Polar map (its 3D-off view now uses the real map) and the ground's look; seen by the builder on hardware WebGL; not yet tried by the team lead)
+- **Changed:** `web/src/features/mission-control/slip-planner/` (new), `web/src/lib/scoring/`
+  (`slip-days.ts` new; `next-go.ts`, `next-go.test.ts` and `index.ts` byte-for-byte as in
+  #83), `web/src/features/three/scene/` (`slip.ts`
+  and its test new; small additions to `rig.ts`, `world.ts`, `materials.ts`,
+  `scene-root.tsx`), `web/src/app/scene.ts` (optional `onProjector`, `slipShading`),
+  `web/src/app/mission/` (`views.ts`, `scene-slot.tsx`, `scene-status.ts`, `view-bar.tsx`
+  comment, three tests), `web/src/app/mission-screen.tsx`, `web/src/components/StatusLamp.tsx`
+  (exports `GLYPH`), `web/src/app/mission/landing-control.ts` and its two tests (the
+  no-GO wording), `web/src/features/three/scene/world.ts` (a comment for the ground look),
+  `web/src/app/mission/scene-slot.tsx` and its new test, `web/src/app/scene.ts`
+  (`FlatLayerProps`), `web/src/features/polar-map/map.tsx` (the `readouts` prop),
+  `web/src/lib/explain.ts` (the Slip Planner's controls hint),
+  `web/vite.config.ts` (the worker build input is gone), `docs/features/site-detail.md`,
+  `docs/features/slip-planner.md`, `docs/design/c2/built-slip-*.png`, this entry
+- **Notes:**
+  - Every status, score and veto is the sweep's (`useSweeps`), packed per 00:00 UTC day by
+    `lib/scoring/slip-days.ts` from `evaluationAt`. No new scoring code. "next GO" is #83's
+    shared `nextGoDay` (`lib/scoring/next-go.ts`, copied unchanged so that merge is a
+    no-op), read over the packed day table by `slip-planner/next-go-words.ts`.
+  - The landing date is read and written only through the scenario store. The panel header
+    has an empty `data-slot="landing-date-control"` for `LandingDateControl`.
+  - 3D off: the scene still reports no flat views; the shell's still picture is skipped for
+    this view only and the Slip Planner draws a dimmed polar relief under the same spots,
+    with the spec's note. T7's flat Polar map should take that place: it needs to accept
+    sites to place (or expose the same `SceneProjector` as the 3D scene), hide crater
+    names in this view, and draw the average-sunlight layer when asked.
+  - A view opened from a link refits when its first (locked) flight lands, since the sites
+    and the free space can arrive during it.
+  - The build emits the sweep worker once (`dist/assets/sweep.worker-*.js`).
+  - Checks on 2026-11-14 after merging `origin/main` (#78, #79, #82): `pnpm --dir web test`
+    (1,811 passed), `typecheck`, `build` and `uv run pytest -q` (322 passed), each exit 0.
+    Eight sites with VIPER's 100-day profile recompute (sweep and day table, in turn, on
+    the full 2,191-day grid) in 113 to 188 ms on a Ryzen 7 3700X. By eye in headless Chrome:
+    no site, every date NO-GO, a 06:00 landing (the "00:00 UTC" note), the 1.4 s flight
+    (0.12 s with reduced motion, nothing pulsing), every control named, no horizontal scroll,
+    and 44 px touch targets on the phone.
+  - On the phone the strip rows are 12 px tall: the spec makes the whole strip area one
+    touch target, so they leave the tab order and the slider knob is the keyboard path.
+  - Review round 1 (Cursor, request changes; 2026-11-14), all fixed on this branch:
+    - One source: every status, rule and score a user reads for a site and a landing hour
+      comes from the rail's `cachedEvaluation` (`slip-planner/landing-results.ts`). A spot
+      therefore equals the rail even while a new profile's sweep runs; the strips never show
+      the previous profile's sweep; the packed Float32 score is never shown (IM-2 days where
+      it floors one higher: sphere 30, edge 1476, wide 1584; every day of one site tested).
+    - "Any site" is GO as soon as a known site is GO; CAUTION, NO-GO and "no GO before…"
+      wait for every site; the hover, `aria-valuetext` and "next GO" follow the same rule.
+    - A landing not at 00:00 UTC: the header, folded row, slider words and row lamps read
+      the real landing; strips, hovers and "next GO" are 00:00 UTC and say so; the note
+      shows open (over the row names), folded and on the phone.
+    - A failed sweep is its own state, with Retry; "Any site" works from the others.
+    - The shading keeps a (short) label when the free space has no room for the controls.
+    - `panel-mount.test.ts` mounts the panel and the spots with the real hooks: no new sweep
+      and no redraw while the date moves in range; spot = rail before a new sweep answers;
+      the 06:00 note in three layouts; a failed sweep and Retry.
+  - After #83: the header mounts `LandingDateControl` (the panel's own mission-window line
+    is gone). The button's no-GO line now reads "No later GO before 2032"
+    (`app/mission/landing-control.ts`, its two tests, `site-detail.md`), so it never
+    contradicts "GO on this date" beside it.
+  - Checked by eye with the real data in headless Chrome (one browser, closed between runs):
+    1440, 1024 with eight sites including two best-lit variants (no label or spot overlap;
+    the variants keep their names on hover), the phone and the folded row at 06:00; the
+    computing state after a profile change was read from the page (the progress bar,
+    "computing…", "Still computing 4 of 4 sites.", spots equal to the rail), not
+    photographed: a slowed browser could not take the picture in time.
+  - After #88: the Slip Planner is an entry of the rig's per-view table
+    (`ORBIT_STYLE.slip = "centre"`): orbit about the sites' centre 28° to 88° up; zoom along
+    the line to that centre, 60 to 2,600 km, keeping the aim (not toward the pointer); no
+    pan, so the sites never leave the view; a double-click frames them again; its About text
+    has its own controls hint. Checked with hardware WebGL (ANGLE, RTX 2060): the flight in
+    lands on the fixed light, drag and zoom work, and leaving to each of the four other
+    views brings back the real Sun (uSun equals the Sun's direction) and coming back the
+    fixed light; the System view still turns freely over the pole; stars stay above the
+    limb, dimmed, never over the ground.
+  - After #89: one flat-layer mechanism. The Slip Planner is a flat layer of the scene slot
+    (`SLIP_PLANNER_LAYER`, beside `POLAR_MAP_LAYER`); the slot takes one layer or a list and
+    gives each `canTryAgain` and `onTryAgain` (two additive `FlatLayerProps` fields); the
+    slot's render-prop child and the `scene-status.ts` exception are gone. With 3D off the
+    view mounts the Polar map's `MapCore` (no pins of its own, no crater names, its
+    "sunlight" overlay following the shading switch, its projector placing the spots); the
+    dimmed-relief stand-in and `flat.ts` are gone. One additive prop in
+    `features/polar-map/map.tsx`: `readouts` (false: no point readout on click or Enter, no
+    nudge on N, no hover readout). Our foot plates sit above the map's control plate, whose
+    legend carries the "not for your date" label. Variant labels use the map's words
+    ("Best-lit map pixel, 149 m from …", from `offset_m`). Checked by eye: `view=map` opens
+    the flat map; `view=slip` with 3D off shows the map, the placed spots, the panel and the
+    note; Polar map and Slip Planner in both orders, in 3D and with 3D off, leave exactly one
+    layer mounted; a click on the map in the Slip Planner opens no readout.
+  - After #91 (the ground look): the ground's light (`uLight`) is the Moon's own `uSun`
+    uniform, which this view blends to its fixed light, so the site's ground is lit by the
+    fixed vector at `slip = 1` and gets the real Sun back with the Moon on leaving (tested on
+    the World's uniforms). Its fade is now multiplied by `1 − slip` instead of being cut when
+    the view changes, so it fades out as the fixed light blends in and none is drawn at
+    `slip = 1` (no drawn shadow there). Checked by eye with hardware WebGL, Local terrain to
+    Slip Planner and back. #91's decoration plate shows in Local terrain only, not here.
+  - Fixed while checking: the #89 change cleared the foot plates' `top` in 3D, which left the
+    shading switch above the window and hid every spot label; a mount test now guards it.
+
 #### 2026-11-14 · MC-sites · Custom coordinates, best-lit variant labels and the nearby range
 - **Who:** Claude Code agent (Opus 5.5), for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — wrote the custom-site client, job store,

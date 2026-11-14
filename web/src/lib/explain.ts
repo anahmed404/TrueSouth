@@ -276,6 +276,8 @@ const entries = {
   // ── Views ──────────────────────────────────────────────────────────────────
   slip_planner: {
     text: "Your sites at the south pole, each showing whether a landing on the date below would be GO, CAUTION or NO-GO, with a strip for every site across six years of landing dates. Use it to see how far a launch can slip, or which other site works on the new date.",
+    controls:
+      "Drag to turn about your sites; scroll or pinch moves closer or further, always toward them; double-click frames them again. There is no slide, so your sites stay in view.",
     lesson: "l7_slip",
   },
   system_view: {

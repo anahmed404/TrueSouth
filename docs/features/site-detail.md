@@ -118,8 +118,9 @@ in the bottom strip, the landing date first.
   - While the sweep is computing, the button shows a turning ring, is `aria-busy` and cannot
     be pressed. Its description: "Working out the GO dates for Connecting Ridge…".
   - If the sweep fails, it cannot be pressed, and its description says why.
-  - With no later GO day in the time grid, a plain line replaces it: "No GO date before
-    2032", the year the grid ends.
+  - With no later GO day in the time grid, a plain line replaces it: "No later GO before
+    2032", the year the grid ends. "Later" because the landing day itself can be GO, as the
+    Slip Planner's "next GO" column beside it then says.
   - With no focused site, it is not shown.
 - **After a jump** a small bubble over the button says "Landing moved to 14 Mar 2028, the
   next GO date for Connecting Ridge." with "Undo", and a polite status line says the same to

@@ -16,11 +16,11 @@ type SceneSlotProps = Omit<SceneProps, "onStatus" | "ignoreSlow" | "mode"> & {
   /** Called after "Try 3D anyway", so the shell can announce it and place focus. */
   onTryAgain?: () => void;
   /**
-   * Optional: a 2D layer drawn over the scene for some views (the Polar map's flat map). It
-   * gets the scene's props, its mode and the last arrival; its views never show the still
-   * picture.
+   * Optional: 2D layers drawn over the scene for some views (the Polar map's flat map, the
+   * Slip Planner's spots). Each gets the scene's props, its mode, the last arrival and "Try 3D
+   * anyway"; their views never show the still picture. One layer or a list.
    */
-  flat?: FlatLayer;
+  flat?: FlatLayer | readonly FlatLayer[];
 };
 
 /**
@@ -38,7 +38,8 @@ export const SceneSlot = memo(function SceneSlot({ Scene = ScenePlaceholder, onT
   const [ignoreSlow, setIgnoreSlow] = useState(false);
   const [arrival, setArrival] = useState<SceneArrival | null>(null);
   const mode = sceneMode(status, ignoreSlow);
-  const flatViews = flat ? [...(report?.flatViews ?? []), ...flat.views] : (report?.flatViews ?? []);
+  const layers: readonly FlatLayer[] = flat ? (Array.isArray(flat) ? flat : [flat as FlatLayer]) : [];
+  const flatViews = [...(report?.flatViews ?? []), ...layers.flatMap((layer) => layer.views)];
   const still = showStill(mode, { flatViews }, props.view);
   const { onArrive } = props;
   const arrive = useCallback(
@@ -65,7 +66,9 @@ export const SceneSlot = memo(function SceneSlot({ Scene = ScenePlaceholder, onT
       {still ? (
         <StillPicture status={status ?? "slow"} view={props.view} freeSpace={props.freeSpace} onTryAnyway={tryAnyway} />
       ) : null}
-      {flat ? <flat.Layer {...props} mode={mode} arrival={arrival} /> : null}
+      {layers.map((layer, index) => (
+        <layer.Layer key={index} {...props} mode={mode} arrival={arrival} canTryAgain={status === "slow" && !ignoreSlow} onTryAgain={tryAnyway} />
+      ))}
     </div>
   );
 });
