@@ -210,7 +210,7 @@ describe("a popover panel always ends inside the window (placePanel)", () => {
   });
 });
 
-describe("a popover's background is not quite opaque (the black box, docs/decisions/0017)", () => {
+describe("a popover's background is not quite opaque (the black box, docs/decisions/0018)", () => {
   const css = readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "components.css"), "utf8");
   const rule = /^ {2}\.popover \{([^}]*)\}/m.exec(css)?.[1] ?? "";
 

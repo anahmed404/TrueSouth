@@ -674,7 +674,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 - **Changed:** `web/src/components/Popover.tsx`, `Tip.tsx`, `components.css`, new
   `overlay-host.ts` and its test, `web/src/app/shell.css`, new `web/src/app/diag.ts`,
   `web/src/main.tsx`, new `web/src/features/three/scene/gl-switches.ts` and its test,
-  `scene-root.tsx`, `docs/decisions/0017-popover-background-not-opaque.md`,
+  `scene-root.tsx`, `docs/decisions/0018-popover-background-not-opaque.md`,
   `docs/design/c2/built-rail-overlays-*.png`
 - **Notes:**
   - **Reproduced.** Installed Chrome 157, a throwaway profile, `--force-device-scale-factor=1.25`,
@@ -690,7 +690,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     region wrong. One at a time: a 99 % background, `overflow: visible`,
     `scrollbar-gutter: stable` or an inner scroller each remove it; no shadow, no radius,
     `isolation`, `contain: paint`, `translateZ(0)`, `preserveDrawingBuffer` and fresh WebGL
-    frames do not. Kept the 99 % background (docs/decisions/0017). Checked after the fix with
+    frames do not. Kept the 99 % background (docs/decisions/0018). Checked after the fix with
     software compositing in Slip Planner and the Polar map, d3d9 and D3D11: no box.
   - The fresh-frames mitigation (4 frames, about 8 ms each on an RTX 2060 at 1902 × 913, per
     popover change) was built, then taken out: an A/B under the reproduction showed no effect.

@@ -1,4 +1,4 @@
-# 0017. A popover's background is 99 % opaque, not 100 %
+# 0018. A popover's background is 99 % opaque, not 100 %
 
 **Decision (2026-11-14, MC rail overlays).** `.popover` paints its background as
 `color-mix(in srgb, var(--raised) 99%, transparent)` instead of `var(--raised)`.
