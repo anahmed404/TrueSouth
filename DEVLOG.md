@@ -54,7 +54,7 @@ each integration checkpoint.
 - **AI use:** Codex, gpt-6.1-sol — documented the arithmetic first, implemented
   matching Python and TypeScript scoring, added seeded translation and boundary
   tests, regenerated G10, and ran sequential catalog audits and checks.
-- **State:** built, not verified
+- **State:** verified (432 Python tests, 2,344 web tests and the typecheck pass on the merge with main; reviewed by Gemini (approve): 2,240 random and boundary cases gave identical results in Python and TypeScript, down to the bits; 50 offsets of the same window agree; a 5-site audit found no status change; the orchestrator's audit of the whole catalog by landing hour found no status change and 4,598 displayed whole scores corrected upward by one)
 - **Changed:** scoring functions and their tests, the fixture generator and shared
   cases, a scoring-only fixture series, `docs/science.md` sections 9–11, decision
   0015 and `docs/reviews/s2b-score-boundary.md`. No screens or contracts changed.
@@ -70,6 +70,7 @@ each integration checkpoint.
     typecheck and build passed, each exit 0. Fixed a new fixture-label collision
     found by the first Python run, then reran Python and the affected G10 test.
     Checks ran sequentially, with numerical threads and Vitest workers limited.
+- **Seen at merge (orchestrator):** the fix does change what a user sees in a few places, and for the better. Scores are shown rounded down, and the old sums left some exact whole scores one float step short (99.99999999999999 shown as 99). Over the real catalog (25 sites, 5 presets, every landing hour: 6,486,425 results) 4,598 displayed whole scores go up by one (IM-2 Athena 2,092; Artemis crewed 1,699; Blue Ghost 1 807; none for VIPER or Chandrayaan-3); no status changes. A Slip Planner test that named three such days was updated to expect the exact values.
 
 #### 2026-11-14 · S10b integration · Merge main's placement builder
 - **Who:** Codex implementation agent
