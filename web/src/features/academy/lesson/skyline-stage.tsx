@@ -147,15 +147,14 @@ function SketchBoard({ data, step, runner, draft, examples, onDraft }: SkylineSt
 
   const commit = useCallback(
     (next: Sketch) => {
-      if (!window || !hasLine(next)) {
+      const points = window ? sketchAzimuths(next, window.fromDeg, widthDeg) : [];
+      if (points.length === 0) {
         onDraft(null);
         return;
       }
-      onDraft({
-        kind: "draw-skyline",
-        sketch: sketchAzimuths(next, window.fromDeg, widthDeg),
-        gapDeg: sketchGapDeg(next, real, widthDeg),
-      });
+      // Even one point is kept, so it is still there on return from a review. Its gap is not
+      // a number until there is a line (`sketchGapDeg`), so Done stays off (`canCheck`).
+      onDraft({ kind: "draw-skyline", sketch: points, gapDeg: hasLine(next) ? sketchGapDeg(next, real, widthDeg) : Number.NaN });
     },
     [window, widthDeg, real, onDraft],
   );

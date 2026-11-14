@@ -184,11 +184,19 @@ export function LessonScreen({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (leaveTo !== null || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (!step) return;
+      // In review, Esc always leaves it, from either tab, and the current step comes back
+      // on Luna's tab (`openStep`).
+      if (reviewing !== null && event.key === "Escape") {
+        event.preventDefault();
+        backToCurrent();
+        return;
+      }
       // The "Under the hood" tab hides the step, so no shortcut may answer it from there.
-      if (!step || tab !== "luna") return;
+      if (tab !== "luna") return;
       if (reviewing !== null) {
-        // A reviewed step is read-only: Enter or Escape goes back; nothing else answers it.
-        if (event.key === "Escape" || (event.key === "Enter" && !ownsEnter(event.target))) {
+        // A reviewed step is read-only: Enter goes back; nothing else answers it.
+        if (event.key === "Enter" && !ownsEnter(event.target)) {
           event.preventDefault();
           backToCurrent();
         }

@@ -99,7 +99,7 @@ export const lesson4 = {
       id: "l4-bug",
       luna: {
         mood: "thinking",
-        says: "TrueSouth calls a site NO-GO when it breaks a hard rule. An early TrueSouth used these rules and called every polar site NO-GO. Which rule made them all fail?",
+        says: "TrueSouth calls a landing NO-GO when it breaks one of the mission's hard rules. An early TrueSouth used these rules and called every polar site NO-GO. Which rule made them all fail?",
       },
       hint: "Which rule asks for more than Earth gave this month? Think about how long Earth stays high.",
       explain: rulesLuna,

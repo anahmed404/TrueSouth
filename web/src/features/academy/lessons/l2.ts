@@ -57,7 +57,7 @@ export const lesson2 = {
     },
     {
       id: "l2-angle",
-      luna: { mood: "thinking", says: "How tall a ridge looks is an angle, and a calculator's atan turns rise over distance into it: angle = atan( ? ÷ distance )" },
+      luna: { mood: "thinking", says: "How tall a ridge looks is an angle. A calculator's atan button turns a ratio of two lengths into that angle: angle = atan( ? ÷ distance )" },
       hint: "Start from Pip's eyes. What matters is how far the ridge rises from there.",
       explain: "Its height above you. What counts is how far the ridge rises above Pip's eyes, not above some far-off reference.",
       kind: "fill-formula",
