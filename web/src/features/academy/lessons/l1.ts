@@ -40,7 +40,7 @@ export const lesson1 = {
       options: ["Overhead", "About 45°", "Under 3°"],
       answer: 2,
       // Pip under a sky ruler, so "how high" is an angle before the question asks it.
-      stage: { scene: "sky-ruler", caption: "Pip, our lander, under a sky ruler: 0° is the horizon, 90° is straight up.", angles: [90, 45, "{{example.l1.sun_el_max_deg}}"] },
+      stage: { scene: "sky-ruler", caption: "Pip, our lander", angles: [90, 45, "{{example.l1.sun_el_max_deg}}"] },
     },
     {
       id: "l1-highest",
