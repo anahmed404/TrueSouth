@@ -1604,6 +1604,34 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Academy
 
+#### 2026-11-14 · A11b · Submission materials brought up to date
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-sonnet-5-5 — rewrote the six files in `docs/submission/`
+  against `origin/main` at 69bb26e: read the code, the specs, `DEVLOG.md`, `docs/validation.md`
+  and `data/derived/validation.json`; ran the Python scoring reference (`truesouth.scoring`)
+  on the stored series from a throwaway script outside the repository to compute every date
+  and status the demo script quotes; recounted the AI-use lines. No browser was opened and
+  no test suite was run. A human has not read it.
+- **State:** verified (reviewed by Codex (gpt-6.1-terra): the demo was performed on the running build and its numbers recomputed (all agree); five wording errors fixed by the orchestrator; on the tree merged with main 9f12ff4: 458 Python tests (1 skipped), 2,465 web tests, typecheck and build all exit 0. Not rehearsed against a clock; not every sentence of the other five files was independently confirmed)
+  numbers in it were computed, not seen on screen)
+- **Changed:** `docs/submission/` (all six files), this entry
+- **Notes:**
+  - Removed or corrected: custom sites in a catalog-only build answer 503 (and the form says
+    "Not available on this server"), not 501; Apollo 11 on 2028-01-03 has the Sun 4.6° up, not
+    high (the demo now looks five days later); Local terrain's lander is larger than life, not
+    "scaled"; Compare's summary sentence is no longer drawn; the Sun reaches 2.10° at
+    Connecting Ridge, so the texts say "about two degrees"; the shared fixture for G10 now has
+    76 cases, not 58; #93 to #96 are merged, not in review.
+  - Open items for the team lead are listed in `docs/submission/links-checklist.md`: the
+    repository (private, no licence), the live link (#101 not merged), the backup video,
+    whether to apply `README-proposed.md`, and why the data covers six years.
+  - Found outside this package and not changed: `docs/challenge.md` still marks Compare, the
+    Slip Planner and the Lander's eye "not built"; `docs/challenge.md` and `docs/validation.md`
+    give the largest Sun and Earth difference as 0.0060° where the validation page rounds up
+    to 0.0061°; `docs/orchestration/status.md` still names Docker project `truesouth-s13`
+    and `docs/architecture.md` names `truesouth-s10b`, while `compose.yaml` sets `name:
+    truesouth`.
+
 #### 2026-11-14 · A3 · drag-body and draw-skyline steps: lessons 1, 2 and 4 complete
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — wrote the two step kinds (`drag-body.ts`,
