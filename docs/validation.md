@@ -32,9 +32,10 @@ G2 compares directions on the sky, not raw compass bearings
 ([`decisions/0011`](decisions/0011-g2-compares-directions-on-the-sky.md)). A compass
 bearing has no meaning for a body that is almost straight overhead or underfoot, so the
 raw azimuth difference is reported beside the gate in `g2_diagnostics` and is not gated. This object records raw azimuth, full sky separation and elevation maxima with their site, body and UTC, plus the number of site-and-body hours above the limit.
-Measured on 2026-11-13: directions agree within 0.0060° everywhere; the raw azimuth
+Measured on 2026-11-13: directions agree within 0.0061° everywhere (the largest
+difference is 0.006007°; a "within" figure is rounded up, as the validation page does); the raw azimuth
 difference exceeds 0.02° at 28 hours in six years, all for the Sun at Apollo 11 within
-0.52° of the zenith or nadir, and reaches 0.082°.
+0.52° of the zenith or nadir, and reaches 0.0824° (0.083° rounded up).
 
 The shared fixture for G10 is `web/src/lib/scoring/__fixtures__/scoring_cases.json`,
 written by `uv run truesouth build-fixtures`. It holds at least 40 cases, covering every
