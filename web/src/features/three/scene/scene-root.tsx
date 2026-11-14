@@ -47,8 +47,7 @@ import { FrameMeter, MOON_SEGMENTS_FULL, QualityGovernor, drawDpr, moonSegments,
 import { Stars, starExposure } from "./stars";
 import { mul, type V3 } from "./vec";
 import { World, type WorldInputs, type WorldSite } from "./world";
-import { GL_SWITCHES, OVERLAY_REDRAW_FRAMES } from "./gl-switches";
-import { OVERLAY_CHANGED_EVENT, overOverlay } from "../../../components/overlay-host";
+import { GL_SWITCHES } from "./gl-switches";
 import "./scene.css";
 
 /**
@@ -876,28 +875,6 @@ function Director(props: DirectorProps) {
       window.clearTimeout(quality.restTimer);
     };
   }, [quality]);
-
-  // A popover or tip opening, closing, moving or resizing over the scene: draw a few fresh
-  // frames. The scene draws only when something changes, so the page can be recomposited over
-  // it with no new canvas frame; the black box's leading theory is that on some GPUs the
-  // canvas's picture under a newly composited overlay then comes back empty. Untested against
-  // the real fault; cheap (a few frames per change). Popovers and tips send `toggle`, which
-  // does not bubble, hence the capture phase. The pointer entering a row of an open popover
-  // repaints that row (the box was seen to grow then), so it counts too.
-  useEffect(() => {
-    const redraw = () => invalidate(OVERLAY_REDRAW_FRAMES);
-    const overRow = (event: Event) => {
-      if (overOverlay(event.target)) redraw();
-    };
-    document.addEventListener("toggle", redraw, true);
-    document.addEventListener(OVERLAY_CHANGED_EVENT, redraw);
-    document.addEventListener("pointerover", overRow, true);
-    return () => {
-      document.removeEventListener("toggle", redraw, true);
-      document.removeEventListener(OVERLAY_CHANGED_EVENT, redraw);
-      document.removeEventListener("pointerover", overRow, true);
-    };
-  }, [invalidate]);
 
   // `?diag=1` only: what the capture (app/diag.ts) needs from the scene, to draw one frame and
   // read it in the same task, and the WebGL state it reports.

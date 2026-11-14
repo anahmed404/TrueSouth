@@ -1,10 +1,13 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { act, createElement } from "react";
 import type { Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { allNodes, installDocument, propsOf, type FakeNode } from "../app/mission/fake-dom";
 import { shortcutPanel } from "../app/mission/shell-layout";
 import { escapeCloses } from "../app/mission/window-focus";
-import { OVERLAY_CHANGED_EVENT, PANEL_MIN_ROOM, announceOverlayChange, bridgeTab, overOverlay, overlayHost, placePanel, returnsFocus, withinEither } from "./overlay-host";
+import { PANEL_MIN_ROOM, bridgeTab, overlayHost, placePanel, returnsFocus, withinEither } from "./overlay-host";
 import { Popover } from "./Popover";
 import { Tip } from "./Tip";
 
@@ -207,29 +210,13 @@ describe("a popover panel always ends inside the window (placePanel)", () => {
   });
 });
 
-describe("the scene hears when an overlay over it changes (the black box mitigation)", () => {
-  afterEach(() => {
-    delete (globalThis as { document?: unknown }).document;
-  });
+describe("a popover's background is not quite opaque (the black box, docs/decisions/0017)", () => {
+  const css = readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "components.css"), "utf8");
+  const rule = /^ {2}\.popover \{([^}]*)\}/m.exec(css)?.[1] ?? "";
 
-  it("announces a moved or resized popover or tip on the document", () => {
-    const heard: string[] = [];
-    (globalThis as { document?: unknown }).document = { dispatchEvent: (event: Event) => heard.push(event.type) };
-    announceOverlayChange();
-    expect(heard).toEqual([OVERLAY_CHANGED_EVENT]);
-  });
-
-  it("does nothing without a document", () => {
-    delete (globalThis as { document?: unknown }).document;
-    expect(() => announceOverlayChange()).not.toThrow();
-  });
-
-  it("counts the pointer entering a row of a popover or tip, not anything else", () => {
-    const inside = { closest: (selector: string) => (selector.includes(".popover") ? el("panel") : null) };
-    const outside = { closest: () => null };
-    expect(overOverlay(inside as unknown as EventTarget)).toBe(true);
-    expect(overOverlay(outside as unknown as EventTarget)).toBe(false);
-    expect(overOverlay(null)).toBe(false);
-    expect(overOverlay({} as EventTarget)).toBe(false);
+  it("paints 99 % of --raised, so Chrome's software compositor does not wipe the scene beside it", () => {
+    expect(rule, "the .popover rule").not.toBe("");
+    const background = /\bbackground:\s*([^;]+);/.exec(rule)?.[1]?.trim();
+    expect(background).toBe("color-mix(in srgb, var(--raised) 99%, transparent)");
   });
 });

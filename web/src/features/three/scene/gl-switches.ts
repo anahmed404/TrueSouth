@@ -49,6 +49,3 @@ export function readGlSwitches(search: string): GlSwitches {
 
 /** The switches this page was opened with. */
 export const GL_SWITCHES: GlSwitches = readGlSwitches(typeof window === "undefined" ? "" : window.location.search);
-
-/** How many fresh frames the scene draws after a popover or tip changes over it. */
-export const OVERLAY_REDRAW_FRAMES = 4;
