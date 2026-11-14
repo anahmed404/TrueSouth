@@ -1464,6 +1464,10 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 - **Changed:** `web/src/features/three/scene/rig.ts` (one sign), `drag-directions.test.ts`
   (new), `docs/features/system-view.md` (the contract table), `slip-planner.md`,
   `local-terrain.md`, `panorama.md`, this entry
+- **Added by the orchestrator:** the tester reported Lander's eye's vertical drag as
+  inverted, and the agent had left it as it was. A vertical drag there now looks the way of
+  the drag (drag up, look up); arrow keys are unchanged (`rig.ts`, a `fromKey` argument
+  passed from `scene-root.tsx`; the table test states the exception and checks the arrows)
 - **Notes:**
   - **The contract** (from the System view as on `main`): whatever is under the pointer moves
     the way the pointer moves, on both axes; for an orbit, the ground nearest the viewer; for

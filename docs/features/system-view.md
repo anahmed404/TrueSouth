@@ -215,8 +215,9 @@ re-encoded. Sizes are from the prototype; they are budgets for the real files.
   is under the pointer moves the way the pointer moves, on both axes, in every view: drag
   right and it moves right, drag up and it moves up. In a view that orbits a point (the Slip
   Planner, Local terrain) the part that follows is the ground nearest the viewer; in
-  Lander's eye (a look-around) it is the scene ahead, so dragging up moves the horizon up
-  and the view looks down. `drag-directions.test.ts` checks every view and input.
+  Lander's eye (a look-around) it is the scene ahead. One exception, from the team's
+  testing: in Lander's eye a vertical drag looks the way of the drag (drag up, look up).
+  `drag-directions.test.ts` checks every view and input.
 
   | Input | What the picture does |
   | :--- | :--- |
