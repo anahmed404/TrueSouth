@@ -128,6 +128,38 @@ describe("the picture follows the pointer in every view, for every drag input", 
     }
   });
 
+  it("the Slip Planner's first drag starts from where the view is: no jump to the sites' centre", () => {
+    // The pose aims SLIP_AIM_SHARE of the free space above the sites' centre (slip.ts); the
+    // drag keeps that aim, so a drag of nothing moves nothing and a small drag moves a little.
+    const fresh = () => {
+      const rig = new Rig(new THREE.PerspectiveCamera(30, 1440 / 900, 1e-9, 5000));
+      rig.setFreeSpace(space, 0);
+      rig.mode = "slip";
+      rig.slipCentre = { centre: slip.centre, up0: slip.up0 };
+      rig.apply(slip);
+      return rig;
+    };
+    const centre = new THREE.Vector3(...slip.centre);
+    for (const [dx, dy] of [
+      [0, 0],
+      [2, 0],
+      [0, 2],
+      [-2, -2],
+    ] as const) {
+      const rig = fresh();
+      const points = [centre, grabbed(rig, "ground-front")];
+      const before = points.map((p) => screen(rig, p));
+      rig.beginDrag();
+      rig.orbit(dx, dy);
+      const moved = points.map((p, i) => Math.hypot(screen(rig, p).x - before[i]!.x, screen(rig, p).y - before[i]!.y));
+      for (const m of moved) {
+        if (dx === 0 && dy === 0) expect(m).toBeLessThan(1e-6);
+        else expect(m).toBeLessThan(6);
+      }
+      if (dx !== 0 || dy !== 0) expect(moved[1]!).toBeGreaterThan(0.05);
+    }
+  });
+
   it("the Polar map's camera does not turn: it stays a north-up map, and its flat map pans by its own drag", () => {
     const rig = new Rig(new THREE.PerspectiveCamera(30, 1440 / 900, 1e-9, 5000));
     rig.setFreeSpace(space, 0);

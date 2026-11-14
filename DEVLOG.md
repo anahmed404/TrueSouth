@@ -1479,6 +1479,70 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## 3D and Map
 
+#### 2026-11-14 · System view orbits · Faint orbit lines for the Moon and Earth
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote `orbits.ts` (the two circles and the line
+  object), a small hook in `world.ts`, the True-scale glide fade (`proportions.ts`,
+  `screenDisc`, `discInside`, `discLeaving`), one line in `scene-root.tsx`, the About sentence,
+  the spec text and `orbits.test.ts` (run over the real `data/derived/system.bin`) — checked
+  by the agent with the vitest suite (a mutation removing the glide fade fails it), typecheck,
+  build, and by eye in Chrome with hardware WebGL (RTX 2060) at 1440 × 900 and 1024 × 768
+  against `main` (1c3b3b6) run side by side, with the True-scale toggle sampled frame by
+  frame; a human has not reviewed it
+- **State:** verified (reviewed by Codex (gpt-6.1-terra): request changes (segments entering the Moon, a gap at the limb at True scale), both fixed by the author with a per-segment test over all 52,584 hours in both arrangements, not re-reviewed; the True-scale fade simulated with the real rig at both sizes with no frame of Earth outside the free space; the Slip Planner's first-drag snap fixed in the same branch; on the tree merged with main a37446e: 471 Python tests (1 skipped), 2,845 web tests with 3 expected to fail on the fixture, typecheck and build all exit 0. The team approved the look from captures)
+- **Changed:** `web/src/features/three/scene/orbits.ts` and `orbits.test.ts` (new),
+  `world.ts` (construct, place and fade the lines; Earth's glide fade), `proportions.ts`
+  (screen-disc helpers; a comment on the distance curve's joins), `scene-root.tsx` (one line:
+  the free space to the world), `web/src/lib/explain.ts` (`system_view`),
+  `docs/features/system-view.md`, `docs/design/c2/built-system-orbits-*.png`, this entry;
+  after review, `rig.ts`, `drag-directions.test.ts` and `docs/features/slip-planner.md` (the
+  Slip Planner's first drag)
+- **Notes:**
+  - **The lines:** the Moon's orbit is the circle centred on the drawn Earth through the
+    Moon's centre; Earth's orbit is the circle centred on the drawn Sun through Earth's centre.
+    Each lies in the plane through its two bodies that is nearest the Moon's equator; Earth
+    and the Sun stay within about 7° of that plane, so it is always defined and turns at most
+    0.2° from one hour to the next over the whole series (tested). Drawings at the schematic
+    distances, not computed orbits; the About text says "Sizes, distances and orbit lines are
+    not to scale" (263 characters).
+  - **Look:** the Ridge Line grey (`--terrain-rim`) mixed 32 % into Night, opaque one-pixel
+    lines drawn first without depth writes, so every body, guide, sight-line and label covers
+    them; the parts inside the Moon or Earth are left out, so they stop at the limbs. No
+    dashes, labels or controls.
+  - **Where:** the System view only; they fade (180 ms) on the flight to any other view and
+    with the camera's descent to the ground. At true scale the Moon's orbit stays (a circle of
+    221 Moon radii through the Moon about Earth); Earth's orbit is hidden, since the Sun is
+    only a direction there.
+  - **Cost:** two `LineSegments` of 256 segments (512 vertices each), one fixed buffer each,
+    rewritten only when the bodies' drawn places change (the hour, or the True-scale glide);
+    at rest nothing is rewritten and no frame is asked for (tested; 0 frames in 1.2 s at rest
+    in the browser).
+  - **Cursor's note on #111:** during the True-scale glide Earth now fades whenever its disc is
+    outside the free space, or would be at its current speed on screen within 360 ms (twice the
+    fade, since the flight's ease still accelerates when Earth leaves). Sampled every frame
+    both ways at both sizes: Earth outside the free space on 46 to 67 frames per toggle, shown
+    on none of them; fully back at the end. The join note needs no change; a comment says so.
+  - **Review of #115 (Codex), two geometry fixes:** the limb rule tested each step's two ends
+    only, so 366 kept steps of Earth's orbit passed through the Moon over the series (to 0.94
+    Moon radii from its centre), and at true scale, where a step is 5.4 Moon radii long, the
+    Moon's orbit stopped 4 to 4.7 radii short of the limb. Each step is now cut where it meets
+    the Moon's or Earth's sphere (and split if it passes through), so the lines end on the limbs
+    whatever the step length. The test now sweeps every hour in both arrangements: no segment
+    comes nearer either centre than its radius, each line has exactly two ends on its limb
+    (within 1e-9 radii), and the Moon's orbit ends on the limb at the series' extremes. Three
+    mutations (keep a chord through a body; drop a crossing step whole; no cut) each fail it.
+    In the browser the Moon's orbit ends 0.99999997 Moon radii from the centre (Float32) in
+    both arrangements. Even spacing kept: at true scale the circle near the Moon shows no
+    facets by eye. `update` now reuses scratch arrays and allocates nothing. Visible change:
+    Earth's orbit now meets Earth's disc instead of stopping up to a step short (273 pixels at
+    1440 at the opening); the `after-*` captures are retaken, `compare-opening` is the first
+    round's.
+  - **Slip Planner's first drag (separate commit):** `slipMove` looked straight at the sites'
+    centre, but the fit aims 0.2 of the free space above it, so the first drag jumped 83 px at
+    1440 × 900. It now keeps the camera's offset from that look. A new test drags (0, 0) and
+    small steps right after the pose (the old code fails it at 82.9 px); in the browser the
+    centre stays at (684, 444) through a drag of nothing, a 3 px turn and a real 3 px drag.
+
 #### 2026-11-14 · Drag directions · The picture follows the pointer in every view
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — measured every view's drag direction on the real
