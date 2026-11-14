@@ -67,8 +67,8 @@ are decoration.
 
 No line on the scene says it (the team lead removed the "Distances not to scale" plate,
 2026-11-14). The view's About text says, in one sentence, that sizes and distances are
-not to scale (Earth and the Sun drawn much closer than life, the Sun much smaller), that
-every direction is true, and that "True scale" shows the real proportions (`system_view` in `web/src/lib/explain.ts`). The "True scale"
+not to scale, that every direction is true, and that "True scale" shows the real
+proportions (`system_view` in `web/src/lib/explain.ts`). The "True scale"
 button's description says what it switches.
 
 ## Scale
