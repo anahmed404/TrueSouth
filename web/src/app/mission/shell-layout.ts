@@ -160,3 +160,46 @@ export function shortcutPanel(event: ShortcutEvent): SidePanel | null {
   }
   return null;
 }
+
+// ── The strip folded for a window ──────────────────────────────────────────
+
+/**
+ * The bottom strip, folded while Compare is open so its table gets the height
+ * (docs/features/compare.md, "Room for the table"). A temporary fold beside the remembered
+ * one: it is never saved, so the fold the user chose is what comes back next visit.
+ *
+ * - Opening Compare with the strip open folds it; with the strip already folded, nothing
+ *   changes and nothing is restored.
+ * - Unfolding the strip by hand while Compare is open lets go of the fold, for good: the
+ *   window never folds it again until it is opened again.
+ * - Closing Compare, by any route (the close button, Escape, picking a camera view or
+ *   another window), restores the strip to what it was.
+ */
+export type WindowFold = { readonly window: string | null; readonly folded: boolean };
+
+export const NO_WINDOW_FOLD: WindowFold = { window: null, folded: false };
+
+/** The window whose opening folds the strip. */
+export const STRIP_FOLDING_WINDOW = "compare";
+
+/** The temporary fold once the open window is `window`. The same object when nothing changed. */
+export function windowFoldFor(fold: WindowFold, window: string | null, stripCollapsed: boolean): WindowFold {
+  if (window === fold.window) return fold;
+  if (window === STRIP_FOLDING_WINDOW) return { window, folded: !stripCollapsed };
+  return { window, folded: false };
+}
+
+/**
+ * The user presses the strip's fold button. While a window holds the strip folded, that
+ * unfolds it and lets go of the window's fold, leaving the remembered fold alone; otherwise
+ * it toggles the remembered fold as usual.
+ */
+export function toggleStrip(fold: WindowFold): { fold: WindowFold; toggleRemembered: boolean } {
+  if (fold.folded) return { fold: { ...fold, folded: false }, toggleRemembered: false };
+  return { fold, toggleRemembered: true };
+}
+
+/** Whether the strip shows folded: the user's fold, or a window's. */
+export function stripFolded(layout: ShellLayout, fold: WindowFold): boolean {
+  return layout.timeline.collapsed || fold.folded;
+}
