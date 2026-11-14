@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { FreeSpace } from "../../../app/scene";
 import { decodeSystem } from "../../../data/decode/index.ts";
 import { fromDirectionPose, type Pose } from "./camera";
@@ -61,26 +61,26 @@ const extremes = (() => {
 })();
 
 describe("the mapping: drawn sizes through named radii, drawn distances a power below 1", () => {
-  it("names its constants: Earth 1.2 and the Sun 3.5 Moon radii, distance exponent 0.3, distance scale 0.8", () => {
-    expect(DRAWN_EARTH_RADIUS).toBe(1.2);
+  it("names its constants: Earth 1.005 and the Sun 3.5 Moon radii, distance exponent 0.385, distance scale 0.372", () => {
+    expect(DRAWN_EARTH_RADIUS).toBe(1.005);
     expect(DRAWN_SUN_RADIUS).toBe(3.5);
-    expect(DISTANCE_EXPONENT).toBe(0.3);
-    expect(DISTANCE_SCALE).toBe(0.8);
+    expect(DISTANCE_EXPONENT).toBe(0.385);
+    expect(DISTANCE_SCALE).toBe(0.372);
     expect(EARTH_FARTHEST_KM).toBe(407_000);
   });
 
-  it("draws the Moon 1, Earth 1.2 and the Sun 3.5, on a straight log-log line between them, to 1e-12", () => {
+  it("draws the Moon 1, Earth 1.005 and the Sun 3.5, on a straight log-log line between them, to 1e-12", () => {
     expect(drawnRadius(MOON_RADIUS_KM)).toBeCloseTo(1, 12);
-    expect(drawnRadius(EARTH_RADIUS_KM)).toBeCloseTo(1.2, 12);
+    expect(drawnRadius(EARTH_RADIUS_KM)).toBeCloseTo(1.005, 12);
     expect(drawnRadius(SUN_RADIUS_KM)).toBeCloseTo(3.5, 12);
     // Half way (geometrically) between two bodies, the drawn radius is half way (geometrically) too.
-    expect(drawnRadius(Math.sqrt(MOON_RADIUS_KM * EARTH_RADIUS_KM))).toBeCloseTo(Math.sqrt(1.2), 12);
-    expect(drawnRadius(Math.sqrt(EARTH_RADIUS_KM * SUN_RADIUS_KM))).toBeCloseTo(Math.sqrt(1.2 * 3.5), 12);
+    expect(drawnRadius(Math.sqrt(MOON_RADIUS_KM * EARTH_RADIUS_KM))).toBeCloseTo(Math.sqrt(1.005), 12);
+    expect(drawnRadius(Math.sqrt(EARTH_RADIUS_KM * SUN_RADIUS_KM))).toBeCloseTo(Math.sqrt(1.005 * 3.5), 12);
   });
 
-  it("draws every distance as 0.8 times its ratio to the Moon's radius to the power 0.3, to 1e-12 relative", () => {
+  it("draws every distance as 0.372 times its ratio to the Moon's radius to the power 0.385, to 1e-12 relative", () => {
     for (let km = 1; km < 1e10; km *= 1.37) {
-      const expected = 0.8 * Math.pow(km / MOON_RADIUS_KM, 0.3);
+      const expected = 0.372 * Math.pow(km / MOON_RADIUS_KM, 0.385);
       expect(Math.abs(drawnDistance(km) - expected) / expected).toBeLessThan(1e-12);
     }
   });
@@ -119,11 +119,21 @@ describe("on the real series (data/derived/system.bin)", () => {
     expect(extremes.sunFar.sunDistKm).toBeGreaterThan(152_000_000);
   });
 
-  it("at the extremes: Earth 3.95 to 4.12 Moon radii out (2.5 before), the Sun 24.0 to 24.4", () => {
-    expect(drawnDistance(extremes.perigee.earthDistKm)).toBeGreaterThan(3.95);
-    expect(drawnDistance(extremes.apogee.earthDistKm)).toBeLessThan(4.12);
-    expect(drawnDistance(extremes.sunNear.sunDistKm)).toBeGreaterThan(24.0);
-    expect(drawnDistance(extremes.sunFar.sunDistKm)).toBeLessThan(24.4);
+  it("at the extremes: Earth 2.88 to 3.04 Moon radii out (2.5 before), the Sun 29.3 to 29.8", () => {
+    expect(drawnDistance(extremes.perigee.earthDistKm)).toBeGreaterThan(2.88);
+    expect(drawnDistance(extremes.apogee.earthDistKm)).toBeLessThan(3.04);
+    expect(drawnDistance(extremes.sunNear.sunDistKm)).toBeGreaterThan(29.3);
+    expect(drawnDistance(extremes.sunFar.sunDistKm)).toBeLessThan(29.8);
+  });
+
+  it("keeps the orbit picture true at every hour: the circle the Moon traces around the drawn Earth never comes near the Sun", () => {
+    // The Sun's nearest surface is more than twice the drawn Earth-to-Moon distance from
+    // Earth, with a margin of three times that (3.76 at the closest hour).
+    for (const h of hours) {
+      const earth = drawnEarth(h, false);
+      const sun = sunOf(h);
+      expect(between(earth.centre, sun.centre) - sun.radius).toBeGreaterThan(3 * 2 * length(earth.centre));
+    }
   });
 
   it("stays inside what the opening view allows for: Earth never beyond EARTH_FARTHEST_KM, libration within ±7° by ±8.5°", () => {
@@ -142,7 +152,7 @@ describe("on the real series (data/derived/system.bin)", () => {
     }
   });
 
-  it("draws the Sun 5.8 to 6.2 times further than Earth at every hour (389 true; 389^0.3 = 6.0)", () => {
+  it("draws the Sun 9.6 to 10.3 times further than Earth at every hour, never under 8 (389 true; 389^0.385 = 9.9)", () => {
     let low = Infinity;
     let high = 0;
     for (const h of hours) {
@@ -150,11 +160,12 @@ describe("on the real series (data/derived/system.bin)", () => {
       low = Math.min(low, ratio);
       high = Math.max(high, ratio);
     }
-    expect(low).toBeGreaterThan(5.8);
-    expect(high).toBeLessThan(6.2);
+    expect(low).toBeGreaterThan(9.6);
+    expect(low).toBeGreaterThan(8);
+    expect(high).toBeLessThan(10.35);
   });
 
-  it("keeps clear gaps between the surfaces at every hour: Moon to Earth over 1.7, Moon to Sun over 18, Earth to Sun over 14", () => {
+  it("keeps clear gaps between the surfaces at every hour: Moon to Earth over 0.85, Moon to Sun over 24, Earth to Sun over 21", () => {
     let moonEarth = Infinity;
     let moonSun = Infinity;
     let earthSun = Infinity;
@@ -165,9 +176,9 @@ describe("on the real series (data/derived/system.bin)", () => {
       moonSun = Math.min(moonSun, between(MOON.centre, sun.centre) - 1 - sun.radius);
       earthSun = Math.min(earthSun, between(earth.centre, sun.centre) - earth.radius - sun.radius);
     }
-    expect(moonEarth).toBeGreaterThan(1.7);
-    expect(moonSun).toBeGreaterThan(18);
-    expect(earthSun).toBeGreaterThan(14);
+    expect(moonEarth).toBeGreaterThan(0.85);
+    expect(moonSun).toBeGreaterThan(24);
+    expect(earthSun).toBeGreaterThan(21);
   });
 
   it("keeps every direction exactly as the series gives it", () => {
@@ -226,8 +237,8 @@ describe("Earth's light is the series' Sun direction, not the drawn offset", () 
   );
 
   it("the drawn offset is real (several degrees at the worst hour), so the test can tell the two apart", () => {
-    expect(worst.off).toBeGreaterThan(9);
-    expect(worst.off).toBeLessThan(10.5);
+    expect(worst.off).toBeGreaterThan(5);
+    expect(worst.off).toBeLessThan(6.5);
   });
 
   it("the scene hands Earth's shader the series' direction at that hour", async () => {
@@ -259,7 +270,7 @@ describe("Earth's light is the series' Sun direction, not the drawn offset", () 
     const light = (world as unknown as { earth: { uniforms: { uSun: { value: { x: number; y: number; z: number } } } } }).earth.uniforms.uSun.value;
     const l: V = unit([light.x, light.y, light.z]);
     expect(angleDeg(l, sun)).toBeLessThan(1e-6);
-    expect(angleDeg(l, worst.drawnDir)).toBeGreaterThan(9);
+    expect(angleDeg(l, worst.drawnDir)).toBeGreaterThan(5);
   });
 });
 
@@ -312,41 +323,112 @@ describe("the zoom-out limit", () => {
   });
 });
 
-describe("a body between the camera and the Moon is not drawn", () => {
-  const earth: BodyPlacement = { centre: [4, 0, 0], radius: DRAWN_EARTH_RADIUS };
+describe("a body between the camera and the Moon is not drawn (judged on screen)", () => {
+  const earth: BodyPlacement = { centre: [3, 0, 0], radius: DRAWN_EARTH_RADIUS };
+  /** Angular separation, as seen from `camera`, between a body's centre and the Moon's. */
+  const apart = (camera: V, body: BodyPlacement) => {
+    const toBody: V = [body.centre[0] - camera[0], body.centre[1] - camera[1], body.centre[2] - camera[2]];
+    const toMoon: V = [-camera[0], -camera[1], -camera[2]];
+    return Math.acos(Math.max(-1, Math.min(1, (toBody[0] * toMoon[0] + toBody[1] * toMoon[1] + toBody[2] * toMoon[2]) / (length(toBody) * length(toMoon)))));
+  };
+  /** True when a body is nearer than the Moon and its disc overlaps the Moon's disc on screen. */
+  const covers = (camera: V, body: BodyPlacement) =>
+    between(camera, body.centre) < length(camera) &&
+    apart(camera, body) < Math.asin(Math.min(1, body.radius / between(camera, body.centre))) + Math.asin(1 / length(camera));
 
-  it("is drawn beside the Moon in the opening view (which leans 10° away from Earth), whatever the libration, and behind it", () => {
-    const t = (10 * Math.PI) / 180;
+  it("is drawn beside the Moon in the opening view (which leans 12° away from Earth), whatever the libration, and behind it", () => {
+    const t = (12 * Math.PI) / 180;
     for (const lat of [-7, 0, 7]) {
       const r = (lat * Math.PI) / 180;
-      const e: BodyPlacement = { centre: [4 * Math.cos(r), 4 * Math.sin(r), 0], radius: DRAWN_EARTH_RADIUS };
-      for (const d of [16, 23, 30]) expect(bodyInFront([-d * Math.sin(t), -d * Math.cos(t), 0], e)).toBe(false);
+      const e: BodyPlacement = { centre: [3 * Math.cos(r), 3 * Math.sin(r), 0], radius: DRAWN_EARTH_RADIUS };
+      for (const d of [16, 23, 30]) expect(bodyInFront([-d * Math.sin(t), -d * Math.cos(t), 0], e, true)).toBe(false);
     }
-    expect(bodyInFront([-10, 0, 0], earth)).toBe(false);
+    expect(bodyInFront([-10, 0, 0], earth, true)).toBe(false);
   });
 
-  it("is not drawn when it stands in front of the Moon (From Earth), when the camera is inside it, or beside the line of sight on the camera's side", () => {
-    expect(bodyInFront([10.3, 0, 0], earth)).toBe(true);
-    expect(bodyInFront([4.1, 0.2, 0], earth)).toBe(true);
-    expect(bodyInFront([10.3 * Math.cos(0.4), 10.3 * Math.sin(0.4), 0], earth)).toBe(true);
+  it("is not drawn in front of the Moon (From Earth), with the camera inside it, or nearer, larger and in view (From the Sun, beside)", () => {
+    expect(bodyInFront([10.3, 0, 0], earth, true)).toBe(true);
+    expect(bodyInFront([3.1, 0.2, 0], earth, false)).toBe(true);
+    expect(bodyInFront([10.3 * Math.cos(0.9), 10.3 * Math.sin(0.9), 0], earth, true)).toBe(true);
+    // The same, out of view: drawn (it cannot be seen anyway).
+    expect(bodyInFront([10.3 * Math.cos(0.9), 10.3 * Math.sin(0.9), 0], earth, false)).toBe(false);
   });
 
-  it("keeps the Sun drawn when zoomed out far enough to see it, and Earth at true scale, though a few per cent nearer", () => {
-    const t = (10 * Math.PI) / 180;
-    for (const d of [150, 250, 380]) {
+  it("stays hidden along Earth's line of sight at any distance out to the zoom-out limit (the review's case past 80 Moon radii)", () => {
+    for (const d of [10, 50, 81, 101, 151, 251, 381, SYSTEM_MAX_ALTITUDE + 1]) {
+      expect(bodyInFront([d, 0, 0], earth, true)).toBe(true);
+      expect(bodyInFront([d, 0.3, 0.2], earth, true)).toBe(true);
+    }
+  });
+
+  it("keeps the Sun drawn when zoomed out far enough to see it, and Earth at true scale, when they are not over the Moon", () => {
+    const t = (12 * Math.PI) / 180;
+    for (const d of [150, 250, SYSTEM_MAX_ALTITUDE]) {
       for (let deg = 0; deg < 360; deg += 15) {
         const sun = drawnSun([Math.cos((deg * Math.PI) / 180), 0.03, Math.sin((deg * Math.PI) / 180)], 147_000_000);
-        expect(bodyInFront([-d * Math.sin(t), -d * Math.cos(t), 0], sun)).toBe(false);
+        const camera: V = [-d * Math.sin(t), -d * Math.cos(t), 0];
+        expect(bodyInFront(camera, sun, true)).toBe(covers(camera, sun));
+        expect(covers(camera, sun)).toBe(false);
       }
     }
     const lat = (-7 * Math.PI) / 180;
-    expect(bodyInFront([0, -1_096, 0], { centre: [229 * Math.cos(lat), 229 * Math.sin(lat), 0], radius: 3.67 })).toBe(false);
+    expect(bodyInFront([0, -1_096, 0], { centre: [229 * Math.cos(lat), 229 * Math.sin(lat), 0], radius: 3.67 }, true)).toBe(false);
+  });
+
+  it("does not flicker: once hidden, a body stays hidden until it is clearly out", () => {
+    // Find the distance along a line where Earth just stops covering the Moon, then step around it.
+    const camera = (a: number): V => [20 * Math.cos(a), 20 * Math.sin(a), 0];
+    let edge = 0;
+    for (let a = 0; a < 1.5; a += 0.0005) {
+      if (!bodyInFront(camera(a), earth, false)) {
+        edge = a;
+        break;
+      }
+    }
+    expect(edge).toBeGreaterThan(0);
+    expect(bodyInFront(camera(edge + 0.002), earth, false, true)).toBe(true); // just past the edge, still hidden
+    expect(bodyInFront(camera(edge + 0.2), earth, false, true)).toBe(false); // clearly out
   });
 
   it("holds for the Sun too, by the same geometry", () => {
     const sun = drawnSun([1, 0, 0], 149_600_000);
-    expect(bodyInFront([10.3, 0, 0], sun)).toBe(false); // the Sun behind the camera
-    expect(bodyInFront([40, 0, 0], sun)).toBe(true); // a camera beyond the Sun, looking back through it
+    expect(bodyInFront([10.3, 0, 0], sun, true)).toBe(false); // the Sun behind the camera
+    expect(bodyInFront([40, 0, 0], sun, true)).toBe(true); // a camera beyond the Sun, looking back through it
+  });
+
+  it("over the real series, a few thousand cameras across the whole zoom range, both scale modes: no drawn body nearer than the Moon overlaps its disc", () => {
+    let seed = 12_345;
+    const random = () => {
+      seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648;
+      return seed / 2_147_483_648;
+    };
+    let checked = 0;
+    for (let k = 0; k < 4_000; k += 1) {
+      const h = hours[Math.floor(random() * hours.length)]!;
+      const { sun, earth: earthDir } = bodyDirections(h);
+      const trueScale = k % 4 === 3;
+      const limit = trueScale ? 900 : SYSTEM_MAX_ALTITUDE;
+      const distance = 1.05 + Math.pow(random(), 2) * limit;
+      // Half the cameras look along or near Earth's or the Sun's line of sight; the rest anywhere.
+      let dir: V;
+      if (k % 2 === 0) {
+        const base = k % 4 === 0 ? earthDir : sun;
+        const wobble = 0.15 * random();
+        dir = unit([base[0] + wobble * (random() - 0.5), base[1] + wobble * (random() - 0.5), base[2] + wobble * (random() - 0.5)]);
+      } else {
+        const z = 2 * random() - 1;
+        const phi = 2 * Math.PI * random();
+        dir = [Math.sqrt(1 - z * z) * Math.cos(phi), z, Math.sqrt(1 - z * z) * Math.sin(phi)];
+      }
+      const camera: V = [dir[0] * distance, dir[1] * distance, dir[2] * distance];
+      const bodies = [drawnEarth(h, trueScale), ...(trueScale ? [] : [sunOf(h)])];
+      for (const body of bodies) {
+        if (bodyInFront(camera, body, true)) continue;
+        expect(covers(camera, body)).toBe(false);
+        checked += 1;
+      }
+    }
+    expect(checked).toBeGreaterThan(3_000);
   });
 });
 
@@ -388,7 +470,7 @@ describe("From Earth and From the Sun keep the Moon as the subject at every hour
     const { sun } = bodyDirections(h);
     for (const fs of layouts) {
       const pose = fromDirectionPose(sun, fs);
-      expect(bodyInFront(pose.pos, drawnEarth(h, false))).toBe(true);
+      expect(bodyInFront(pose.pos, drawnEarth(h, false), true)).toBe(true);
     }
   });
 
@@ -404,7 +486,10 @@ describe("From Earth and From the Sun keep the Moon as the subject at every hour
           const pose = fromDirectionPose(dir, fs);
           const moon = screenDisc(pose, [0, 0, 0], 1, fs)!;
           for (const [k, body] of bodies.entries()) {
-            if (bodyInFront(pose.pos, body)) {
+            const reach = screenDisc(pose, body.centre, body.radius, fs);
+            // In view: any part of its disc inside the window.
+            const seen = Boolean(reach) && Math.abs(reach!.x - fs.viewport.width / 2) < fs.viewport.width / 2 + reach!.r && Math.abs(reach!.y - fs.viewport.height / 2) < fs.viewport.height / 2 + reach!.r;
+            if (bodyInFront(pose.pos, body, seen)) {
               if (k === 0) hidden += 1;
               continue;
             }
@@ -430,5 +515,75 @@ describe("From Earth and From the Sun keep the Moon as the subject at every hour
     // Both cases occur: Earth hidden in front of the Moon, and Earth shown beside it.
     expect(hidden).toBeGreaterThan(1_000);
     expect(beside).toBeGreaterThan(0);
+  });
+});
+
+describe("a body moving in front of the Moon fades out, then lets the scene rest", () => {
+  async function layoutAt(reduceMotion: boolean) {
+    const THREE = await import("three");
+    const { World } = await import("./world");
+    let frames = 0;
+    const world = new World(() => {
+      frames += 1;
+    }, 1);
+    world.reduceMotion = reduceMotion;
+    world.setInputs({
+      bodies: true,
+      sunDir: [0, 0, 1],
+      earthDir: [1, 0, 0],
+      earthCentre: [3, 0, 0],
+      earthRadius: DRAWN_EARTH_RADIUS,
+      trueScale: false,
+      earthDistKm: 384_400,
+      sunDistKm: 149_600_000,
+      hourIndex: 0,
+      site: null,
+      sight: null,
+      view: "system",
+    });
+    // "From Earth": the camera beyond Earth, looking back at the Moon through it.
+    const camera = new THREE.PerspectiveCamera(30, 1.6, 1e-7, 5000);
+    camera.position.set(10.3, 0, 0);
+    camera.lookAt(0, 0, 0);
+    camera.updateMatrixWorld();
+    const earthMesh = (world as unknown as { earthMesh: { visible: boolean } }).earthMesh;
+    const alpha = () => (world as unknown as { earth: { uniforms: { uAlpha: { value: number } } } }).earth.uniforms.uAlpha.value;
+    let now = 1_000;
+    const spy = vi.spyOn(performance, "now").mockImplementation(() => now);
+    // A first frame with Earth behind the Moon, drawn; then the camera moves to "From Earth".
+    camera.position.set(-10.3, 0, 0);
+    camera.lookAt(0, 0, 0);
+    camera.updateMatrixWorld();
+    world.layout(camera);
+    now += 50;
+    camera.position.set(10.3, 0, 0);
+    camera.lookAt(0, 0, 0);
+    camera.updateMatrixWorld();
+    const trace: { alpha: number; frames: number; visible: boolean }[] = [];
+    for (let k = 0; k < 8; k += 1) {
+      world.layout(camera);
+      trace.push({ alpha: alpha(), frames, visible: earthMesh.visible });
+      now += 50;
+    }
+    spy.mockRestore();
+    return trace;
+  }
+
+  it("fades over about 180 ms, asking for frames only while it fades", async () => {
+    const trace = await layoutAt(false);
+    expect(trace[0]!.alpha).toBeLessThan(1);
+    expect(trace[0]!.alpha).toBeGreaterThan(0);
+    const done = trace.findIndex((t) => t.alpha === 0);
+    expect(done).toBeGreaterThanOrEqual(3); // 150 ms in, still fading
+    expect(done).toBeLessThanOrEqual(5);
+    expect(trace[done]!.visible).toBe(false);
+    // Once faded, no more frames are requested: the scene goes idle.
+    expect(trace[trace.length - 1]!.frames).toBe(trace[done]!.frames);
+  });
+
+  it("disappears at once with reduced motion", async () => {
+    const trace = await layoutAt(true);
+    expect(trace[0]!.alpha).toBe(0);
+    expect(trace[0]!.visible).toBe(false);
   });
 });

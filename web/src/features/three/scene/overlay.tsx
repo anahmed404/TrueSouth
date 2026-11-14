@@ -103,6 +103,9 @@ function PinStatusWord({ siteId, profile, landingUtc }: { siteId: string; profil
   return <>{result.data ? `, ${result.data.status}` : ", no result"}</>;
 }
 
+/** Below this on-screen radius (px) the System view's labels step around the Moon (see the layout loop). */
+const SMALL_MOON_PX = 60;
+
 export function Overlay(props: OverlayProps) {
   const { bus, view, freeSpace, focusedId, focusedSite, sight, trueScale } = props;
   const pinRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -165,6 +168,13 @@ export function Overlay(props: OverlayProps) {
         place(el, lx, ly);
       };
       const focal = H / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+      // A small Moon in the System view (under SMALL_MOON_PX, as at 1024 × 768): the site's name
+      // plate starts past the Moon's limb, and the Moon's disc counts as taken, so the labels
+      // step around it instead of covering it.
+      const moonAt = project(new THREE.Vector3(), camera, W, H);
+      const camDistance = cam.length();
+      const moonPx = camDistance > 1 ? focal / Math.sqrt(camDistance * camDistance - 1) : Infinity;
+      const smallMoon = p.view === "system" && anchors.near < 0.5 && moonAt.front && moonPx < SMALL_MOON_PX;
 
       // Pins: the System view and the Polar map only. On the far side of the Moon, hidden.
       const pinsOn = !small && (p.view === "system" || p.view === "map");
@@ -195,9 +205,11 @@ export function Overlay(props: OverlayProps) {
             moreRef.current.hidden = !more;
           }
           placed.push({ x: focusedPin.x - 10, y: focusedPin.y - 10, w: 20, h: 20 });
-          settle(nameRef.current, focusedPin.x + 16, focusedPin.y - 12);
+          const nameX = smallMoon ? Math.max(focusedPin.x + 16, moonAt.x + moonPx + 8) : focusedPin.x + 16;
+          settle(nameRef.current, nameX, focusedPin.y - 12);
         }
       }
+      if (smallMoon) placed.push({ x: moonAt.x - moonPx, y: moonAt.y - moonPx, w: 2 * moonPx, h: 2 * moonPx });
 
       // Sight-line labels at the far end of each line.
       for (const key of ["sun", "earth"] as const) {

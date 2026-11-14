@@ -85,6 +85,24 @@ function css(name: string, fallback: string): string {
 
 export type TextureState = { moon: "none" | "2k" | "4k" | "8k"; cap: boolean; earth: boolean };
 
+/** How long a body takes to fade out (or back in) when it moves in front of the Moon. */
+const FADE_MS = 180;
+
+/** Whether any part of a body's disc is inside the camera's view (the whole window). */
+function inView(camera: THREE.PerspectiveCamera, body: { centre: V3; radius: number }): boolean {
+  const centre = new THREE.Vector3(...body.centre);
+  const rel = centre.clone().sub(camera.position);
+  const distance = rel.length();
+  if (distance <= body.radius) return true;
+  const look = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  if (rel.dot(look) <= -body.radius) return false;
+  const p = centre.project(camera);
+  const tanHalf = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const ry = Math.tan(Math.asin(Math.min(1, body.radius / distance))) / tanHalf;
+  const rx = ry / Math.max(camera.aspect, 1e-6);
+  return Math.abs(p.x) < 1 + rx && Math.abs(p.y) < 1 + ry;
+}
+
 export class World {
   readonly root = new THREE.Group();
   private readonly owned: { dispose: () => void }[] = [];
@@ -121,6 +139,26 @@ export class World {
   draw = 0;
   /** 0 schematic, 1 true scale, between during the toggle's flight (the rig's scaleBlend). */
   scaleBlend = 0;
+  /** With reduced motion, a body in front of the Moon disappears at once instead of fading. */
+  reduceMotion = false;
+  private readonly earthFade = { hidden: false, alpha: 1, at: 0 };
+  private readonly sunFade = { hidden: false, alpha: 1, at: 0 };
+
+  /**
+   * Moves a body's opacity toward hidden (0) or shown (1) over FADE_MS, asking for frames until
+   * it gets there, then letting the scene rest. Returns the opacity to draw with.
+   */
+  private stepFade(fade: { hidden: boolean; alpha: number; at: number }, hide: boolean): number {
+    const now = performance.now();
+    const dt = fade.at > 0 ? Math.min(now - fade.at, 100) : FADE_MS;
+    fade.at = now;
+    fade.hidden = hide;
+    const target = hide ? 0 : 1;
+    if (this.reduceMotion) fade.alpha = target;
+    else fade.alpha = target > fade.alpha ? Math.min(target, fade.alpha + dt / FADE_MS) : Math.max(target, fade.alpha - dt / FADE_MS);
+    if (fade.alpha !== target) this.invalidate();
+    return fade.alpha;
+  }
   /**
    * The Slip Planner (slip.ts): 0 to 1, how much the Moon is lit by `slipLight`, a fixed
    * drawing light, instead of the real Sun. In that view Earth, the Sun, the guides, the
@@ -581,10 +619,14 @@ export class World {
     anchors.earth.copy(this.earthMesh.position);
     anchors.earthRadius = earthRadius;
     // Far out, a body between the camera and the Moon is not drawn (proportions.ts, bodyInFront);
-    // the overlay marks it at the edge instead.
+    // it fades out and the overlay marks it at the edge instead.
     const camAt = camera.position.toArray() as V3;
-    anchors.earthInFront = inputs.bodies && near < 0.5 && bodyInFront(camAt, { centre: this.earthMesh.position.toArray() as V3, radius: earthRadius });
-    if (anchors.earthInFront) this.earthMesh.visible = false;
+    const earthBody = { centre: this.earthMesh.position.toArray() as V3, radius: earthRadius };
+    const earthHide = inputs.bodies && near < 0.5 && bodyInFront(camAt, earthBody, inView(camera as THREE.PerspectiveCamera, earthBody), this.earthFade.hidden);
+    anchors.earthInFront = earthHide;
+    const earthAlpha = this.stepFade(this.earthFade, earthHide);
+    this.earth.uniforms.uAlpha.value = earthAlpha;
+    if (earthAlpha <= 0.001) this.earthMesh.visible = false;
 
     const sunPlaced = sunDuringScale(inputs.sunDir, inputs.sunDistKm, this.scaleBlend);
     const sunFar = new THREE.Vector3(...sunPlaced.centre);
@@ -594,9 +636,12 @@ export class World {
     this.sunMesh.scale.setScalar(sunRadius * this.sun.uniforms.uExt.value);
     this.sunMesh.quaternion.copy(camera.quaternion);
     // At true scale the Sun is only a direction, marked at the screen's edge.
-    const sunInFront = near < 0.5 && bodyInFront(camAt, { centre: this.sunMesh.position.toArray() as V3, radius: sunRadius });
-    this.sunMesh.visible = inputs.bodies && !(!sunPlaced.visible && near < 0.5) && !sunInFront;
-    anchors.sun = this.sunMesh.visible ? this.sunMesh.position.clone() : null;
+    const sunBody = { centre: this.sunMesh.position.toArray() as V3, radius: sunRadius };
+    const sunHide = near < 0.5 && bodyInFront(camAt, sunBody, inView(camera as THREE.PerspectiveCamera, sunBody), this.sunFade.hidden);
+    const sunAlpha = this.stepFade(this.sunFade, sunHide);
+    this.sun.uniforms.uFade.value = sunAlpha;
+    this.sunMesh.visible = inputs.bodies && !(!sunPlaced.visible && near < 0.5) && sunAlpha > 0.001;
+    anchors.sun = this.sunMesh.visible && !sunHide ? this.sunMesh.position.clone() : null;
     anchors.sunRadius = sunRadius;
 
     // Guides fade as the camera nears the ground, and stay off over the Polar map.

@@ -12,8 +12,10 @@ import {
  * How big and how far the System view draws Earth and the Sun by default, when "True scale"
  * is off (docs/features/system-view.md, "Scale"). Scene units are Moon radii.
  *
- * A schematic, not a model: the Moon is the subject, with Earth beside it, a little larger
- * and clearly further out, and the Sun far beyond (the team lead, 2026-11-14). The true
+ * A schematic, not a model: the Moon is the subject, with Earth beside it about the same
+ * size and a little further out, and the Sun far beyond, about ten times Earth's distance,
+ * so the circle the Moon would trace around Earth never comes near it (the team lead,
+ * 2026-11-14). The true
  * values (docs/science.md §1, and the series):
  * - radii: Moon 1,737.4 km; Earth 6,378.137 km (3.67 Moons); Sun 695,700 km (400 Moons,
  *   109 Earths);
@@ -25,21 +27,22 @@ import {
  * come from `system.bin` (computed in Python).
  *
  * To retune, change one constant:
- * - DRAWN_EARTH_RADIUS: 1.2 Moon radii (true 3.67). "Earth a bit smaller" lowers it; it must
- *   stay above 1.
- * - DRAWN_SUN_RADIUS: 3.5 Moon radii (true 400): clearly the largest, three Earths, yet seen
- *   behind the Moon from "From Earth" (around new moon) never more than 1.5 times the Moon.
- * - DISTANCE_EXPONENT: 0.3 draws the Sun 6 times further than Earth (389^0.3). Higher
- *   spreads the two distances apart.
- * - DISTANCE_SCALE: 0.8 puts Earth about 4 Moon radii out (3.95 at perigee to 4.11 at
+ * - DRAWN_EARTH_RADIUS: 1.005 Moon radii (true 3.67): just above the Moon, so the order holds;
+ *   in the opening view it is a little further from the camera than the Moon, so it shows
+ *   slightly smaller (0.95 to 1.0 times). It must stay above 1.
+ * - DRAWN_SUN_RADIUS: 3.5 Moon radii (true 400): clearly the largest, yet seen behind the
+ *   Moon from "From Earth" (around new moon) never more than 1.5 times the Moon.
+ * - DISTANCE_EXPONENT: 0.385 draws the Sun about 10 times further than Earth (389^0.385 =
+ *   9.9; 9.7 to 10.2 over the series). Higher spreads the two distances apart.
+ * - DISTANCE_SCALE: 0.372 puts Earth about 3 Moon radii out (2.89 at perigee to 3.04 at
  *   apogee; it was 2.5 before), which lets the opening view show it whole beside a Moon of
- *   about 72 px at 1440 × 900 (camera.ts, homePose), and the Sun about 24, always outside
- *   the opening view. Larger moves both out ("a bit further") and shrinks the opening Moon.
+ *   about 95 px at 1440 × 900 (camera.ts, homePose), and the Sun about 29.5. Larger moves
+ *   both out ("a bit further") and shrinks the opening Moon.
  */
-export const DRAWN_EARTH_RADIUS = 1.2;
+export const DRAWN_EARTH_RADIUS = 1.005;
 export const DRAWN_SUN_RADIUS = 3.5;
-export const DISTANCE_EXPONENT = 0.3;
-export const DISTANCE_SCALE = 0.8;
+export const DISTANCE_EXPONENT = 0.385;
+export const DISTANCE_SCALE = 0.372;
 
 /** Earth's greatest distance from the Moon in the series (apogee), in km: the opening view leaves room for it. */
 export const EARTH_FARTHEST_KM = 407_000;
@@ -49,7 +52,7 @@ export const EARTH_FARTHEST_KM = 407_000;
  * see the Moon, Earth and the Sun's disc and edge together in a 1024 × 768 window with the
  * panels open. At true scale, 900, far enough for Earth at its real distance.
  */
-export const SYSTEM_MAX_ALTITUDE = 380;
+export const SYSTEM_MAX_ALTITUDE = 420;
 export const TRUE_SCALE_MAX_ALTITUDE = 900;
 
 /**
@@ -131,31 +134,45 @@ export function sunDuringScale(sunDir: readonly [number, number, number], sunDis
 
 /**
 /**
- * How much nearer to the camera than the Moon a body must be to count as in front of it: 5 %.
- * From a far camera a body beside the Moon is only a few per cent nearer (the Sun when zoomed
- * out, Earth at true scale) and stays drawn; in "From the Sun" a body on the near side is 5 to
- * 60 % nearer.
+ * Room kept clear around the Moon's disc, as a share of its angular radius: a body nearer than
+ * the Moon whose disc comes within this of the Moon's is not drawn (the site labels sit there).
+ */
+export const IN_FRONT_MARGIN = 0.3;
+/**
+ * A body nearer than the Moon, larger than it on screen and in view is not drawn either, once
+ * it is at least this much nearer (5 %). Below that it is beside the Moon at nearly its depth:
+ * only a hair larger, as the Sun is when zoomed out, and stays drawn.
  */
 export const IN_FRONT_NEARER = 0.05;
+/** While a body is hidden it stays hidden until it is this much clear of each threshold (no flicker on a slow drag). */
+export const IN_FRONT_HYSTERESIS = 0.15;
 
 /**
- * True when a body stands between the camera and the Moon, so drawing it would cover or
- * crowd the subject: its centre lies on the camera's side of the Moon (the side facing the
- * camera) and at least IN_FRONT_NEARER nearer to the camera than the Moon's centre is, or
- * the camera is inside it.
- * The opening view leans away from Earth (camera.ts, OPENING.tiltDeg), so there Earth is
- * always on the far side and drawn. The scene then does not draw it, and marks it with an edge
- * arrow and its label instead (overlay.tsx). Geometry only, whatever the preset; it holds for
- * the Sun as for Earth. Decoration: it changes no result.
+ * True when a body is not drawn because it stands between the camera and the Moon, judged by
+ * what is on screen, at any camera distance and in both scale modes:
+ * - the camera is inside it; or
+ * - it is nearer to the camera than the Moon's centre and its disc overlaps the Moon's disc,
+ *   with IN_FRONT_MARGIN to spare; or
+ * - it is at least IN_FRONT_NEARER nearer than the Moon's centre, larger than the Moon on
+ *   screen, and `inView` (any part of it inside the camera's view).
+ * `hidden`: whether it is hidden now; then the thresholds widen by IN_FRONT_HYSTERESIS so it
+ * stays hidden until clearly out. The overlay shows its name and edge arrow instead.
+ * Geometry only, whatever the preset; it holds for the Sun as for Earth. Decoration: it changes
+ * no result.
  */
-export function bodyInFront(camera: readonly [number, number, number], body: BodyPlacement): boolean {
+export function bodyInFront(camera: readonly [number, number, number], body: BodyPlacement, inView: boolean, hidden = false): boolean {
   const [cx, cy, cz] = camera;
   const [bx, by, bz] = body.centre;
   const toBody = Math.hypot(bx - cx, by - cy, bz - cz);
   if (toBody <= body.radius) return true;
   const toMoon = Math.hypot(cx, cy, cz);
-  const bodyFromMoon = Math.hypot(bx, by, bz);
-  if (toMoon < 1e-9 || bodyFromMoon < 1e-9) return false;
-  const facing = (bx * cx + by * cy + bz * cz) / (bodyFromMoon * toMoon);
-  return facing > 0 && toBody < toMoon * (1 - IN_FRONT_NEARER);
+  if (toMoon <= 1 || toBody >= toMoon) return false;
+  const slack = hidden ? 1 + IN_FRONT_HYSTERESIS : 1;
+  const bodyAngle = Math.asin(Math.min(1, body.radius / toBody));
+  const moonAngle = Math.asin(1 / toMoon);
+  const cos = (-(bx - cx) * cx - (by - cy) * cy - (bz - cz) * cz) / (toBody * toMoon);
+  const apart = Math.acos(Math.max(-1, Math.min(1, cos)));
+  if (apart < (bodyAngle + moonAngle * (1 + IN_FRONT_MARGIN)) * slack) return true;
+  const nearer = toBody < toMoon * (1 - IN_FRONT_NEARER / slack);
+  return nearer && bodyAngle * slack > moonAngle && inView;
 }

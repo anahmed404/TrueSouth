@@ -111,29 +111,30 @@ describe("the camera keeps its subject in the free space", () => {
       const moon = project(first, [0, 0, 0], fs);
       expect(moon.x).toBeCloseTo(freeCentre(fs).x, 6);
       expect(moon.y).toBeCloseTo(freeCentre(fs).y, 6);
-      // Looking at the Moon from under the south pole, leaning 10° away from Earth's side.
-      expect(first.look[1]).toBeCloseTo(Math.cos((10 * Math.PI) / 180), 12);
+      // Looking at the Moon from under the south pole, leaning 12° away from Earth's side.
+      expect(first.look[1]).toBeCloseTo(Math.cos((12 * Math.PI) / 180), 12);
     }
   });
 
-  it("System view home: the Moon at least 70 px in radius at 1440 × 900 with the panels open, and at least 33 px in the smallest layout", () => {
+  it("System view home: the Moon about 90 px in radius at 1440 × 900 with the panels open, and at least 45 px at 1024 × 768", () => {
     for (const [name, fs] of Object.entries(layouts)) {
       const pose = homePose({ earth: earths[0]!, sun: sunAt(0, 149_600_000) }, fs);
       const moon = disc(pose, [0, 0, 0], 1, fs);
-      expect(moon.r).toBeGreaterThanOrEqual(name === "1440 open" ? 70 : 33);
+      expect(moon.r).toBeGreaterThanOrEqual(name === "1440 open" ? 88 : 45);
     }
   });
 
-  it("System view home: Earth whole in view beside the Moon, 1 to 1.5 times its size, clear of the Moon, the marks and its label room", () => {
+  it("System view home: Earth whole in view beside the Moon, 0.85 to 1 times its size, clear of the Moon, the marks and its label room", () => {
     for (const fs of Object.values(layouts)) {
       for (const earth of earths) {
         const pose = homePose({ earth, sun: sunAt(0, 149_600_000) }, fs);
         const moon = disc(pose, [0, 0, 0], 1, fs);
         const e = disc(pose, earth.centre, earth.radius, fs);
-        expect(e.r / moon.r).toBeGreaterThanOrEqual(1);
+        // Slightly smaller than the Moon on screen: drawn 1.005, a little further from the camera.
+        expect(e.r / moon.r).toBeGreaterThanOrEqual(0.85);
         // Behind the Moon's centre as seen from the camera, so it is never "in front" and always drawn.
-        expect(bodyInFront(pose.pos, earth)).toBe(false);
-        expect(e.r / moon.r).toBeLessThanOrEqual(1.5);
+        expect(bodyInFront(pose.pos, earth, true)).toBe(false);
+        expect(e.r / moon.r).toBeLessThanOrEqual(1);
         // To the Moon's left, clear of its disc and of the sight-line marks' far ends (1.15 Moon
         // radii from the site, with their labels to the right of them).
         expect(e.x + e.r).toBeLessThan(moon.x - 1.15 * moon.r - 10);

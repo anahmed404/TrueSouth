@@ -1087,6 +1087,7 @@ function Director(props: DirectorProps) {
     const moving = rig.update(now);
     world.draw = rig.draw;
     world.scaleBlend = rig.scaleBlend;
+    world.reduceMotion = latest.current.reduceMotion;
     world.slip = rig.slip;
     world.slipShading = latest.current.slipShading && latest.current.view === "slip";
     // three updates the camera's matrices during render; the overlay projects before that.
