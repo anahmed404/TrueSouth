@@ -16,7 +16,11 @@ directions at any site are then exact vector geometry
 and require agreement within 0.02° at every hour (gate G2). That is about two million
 comparisons.
 
-**Not yet proven.** This method has not been run. Work package S4 proves it.
+**Outcome, 2026-11-13.** The saved full-grid G2 run passed at all 20 original
+catalog sites. Both gated components stayed below 0.02° at every hour.
+Section 3.3 of [`science.md`](../science.md) records the measured residual and
+the raw-azimuth diagnostic; decision [0011](0011-g2-compares-directions-on-the-sky.md)
+defines the sky-angle comparison. No fallback or fitted offset was needed.
 
 **Fallback.** If G2 cannot be met:
 

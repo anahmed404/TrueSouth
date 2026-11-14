@@ -80,6 +80,32 @@ each integration checkpoint.
 - **Checks:** Full Python run 424 passed, 1 real-map skip, exit 0. After the placement-quota interaction fix, affected API/integration checks 106 passed, 1 skipped, exit 0. Explicit real-map test: 1 passed, exit 0, Connecting Ridge custom series.bin/skyline.bin/terrain.bin byte-identical to catalog in 36.617 s (37.90 s test); meta differs only site_id. Catalog verification ran --only chandrayaan3 apollo11 --force in a staging copy and rebuilt Connecting Ridge's listed point with the shared builder, retaining its published nearby range. All 25 staged folders and sites.json match origin/main Git blob hashes; tracked derived files also match before and after. Full 25-site recomputation was not run: placement key 0826b46027c9dc5fdfbb91366e2b4a200804f04c6669ce577f9463b7f19b0254 has no shared cache; --only on a peak would also trigger the cold candidate evaluation. API import 1.110 s with no numpy/scipy/pyproj/rasterio/placement_cache modules loaded. Frozen pnpm install, 1,849 web tests (one worker) and typecheck exit 0. Docker skipped as requested; mandatory API dependency closure excludes rasterio.
 - **Notes:** Site fields and custom contracts are unchanged by the merge; main's validation exclusions for variants remain intact. Dockerfile and dependencies are unchanged, so the requested Docker rebuild exception does not apply.
 
+
+#### 2026-11-14 · Science clarifications · A9 findings and implementation limits
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — clarified the science document against the
+  reviewed code, checked current stored-file counts without rebuilding data,
+  and recorded each A9 finding's status. Both Academy teaching formulas are
+  unchanged. No code, contract, screen or data changed.
+- **State:** verified (432 Python tests and 2,344 web tests pass on the merge with main, including the Academy's card-formula tests; reviewed by Gemini, which checked each passage against the code and recounted the data (58 stored 360-degree azimuths; sub-solar latitude within 1.59 degrees; no empty skyline bins at the 20 terrain sites); one error found and corrected by the orchestrator: the highest stored Sun at Connecting Ridge is 2.10 degrees (2.13 had been computed at longitude 0))
+- **Changed:** `docs/science.md`, the Status table and later-state notes in
+  `docs/reviews/a9-math-review.md`, and the dated outcome in decision 0004.
+- **Notes:**
+  - B1 is fixed by #77; the near-pole part of B8 is fixed by #80. Profile
+    file-contract validators remain future work. A1 and C4 are handled in #93;
+    this branch leaves sections 9–11 unchanged to avoid overlapping those edits.
+  - Documented bin and blocker ties, disc quadrature and singular cases, empty
+    skyline assumptions, missing slope, quantisation, approximation domains,
+    missed sub-hour intervals and the specified-but-unbuilt paths.
+  - Current stored files contain 58 azimuths at 360 degrees: the original
+    40 plus 18 variant samples. All 20 terrain-tier catalog files have blockers
+    in every bin and report zero missing samples. Only Connecting Ridge was
+    independently rebuilt in A9; the other sites were read, not recomputed.
+  - Checks, all sequential: pytest 425 passed, 1 skipped; web 2,017 passed;
+    frozen install, typecheck and build passed. Each direct exit code was 0.
+    Both section 3.4 formula blocks and all of sections 9–11 are unchanged;
+    the Academy card tests pass without editing web code.
+
 #### 2026-11-14 · S10b review fixes · Public-endpoint failure handling
 - **Who:** Codex implementation agent
 - **AI use:** Codex reproduced the review findings with HTTP/worker regression tests, implemented the fixes and ran targeted checks; human and orchestrator review pending.
