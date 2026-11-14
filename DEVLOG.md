@@ -1315,60 +1315,72 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 #### 2026-11-14 · System view proportions · Earth and the Sun read larger and farther than the Moon
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — wrote `proportions.ts` (drawn sizes and
-  distances, Earth's fade in front of the Moon, Earth and the Sun during the True-scale
-  flight) and its vitest tests against the real `data/derived/system.bin`, the opening frame
-  in `camera.ts`, the rig's `scaleBlend`, Earth's edge marker in `overlay.tsx`, the
-  reconciled `lib/geo/placement.ts`, the About sentence and the spec; no AI-generated imagery
-  — checked by the agent with the vitest suite, typecheck, build, and by eye in Chrome with
-  hardware WebGL (RTX 2060) at 1440 × 900 and 1024 × 768, panels open and folded, including
-  a frame-by-frame sample of the True-scale toggle both ways; reviewed by Codex
-  (gpt-6.1-terra), whose findings are addressed below; a human has not reviewed it
+  distances, the rule that hides a body between the camera and the Moon, Earth and the Sun
+  during the True-scale glide) and its vitest tests against the real `data/derived/system.bin`,
+  the opening view in `camera.ts` and its tests over four layouts and the series' extremes,
+  the rig's glide clock, Earth's edge arrow in `overlay.tsx`, the reconciled
+  `lib/geo/placement.ts`, the spec; no AI-generated imagery — checked by the agent with the
+  vitest suite, typecheck, build, and by eye in Chrome with hardware WebGL (RTX 2060) at
+  1440 × 900 and 1024 × 768, panels open and folded, against `main` run side by side, with
+  the True-scale toggle sampled frame by frame; reviewed by Codex (gpt-6.1-terra) and Cursor
+  (grok-4.7), findings addressed below; a human has not reviewed it
 - **State:** built, not verified
 - **Changed:** `web/src/features/three/scene/` (`proportions.ts` and its test are new;
-  `camera.ts` opening frame, `rig.ts` zoom-out limit and `scaleBlend`, `world.ts` placement
-  and Earth's fade and light comment, `materials.ts` Earth opacity, `overlay.tsx` Earth edge
-  marker, one placement line, the imports and one `scaleBlend` line in `scene-root.tsx`,
-  tests in `scene-logic.test.ts`, `navigate.test.ts`, `rig.test.ts`), `web/src/lib/geo/`
-  (`placement.ts`, its test and `index.ts`), `web/src/lib/explain.ts` (`system_view`),
-  `docs/features/system-view.md`, `docs/design/c2/built-system-proportions-*.png`, this entry
+  `camera.ts` opening view, `rig.ts` zoom-out limit and glide, `world.ts` placement and the
+  in-front rule and Earth's light comment, `overlay.tsx` Earth's edge arrow and the Sun's
+  arrow stepping around Earth, one placement line, the imports and one `scaleBlend` line in
+  `scene-root.tsx`, tests in `scene-logic.test.ts`, `navigate.test.ts`, `rig.test.ts`;
+  `materials.ts` is `main`'s again), `web/src/lib/geo/` (`placement.ts`, its test,
+  `index.ts`), `web/src/lib/explain.ts` (`system_view`), `docs/features/system-view.md`,
+  `docs/design/c2/built-system-proportions-*.png`, this entry
 - **Notes:**
-  - **The team lead's direction (second round):** the Moon is the subject of the opening
-    view, and Earth and the Sun should read as far away, never as the focus. The opening
-    frame is `main`'s exactly (`OPENING_FRAME` in `camera.ts` fits the Moon as when the
-    bodies were drawn 2.5 Moon radii out). Moon radius on screen, `main` and this branch:
-    134.1 px at 1440 × 900 and 63.5 px at 1024 × 768 with panels open; with both panels
-    folded, 134.3 px and 79.0 px (the same pose function, tested). The Moon's region of the
-    1440 × 900 opening capture is pixel-identical to `main`'s. Returning from another view
-    and "Follow site" are as on `main`.
-  - **Proportions** (`proportions.ts`, one constant each): drawn radius = (true ÷ Moon)^0.25,
-    so Moon 1, Earth 1.38, Sun 4.47; drawn distance = 1.35 × (true ÷ Moon radius)^0.3, so
-    Earth 6.67 to 6.94 Moon radii (perigee to apogee) and the Sun 40.6 to 41.1, about 6
-    times further. Earth sits just outside the opening frame in every layout tested (a
-    sliver of it can show in the window behind the panels); three zoom steps show its
-    edge on a laptop, five bring it into view, and all three bodies fit at about 200
-    Moon radii (1440 × 900) and 370 (1024 × 768). The zoom-out limit is 580 (was 40),
-    tested to be within a fifth of the minimum that shows the Sun at 1024 × 768.
-  - **True scale:** the rig carries `scaleBlend` with the flight the toggle starts, so Earth
-    glides between 6.9 and 228.7 Moon radii on a log scale in step with the camera (and at
-    once with reduced motion). Sampled every frame at both sizes, from the opening, "From
-    Earth" and a zoomed-out view, both ways: about 230 frames per toggle, no frame moves
-    Earth more than about 3 % of its distance, the Moon never leaves the frame, and the Sun
-    is carried out and hidden only at the end. From "From Earth", Earth passes the camera
-    and is hidden while the camera is inside it.
-  - **Review (Codex, #106):** the rule is pinned (constants and the formula to 1e-12; an
-    exponent of 1/3 now fails) and checked over all 52,584 hours of the real series:
-    ordering, minimum surface gaps (Moon to Earth 4.28, Moon to Sun 35.1, Earth to Sun
-    27.9), the Sun-to-Earth ratio 5.85 to 6.15; zero maps to zero and negative or
-    non-finite inputs to zero, never NaN. Earth stays lit from the series' Sun direction
-    (true phase; up to 9.8° from the drawn offset), pinned by a test through `World`.
-    `lib/geo/placement.ts` no longer has the 2.5-radius arrangement (`SQUEEZED_*`,
-    `sunPlacement`); `earthPlacement` is now `trueEarthPlacement`; no other caller existed
-    (the Academy does not use it). The spec's duplicate True-scale bullet is gone, and the
-    sight-lines are described as short direction marks.
-  - **"From Earth"** still needs Earth's fade (Earth stands between the camera and the
-    Moon); it fades to a 15 % ghost. "From the Sun" and "Follow site" keep the Moon as the
-    subject, with Earth outside the free space.
-  - Not measured: a weak GPU. Nothing new is loaded; Earth draws in the transparent pass.
+  - **The opening (the team lead, third round):** the Moon in the middle of the free space
+    where `main` puts it, Earth whole beside it to the left, the Sun far outside with its
+    edge arrow. The camera looks up from under the south pole, turned so the Moon's 0°
+    meridian (where Earth always lies, within libration) points along the free space's long
+    side, and leans 10° away from Earth so Earth is always a little further than the Moon.
+    It does not depend on the hour.
+  - **On-screen radii in the opening** (Moon / Earth): 1440 × 900 panels open 71.8 / 84.1 px
+    (`main`: Moon 134.1, Earth 53.7 at 2.5 radii); folded 81.1 / 94.5 (`main` 134.3); 1024 ×
+    768 open 34.0 / 40.4 (`main` 63.5); folded 47.7 / 56.4 (`main` 79.0). What stops a
+    larger Moon: Earth needs 5.3 Moon radii of the free space's half-width (centre about 4
+    radii out, radius 1.2), and the half-width is 396 px at 1440 and 188 px at 1024. At
+    1024 × 768 with the panels open, Earth whole means a Moon of 34 px; the alternative, a
+    40 px Moon with a slice of Earth behind the panel, is what the review ruled out.
+  - **Proportions** (`proportions.ts`): drawn radii Moon 1, Earth 1.2, Sun 3.5 (log-log line
+    through the three); drawn distance 0.8 × (d ÷ Moon radius)^0.3, so Earth 3.95 to 4.11
+    Moon radii out (2.5 before) and the Sun 24.0 to 24.3, about 6 times further. The Sun is
+    held at 3.5 so that seen behind the Moon from "From Earth" it is never more than 1.5
+    times the Moon. Zoom out to 380 Moon radii; all three fit after 14 steps at 1440 × 900.
+  - **Review (Cursor, #106), item 1:** a body between the camera and the Moon (centre on the
+    camera's side of the Moon and at least 5 % nearer to the camera than the Moon's centre,
+    or the camera inside it) is not drawn; its edge arrow carries its name. This replaces
+    Earth's 15 % ghost (`materials.ts` is `main`'s again). It is geometry, not preset, and
+    holds for the Sun. At hour 43296 (2030-12-10 00:00Z) in "From the Sun", Earth is not
+    drawn. Over every third hour of the real series in "From Earth" and "From the Sun" and
+    four layouts (140,224 views): nothing nearer than the Moon covers it or is drawn larger
+    than 1.5 times it; Earth was not drawn in 97,976 views. One judgement call: in 16,047
+    views Earth *behind* the Moon, beside it at the frame's edge, is drawn up to 1.37 times
+    the Moon on screen (1.12 by angle). That is the picture the team lead asked for in the
+    opening (a bigger world, further away); hiding it would need a rule that also hides
+    Earth in the opening.
+  - **Review item 2:** in the opening Earth is whole inside the free space at every hour and
+    in all four layouts (tested over the series' libration and distance extremes): no slice
+    between or beside the panels. In "From the Sun", Earth behind the Moon can still pass
+    behind a panel's edge at some hours (see the "beside" capture); the in-front rule does
+    not cover that case.
+  - **Review item 3:** the True-scale glide runs on its own clock, so a drag that stops the
+    camera lets Earth finish gliding (tested).
+  - **True scale, by eye from the new opening:** toggled both ways at 1440 × 900 and
+    1024 × 768 from the opening, "From Earth" and zoomed out: about 315 frames per toggle,
+    Earth moves at most about 3 % of its distance per frame, the Moon never leaves the frame,
+    the Sun hides only at the end.
+  - **After merging #105:** the globe keeps its finest mesh only while ground is drawn; in the
+    System view it is 384 × 192 at rest and 64 while moving zoomed out, as before.
+  - Earth stays lit from the series' Sun direction (true phase), pinned by a test through
+    `World`. `lib/geo/placement.ts` has only the true-scale placement (`trueEarthPlacement`);
+    `proportions.ts` is the one source for the schematic.
+  - Not measured: a weak GPU. Nothing new is loaded.
 
 #### 2026-11-14 · T3b · A custom site's ground joins the Moon
 - **Who:** Claude Code agent, for the orchestrator
