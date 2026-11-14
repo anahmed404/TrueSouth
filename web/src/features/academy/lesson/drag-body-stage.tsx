@@ -320,10 +320,15 @@ function DragChart({ data, step, runner, draft, examples, onDraft, onLivePower }
 
   const onHandleKey = (event: KeyboardEvent<HTMLDivElement>) => {
     if (answered) return;
-    const next = hourAfterKey(range, hour, event.key, event.shiftKey);
-    if (next === null) return;
+    const { key, shiftKey } = event;
+    if (hourAfterKey(range, hour, key, shiftKey) === null) return; // a key the drag does not use
     event.preventDefault();
-    setDrag((state) => setHourNow(state, next));
+    // Each press steps from the latest hour, not the last one drawn, so presses that come
+    // faster than the screen redraws are all counted.
+    setDrag((state) => {
+      const next = hourAfterKey(range, state.shown, key, shiftKey);
+      return next === null ? state : setHourNow(state, next);
+    });
   };
 
   // One session for the body and the time bar: down, move, and every way a drag can end.
