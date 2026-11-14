@@ -32,6 +32,7 @@ import { useFeatures, useMapLookup, useMapsMeta, useSites } from "../../data";
 import { polarStereoForward, polarStereoInverse, polarStereoScale, wrapLongitude } from "../../lib/geo";
 import { useEvaluation } from "../../lib/scoring";
 import { releaseMapImage, useMapImage } from "./assets";
+import { tierHint } from "../../app/mission/custom-site-form";
 import { releaseContext, useMoonContext } from "./context";
 import { drawMap, readPalette, type Marker, type Palette } from "./draw";
 import { onContext, pinAt, placePins, type PinState, type PlacedPin } from "./pins";
@@ -123,6 +124,13 @@ export type MapCoreProps = {
    * the map (the Slip Planner with 3D off). Default true.
    */
   readouts?: boolean;
+  /**
+   * Optional: whether the detailed square's border carries its label ("Detailed terrain ·
+   * 80 m map"). The border is always drawn. Default: on when `readouts` is on, off when it is
+   * off, so a caller drawing its own labels over the map (the Slip Planner's spots) is not
+   * crowded.
+   */
+  detailLabel?: boolean;
 };
 
 /** Where a place is on the map's screen now, in CSS pixels from the map box's top left. */
@@ -534,10 +542,11 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
       features: props.showFeatureNames === false ? [] : (features ?? []),
       compact: lesson,
       marker,
+      detailLabel: detailLabelOn(props.readouts, props.detailLabel),
       context: context.status === "ready" ? { layers: context.layers, alpha: contextAlpha } : null,
     });
     for (const listener of frameListeners.current) listener();
-  }, [view, box.width, box.height, dpr, pins, features, props.showFeatureNames, marker, relief4k.status, relief8k.status, overlay, overlayImage?.status, opacity, fontsReady, halfWidthM, lesson, context, contextAlpha]);
+  }, [view, box.width, box.height, dpr, pins, features, props.showFeatureNames, marker, relief4k.status, relief8k.status, overlay, overlayImage?.status, opacity, fontsReady, halfWidthM, lesson, context, contextAlpha, props.readouts, props.detailLabel]);
 
   // The projector for things drawn over the map (`onProjector`).
   const frameListeners = useRef(new Set<() => void>());
@@ -983,6 +992,23 @@ export function requestSiteAt(at: Point, onRequestSite: ((latDeg: number, lonDeg
   onRequestSite(at.latDeg, wrapLongitude(at.lonDeg));
 }
 
+/** Whether the detailed square's label shows: `detailLabel` if given, else when readouts are on. */
+export function detailLabelOn(readouts: boolean | undefined, detailLabel: boolean | undefined): boolean {
+  return detailLabel ?? readouts !== false;
+}
+
+/**
+ * What "Compute this site" will use at a latitude, by the server's documented tiers
+ * (docs/architecture.md, "The API"; `tierHint` in the sites package): the 80 m terrain map
+ * at or south of 80°S, the 240 m map at or south of 60°S, a smooth Moon anywhere else.
+ */
+export function computeTierLine(latDeg: number): string {
+  const tier = tierHint(latDeg);
+  if (tier === "core80") return "TrueSouth computes it from NASA's 80 m terrain map.";
+  if (tier === "wide240") return "Outside the detailed map: TrueSouth computes it from NASA's 240 m terrain map.";
+  return "Outside our terrain maps: TrueSouth computes it on a smooth Moon, with no mountains.";
+}
+
 export function ReadoutCard(props: ReadoutCardProps) {
   const { readout, view, frame, siteById, valueAt, gridsReady } = props;
   const ref = useRef<HTMLElement>(null);
@@ -1059,9 +1085,12 @@ export function ReadoutCard(props: ReadoutCardProps) {
           )}
           <p className="pm-card-note">{AVERAGE_CAVEAT}</p>
           {props.onRequestSite ? (
-            <div className="pm-card-actions">
-              <Button onClick={() => requestSiteAt(at, props.onRequestSite)}>Compute this site</Button>
-            </div>
+            <>
+              <p className="pm-card-line">{computeTierLine(at.latDeg)}</p>
+              <div className="pm-card-actions">
+                <Button onClick={() => requestSiteAt(at, props.onRequestSite)}>Compute this site</Button>
+              </div>
+            </>
           ) : null}
         </>
       );
@@ -1117,9 +1146,12 @@ export function ReadoutCard(props: ReadoutCardProps) {
                 </p>
               ) : null}
               {props.onRequestSite && moved >= 1 ? (
-                <div className="pm-card-actions">
-                  <Button onClick={() => requestSiteAt(at, props.onRequestSite)}>Compute this point</Button>
-                </div>
+                <>
+                  <p className="pm-card-line">{computeTierLine(at.latDeg)}</p>
+                  <div className="pm-card-actions">
+                    <Button onClick={() => requestSiteAt(at, props.onRequestSite)}>Compute this point</Button>
+                  </div>
+                </>
               ) : null}
             </>
           )}

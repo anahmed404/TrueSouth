@@ -100,6 +100,8 @@ export type DrawInput = {
   /** The lesson box: no catalog names and fewer labels. */
   compact: boolean;
   marker: Marker | null;
+  /** Whether the detailed square's border carries its label. Default true. */
+  detailLabel?: boolean;
   /** The rest of the Moon around the square, drawn under it, quieter (context.ts). */
   context?: { layers: readonly { canvas: Drawable; level: { half_width_m: number } }[]; alpha: number } | null;
 };
@@ -505,7 +507,7 @@ function drawDetailBorder(input: DrawInput, rect: Box, taken: Box[], plates: (()
   const y = Math.round(rect.y) + 0.5;
   ctx.strokeRect(x, y, Math.round(rect.width) - 1, Math.round(rect.height) - 1);
   ctx.restore();
-  if (input.compact) return;
+  if (input.compact || input.detailLabel === false) return;
   ctx.font = `400 12px ${palette.font}`;
   const w = Math.ceil(ctx.measureText(DETAIL_LABEL).width) + 16;
   const box = detailLabelBox(rect, w, { width: input.width, height: input.height });

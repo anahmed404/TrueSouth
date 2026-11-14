@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { Site } from "../../contracts/generated";
-import { ReadoutCard, requestSiteAt } from "./map";
+import { ReadoutCard, computeTierLine, detailLabelOn, requestSiteAt } from "./map";
 import { polarMapLayer } from "./layer";
 import { NNBSP, NUDGE_CAVEAT, NUDGE_CAVEAT_SHORT, readLookup, type LookupGrid, type OverlayId } from "./readout";
 import { clampView, fitView, type MapView } from "./view";
@@ -138,5 +138,33 @@ describe("the pan limit", () => {
         expect(c.k).toBe(k);
       }
     }
+  });
+});
+
+describe("outside the detailed square", () => {
+  it("says outside the detailed map for NASA's averages, and which terrain a compute would use", () => {
+    // Chandrayaan-3's neighbourhood: on the context, on the 240 m map.
+    const text = cardText({ readout: { kind: "point", at: { latDeg: -69.37, lonDeg: 32.32 } }, onRequestSite: () => undefined });
+    expect(text).toContain("NASA's average sunlight outside the detailed map");
+    expect(text).toContain("NASA's average Earth visibility outside the detailed map");
+    expect(text).toContain("240 m terrain map");
+    expect(text).toContain("Compute this site");
+    expect(text).not.toMatch(/\d+ %/);
+  });
+
+  it("names the tier by latitude, as the server documents it", () => {
+    expect(computeTierLine(-85)).toContain("80 m terrain map");
+    expect(computeTierLine(-80)).toContain("80 m terrain map");
+    expect(computeTierLine(-79.9)).toContain("240 m terrain map");
+    expect(computeTierLine(-60)).toContain("240 m terrain map");
+    expect(computeTierLine(-59.9)).toContain("smooth Moon");
+    expect(computeTierLine(20)).toContain("smooth Moon");
+  });
+
+  it("shows the square's label with readouts on, hides it with them off, unless a caller says", () => {
+    expect(detailLabelOn(undefined, undefined)).toBe(true);
+    expect(detailLabelOn(false, undefined)).toBe(false); // the Slip Planner's spots
+    expect(detailLabelOn(false, true)).toBe(true);
+    expect(detailLabelOn(true, false)).toBe(false);
   });
 });
