@@ -36,10 +36,11 @@ import {
  *   Moon from "From Earth" (around new moon) never more than 1.5 times the Moon.
  * - DISTANCE_EXPONENT: 0.385, for both laws below.
  * - SUN_DISTANCE_SCALE: 0.372 puts the Sun about 29.5 Moon radii out (29.3 to 29.8).
- * - EARTH_DISTANCE_SCALE: 0.4125 puts Earth about 3.3 Moon radii out (3.20 at perigee to 3.37
- *   at apogee; 2.89 to 3.04 before), the furthest that still lets the opening view show it
- *   whole beside a Moon of about 45 px at 1024 x 768 (camera.ts, homePose); the Sun is then
- *   8.7 to 9.3 times further. Larger moves Earth out and shrinks the opening Moon.
+ * - EARTH_DISTANCE_SCALE: 0.5 puts Earth about 4.0 Moon radii out (3.88 at perigee to 4.08
+ *   at apogee; 3.20 to 3.37 before, the team lead, 2026-11-14: "further"), the furthest that
+ *   still lets the opening view show it whole beside a Moon of at least 80 px at 1440 x 900
+ *   with the panels open (about 38 px at 1024 x 768; camera.ts, homePose); the Sun is then
+ *   7.2 to 7.7 times further. Larger moves Earth out and shrinks the opening Moon.
  * A true distance up to NEAR_LAW_KM is drawn by Earth's law, from FAR_LAW_KM by the Sun's,
  * and between them on a straight line on log-log axes joining the two, so the mapping still
  * always increases. The curve is continuous but has a corner at each join; no hour of the
@@ -50,7 +51,7 @@ export const DRAWN_EARTH_RADIUS = 0.83;
 export const DRAWN_SUN_RADIUS = 3.5;
 export const DISTANCE_EXPONENT = 0.385;
 export const SUN_DISTANCE_SCALE = 0.372;
-export const EARTH_DISTANCE_SCALE = 0.4125;
+export const EARTH_DISTANCE_SCALE = 0.5;
 export const NEAR_LAW_KM = 1_000_000;
 export const FAR_LAW_KM = 100_000_000;
 

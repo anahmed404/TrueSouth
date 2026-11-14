@@ -108,15 +108,16 @@ about 390 times further. Earth is 3.67 times the Moon across and the Sun 109 tim
     lines on log-log axes through the three. Earth is drawn smaller than the Moon by the
     team's choice, so the Moon leads; Earth is still smaller than the Sun, and "True scale"
     shows the real sizes.
-  - drawn distance: Earth by 0.4125 × (true distance ÷ Moon radius)^0.385, about 3.3 Moon
-    radii (3.20 at perigee to 3.37 at apogee, following the series); the Sun by 0.372 × the
+  - drawn distance: Earth by 0.5 × (true distance ÷ Moon radius)^0.385, about 4.0 Moon
+    radii (3.88 at perigee to 4.08 at apogee, following the series; 3.20 to 3.37 before the
+    team lead asked for Earth a bit further, 2026-11-14); the Sun by 0.372 × the
     same power, about 29.5 (29.3 to 29.8), unchanged; a straight log-log line joins the two
     laws between 1 and 100 million km, so a further body is always drawn further. The Sun
-    is drawn 8.7 to 9.3 times further than Earth. (Before: both at 2.5, Earth 0.4 and the
+    is drawn 7.2 to 7.7 times further than Earth. (Before: both at 2.5, Earth 0.4 and the
     Sun 0.12.)
   - The orbit picture holds: the circle the Moon would trace around the drawn Earth (radius
     the drawn Earth-to-Moon distance) never comes near the drawn Sun, whose nearest surface
-    is at least 3.3 times that circle's diameter from Earth at every hour.
+    is at least 2.6 times that circle's diameter from Earth at every hour.
   - The Sun's radius is held at 3.5 so that, seen behind the Moon from "From Earth", it is
     never more than 1.5 times the Moon.
   - The constants live in one place, `web/src/features/three/scene/proportions.ts`, with
@@ -125,7 +126,7 @@ about 390 times further. Earth is 3.67 times the Moon across and the Sun 109 tim
     direction, points into the drawn Sun's disc, and passes within one Moon radius of the
     drawn Earth's centre (just beside its smaller disc for sites far from the line to Earth).
   - Earth is lit from the series' Moon-to-Sun direction, not from the drawn Earth toward the
-    drawn Sun (up to about 6.6° apart in the schematic). From Earth and from the Moon the
+    drawn Sun (up to about 8.0° apart in the schematic). From Earth and from the Moon the
     Sun's direction agrees to within about 0.15°, so Earth shows its true phase.
 - **True scale toggle.** Earth moves to its real distance at its real size, and the camera
   flies back until the Moon and Earth both fit, the Moon in the middle. Earth glides between
@@ -223,9 +224,10 @@ re-encoded. Sizes are from the prototype; they are budgets for the real files.
   - It does not depend on the hour, so scrubbing time never moves it. At every hour Earth is
     whole inside the free space, clear of the Moon, the marks and the panels, with room for
     its label; the Sun is outside, marked at the edge.
-  - Moon radius, from the test layouts: 94.4 px at 1440 × 900 with the panels open, 44.7 px
-    at 1024 × 768 with the panels open (the Moon's size limits how far out Earth can sit:
-    at 1024 × 768 Earth needs about 4.1 Moon radii of the 188 px half-width).
+  - Moon radius, from the test layouts: 80.6 px at 1440 × 900 with the panels open, 38.2 px
+    at 1024 × 768 with the panels open (94.4 and 44.7 px before Earth moved out). The Moon's
+    size limits how far out Earth can sit: Earth needs about 4.8 Moon radii of the free
+    space's half-width (396 px at 1440 × 900), and the Moon is held at 80 px or more there.
   - When the Moon is under 60 px on screen (as at 1024 × 768), the site's name plate starts
     past the Moon's limb and the mark labels step around its disc, so the labels do not
     cover it.

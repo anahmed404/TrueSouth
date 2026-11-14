@@ -116,11 +116,12 @@ describe("the camera keeps its subject in the free space", () => {
     }
   });
 
-  it("System view home: the Moon at least 90 px in radius at 1440 × 900 with the panels open, and about 45 px at 1024 × 768", () => {
+  // 80 and 38 px since Earth moved out (94 and 44.7 before; the team lead, 2026-11-14).
+  it("System view home: the Moon at least 80 px in radius at 1440 × 900 with the panels open, and about 38 px at 1024 × 768", () => {
     for (const [name, fs] of Object.entries(layouts)) {
       const pose = homePose({ earth: earths[0]!, sun: sunAt(0, 149_600_000) }, fs);
       const moon = disc(pose, [0, 0, 0], 1, fs);
-      expect(moon.r).toBeGreaterThanOrEqual(name === "1440 open" ? 90 : 44.5);
+      expect(moon.r).toBeGreaterThanOrEqual(name === "1440 open" ? 80 : 38);
     }
   });
 
