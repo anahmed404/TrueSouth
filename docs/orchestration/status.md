@@ -322,8 +322,7 @@ An unanswered question takes the orchestrator's recommendation.
 | :--- | :--- | :--- | :--- |
 | Deploy now, or after the three open fixes? Ports 80 and 443 open on the server? A contact email for Let's Encrypt, or none? | 2026-11-14 | the deploy and the live link | everything |
 | The repository is private and has no licence file. Judges need a public link or a zip. | 2026-11-13, several times | the submission | everything |
-| The backup video. | 2026-11-13 | the submission | everything |
-| Apply docs/submission/README-proposed.md? The real README still says "No application code exists yet". | 2026-11-13 | nothing | — |
+| A video or a 7-slide presentation: which one to submit (drafts of both are being written). | 2026-11-14 | the submission | everything |
 | The black box: is the testing computer a laptop with built-in graphics, and does the box vanish when the scene moves (wheel over the Moon)? | 2026-11-14 | confirming that fix | the fix itself |
 | "Slip +7 d" and "+14 d" moved into the date picker to fit the window's end on one row. Back in the strip (at the cost of a second row)? | 2026-11-14 | nothing; left as built | — |
 | Delete the stray `default` file a Docker child wrote under `~/.docker/contexts/meta/`? | 2026-11-13 | nothing | — |
