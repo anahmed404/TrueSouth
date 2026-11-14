@@ -12,6 +12,7 @@ import { MapCore } from "../../polar-map/map";
 import type { MapProjector } from "../../polar-map";
 import { MOON_RADIUS_M } from "../../../lib/geo";
 import { utcToHourIndex } from "../../../lib/time";
+import { labelsStore } from "../../three/scene/labels";
 import { inSlipView } from "../../three/scene/slip";
 import {
   bestSite,
@@ -110,6 +111,8 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
   // the current profile and sites, whether or not the slip sweep has finished.
   const evaluate = useEvaluate(scenario.siteIds, scenario.profile);
   const ui = useStore(slipStore);
+  // The scene's Labels toggle (three/scene/labels.ts): off hides the site tags and their leaders.
+  const labelsOn = useStore(labelsStore, (s) => s.on);
   const grid = manifest.status === "ready" ? manifest.data.time_grid : null;
   let landingHour = -1;
   if (grid) {
@@ -311,7 +314,7 @@ export function SlipPlannerScene(props: SlipPlannerSceneProps) {
   const tiny = !foot.controls;
 
   return (
-    <div ref={layerRef} className="slip-layer" data-phone={phone} data-flat={flat}>
+    <div ref={layerRef} className="slip-layer" data-phone={phone} data-flat={flat} data-labels={labelsOn ? "on" : "off"}>
       {flat ? (
         <div className="slip-flat-map">
           <MapCore

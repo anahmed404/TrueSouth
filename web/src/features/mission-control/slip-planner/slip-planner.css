@@ -694,6 +694,13 @@
     display: none;
   }
 
+  /* The scene's Labels toggle off (three/scene/labels.ts): the site tags and their leaders hide;
+     the spots, the hover card and the off-screen list stay. */
+  .slip-layer[data-labels="off"] .slip-label,
+  .slip-layer[data-labels="off"] .slip-leaders {
+    visibility: hidden !important;
+  }
+
   .slip-label small,
   .slip-off small {
     color: var(--ink-2);
