@@ -1,7 +1,7 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
 import * as THREE from "three";
-import type { CameraViewId, FreeSpace, SceneProps } from "../../../app/scene";
+import type { CameraViewId, FreeSpace, SceneProjector, SceneProps } from "../../../app/scene";
 import type { Site } from "../../../contracts/generated";
 import { useApron, useManifest, useSceneMeta, useSeries, useSite, useSites, useSystem, useTerrain } from "../../../data";
 import type { DecodedApron, DecodedSeries, DecodedSystem, DecodedTerrain } from "../../../data";
@@ -14,6 +14,7 @@ import {
   localDirectionToScene,
   siteFrameScene,
   siteGroundScene,
+  surfacePointScene,
   type ApronGrid,
   type SystemHour,
 } from "../../../lib/geo";
@@ -36,9 +37,14 @@ import {
   type SiteFrame,
 } from "./camera";
 import { Overlay, type OverlayBus, type Preset, type LookToward } from "./overlay";
-import { sceneContent, type LoadState } from "./plates";
+import { decorationDisclosure, sceneContent, seriesSunAnswer, type LoadState } from "./plates";
+import { southPolePose } from "./navigate";
 import { Rig } from "./rig";
 import { sightState, type SightState } from "./sight";
+import { SLIP_REFIT_MS, inSlipView, slipPose, type SlipSite } from "./slip";
+import { PointerTracker, type Command as PointerCommand } from "./pointers";
+import { FrameMeter, MOON_SEGMENTS_FULL, QualityGovernor, drawDpr, moonSegments, qualityStages } from "./perf";
+import { Stars, starExposure } from "./stars";
 import { mul, type V3 } from "./vec";
 import { World, type WorldInputs, type WorldSite } from "./world";
 import "./scene.css";
@@ -49,8 +55,12 @@ import "./scene.css";
  * lib/geo; lit, dark, link and no link come from the series through the scoring hooks.
  */
 
-/** A first flight whose median frame is over this is "slow" (system-view.md, "When 3D does not run"). */
-const SLOW_MEDIAN_MS = 55;
+/** A double-click's move onto a spot. */
+const FOCUS_MS = 700;
+/** Frames closer together than this are a moving picture (perf.ts measures them). */
+const MOTION_GAP_MS = 250;
+/** With no frame for this long, the scene draws one full-quality frame. Longer than MOTION_GAP_MS. */
+const REST_AFTER_MS = 300;
 /** The space our own plates take at the top and foot of the free space, so the subject clears them. */
 const PLATE_TOP = 40;
 /** In the System view the bodies' labels hang below them, above the controls. */
@@ -71,6 +81,16 @@ function captureMode(): boolean {
   if (!import.meta.env.DEV) return false;
   try {
     return window.sessionStorage.getItem("truesouth.scene.capture") === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Dev only: `?perf` in the address shows frame times over the scene (never shipped). */
+function perfHud(): boolean {
+  if (!import.meta.env.DEV) return false;
+  try {
+    return new URLSearchParams(window.location.search).has("perf");
   } catch {
     return false;
   }
@@ -113,7 +133,7 @@ type FocusData = {
   terrain: { data: DecodedTerrain; size: number; windowKm: number } | null | "loading";
   apron: DecodedApron | null | "loading";
   /** How each file stands, for the plates (plates.ts). */
-  states: { series: LoadState; terrain: LoadState; apron: LoadState };
+  states: { series: LoadState; terrain: LoadState; apron: LoadState | "none" };
 };
 
 function loadState(status: "loading" | "ready" | "error"): LoadState {
@@ -134,6 +154,7 @@ function FocusedSiteData({
   const terrain = useTerrain(siteId);
   const site = useSite(siteId);
   const apron = useApron(siteId);
+  const sceneMeta = useSceneMeta();
   // useSite builds a fresh object each render: read the one number it gives here.
   const windowKm = site.status === "ready" ? (site.data.meta.terrain?.window_km ?? (2 * LOCAL_TERRAIN_HALF_M) / 1000) : null;
   const terrainValue = useMemo(() => {
@@ -149,9 +170,11 @@ function FocusedSiteData({
   const seriesState: LoadState =
     series.status === "error" || flags.status === "error" ? "error" : series.status === "ready" && flags.status === "ready" ? "ready" : "loading";
   const terrainState = terrainValue === "loading" ? "loading" : loadState(terrain.status);
-  // A missing apron file ("not available") is a load that failed for this purpose.
-  const apronState: LoadState =
-    apron.status === "ready" ? (apron.data === "not available" ? "error" : "ready") : loadState(apron.status);
+  // "not available" is a failed load when the scene's metadata lists an apron for the site,
+  // and "none" when it lists none: a custom site has a patch but never an apron, by design.
+  const apronListed = sceneMeta.status === "ready" ? sceneMeta.data.aprons.some((a) => a.site_id === siteId) : true;
+  const apronState: LoadState | "none" =
+    apron.status === "ready" ? (apron.data === "not available" ? (apronListed ? "error" : "none") : "ready") : loadState(apron.status);
   useEffect(() => {
     onData({
       siteId,
@@ -195,6 +218,41 @@ function shrink(space: FreeSpace, top: number, bottom: number): FreeSpace {
   return { ...space, y: space.y + top, height: space.height - top - bottom };
 }
 
+/**
+ * The projector the scene hands the shell (SceneProps `onProjector`): sites to screen points
+ * with the camera of the last drawn frame, and a call after every frame.
+ */
+class ProjectorHub implements SceneProjector {
+  private camera: THREE.Camera | null = null;
+  private size = { width: 1, height: 1 };
+  private readonly listeners = new Set<() => void>();
+  private readonly point = new THREE.Vector3();
+  private readonly toCamera = new THREE.Vector3();
+
+  frame(camera: THREE.Camera, size: { width: number; height: number }): void {
+    this.camera = camera;
+    this.size = size;
+    for (const listener of this.listeners) listener();
+  }
+
+  project = (latDeg: number, lonDeg: number) => {
+    const camera = this.camera;
+    if (!camera) return { x: 0, y: 0, visible: false };
+    const p = this.point.set(...surfacePointScene(latDeg, lonDeg));
+    const facing = p.dot(this.toCamera.copy(camera.position).sub(p)) > 0;
+    const ndc = p.clone().project(camera);
+    const front = ndc.z > -1 && ndc.z < 1;
+    return { x: ((ndc.x + 1) / 2) * this.size.width, y: ((1 - ndc.y) / 2) * this.size.height, visible: front && facing };
+  };
+
+  subscribe = (onFrame: () => void) => {
+    this.listeners.add(onFrame);
+    return () => {
+      this.listeners.delete(onFrame);
+    };
+  };
+}
+
 function Scene3D(props: SceneProps) {
   const { view, scenario, reduceMotion, ignoreSlow, onStatus, onFocusSite, onViewChange } = props;
   const capture = useMemo(captureMode, []);
@@ -212,6 +270,13 @@ function Scene3D(props: SceneProps) {
   const sceneMeta = useSceneMeta();
 
   const [preset, setPreset] = useState<Preset>("south_pole");
+  // Counts preset clicks: a click flies even to the preset already chosen (after a drag, the
+  // "South pole" click brings the whole cap back). Before the first click, "South pole" is home.
+  const [presetPulse, setPresetPulse] = useState(0);
+  const pickPreset = useCallback((next: Preset) => {
+    setPreset(next);
+    setPresetPulse((n) => n + 1);
+  }, []);
   const [trueScale, setTrueScale] = useState(false);
   const [moon8k, setMoon8k] = useState(false);
   const [lookToward, setLookToward] = useState<LookToward>("earth");
@@ -239,6 +304,19 @@ function Scene3D(props: SceneProps) {
     [scenario.siteIds, siteList],
   );
   const focusedSite = focusedId ? (siteList.find((site) => site.id === focusedId) ?? null) : null;
+  // The Slip Planner frames the selected sites inside the polar cap (slip.ts).
+  const slipKey = selected.filter(inSlipView).map((site) => site.id).join("|");
+  const slipSites = useMemo(
+    (): SlipSite[] => selected.filter(inSlipView).map((site) => ({ latDeg: site.lat_deg, lonDeg: site.lon_deg })),
+    // The key lists the sites, so the fit changes only when they do.
+    [slipKey],
+  );
+  const hub = useMemo(() => new ProjectorHub(), []);
+  const { onProjector } = props;
+  useEffect(() => {
+    onProjector?.(hub);
+    return () => onProjector?.(null);
+  }, [hub, onProjector]);
   const focusReady = focus && focus.siteId === focusedId ? focus : null;
 
   const apronEntry = useMemo(() => {
@@ -320,8 +398,9 @@ function Scene3D(props: SceneProps) {
         series: focusReady?.states.series ?? "loading",
         terrain: focusReady?.states.terrain ?? "loading",
         apron: focusReady?.states.apron ?? "loading",
+        sun: seriesSunAnswer(focusReady?.series, focusReady?.flags, hourIndex),
       }),
-    [view, trueScale, systemState, worldSite, focusReady?.states.series, focusReady?.states.terrain, focusReady?.states.apron],
+    [view, trueScale, systemState, worldSite, focusReady?.states.series, focusReady?.states.terrain, focusReady?.states.apron, focusReady?.series, focusReady?.flags, hourIndex],
   );
 
   const inputs = useMemo((): WorldInputs => {
@@ -357,7 +436,12 @@ function Scene3D(props: SceneProps) {
   const apronReady = focusReady && focusReady.apron !== "loading" ? focusReady.apron : null;
 
   const bus = useRef<OverlayBus>({ overlay: null, controls: null });
-  const sceneSpace = useMemo(() => capture ? freeSpace : shrink(freeSpace, view === "system" ? PLATE_TOP : 0, view === "system" ? SYSTEM_FOOT : CONTROLS_FOOT), [freeSpace, view, capture]);
+  // The System view keeps room at the top only while a plate is there (a load failure, for example).
+  const topPlates = view === "system" && content.plates.length > 0;
+  const sceneSpace = useMemo(
+    () => (capture ? freeSpace : shrink(freeSpace, topPlates ? PLATE_TOP : 0, view === "system" ? SYSTEM_FOOT : CONTROLS_FOOT)),
+    [freeSpace, view, capture, topPlates],
+  );
 
   // Reduced motion: dip through Night, cut at the darkest point, rise again. A second pick
   // during a dip replaces the pending cut, so only the last view is cut to.
@@ -387,50 +471,93 @@ function Scene3D(props: SceneProps) {
   );
 
   // ── Pointer, wheel and keys ──
-  const drag = useRef<{ id: number; x: number; y: number; pinch?: { other: number; distance: number } } | null>(null);
-  const pointers = useRef(new Map<number, { x: number; y: number }>());
-  const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if ((event.target as HTMLElement).closest("button, [role='radiogroup'], .scene-plate-interactive")) return;
+  // One finger or the left button turns; the right button, Shift or two fingers slide; the
+  // wheel or a pinch zooms toward the pointer; a double-click or double-tap centres a spot.
+  // The bookkeeping (and every way a gesture can end) is in pointers.ts.
+  const tracker = useMemo(() => new PointerTracker(), []);
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const ndcAt = (element: HTMLElement, x: number, y: number) => {
+    const rect = element.getBoundingClientRect();
+    return { x: ((x - rect.left) / Math.max(1, rect.width)) * 2 - 1, y: -(((y - rect.top) / Math.max(1, rect.height)) * 2 - 1) };
+  };
+  const run = (element: HTMLElement, commands: PointerCommand[]) => {
     const controls = bus.current.controls;
     if (!controls) return;
-    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    for (const c of commands) {
+      if (c.type === "begin") controls.beginDrag();
+      else if (c.type === "orbit") controls.orbit(c.dx, c.dy);
+      else if (c.type === "pan") {
+        if (!controls.pan(c.dx, c.dy) && c.orFallback) controls.orbit(c.dx, c.dy);
+      } else if (c.type === "zoom") controls.zoom(c.factor, ndcAt(element, c.x, c.y));
+      else if (c.type === "focus") controls.focusOn(ndcAt(element, c.x, c.y));
+    }
+  };
+  const release = (element: HTMLElement, id: number) => {
+    try {
+      if (element.hasPointerCapture(id)) element.releasePointerCapture(id);
+    } catch {
+      // The pointer is already gone.
+    }
+  };
+  const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest("button, [role='radiogroup'], .scene-plate-interactive")) return;
+    if (!bus.current.controls) return;
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-    controls.beginDrag();
-    drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    const kind = event.pointerType === "touch" || event.pointerType === "pen" ? event.pointerType : "mouse";
+    run(event.currentTarget, tracker.down(event.pointerId, event.clientX, event.clientY, kind, event.button, event.shiftKey, performance.now()));
   };
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    const controls = bus.current.controls;
-    if (!controls || !pointers.current.has(event.pointerId)) return;
-    const previous = pointers.current.get(event.pointerId)!;
-    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    if (pointers.current.size >= 2) {
-      const [a, b] = [...pointers.current.values()];
-      const [pa, pb] = [...pointers.current.entries()].map(([id, p]) => (id === event.pointerId ? previous : p));
-      const now = Math.hypot(a!.x - b!.x, a!.y - b!.y);
-      const before = Math.hypot(pa!.x - pb!.x, pa!.y - pb!.y);
-      if (now > 0 && before > 0) controls.zoom(before / now);
-      return;
-    }
-    controls.orbit(event.clientX - previous.x, event.clientY - previous.y);
+    const element = event.currentTarget;
+    const commands = tracker.move(event.pointerId, event.clientX, event.clientY, event.buttons, event.shiftKey);
+    run(element, commands);
+    // A mouse moving with no button held has ended its drag: let go of it.
+    if (event.pointerType === "mouse" && event.buttons === 0) release(element, event.pointerId);
   };
   const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
-    pointers.current.delete(event.pointerId);
-    if (pointers.current.size === 0) drag.current = null;
+    release(event.currentTarget, event.pointerId);
+    run(event.currentTarget, tracker.up(event.pointerId, event.clientX, event.clientY, performance.now()));
   };
+  const onPointerCancel = (event: PointerEvent<HTMLDivElement>) => {
+    release(event.currentTarget, event.pointerId);
+    run(event.currentTarget, tracker.cancel(event.pointerId));
+  };
+  // The window losing focus or the tab hiding ends every gesture (pointers.ts).
+  useEffect(() => {
+    const clear = () => {
+      const element = sceneRef.current;
+      if (element) for (const id of tracker.ids()) release(element, id);
+      tracker.clear();
+    };
+    const onVisibility = () => {
+      if (document.hidden) clear();
+    };
+    window.addEventListener("blur", clear);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("blur", clear);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [tracker]);
   const onWheel = (event: WheelEvent<HTMLDivElement>) => {
     if ((event.target as HTMLElement).closest(".scene-controls")) return;
-    bus.current.controls?.zoom(Math.exp(event.deltaY * 0.0012));
+    bus.current.controls?.zoom(Math.exp(event.deltaY * 0.0012), ndcAt(event.currentTarget, event.clientX, event.clientY));
   };
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.target !== event.currentTarget) return;
     const controls = bus.current.controls;
     if (!controls) return;
+    // An arrow moves the camera the arrow's way, so the picture moves the other way, as on a
+    // map: the same as a drag the opposite way. With Shift it slides instead of turning.
     const step = 24;
+    const move = (dx: number, dy: number) => () => {
+      controls.beginDrag();
+      if (!event.shiftKey || !controls.pan(dx, dy)) controls.orbit(dx, dy);
+    };
     const keys: Record<string, () => void> = {
-      ArrowLeft: () => controls.orbit(-step, 0),
-      ArrowRight: () => controls.orbit(step, 0),
-      ArrowUp: () => controls.orbit(0, -step),
-      ArrowDown: () => controls.orbit(0, step),
+      ArrowLeft: move(step, 0),
+      ArrowRight: move(-step, 0),
+      ArrowUp: move(0, step),
+      ArrowDown: move(0, -step),
       "+": () => controls.zoom(0.8),
       "=": () => controls.zoom(0.8),
       "-": () => controls.zoom(1.25),
@@ -444,17 +571,22 @@ function Scene3D(props: SceneProps) {
 
   return (
     <div
+      ref={sceneRef}
       className="scene-3d"
       tabIndex={0}
       role="application"
       aria-roledescription="3D scene"
-      aria-label="The Sun, Earth and Moon. Drag to turn, scroll or pinch to zoom. With the scene focused, arrow keys turn and plus and minus zoom."
+      aria-label="The Sun, Earth and Moon. Drag to turn, right-drag, Shift-drag or drag with two fingers to slide, scroll or pinch to zoom, double-click to centre a spot. With the scene focused, arrow keys turn, Shift and the arrow keys slide, and plus and minus zoom."
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
+      onPointerCancel={onPointerCancel}
+      onLostPointerCapture={onPointerCancel}
       onWheel={onWheel}
       onKeyDown={onKeyDown}
+      onContextMenu={(event) => {
+        if (!(event.target as HTMLElement).closest("button, a, input, .scene-plate-interactive")) event.preventDefault();
+      }}
     >
       {focusedId ? <FocusedSiteData key={focusedId} siteId={focusedId} profile={scenario.profile} onData={onData} /> : null}
       <Canvas
@@ -474,6 +606,7 @@ function Scene3D(props: SceneProps) {
           reduceMotion={reduceMotion}
           ignoreSlow={ignoreSlow}
           preset={preset}
+          presetPulse={presetPulse}
           lookToward={lookToward}
           trueScale={trueScale}
           moon8k={moon8k}
@@ -487,6 +620,10 @@ function Scene3D(props: SceneProps) {
           smoothGround={content.ground === "smooth"}
           onStatus={onStatus}
           onArrive={props.onArrive}
+          slipSites={slipSites}
+          slipKey={slipKey}
+          slipShading={props.slipShading ?? false}
+          hub={hub}
         />
       </Canvas>
       {capture ? null : (
@@ -504,7 +641,7 @@ function Scene3D(props: SceneProps) {
           sunDistKm={hour ? hour.sunDistKm : null}
           plates={content.plates}
           preset={preset}
-          onPreset={setPreset}
+          onPreset={pickPreset}
           onTrueScale={setTrueScale}
           moon8k={moon8k}
           onMoon8k={setMoon8k}
@@ -534,6 +671,8 @@ type DirectorProps = {
   reduceMotion: boolean;
   ignoreSlow: boolean;
   preset: Preset;
+  /** Preset clicks so far; 0 means the camera is still on home. */
+  presetPulse: number;
   lookToward: LookToward;
   trueScale: boolean;
   moon8k: boolean;
@@ -548,18 +687,20 @@ type DirectorProps = {
   smoothGround: boolean;
   onStatus: SceneProps["onStatus"];
   onArrive?: SceneProps["onArrive"];
+  /** The Slip Planner's polar sites, a key that changes with them, and its shading switch. */
+  slipSites: readonly SlipSite[];
+  slipKey: string;
+  slipShading: boolean;
+  hub: ProjectorHub;
 };
-
-function median(values: number[]): number {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  return sorted[Math.floor(sorted.length / 2)] as number;
-}
 
 function Director(props: DirectorProps) {
   const { gl, camera, scene, invalidate } = useThree();
+  const setDpr = useThree((state) => state.setDpr);
   const perspective = camera as THREE.PerspectiveCamera;
   const world = useMemo(() => new World(invalidate, gl.capabilities.getMaxAnisotropy()), [invalidate, gl]);
+  // Where the plate that discloses the drawn shadows and texture cannot be shown, neither are they (plates.ts).
+  useEffect(() => world.groundLook.setDisclosed(decorationDisclosure(props.freeSpace) !== "none"), [world, props.freeSpace]);
   const rig = useMemo(() => new Rig(perspective), [perspective]);
   const latest = useRef(props);
   latest.current = props;
@@ -574,6 +715,17 @@ function Director(props: DirectorProps) {
       world.dispose();
     };
   }, [scene, world, invalidate]);
+
+  // The star background: one draw of points behind everything (stars.ts).
+  const stars = useMemo(() => new Stars(), []);
+  useEffect(() => {
+    scene.add(stars.points);
+    void stars.load(() => invalidate());
+    return () => {
+      scene.remove(stars.points);
+      stars.dispose();
+    };
+  }, [scene, stars, invalidate]);
 
   // The optional 8K Moon, when the setting asks for it.
   const firstRes = useRef(true);
@@ -593,7 +745,8 @@ function Director(props: DirectorProps) {
 
   useEffect(() => {
     world.setGround(props.inputs.site, props.smoothGround ? null : props.terrain, props.smoothGround ? null : props.apron, props.smoothGround);
-  }, [world, props.inputs.site, props.terrain, props.apron, props.smoothGround]);
+    world.prepareGround(gl, camera);
+  }, [world, props.inputs.site, props.terrain, props.apron, props.smoothGround, gl, camera]);
 
   // The controls the overlay's pointer and key handlers call.
   useEffect(() => {
@@ -603,9 +756,21 @@ function Director(props: DirectorProps) {
         rig.orbit(dx, dy);
         invalidate();
       },
-      zoom: (f) => {
-        rig.zoom(f);
+      pan: (dx, dy) => {
+        const handled = rig.pan(dx, dy);
         invalidate();
+        return handled;
+      },
+      zoom: (f, ndc) => {
+        rig.zoom(f, ndc ?? null);
+        invalidate();
+      },
+      focusOn: (ndc) => {
+        const handled = rig.focusOn(ndc, latest.current.reduceMotion ? 0 : FOCUS_MS);
+        // A double-click on empty space levels the view: back to the preset's framing.
+        if (!handled) levelView.current();
+        invalidate();
+        return handled;
       },
     };
     return () => {
@@ -625,6 +790,12 @@ function Director(props: DirectorProps) {
       };
       const site = i.site;
       if (view === "map") return polarPose(space);
+      if (view === "slip") {
+        const pose = slipPose(p.slipSites, space);
+        rig.slipCentre = { centre: pose.centre, up0: pose.up0 };
+        world.slipLight = pose.light;
+        return pose;
+      }
       if ((view === "terrain" || view === "panorama") && site) {
         const sunAz = p.sight?.sunAz ?? 0;
         const earthAz = p.sight?.earthAz ?? 180;
@@ -635,28 +806,89 @@ function Director(props: DirectorProps) {
       if (p.preset === "from_earth") return fromDirectionPose(i.earthDir, space);
       if (p.preset === "from_sun") return fromDirectionPose(i.sunDir, space);
       if (p.preset === "follow_site" && site) return followSitePose(site.frame.up, site.frame.north, space);
+      if (p.preset === "south_pole" && p.presetPulse > 0) return southPolePose(subjects, space);
       return homePose(subjects, space);
     },
-    [],
+    [rig, world],
   );
 
-  // ── Status: measure the first flight, then report ──
-  const measuring = useRef<{ frames: number[]; last: number } | null>(null);
+  /** The System view's point of interest for the current preset: drags close in turn about it. */
+  const focusFor = useCallback((view: CameraViewId): THREE.Vector3 | null => {
+    const p = latest.current;
+    if (view !== "system") return null;
+    if (p.preset === "follow_site" && p.inputs.site) return new THREE.Vector3(...p.inputs.site.frame.up);
+    if (p.preset === "south_pole") return new THREE.Vector3(0, -1, 0);
+    return null;
+  }, []);
+
+  // ── Quality: step down on a slow machine, in stages (perf.ts) ──
+  // Stage 0 is the full picture. Frames measured while something moves can step it down; the
+  // scene says "slow" (and the shell offers the still picture) only when the last stage is
+  // still slow. Stages 1 and up draw fewer pixels while moving and the full stage resolution
+  // as soon as the scene rests.
+  const quality = useMemo(
+    () => ({
+      stages: qualityStages(typeof window === "undefined" ? 1 : window.devicePixelRatio || 1),
+      stage: 0,
+      governor: new QualityGovernor(qualityStages(1).length - 1),
+      restTimer: 0,
+      lastFrame: 0,
+      resting: false,
+    }),
+    [],
+  );
+  const applyStage = useCallback(
+    (stage: number) => {
+      if (stage === quality.stage) return;
+      quality.stage = stage;
+      const rest = drawDpr(quality.stages[stage]!, false);
+      setDpr(rest);
+      gl.setPixelRatio(rest);
+      invalidate();
+    },
+    [quality, setDpr, gl, invalidate],
+  );
+  useEffect(() => {
+    // A hidden tab draws nothing: whatever was measured around it is not a frame time.
+    const onVisibility = () => {
+      quality.governor.reset();
+      quality.lastFrame = 0;
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.clearTimeout(quality.restTimer);
+    };
+  }, [quality]);
+
+  // ── Status: report once the first flight lands ──
+  // The quality governor (perf.ts) judges the first flight's frames like any other flight's;
+  // the scene says "slow" only from its last quality stage.
   const reported = useRef(false);
   const finishMeasure = useCallback(() => {
-    const m = measuring.current;
-    measuring.current = null;
     if (reported.current) return;
     reported.current = true;
     const p = latest.current;
-    const forced = devForcedStatus();
-    const slow = forced === "slow" || median(m?.frames ?? []) > SLOW_MEDIAN_MS;
-    p.onStatus(slow && !p.ignoreSlow ? "slow" : "ready", NO_FLAT_VIEWS);
+    if (devForcedStatus() === "slow") {
+      p.onStatus(p.ignoreSlow ? "ready" : "slow", NO_FLAT_VIEWS);
+      return;
+    }
+    p.onStatus("ready", NO_FLAT_VIEWS);
   }, []);
 
   // ── Flights ──
+  /**
+   * The Slip Planner's fit changed (its sites, or the free space) while a locked flight ran:
+   * refit once the flight lands, so the view never rests on a fit made before the data was in.
+   */
+  const slipRefitPending = useRef(false);
   const arrive = useCallback((view: CameraViewId) => {
     const p = latest.current;
+    if (view === "slip" && slipRefitPending.current) {
+      slipRefitPending.current = false;
+      rig.flyTo(targetFor("slip"), p.reduceMotion ? 0 : SLIP_REFIT_MS);
+      invalidate();
+    }
     if (!p.onArrive) return;
     if (view === "map") {
       const pose = polarPose(p.sceneSpace);
@@ -664,7 +896,7 @@ function Director(props: DirectorProps) {
     } else {
       p.onArrive({ view });
     }
-  }, []);
+  }, [rig, targetFor, invalidate]);
 
   /**
    * Flies to a camera view (the rig's `flyToView`: locked against drags, scrolls and keys;
@@ -675,6 +907,7 @@ function Director(props: DirectorProps) {
     (view: CameraViewId, ms: number, locked = true) => {
       const p = latest.current;
       const target = targetFor(view);
+      rig.focus = focusFor(view);
       if (p.reduceMotion) {
         rig.mode = view;
         p.dip(view === "map" ? 400 : DIP_MS, () => {
@@ -686,8 +919,17 @@ function Director(props: DirectorProps) {
       rig.flyToView(view, target, ms, arrive, { locked });
       invalidate();
     },
-    [rig, targetFor, arrive, invalidate],
+    [rig, targetFor, focusFor, arrive, invalidate],
   );
+
+  // Levels the System view after free turning: flies back to the current preset's framing.
+  const levelView = useRef<() => void>(() => undefined);
+  levelView.current = () => {
+    if (rig.locked) return;
+    if (latest.current.view === "system") flyToView("system", FLIGHT_MS, false);
+    // The Slip Planner: frame the sites again, as a new site set does.
+    else if (latest.current.view === "slip") rig.flyTo(targetFor("slip"), latest.current.reduceMotion ? 0 : SLIP_REFIT_MS);
+  };
 
   // The intro: once the data for the current time is in, ease in from 1.5 times the distance.
   // It is locked too, so the frame times it measures always reach a verdict.
@@ -699,11 +941,11 @@ function Director(props: DirectorProps) {
     const target = targetFor(props.view);
     const start = props.view === "system" ? introStart(target) : introStart(targetFor("system"));
     rig.apply(start);
+    rig.focus = focusFor(props.view);
     if (props.reduceMotion) {
       rig.flyToView(props.view, target, 0, arrive);
       finishMeasure();
     } else {
-      measuring.current = { frames: [], last: 0 };
       rig.flyToView(props.view, target, INTRO_MS, (view) => {
         finishMeasure();
         arrive(view);
@@ -730,16 +972,26 @@ function Director(props: DirectorProps) {
   useEffect(() => {
     const key =
       props.view === "system"
-        ? `system|${props.preset}|${props.trueScale}|${props.preset === "follow_site" ? siteId : ""}`
+        ? `system|${props.preset}|${props.presetPulse}|${props.trueScale}|${props.preset === "follow_site" ? siteId : ""}`
         : props.view === "map"
           ? "map"
-          : `${props.view}|${groundKey}|${props.view === "panorama" ? props.lookToward : ""}|${props.sight ? "s" : ""}`;
+          : props.view === "slip"
+            ? `slip|${props.slipKey}`
+            : `${props.view}|${groundKey}|${props.view === "panorama" ? props.lookToward : ""}|${props.sight ? "s" : ""}`;
     const previous = lastKey.current;
     lastKey.current = key;
     if (!introDone.current || previous === null || previous === key) return;
     if (previous.split("|")[0] !== key.split("|")[0]) return; // a view change flies by itself
+    if (props.view === "slip") {
+      // A new site set refits the Slip Planner in 450 to 600 ms. A locked flight in carries on
+      // and lands on the new fit, since its target is read again below when it is re-aimed.
+      if (rig.locked) slipRefitPending.current = true;
+      else rig.flyTo(targetFor("slip"), latest.current.reduceMotion ? 0 : SLIP_REFIT_MS);
+      invalidate();
+      return;
+    }
     flyToView(props.view, FLIGHT_MS, props.view !== "system");
-  }, [props.view, props.preset, props.trueScale, siteId, groundKey, props.lookToward, props.sight !== null, flyToView]);
+  }, [props.view, props.preset, props.presetPulse, props.trueScale, siteId, groundKey, props.lookToward, props.sight !== null, props.slipKey, flyToView]);
 
   // The free space: the centre slides there; a camera the user has not moved re-frames.
   const firstSpace = useRef(true);
@@ -752,8 +1004,11 @@ function Director(props: DirectorProps) {
       return;
     }
     rig.setFreeSpace(props.sceneSpace, latest.current.reduceMotion ? 0 : INSET_MS);
+    if (introDone.current && latest.current.view === "slip" && rig.locked) slipRefitPending.current = true;
     if (introDone.current && !rig.userMoved && !rig.flying) {
-      rig.flyTo(targetFor(latest.current.view), latest.current.reduceMotion ? 0 : INSET_MS);
+      // The Slip Planner refits in 450 to 600 ms (slip-planner.md, "The camera fit").
+      const ms = latest.current.view === "slip" ? SLIP_REFIT_MS : INSET_MS;
+      rig.flyTo(targetFor(latest.current.view), latest.current.reduceMotion ? 0 : ms);
     }
     invalidate();
   }, [props.sceneSpace, rig, targetFor, invalidate]);
@@ -761,16 +1016,76 @@ function Director(props: DirectorProps) {
   // Render on demand: a frame is drawn only when something changed, and only while visible.
   useFrame(({ camera: frameCamera, size }) => {
     const now = performance.now();
+    // A frame within 250 ms of the one before is a moving frame; the one frame drawn after a
+    // rest, to put back the full picture, is not.
+    const resting = quality.resting;
+    quality.resting = false;
+    const sinceLast = quality.lastFrame > 0 ? now - quality.lastFrame : 0;
+    quality.lastFrame = now;
+    const inMotion = !latest.current.capture && !resting && quality.lastFrame > 0 && sinceLast > 0 && sinceLast <= MOTION_GAP_MS;
+    if (!latest.current.capture) {
+      // Only flight frames judge the stage: they are drawn back to back, so the time between
+      // them is the frame's cost. A drag's frames follow the pointer, and a pause in a drag
+      // must not look like a slow frame. Hidden-tab frames and stalls never count (perf.ts).
+      const verdict = quality.governor.frame({ gapMs: resting ? 0 : sinceLast, moving: rig.flying, hidden: document.hidden });
+      if (verdict.changed) applyStage(verdict.stage);
+      if (verdict.slow && !latest.current.ignoreSlow) latest.current.onStatus("slow", NO_FLAT_VIEWS);
+      // Dynamic resolution (stages 1 and up): fewer pixels while moving, the full stage
+      // resolution at rest. The canvas is resized inside the frame, so a cleared canvas is
+      // never shown.
+      const want = drawDpr(quality.stages[quality.stage]!, inMotion);
+      if (Math.abs(gl.getPixelRatio() - want) > 1e-3) gl.setPixelRatio(want);
+    }
+    // When nothing has moved for longer than the motion cutoff, draw one more frame with the
+    // full picture: full resolution and the full Moon mesh. Then nothing is drawn until
+    // something changes. (Longer than the cutoff, so a slow flight's frames never trigger it.)
+    window.clearTimeout(quality.restTimer);
+    if (inMotion || rig.flying) {
+      quality.restTimer = window.setTimeout(() => {
+        quality.resting = true;
+        invalidate();
+      }, REST_AFTER_MS);
+    }
     const moving = rig.update(now);
     world.draw = rig.draw;
+    world.slip = rig.slip;
+    world.slipShading = latest.current.slipShading && latest.current.view === "slip";
     // three updates the camera's matrices during render; the overlay projects before that.
     frameCamera.updateMatrixWorld();
     const anchors = world.layout(frameCamera);
+    // Stars dim as the lit Moon fills the view, and on the sunlit ground.
+    const cam = frameCamera as THREE.PerspectiveCamera;
+    const inputs = latest.current.inputs;
+    let exposure = 0.45;
+    if (inputs.view !== "terrain" && inputs.view !== "panorama") {
+      const moonRadius = Math.asin(Math.min(1, 1 / Math.max(1, cam.position.length())));
+      const fovY = THREE.MathUtils.degToRad(cam.fov);
+      exposure = starExposure((Math.PI * moonRadius * moonRadius) / (fovY * fovY * cam.aspect));
+    }
+    stars.update(gl.getPixelRatio(), exposure, inputs.bodies ? inputs.sunDir : null);
+    // The Moon's level of detail from its radius on screen, in device pixels (perf.ts),
+    const moonDistance = cam.position.length();
+    const moonPixels =
+      moonDistance > 1.0001
+        ? (Math.tan(Math.asin(1 / moonDistance)) / Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2)) * (size.height / 2) * gl.getPixelRatio()
+        : Number.POSITIVE_INFINITY;
+    // Only while moving: at rest the full mesh, so a still picture is exactly today's.
+    world.setMoonSegments(inMotion ? moonSegments(moonPixels) : MOON_SEGMENTS_FULL);
+    // The ground the same way: coarser and lighter while moving on a slow machine (ground-material.ts).
+    world.groundLook.setMotion(inMotion, quality.stage);
+    const overlayStart = devMeter ? performance.now() : 0;
     latest.current.bus.current.overlay?.(anchors, frameCamera as THREE.PerspectiveCamera, size);
-    const m = measuring.current;
-    if (m) {
-      if (m.last > 0) m.frames.push(now - m.last);
-      m.last = now;
+    // The Slip Planner's spots follow the camera: the projector's subscribers run after every frame.
+    latest.current.hub.frame(frameCamera, size);
+    if (devMeter) devMeter.parts.overlay += performance.now() - overlayStart;
+    if (devMeter) {
+      devMeter.meter.tick(now);
+      devMeter.frames += 1;
+      if (devMeter.hud && devMeter.frames % 15 === 0) {
+        const m = devMeter.meter;
+        const info = gl.info.render;
+        devMeter.hud.textContent = `${m.median().toFixed(1)} ms median · ${m.p95().toFixed(1)} p95 · ${m.count} frames · dpr ${gl.getPixelRatio().toFixed(2)} · ${size.width}×${size.height} · ${info.calls} calls · ${Math.round(info.triangles / 1000)}k tris`;
+      }
     }
     if (moving) invalidate();
   });
@@ -787,11 +1102,58 @@ function Director(props: DirectorProps) {
     return () => window.clearInterval(timer);
   }, [props.capture, gl, scene, camera, rig, world]);
 
+  // Dev only: frame times for measuring (window.__truesouthPerf), and the `?perf` readout.
+  const devMeter = useMemo(() => {
+    if (!import.meta.env.DEV) return null;
+    const meter = new FrameMeter(2_000, 1_000);
+    let hud: HTMLDivElement | null = null;
+    if (perfHud()) {
+      hud = document.createElement("div");
+      hud.style.cssText =
+        "position:fixed;left:8px;bottom:8px;z-index:9999;padding:4px 8px;font:12px/1.4 monospace;color:#f4f4f5;background:rgba(20,20,21,.92);border-radius:4px;pointer-events:none";
+      document.body.appendChild(hud);
+    }
+    return { meter, hud, frames: 0, parts: { overlay: 0, render: 0 } };
+  }, []);
+  // Dev only: time the renderer's own work on the main thread.
+  useEffect(() => {
+    if (!import.meta.env.DEV || !devMeter) return;
+    const original = gl.render.bind(gl);
+    gl.render = (s: THREE.Object3D, c: THREE.Camera) => {
+      const t = performance.now();
+      original(s, c);
+      devMeter.parts.render += performance.now() - t;
+    };
+    return () => {
+      gl.render = original;
+    };
+  }, [devMeter, gl]);
+  useEffect(() => {
+    if (!import.meta.env.DEV || !devMeter) return;
+    (window as unknown as { __truesouthPerf?: unknown }).__truesouthPerf = {
+      reset: () => {
+        devMeter.meter.reset();
+        devMeter.parts = { overlay: 0, render: 0 };
+        devMeter.frames = 0;
+      },
+      read: () => ({
+        median: devMeter.meter.median(),
+        p95: devMeter.meter.p95(),
+        frames: devMeter.meter.count,
+        dpr: gl.getPixelRatio(),
+        stage: quality.stage,
+        overlayMs: devMeter.parts.overlay / Math.max(1, devMeter.frames),
+        renderMs: devMeter.parts.render / Math.max(1, devMeter.frames),
+      }),
+    };
+    return () => devMeter.hud?.remove();
+  }, [devMeter, gl, quality]);
+
   // Exposed for checking by the numbers in the browser (dev only).
   useEffect(() => {
     if (!import.meta.env.DEV) return;
-    (window as unknown as { __truesouthScene?: unknown }).__truesouthScene = { world, rig, camera, gl, inputs: () => latest.current.inputs };
-  }, [world, rig, camera, gl]);
+    (window as unknown as { __truesouthScene?: unknown }).__truesouthScene = { world, rig, camera, gl, invalidate, inputs: () => latest.current.inputs };
+  }, [world, rig, camera, gl, invalidate]);
 
   // Pause when the tab is hidden: draw one fresh frame on return.
   useEffect(() => {

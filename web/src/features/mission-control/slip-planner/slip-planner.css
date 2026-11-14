@@ -1,0 +1,903 @@
+/*
+  The Slip Planner (MC7): the spots over the scene and the landing-date panel.
+  Design: design/variants/c2-slip-on-moon.md, variant a (lamp and ring), and DESIGN.md
+  "Spot" and "Landing-date panel". Tokens only; no new colour.
+*/
+
+/*
+  This file is imported with the shell, before theme.css. Name Tailwind's layer order first,
+  so this file cannot declare "components" ahead of "base" and let the base reset win.
+*/
+@layer theme, base, components, utilities;
+
+@layer components {
+  /* ── The bottom strip in this view: one panel, sized to its content ─────── */
+  .shell-strip[data-slip="true"] {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .ldp {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--s2);
+    min-width: 0;
+  }
+
+  .ldp-progress {
+    position: absolute;
+    top: 0;
+    left: var(--r-lg);
+    right: var(--r-lg);
+    height: 2px;
+    background: var(--line);
+  }
+
+  .ldp-progress i {
+    display: block;
+    height: 100%;
+    background: var(--ink-3);
+    transition: width var(--dur-panel) linear;
+  }
+
+  /* Shown in every layout, open, folded and on the phone, whenever the landing is not at 00:00 UTC. */
+  .ldp-whole {
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+  }
+
+  /* Above the row names, beside the strips it is about, so the head stays one row. */
+  .ldp-whole-grid {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    white-space: nowrap;
+  }
+
+  /* On the phone the landing-date control takes its own row, as at the head of the timeline. */
+  .ldp[data-compact="true"] .ldp-date-slot {
+    flex-basis: 100%;
+  }
+
+  .ldp-key {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: var(--s3);
+    row-gap: var(--s1);
+    color: var(--ink-3);
+    font-size: var(--t-sm);
+  }
+
+  .ldp-key > span {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 5px;
+    white-space: nowrap;
+  }
+
+  .ldp-key i {
+    position: relative;
+    display: inline-block;
+    width: 14px;
+    height: 10px;
+    background: var(--plot);
+  }
+
+  .ldp-key i::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
+
+  .ldp-key .ldp-key-go::after {
+    top: 0;
+    background: var(--status-go);
+  }
+
+  .ldp-key .ldp-key-caution::after {
+    top: 50%;
+    background: var(--status-caution);
+  }
+
+  .ldp-key .ldp-key-nogo::after {
+    height: 2px;
+    background: var(--status-nogo);
+  }
+
+  .ldp-key .ldp-key-ring {
+    align-items: center;
+  }
+
+  .ldp-ring-track {
+    fill: none;
+    stroke: var(--line-strong);
+    stroke-width: 2;
+  }
+
+  .ldp-ring-arc {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 2;
+  }
+
+  .ldp-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    margin-left: auto;
+  }
+
+
+  /* The message row is flex, which drops the space before "Open the Polar map". */
+  .ldp .tl-message {
+    flex-wrap: wrap;
+    column-gap: 0.3em;
+  }
+
+  .ldp-link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ink);
+    font: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+
+  /* ── Grid: label (208 px) | strips | "next GO" (136 px) ────────────────── */
+  .ldp-grid {
+    display: grid;
+    grid-template-columns: 208px minmax(0, 1fr) 136px;
+    column-gap: var(--s3);
+  }
+
+  .ldp-labels,
+  .ldp-next {
+    position: relative;
+    min-width: 0;
+  }
+
+  .ldp-labels {
+    grid-column: 1;
+  }
+
+  .ldp-next {
+    grid-column: 3;
+  }
+
+  .ldp-label {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-sm);
+    background: none;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: var(--t-md);
+    line-height: 1;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .ldp-label:hover,
+  .ldp-label[aria-current="true"] {
+    color: var(--ink);
+  }
+
+  .ldp-label[aria-current="true"] {
+    font-weight: 600;
+  }
+
+  .ldp-label-any {
+    color: var(--ink);
+    font-weight: 500;
+    cursor: default;
+  }
+
+  .ldp-label.is-variant {
+    padding-left: 12px;
+  }
+
+  .ldp-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ldp-label .lamp,
+  .ldp-lamp-none {
+    flex: none;
+  }
+
+  .ldp-note {
+    flex: none;
+    color: var(--ink-3);
+    font-size: var(--t-sm);
+    font-weight: 400;
+  }
+
+  /* The best-lit variant's provenance: a dotted outline. Dashed already means assumed. */
+  .tag.tag-chosen {
+    flex: none;
+    border: 1px dotted var(--ink-3);
+    background: transparent;
+    color: var(--ink-2);
+    font-weight: 400;
+  }
+
+  .ldp-next-cell {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    color: var(--ink-3);
+    font-size: var(--t-sm);
+    white-space: nowrap;
+  }
+
+  .ldp-strips {
+    position: relative;
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  .ldp-canvas,
+  .ldp-over,
+  .ldp-pending,
+  .ldp-band,
+  .ldp-was,
+  .ldp-probe,
+  .ldp-axis {
+    position: absolute;
+    left: 0;
+  }
+
+  .ldp-canvas {
+    display: block;
+  }
+
+  /* A site that could not be computed: its strip says so, with "Retry", above the drag layer. */
+  .ldp-failed {
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    padding-left: var(--s2);
+    border-radius: var(--r-sm);
+    background: var(--hover);
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .ldp-failed .ldp-link {
+    position: relative;
+  }
+
+  .ldp-failed .ldp-link::after {
+    content: "";
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+
+  .ldp-over {
+    right: 0;
+    z-index: 2;
+    cursor: ew-resize;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .ldp-strip {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-radius: var(--r-sm);
+    outline: none;
+  }
+
+  /* The focused site's strip: a thin outline, as the prototype has. */
+  .ldp-strip[data-focused="true"] {
+    box-shadow: 0 0 0 1px var(--ink-3);
+  }
+
+  .ldp-strip:focus-visible {
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+
+  /* A site not worked out yet: its strip pulses grey between 35 % and 80 %. */
+  .ldp-pending {
+    right: 0;
+    border-radius: var(--r-sm);
+    background: var(--hover);
+    animation: ldp-wait 1.2s linear infinite alternate;
+    pointer-events: none;
+  }
+
+  @keyframes ldp-wait {
+    from {
+      opacity: 0.35;
+    }
+    to {
+      opacity: 0.8;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ldp-pending {
+      animation: none;
+      opacity: 0.6;
+    }
+
+    .ldp-progress i {
+      transition: none;
+    }
+  }
+
+  /* The mission window: Moonlight at 14 %, with Ink 3 edges. */
+  .ldp-band {
+    z-index: 1;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    box-shadow:
+      inset 1px 0 0 var(--ink-3),
+      inset -1px 0 0 var(--ink-3);
+    pointer-events: none;
+  }
+
+  .ldp-was {
+    z-index: 1;
+    border-left: 1.5px dashed var(--ink-2);
+    pointer-events: none;
+  }
+
+  /* "was 01 Mar" sits on the axis row, under the strips, over the month names. */
+  .ldp-was span {
+    position: absolute;
+    bottom: 1px;
+    left: 3px;
+    padding: 0 4px;
+    background: var(--surface);
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+    line-height: 16px;
+    white-space: nowrap;
+  }
+
+  .ldp-probe {
+    z-index: 3;
+    min-width: 3px;
+    border: 1.5px solid var(--ink);
+    border-radius: var(--r-sm);
+    transform: translateX(-1px);
+    pointer-events: none;
+  }
+
+  .ldp-knob {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 4;
+    width: 0;
+    outline: none;
+    pointer-events: none;
+  }
+
+  .ldp-line {
+    position: absolute;
+    top: 20px;
+    bottom: 0;
+    left: -1px;
+    width: 2px;
+    background: var(--accent);
+  }
+
+  .ldp-pill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 20px;
+    padding: 0 10px;
+    border-radius: var(--r-pill);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-size: var(--t-sm);
+    font-weight: 500;
+    line-height: 20px;
+    white-space: nowrap;
+  }
+
+  .ldp-knob[data-edge] .ldp-pill {
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  .ldp-knob:focus-visible .ldp-pill {
+    box-shadow:
+      0 0 0 2px var(--surface),
+      0 0 0 4px var(--accent);
+  }
+
+  .ldp-axis {
+    overflow: visible;
+  }
+
+  .ldp-axis text {
+    fill: var(--ink-3);
+    font-family: var(--font);
+    font-size: var(--t-xs);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ldp-tick {
+    stroke: var(--ink-3);
+    stroke-opacity: 0.55;
+  }
+
+  .ldp-tick.is-major {
+    stroke-opacity: 1;
+  }
+
+  .ldp-tip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    z-index: 6;
+    width: 280px;
+    padding: var(--s2) var(--s3);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    box-shadow: var(--shadow-popover);
+    color: var(--ink-2);
+    font-size: var(--t-md);
+    pointer-events: none;
+  }
+
+  .ldp-tip p {
+    margin: 0;
+  }
+
+  .ldp-tip p + p {
+    margin-top: 4px;
+  }
+
+  .ldp-tip-title {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .ldp-tip-status,
+  .slip-hover-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  /* ── Folded: one row ───────────────────────────────────────────────────── */
+  .ldp-folded {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: var(--s4);
+    row-gap: var(--s1);
+    min-height: 40px;
+  }
+
+  .ldp-folded-any {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink-2);
+    font-size: var(--t-md);
+  }
+
+  /* ── The phone: fills the bottom; names cut to 100 px; no "next GO" ───── */
+  .ldp[data-compact="true"] .ldp-grid {
+    grid-template-columns: 100px minmax(0, 1fr);
+    column-gap: var(--s2);
+  }
+
+  .ldp[data-compact="true"] .ldp-key .ldp-key-ring {
+    display: none;
+  }
+
+  .ldp[data-compact="true"] .ldp-controls {
+    margin-left: 0;
+  }
+
+  .ldp[data-compact="true"] .seg-option {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .ldp[data-compact="true"] .ldp-label {
+    pointer-events: none;
+  }
+
+  /* Tags and info icons keep their look; their touch target grows to 44 px, as in the timeline. */
+  .ldp[data-compact="true"] .tag,
+  .ldp[data-compact="true"] .explain-button {
+    position: relative;
+  }
+
+  .ldp[data-compact="true"] .tag::after,
+  .ldp[data-compact="true"] .explain-button::after {
+    content: "";
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+
+  .ldp[data-compact="true"] .ldp-tip {
+    width: min(280px, 100%);
+  }
+
+  /* ── Over the scene ────────────────────────────────────────────────────── */
+  .slip-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    --spot-r: 15px;
+  }
+
+  .slip-leaders {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .slip-lead {
+    stroke: var(--ink-2);
+    stroke-width: 1.2;
+  }
+
+  .slip-lead-under {
+    stroke: var(--space);
+    stroke-opacity: 0.7;
+    stroke-width: 3.4;
+  }
+
+  .slip-true {
+    fill: var(--ink);
+    stroke: var(--space);
+    stroke-width: 1.5;
+  }
+
+  .slip-spot {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    cursor: pointer;
+    pointer-events: auto;
+    visibility: hidden;
+  }
+
+  .slip-layer[data-phone="true"] .slip-spot {
+    width: 44px;
+    height: 44px;
+  }
+
+  .slip-spot-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .slip-spot.is-go {
+    --spot-c: var(--status-go);
+  }
+
+  .slip-spot.is-caution {
+    --spot-c: var(--status-caution);
+  }
+
+  .slip-spot.is-nogo {
+    --spot-c: var(--status-nogo);
+  }
+
+  .slip-spot.is-none {
+    --spot-c: var(--ink-3);
+  }
+
+  .spot-back {
+    fill: var(--space);
+    fill-opacity: 0.85;
+  }
+
+  .spot-track {
+    fill: none;
+    stroke: var(--line-strong);
+    stroke-width: 2;
+  }
+
+  .spot-arc {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 2;
+  }
+
+  .spot-disc {
+    fill: var(--spot-c);
+  }
+
+  .spot-glyph {
+    fill: none;
+    stroke: var(--status-glyph);
+    stroke-width: 6.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .spot-none {
+    fill: var(--status-glyph);
+  }
+
+  .spot-focus {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1.6;
+  }
+
+  .slip-label,
+  .slip-hover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    max-width: 240px;
+    padding: 3px var(--s2);
+    color: var(--ink);
+    font-size: var(--t-md);
+    line-height: 1.3;
+    text-align: left;
+    pointer-events: none;
+  }
+
+  .slip-label[hidden],
+  .slip-hover[hidden] {
+    display: none;
+  }
+
+  .slip-label small,
+  .slip-off small {
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+  }
+
+  .slip-label-main {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .slip-label-main b {
+    font-weight: 500;
+  }
+
+  .slip-label[data-focused="true"] .slip-label-main b {
+    font-weight: 600;
+  }
+
+  .slip-word {
+    font-size: var(--t-sm);
+    font-weight: 600;
+  }
+
+  .slip-word.is-go {
+    color: var(--status-go);
+  }
+
+  .slip-word.is-caution {
+    color: var(--status-caution);
+  }
+
+  .slip-word.is-nogo {
+    color: var(--status-nogo);
+  }
+
+  .slip-word.is-none {
+    color: var(--ink-3);
+  }
+
+  .slip-best {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--t-sm);
+  }
+
+  .slip-best::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ink);
+  }
+
+  .slip-was {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .slip-hover {
+    z-index: 3;
+    width: max-content;
+    max-width: 260px;
+    gap: 2px;
+  }
+
+  .slip-hover p {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+  }
+
+  .slip-hover .slip-hover-title {
+    color: var(--ink);
+    font-size: var(--t-md);
+    font-weight: 500;
+  }
+
+  .slip-top {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--s2);
+  }
+
+  .slip-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s2);
+    max-width: 560px;
+    margin: 0;
+    padding: var(--s2) var(--s3);
+    color: var(--ink-2);
+    font-size: var(--t-md);
+    pointer-events: auto;
+  }
+
+  .slip-note p {
+    margin: 0;
+  }
+
+  .slip-off {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s2);
+    max-width: 320px;
+    padding: var(--s2) var(--s3);
+    border: 0;
+    color: var(--ink);
+    font: inherit;
+    font-size: var(--t-md);
+    text-align: left;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  .slip-off .lamp,
+  .slip-off .lamp-none {
+    flex: none;
+    margin-top: 2px;
+  }
+
+  .slip-off b {
+    font-weight: 500;
+  }
+
+  .slip-off .slip-off-where {
+    display: block;
+  }
+
+  .slip-off[data-focused="true"] {
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+
+  .slip-foot {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--s2);
+    width: max-content;
+    transform: translate(-50%, -100%);
+  }
+
+  /* The shading's short label when the free space has no room for the controls. */
+  .slip-shading-short {
+    position: absolute;
+    margin: 0;
+    padding: 4px 8px;
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+    text-align: center;
+    transform: translate(-50%, -100%);
+    pointer-events: none;
+  }
+
+  .slip-summary {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    padding: var(--s1) var(--s1) var(--s1) var(--s3);
+    color: var(--ink);
+    font-size: var(--t-md);
+    pointer-events: auto;
+  }
+
+  .slip-summary p {
+    margin: 0;
+  }
+
+  .slip-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    column-gap: var(--s3);
+    row-gap: 2px;
+    padding: 2px var(--s3) 2px var(--s1);
+    pointer-events: auto;
+  }
+
+  .slip-shading-label {
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+  }
+
+  .slip-layer[data-phone="true"] .slip-controls .tl-switch {
+    min-height: 44px;
+  }
+
+  .slip-layer[data-phone="true"] .slip-foot {
+    width: calc(100% - 16px);
+  }
+
+  /* ── 3D off: the flat Polar map under the spots; it takes the drags and the zoom ── */
+  .slip-flat-map {
+    position: absolute;
+    inset: 0;
+    pointer-events: auto;
+  }
+}

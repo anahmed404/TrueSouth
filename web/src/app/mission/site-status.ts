@@ -1,5 +1,7 @@
 import type { MissionProfile, Site } from "../../contracts/generated";
+import { isCustomSiteId } from "../../data/paths";
 import { useEvaluation, type Evaluation } from "../../lib/scoring";
+import { customSitesStore } from "../../state/custom-sites";
 
 /** One site's evaluation for the landing date, in the four states a panel draws. */
 export type SiteStatus =
@@ -19,9 +21,14 @@ export function useSiteStatus(siteId: string, profile: MissionProfile, landingUt
 
 export const NO_RESULT_TEXT = "No result: the mission window runs past 2031";
 
-/** A site's display name. A custom site not yet in the catalog shows its id. */
+/**
+ * A site's display name. A custom site that is not ready yet shows the name typed for it,
+ * or "Custom site"; never its raw id.
+ */
 export function siteName(site: Site | null | undefined, siteId: string): string {
-  return site?.name ?? siteId;
+  if (site?.name) return site.name;
+  if (isCustomSiteId(siteId)) return customSitesStore.getState().entries[siteId]?.name ?? "Custom site";
+  return siteId;
 }
 
 /** A sphere-tier site has no terrain: no slope, a flat skyline, no blockers. */

@@ -8,12 +8,31 @@ import { cx, formatNumber } from "../../components/format";
 import { NumberUnit } from "../../components/NumberUnit";
 import { Card, Panel } from "../../components/Panel";
 import { StatusBadge, StatusLamp } from "../../components/StatusLamp";
+import { useStore } from "zustand";
 import { useSites } from "../../data/hooks";
+import { isCustomSiteId } from "../../data/paths";
+import { customSitesStore, type CustomEntry } from "../../state/custom-sites";
+import { MAX_SITES } from "../../state/scenario";
 import type { Evaluation } from "../../lib/scoring";
 import { windowLength } from "../../lib/scoring";
 import { describeEvaluation, describeMetrics, describeUtilities, railFact, scoreText, scoreTitle, type RuleView } from "./rules";
+import { formatCoordinates } from "./custom-site-form";
+import { CustomName, CustomState, YourSiteTag } from "./custom-site-ui";
 import { SettingsTag } from "./settings-tag";
-import { useScenario } from "./scenario-context";
+import { useScenario, useScenarioStore } from "./scenario-context";
+import {
+  ARTEMIS_NOTE,
+  CHOSEN_TAG,
+  CHOSEN_TIP,
+  bestLitVariantOf,
+  isArtemisCentre,
+  isVariant,
+  nearbyRangeText,
+  parentOf,
+  upperReadingLine,
+  variantLine,
+} from "./site-labels";
+import { Tip } from "../../components/Tip";
 import { SHELL_SHORTCUTS } from "./shell-layout";
 import { NO_RESULT_TEXT, isSphere, siteName, useSiteStatus, type SiteStatus } from "./site-status";
 
@@ -44,6 +63,8 @@ export const FocusedSitePanel = memo(function FocusedSitePanel({ collapsed, onTo
   const landingUtc = useScenario((s) => s.landingUtc);
   const sites = useSites();
   const site = siteId && sites.status === "ready" ? (sites.data.find((s) => s.id === siteId) ?? null) : null;
+  const allSites = sites.status === "ready" ? sites.data : EMPTY;
+  const pending = useStore(customSitesStore, (state) => (siteId && isCustomSiteId(siteId) && !site ? (state.entries[siteId] ?? null) : null));
   const toggleLabel = collapsed ? "Show the focused-site panel" : "Hide the focused-site panel";
 
   if (sheet) {
@@ -51,7 +72,7 @@ export const FocusedSitePanel = memo(function FocusedSitePanel({ collapsed, onTo
       <Panel as="aside" ref={regionRef} id={REGION_ID} aria-label="Focused site" className="shell-focus focus-sheet" data-collapsed={collapsed}>
         <div className="sheet-head">
           <div className="sheet-title">
-            <h2 className="focus-name">{siteId ? siteName(site, siteId) : "No site selected"}</h2>
+            <h2 className="focus-name">{siteId ? <SiteTitle siteId={siteId} site={site} /> : "No site selected"}</h2>
             {siteId ? <SheetSummary siteId={siteId} profile={profile} landingUtc={landingUtc} /> : null}
           </div>
           {sheet.actions}
@@ -69,7 +90,10 @@ export const FocusedSitePanel = memo(function FocusedSitePanel({ collapsed, onTo
           {collapsed ? null : !siteId ? (
             <p className="focus-empty">Add a site to see its status here.</p>
           ) : (
-            <FocusedSiteBody siteId={siteId} site={site} profile={profile} landingUtc={landingUtc} collapsed={false} onToggle={onToggle} />
+            <>
+              <SiteIdentity siteId={siteId} site={site} sites={allSites} pending={pending} />
+              <FocusedSiteBody siteId={siteId} site={site} pending={pending} profile={profile} landingUtc={landingUtc} collapsed={false} onToggle={onToggle} />
+            </>
           )}
         </div>
       </Panel>
@@ -79,12 +103,18 @@ export const FocusedSitePanel = memo(function FocusedSitePanel({ collapsed, onTo
   return (
     <Panel as="aside" ref={regionRef} id={REGION_ID} aria-label="Focused site" className="shell-focus" data-collapsed={collapsed}>
       <div className="focus-head">
-        {collapsed || !siteId ? null : <h2 className="focus-name">{siteName(site, siteId)}</h2>}
+        {collapsed || !siteId ? null : (
+          <h2 className="focus-name">
+            <SiteTitle siteId={siteId} site={site} />
+          </h2>
+        )}
         {collapsed || !site ? null : (
           <p className="focus-coords tabular">
             {formatNumber(site.lat_deg, 4)}°, {formatNumber(site.lon_deg, 4)}° E
           </p>
         )}
+        {collapsed || site || !pending ? null : <p className="focus-coords tabular">{formatCoordinates(pending.latDeg, pending.lonDeg)}</p>}
+        {collapsed || !siteId ? null : <SiteIdentity siteId={siteId} site={site} sites={allSites} pending={pending} />}
         <IconButton
           ref={toggleRef}
           label={toggleLabel}
@@ -102,26 +132,102 @@ export const FocusedSitePanel = memo(function FocusedSitePanel({ collapsed, onTo
         {!siteId ? (
           collapsed ? null : <p className="focus-empty">Add a site to the sites rail to see its status here.</p>
         ) : (
-          <FocusedSiteBody siteId={siteId} site={site} profile={profile} landingUtc={landingUtc} collapsed={collapsed} onToggle={onToggle} />
+          <FocusedSiteBody siteId={siteId} site={site} pending={pending} profile={profile} landingUtc={landingUtc} collapsed={collapsed} onToggle={onToggle} />
         )}
       </div>
     </Panel>
   );
 });
 
+const EMPTY: readonly Site[] = [];
+
+/** A site's name; a custom site's name is someone's text, so it is isolated and cut to one line. */
+function SiteTitle({ siteId, site }: { siteId: string; site: Site | null }) {
+  const name = siteName(site, siteId);
+  return isCustomSiteId(siteId) ? <CustomName name={name} tag="none" /> : <>{name}</>;
+}
+
+/**
+ * What the point is, when that needs saying (decision 0012, docs/site-catalog.md): a site
+ * the user typed, a best-lit variant chosen by TrueSouth, or the centre of an Artemis map.
+ */
+function SiteIdentity({ siteId, site, sites, pending }: { siteId: string; site: Site | null; sites: readonly Site[]; pending: CustomEntry | null }) {
+  const store = useScenarioStore();
+  const selected = useScenario((s) => s.siteIds);
+  if (isCustomSiteId(siteId) && (site || pending)) {
+    return (
+      <p className="focus-what">
+        <YourSiteTag /> {site ? "Computed by TrueSouth at a typed point" : "A typed point"}, not a sourced mission site.
+      </p>
+    );
+  }
+  if (!site) return null;
+  if (isVariant(site)) {
+    const parent = parentOf(site, sites);
+    const parentSelected = parent ? selected.includes(parent.id) : false;
+    const canAdd = parent !== null && (parentSelected || selected.length < MAX_SITES);
+    return (
+      <div className="focus-what">
+        <p>
+          <Tip content={CHOSEN_TIP}>
+            {(trigger) => (
+              <span {...trigger} tabIndex={0} className="tag tag-chosen">
+                {CHOSEN_TAG}
+              </span>
+            )}
+          </Tip>{" "}
+          {variantLine(site, parent?.name ?? null)}
+          <Explain term="best_lit_variant" label="best-lit variant" />
+        </p>
+        <p>{upperReadingLine(site, parent)}</p>
+        {parent && canAdd ? (
+          <button type="button" className="focus-link-button" onClick={() => showSite(store, parent.id)}>
+            {parentSelected ? `Show ${parent.name}` : `Add ${parent.name}, its listed point`}
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+  if (isArtemisCentre(site)) return <p className="focus-what">{ARTEMIS_NOTE}</p>;
+  return null;
+}
+
+/** Focuses a site, adding it first if it is not selected and there is room. */
+function showSite(store: ReturnType<typeof useScenarioStore>, siteId: string): void {
+  const state = store.getState();
+  if (!state.siteIds.includes(siteId)) {
+    if (state.siteIds.length >= MAX_SITES) return;
+    state.addSite(siteId);
+  }
+  store.getState().focusSite(siteId);
+}
+
 type BodyProps = {
   siteId: string;
   site: Site | null;
+  /** A custom site that is not ready yet. */
+  pending: CustomEntry | null;
   profile: MissionProfile;
   landingUtc: string;
   collapsed: boolean;
   onToggle: () => void;
 };
 
-function FocusedSiteBody({ siteId, site, profile, landingUtc, collapsed, onToggle }: BodyProps) {
+function FocusedSiteBody({ siteId, site, pending, profile, landingUtc, collapsed, onToggle }: BodyProps) {
   const status = useSiteStatus(siteId, profile, landingUtc);
   const name = siteName(site, siteId);
+  const sites = useSites();
   if (collapsed) return <CollapsedLamp name={name} status={status} onToggle={onToggle} />;
+  if (isCustomSiteId(siteId) && !site) {
+    // Not computed yet: say where it is, and what can be done, instead of a skeleton.
+    return (
+      <div className="focus-full">
+        <Card className="verdict" role="status">
+          {pending ? <CustomState entry={pending} /> : <p className="verdict-quiet">Asking the server for this site…</p>}
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="focus-full">
@@ -148,18 +254,22 @@ function FocusedSiteBody({ siteId, site, profile, landingUtc, collapsed, onToggl
         <EvaluationDetail evaluation={status.evaluation} profile={profile} />
       )}
 
-      {site ? <GroundSection site={site} /> : null}
+      {site ? <GroundSection site={site} sites={sites.status === "ready" ? sites.data : EMPTY} /> : null}
 
-      {site ? (
+      {site && (site.quickmap_url || site.moontrek_url) ? (
         <nav className="focus-links" aria-label="Open this site elsewhere">
-          <a href={site.quickmap_url} target="_blank" rel="noreferrer">
-            Open in Quickmap
-            <ArrowUpRight size={12} strokeWidth={2} aria-hidden="true" />
-          </a>
-          <a href={site.moontrek_url} target="_blank" rel="noreferrer">
-            Open in Moon Trek
-            <ArrowUpRight size={12} strokeWidth={2} aria-hidden="true" />
-          </a>
+          {site.quickmap_url ? (
+            <a href={site.quickmap_url} target="_blank" rel="noreferrer">
+              Open in Quickmap
+              <ArrowUpRight size={12} strokeWidth={2} aria-hidden="true" />
+            </a>
+          ) : null}
+          {site.moontrek_url ? (
+            <a href={site.moontrek_url} target="_blank" rel="noreferrer">
+              Open in Moon Trek
+              <ArrowUpRight size={12} strokeWidth={2} aria-hidden="true" />
+            </a>
+          ) : null}
         </nav>
       ) : null}
     </div>
@@ -368,8 +478,14 @@ function ScoreSection({ evaluation, profile, unused }: { evaluation: Evaluation;
   );
 }
 
-function GroundSection({ site }: { site: Site }) {
+function GroundSection({ site, sites }: { site: Site; sites: readonly Site[] }) {
   const sphere = isSphere(site);
+  const store = useScenarioStore();
+  const selected = useScenario((s) => s.siteIds);
+  // The nearby range is around the listed point, so a variant does not repeat it.
+  const nearby = isVariant(site) ? null : nearbyRangeText(site.nearby_sun);
+  const variant = nearby ? bestLitVariantOf(site, sites) : null;
+  const variantSelected = variant ? selected.includes(variant.id) : false;
   return (
     <section aria-labelledby="ground-h" className="focus-section">
       <h3 id="ground-h" className="focus-label">
@@ -400,6 +516,22 @@ function GroundSection({ site }: { site: Site }) {
           </dt>
           <dd>{sphere ? <span className="dd-sub">Terrain not modelled</span> : `${site.terrain_tier}${site.has_closeup ? ", close-up DEM" : ""}`}</dd>
         </div>
+        {nearby ? (
+          <div className="metrics-row">
+            <dt>
+              <Explain term="nearby_range">Sunlight nearby</Explain>
+            </dt>
+            <dd className="nearby-dd">
+              <span className="tabular">{nearby}</span>
+              <span className="dd-sub">six-year average</span>
+              {variant && (variantSelected || selected.length < MAX_SITES) ? (
+                <button type="button" className="focus-link-button" onClick={() => showSite(store, variant.id)}>
+                  {variantSelected ? "Show its best-lit point" : "Add its best-lit point"}
+                </button>
+              ) : null}
+            </dd>
+          </div>
+        ) : null}
         {site.elevation_m !== null ? (
           <div className="metrics-row">
             <dt>

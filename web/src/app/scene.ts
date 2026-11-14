@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import type { FreeSpace } from "./mission/free-space";
 import type { CameraViewId } from "./mission/views";
 import type { Scenario } from "./panel";
@@ -6,11 +7,12 @@ export type { FreeSpace, Rect } from "./mission/free-space";
 export type { CameraViewId } from "./mission/views";
 
 /**
- * How the scene is doing, reported once it knows:
+ * How the scene is doing, reported once it knows, and again if that changes:
  *
- * - "ready": it draws, and its first camera flight was fast enough.
- * - "slow": the first flight's median frame was over the threshold in
- *   docs/features/system-view.md ("When 3D does not run").
+ * - "ready": it draws (reported when its first camera flight lands).
+ * - "slow": it is still too slow on its lowest quality stage: the median of its flight
+ *   frames was over the threshold in docs/features/system-view.md ("Performance" and "When
+ *   3D does not run"). It may come later than "ready", after the scene has stepped down.
  * - "no-webgl": WebGL could not start.
  *
  * On "no-webgl", or "slow" before "Try 3D anyway", the shell sets `mode` to "flat" and, for
@@ -57,7 +59,7 @@ export type SceneMode = "3d" | "flat";
  * (DESIGN.md, "The scene").
  */
 export type SceneProps = {
-  /** The camera view to fly to. The windows (Slip Planner, Compare) never move the camera. */
+  /** The camera view to fly to. The window (Compare) never moves the camera. */
   view: CameraViewId;
   /**
    * The scenario: profile, selected sites, focused site, landing date and the current time.
@@ -94,4 +96,55 @@ export type SceneProps = {
   mode: SceneMode;
   /** Optional: a camera flight has landed (see `SceneArrival`). */
   onArrive?: (arrival: SceneArrival) => void;
+  /**
+   * Optional: the scene hands over its projector while it draws in 3D, and null when it stops.
+   * The Slip Planner's spots (docs/features/slip-planner.md, "Spots") use it to sit on their
+   * sites, drawn by the shell over the scene, as the pins are.
+   */
+  onProjector?: (projector: SceneProjector | null) => void;
+  /**
+   * Optional: in the Slip Planner, shade the polar cap by NASA's average sunlight over 18.6
+   * years (slip-planner.md, "Honesty"). Context only: it never decides a result.
+   */
+  slipShading?: boolean;
+};
+
+/** Where a place on the Moon is on screen now, in CSS pixels from the window's top left. */
+export type ScreenPoint = {
+  x: number;
+  y: number;
+  /** False when the point is behind the camera or on the Moon's far side. */
+  visible: boolean;
+};
+
+/**
+ * Projects sites onto the screen with the scene's current camera. `subscribe` calls back
+ * after every drawn frame, so whatever sits on a site can follow the camera without React.
+ */
+export type SceneProjector = {
+  project: (latDeg: number, lonDeg: number) => ScreenPoint;
+  subscribe: (onFrame: () => void) => () => void;
+};
+
+/**
+ * What a flat layer over the scene gets: the scene's props, how the scene draws (`mode`), and
+ * the last flight's arrival (null before the first one lands).
+ */
+export type FlatLayerProps = Omit<SceneProps, "onStatus" | "ignoreSlow" | "onArrive"> & {
+  arrival: SceneArrival | null;
+  /** True when 3D is off only because it was slow, so "Try 3D anyway" can help. */
+  canTryAgain: boolean;
+  /** "Try 3D anyway", as on the still picture. */
+  onTryAgain: () => void;
+};
+
+/**
+ * A 2D layer the shell draws over the scene for some camera views, such as the Polar map's
+ * flat map (work package T7). It needs no WebGL, so for its `views` the shell never puts the
+ * still picture up, in flat mode too: it counts them as views that can be drawn flat, together
+ * with the scene's own `SceneReport.flatViews`.
+ */
+export type FlatLayer = {
+  views: readonly CameraViewId[];
+  Layer: ComponentType<FlatLayerProps>;
 };

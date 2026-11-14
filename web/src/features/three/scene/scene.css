@@ -9,6 +9,9 @@
     inset: 0;
     overflow: hidden;
     touch-action: none;
+    /* A double-click centres a spot or levels the view; it never selects text. */
+    user-select: none;
+    -webkit-user-select: none;
     background: var(--space);
     outline: none;
   }
@@ -130,6 +133,11 @@
 
   .scene-anchor-foot {
     transform: translate(-50%, -100%);
+    /* The decoration plate above the view's controls, both centred. */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--s1);
   }
 
   .scene-plate-stack {
@@ -156,9 +164,31 @@
     text-wrap: balance;
   }
 
+  /* In the stack a plate is an ordinary flex item: shell.css's absolute position and
+     translate would centre it twice, and stacked plates would overlap. */
+  .scene-plate-stack > .scene-plate-top {
+    position: relative;
+    transform: none;
+    /* The free space's width limit, passed down from the anchor through the stack. */
+    max-width: inherit;
+  }
+
   .scene-plate-top p {
     margin: 0;
     color: var(--ink);
+  }
+
+  /* A plate with a second line stacks its lines; the note's measure sets the plate's width. */
+  .scene-plate-top:has(.scene-plate-note) {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 2px;
+  }
+
+  .scene-plate-top .scene-plate-note {
+    max-width: 58ch;
+    color: var(--ink-2);
+    font-size: var(--t-sm);
   }
 
   .scene-plate-interactive {

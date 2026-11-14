@@ -21,6 +21,9 @@ import {
   type FetchLike,
 } from "../data/load.ts";
 import { isRecord } from "../data/parse.ts";
+import { isCustomSiteId } from "../data/paths.ts";
+import { forgetScoringSite } from "../lib/scoring/cache.ts";
+import { customSitesStore } from "./custom-sites.ts";
 
 export type ResourceStatus = "loading" | "ready" | "error";
 
@@ -34,6 +37,8 @@ export type DataState = {
   entries: Record<string, ResourceEntry>;
   ensure: (key: string) => Promise<unknown>;
   dropSite: (siteId: string) => void;
+  /** Drop everything held for one site, its meta included, and ignore loads still running. */
+  forgetSite: (siteId: string) => void;
 };
 
 export type DataStore = StoreApi<DataState>;
@@ -105,7 +110,13 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export function createDataStore(fetchImpl: FetchLike = defaultFetch): DataStore {
+/**
+ * Waits until a custom site's files exist on the server. Without it, a custom id's files are
+ * asked for at once (and a site still computing would read as missing).
+ */
+export type CustomSiteGate = (siteId: string) => Promise<void>;
+
+export function createDataStore(fetchImpl: FetchLike = defaultFetch, customGate?: CustomSiteGate): DataStore {
   const inflight = new Map<string, Promise<unknown>>();
   const generations = new Map<string, number>();
 
@@ -196,6 +207,8 @@ export function createDataStore(fetchImpl: FetchLike = defaultFetch): DataStore 
     }
 
     async function resolveSite(kind: string, siteId: string): Promise<unknown> {
+      // A custom site's files exist only once its job is ready: wait for it, never 404.
+      if (customGate && isCustomSiteId(siteId)) await customGate(siteId);
       if (kind === "meta") return loadSiteMeta(siteId, fetchImpl);
       if (kind === "terrain") {
         const meta = asSiteMeta(await ensure(metaKey(siteId)));
@@ -219,8 +232,15 @@ export function createDataStore(fetchImpl: FetchLike = defaultFetch): DataStore 
       throw new Error(`unknown data key ${kind}:${siteId}`);
     }
 
+    function forgetSite(siteId: string): void {
+      dropKeys([metaKey(siteId), ...LARGE_KINDS.map((kind) => `${kind}:${siteId}`)]);
+    }
+
     function dropSite(siteId: string): void {
-      const keys = LARGE_KINDS.map((kind) => `${kind}:${siteId}`);
+      dropKeys(LARGE_KINDS.map((kind) => `${kind}:${siteId}`));
+    }
+
+    function dropKeys(keys: string[]): void {
       for (const key of keys) {
         generations.set(key, (generations.get(key) ?? 0) + 1);
         inflight.delete(key);
@@ -232,8 +252,14 @@ export function createDataStore(fetchImpl: FetchLike = defaultFetch): DataStore 
       });
     }
 
-    return { entries: {}, ensure, dropSite };
+    return { entries: {}, ensure, dropSite, forgetSite };
   });
 }
 
-export const dataStore = createDataStore();
+export const dataStore = createDataStore(defaultFetch, (siteId) => customSitesStore.getState().whenReady(siteId));
+
+// A removed, failed or suspended custom site leaves nothing behind: no files, no scores.
+customSitesStore.onRelease((siteId) => {
+  dataStore.getState().forgetSite(siteId);
+  forgetScoringSite(siteId);
+});

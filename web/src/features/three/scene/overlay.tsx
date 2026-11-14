@@ -9,7 +9,7 @@ import type { MissionProfile, Site } from "../../../contracts/generated";
 import { surfacePointScene } from "../../../lib/geo";
 import { useEvaluation } from "../../../lib/scoring";
 import { groupPins, moreSitesLine, type ScreenPin } from "./pins";
-import type { Plate } from "./plates";
+import { visiblePlates, type Plate } from "./plates";
 import { bodyLabel, sightGood, sightLabel, type SightState } from "./sight";
 import type { Anchors, WorldSite } from "./world";
 
@@ -26,7 +26,16 @@ export type LookToward = "earth" | "sun";
 
 export type OverlayBus = {
   overlay: ((anchors: Anchors, camera: THREE.PerspectiveCamera, size: { width: number; height: number }) => void) | null;
-  controls: { beginDrag: () => void; orbit: (dx: number, dy: number) => void; zoom: (factor: number) => void } | null;
+  controls: {
+    beginDrag: () => void;
+    orbit: (dx: number, dy: number) => void;
+    /** Slides the view; false in a view with no pan. */
+    pan: (dx: number, dy: number) => boolean;
+    /** `ndc`: the pointer in normalised device coordinates, kept fixed on screen. */
+    zoom: (factor: number, ndc?: { x: number; y: number } | null) => void;
+    /** Centres and moves in on the spot under `ndc`; false when it is off the Moon. */
+    focusOn: (ndc: { x: number; y: number }) => boolean;
+  } | null;
 };
 
 type SightInfo = {
@@ -147,7 +156,8 @@ export function Overlay(props: OverlayProps) {
         for (let pass = 0; pass < 4; pass += 1) {
           const hit = placed.find((r) => lx < r.x + r.w && lx + w > r.x && ly < r.y + r.h && ly + h > r.y);
           if (!hit) break;
-          ly = hit.y + hit.h + 4;
+          // Below the label in the way, or above it when there is no room below.
+          ly = hit.y + hit.h + 4 + h <= bottom ? hit.y + hit.h + 4 : Math.max(top, hit.y - h - 4);
         }
         ly = Math.min(ly, bottom - h);
         lx = Math.min(Math.max(lx, left), right - w);
@@ -280,21 +290,30 @@ export function Overlay(props: OverlayProps) {
   const fsStyleTop = { left: freeSpace.x + freeSpace.width / 2, top: freeSpace.y + 8, maxWidth: Math.min(room, 640) };
   const fsStyleFoot = { left: freeSpace.x + freeSpace.width / 2, top: freeSpace.y + freeSpace.height - 8, ...fit };
   const small = tooSmall(freeSpace) || freeSpace.windowOpen;
-  const topPlates =
-    props.plates.length > 0 ? (
+  // A plate placed at the foot sits above the view's controls, so it never covers the sky,
+  // where Lander's eye centres Earth and the Sun.
+  const plateStack = (plates: readonly Plate[]) =>
+    plates.length > 0 ? (
       <div className="scene-plate-stack">
-        {props.plates.map((plate) => (
+        {plates.map((plate) => (
           <div
             key={plate.id}
             className={plate.action ? "plate scene-plate scene-plate-top scene-plate-interactive" : "plate scene-plate scene-plate-top"}
             role={plate.status ? "status" : undefined}
           >
             <p>{plate.text}</p>
+            {plate.note ? <p className="scene-plate-note">{plate.note}</p> : null}
             {plate.action === "show-system" ? <Button onClick={() => props.onViewChange("system")}>Show it in the System view</Button> : null}
           </div>
         ))}
       </div>
     ) : null;
+  // The decoration plate is never hidden with the rest (plates.ts, visiblePlates): in a tight
+  // space or beside an open window it shortens to one line, and where not even that fits, the
+  // scene draws the ground without shadows or texture instead (scene-root.tsx, setDisclosed).
+  const shown = visiblePlates(props.plates, freeSpace, small);
+  const topPlates = plateStack(shown.top);
+  const footPlates = plateStack(shown.foot);
 
   const state = sight?.state ?? null;
   const focusedName = props.sites.find((s) => s.id === focusedId)?.name ?? focusedId ?? "";
@@ -360,6 +379,11 @@ export function Overlay(props: OverlayProps) {
         <span className="scene-label-main">Lander not to scale</span>
       </div>
 
+      {small && footPlates ? (
+        <div ref={footRef} className="scene-anchor scene-anchor-foot" style={fsStyleFoot}>
+          {footPlates}
+        </div>
+      ) : null}
       {small ? null : (
         <>
           {topPlates ? (
@@ -368,10 +392,16 @@ export function Overlay(props: OverlayProps) {
             </div>
           ) : null}
           <div ref={footRef} className="scene-anchor scene-anchor-foot" style={fsStyleFoot}>
+            {footPlates}
             {view === "system" ? (
               <div className="plate scene-controls scene-plate-interactive" style={fit}>
                 <SegmentedControl label="Camera" options={PRESETS.map((p) => ({ ...p, disabled: p.value === "follow_site" && !focusedId }))} value={props.preset} onChange={props.onPreset} />
-                <Button aria-pressed={trueScale} className="scene-toggle" onClick={() => props.onTrueScale(!trueScale)}>
+                <Button
+                  aria-pressed={trueScale}
+                  className="scene-toggle"
+                  onClick={() => props.onTrueScale(!trueScale)}
+                  title="Earth at its real distance and size. Off, distances are squeezed so everything fits; every direction is true either way."
+                >
                   True scale
                 </Button>
                 <Button aria-pressed={props.moon8k} className="scene-toggle" onClick={() => props.onMoon8k(!props.moon8k)} title="Loads two more images, 3 MB">

@@ -4,10 +4,12 @@ import type { DecodedApron, DecodedTerrain } from "../../../data";
 import { sceneImageUrl } from "../../../data";
 import { EARTH_RADIUS_KM, MOON_RADIUS_M, SQUEEZED_DISTANCE, SQUEEZED_SUN_RADIUS, SUN_RADIUS_KM, type ApronGrid } from "../../../lib/geo";
 import { altitudeOf, type SiteFrame } from "./camera";
-import { apronGeometry, patchGeometry, patchOutline, smoothGroundGeometry, type GroundSite } from "./ground";
+import { apronGeometry, apronUpGrid, patchGeometry, patchOutline, patchUpGrid, smoothGroundGeometry, type GroundSite } from "./ground";
+import { GroundLook } from "./ground-material";
 import { aimLander, createLander, LANDER_HEIGHT_M, partAxis, type Lander } from "./lander";
-import { earthMaterial, groundMaterial, landerMaterial, moonMaterial, solidTexture, sunMaterial } from "./materials";
-import { smooth, type V3 } from "./vec";
+import { earthMaterial, landerMaterial, moonMaterial, solidTexture, sunMaterial } from "./materials";
+import { slipGroundFade } from "./slip";
+import { slerp, smooth, type V3 } from "./vec";
 
 /**
  * Everything drawn in the one scene (docs/features/system-view.md): the Moon with its polar
@@ -98,7 +100,8 @@ export class World {
   private readonly sightGroup = new THREE.Group();
   private readonly sightLines: { sun: THREE.Line; earth: THREE.Line };
   private readonly ground = new THREE.Group();
-  private readonly groundMat;
+  /** The ground's material and its quality levels (ground-material.ts). */
+  readonly groundLook: GroundLook;
   private groundMeshes: THREE.Object3D[] = [];
   private groundFor: string | null = null;
   private readonly lander: Lander;
@@ -110,6 +113,16 @@ export class World {
   textureState: TextureState = { moon: "none", cap: false, earth: false };
   /** Draw the cap's fixed top-left lighting (the flat map's look) instead of the real Sun: 0 to 1. */
   draw = 0;
+  /**
+   * The Slip Planner (slip.ts): 0 to 1, how much the Moon is lit by `slipLight`, a fixed
+   * drawing light, instead of the real Sun. In that view Earth, the Sun, the guides, the
+   * sight-lines and the site's ground are hidden, so nothing on screen follows the date.
+   */
+  slip = 0;
+  slipLight: V3 = [0, -1, 0];
+  /** NASA's average sunlight on the cap, in the Slip Planner, when its switch is on. */
+  slipShading = false;
+  private sunlight: "none" | "loading" | "ready" | "failed" = "none";
 
   constructor(invalidate: () => void, maxAnisotropy: number) {
     this.invalidate = invalidate;
@@ -122,6 +135,7 @@ export class World {
     this.moon = moonMaterial(blank, flat, flatSlope);
     this.moonMesh = new THREE.Mesh(this.own(new THREE.SphereGeometry(1, 384, 192)), this.own(this.moon.material));
     this.moonMesh.name = "moon";
+    this.moon.uniforms.uWarm.value = new THREE.Color(css("--sun", "#ffe2a0"));
     this.root.add(this.moonMesh);
 
     this.earth = earthMaterial(blank, new THREE.Color(css("--earth", "#6cc4ff")));
@@ -175,8 +189,14 @@ export class World {
     this.sightLines = { sun: line(), earth: line() };
     this.root.add(this.sightGroup);
 
-    this.groundMat = groundMaterial(this.moon.uniforms.uMap, this.moon.uniforms.uLoaded, this.moon.uniforms.uSun, this.moon.uniforms.uNoSun);
-    this.own(this.groundMat.material);
+    const mu = this.moon.uniforms;
+    this.groundLook = this.own(
+      new GroundLook(
+        { light: mu.uSun, noLight: mu.uNoSun },
+        { map: mu.uMap, loaded: mu.uLoaded, capSlope: mu.uCapN, coreSlope: mu.uCoreN, capLoaded: mu.uCapLoaded },
+        invalidate,
+      ),
+    );
     this.ground.visible = false;
     this.root.add(this.ground);
 
@@ -367,6 +387,7 @@ export class World {
     }
     this.groundMeshes = [];
     this.groundFor = null;
+    this.groundLook.clearHeights();
   }
 
   /**
@@ -391,13 +412,20 @@ export class World {
     if (site.sphere || smooth) {
       // A sphere-tier site, or a site whose terrain file failed: the smooth Moon.
       // It sits at the site's own height, where Pip and the camera stand.
-      meshes.push(new THREE.Mesh(smoothGroundGeometry(g), this.groundMat.material));
+      meshes.push(new THREE.Mesh(smoothGroundGeometry(g), this.groundLook.material));
     } else if (terrain) {
       const patch = patchGeometry(terrain.data, terrain.size, terrain.windowKm, g);
-      meshes.push(new THREE.Mesh(patch, this.groundMat.material));
-      if (apron && apron.grid.windowM / 2_000 > terrain.windowKm / 2) {
-        meshes.push(new THREE.Mesh(apronGeometry(apron.data, apron.grid, terrain.windowKm / 2, g), this.groundMat.material));
+      meshes.push(new THREE.Mesh(patch, this.groundLook.material));
+      const withApron = Boolean(apron && apron.grid.windowM / 2_000 > terrain.windowKm / 2);
+      if (apron && withApron) {
+        meshes.push(new THREE.Mesh(apronGeometry(apron.data, apron.grid, terrain.windowKm / 2, g), this.groundLook.material));
       }
+      this.groundLook.setHeights(
+        { heights: patchUpGrid(terrain.data, terrain.size), columns: terrain.size, rows: terrain.size, halfKm: terrain.windowKm / 2 },
+        apron && withApron
+          ? { heights: apronUpGrid(apron.data, apron.grid, g), columns: apron.grid.columns, rows: apron.grid.rows, halfKm: apron.grid.windowM / 2_000 }
+          : null,
+      );
       const lift = new THREE.Vector3(...site.frame.up).multiplyScalar(4 / MOON_RADIUS_M);
       const outline = new THREE.LineLoop(
         patchOutline(patch, terrain.size, lift),
@@ -410,17 +438,44 @@ export class World {
     }
     for (const mesh of meshes) {
       mesh.frustumCulled = false;
+      if (mesh instanceof THREE.Mesh) this.groundLook.attach(mesh);
       this.ground.add(mesh);
     }
     this.groundMeshes = meshes;
     this.groundFor = key;
     this.ground.position.set(...site.frame.ground);
-    this.groundMat.uniforms.uUp.value.set(...site.frame.up);
+    this.groundLook.setFrame(site.frame);
     this.invalidate();
   }
 
   get hasGround(): boolean {
     return this.groundMeshes.length > 0;
+  }
+
+  private prepTarget: THREE.WebGLRenderTarget | null = null;
+
+  /**
+   * Draws the ground once into a 1 × 1 target, so its meshes, height textures and shader are
+   * on the GPU before the first flight into Local terrain needs them (a stall of about 375 ms
+   * on a software GPU otherwise). Nothing on screen changes.
+   */
+  prepareGround(renderer: THREE.WebGLRenderer, camera: THREE.Camera): void {
+    if (!this.hasGround) return;
+    this.prepTarget ??= this.own(new THREE.WebGLRenderTarget(1, 1));
+    const visible = this.ground.visible;
+    const fade = this.groundLook.uniforms.uFade.value;
+    const previous = renderer.getRenderTarget();
+    this.ground.visible = true;
+    this.groundLook.fade = 1;
+    this.ground.updateMatrixWorld(true);
+    // The shader as the screen draws it (three.js compiles a separate variant for a render
+    // target), then one draw off-screen to upload the meshes and height textures.
+    renderer.compile(this.ground, camera);
+    renderer.setRenderTarget(this.prepTarget);
+    renderer.render(this.ground, camera);
+    renderer.setRenderTarget(previous);
+    this.ground.visible = visible;
+    this.groundLook.fade = fade;
   }
 
   // ── Per-frame layout ────────────────────────────────────────────────────
@@ -430,6 +485,7 @@ export class World {
     this.moon.uniforms.uNoSun.value = inputs.bodies ? 0 : 1;
     this.moon.uniforms.uSun.value.set(...inputs.sunDir);
     this.earth.uniforms.uSun.value.set(...inputs.sunDir);
+    this.groundLook.setBodies(inputs.sunDir, inputs.earthDir, inputs.bodies);
     const site = inputs.site;
     if (site) {
       aimLander(
@@ -501,15 +557,25 @@ export class World {
     // Guides fade as the camera nears the ground, and stay off over the Polar map.
     const far = 1 - smooth(0.5, 0.15, alt);
     for (const { material, opacity } of this.guideMaterials) material.opacity = opacity * far;
-    this.guides.visible = far > 0.01 && inputs.view !== "map";
+    this.guides.visible = far > 0.01 && inputs.view !== "map" && inputs.view !== "slip" && this.slip < 0.5;
+    // The Slip Planner hides the bodies halfway through the flight in, and shows them again
+    // halfway through the flight out.
+    if (this.slip >= 0.5) {
+      this.earthMesh.visible = false;
+      this.sunMesh.visible = false;
+      anchors.sun = null;
+    }
     this.terminator.visible = inputs.bodies;
     this.terminator.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(...inputs.sunDir));
 
     // The ground dissolves in between 52 and 28 km altitude: only during flights, since the
     // System view's zoom stops at 60 km.
-    const groundFade = site && this.hasGround ? smooth(0.03, 0.016, alt) : 0;
+    // In the Slip Planner the ground fades out as the fixed light blends in (slip.ts), so no
+    // ground is drawn at slip = 1. It shares the Moon's light uniform (uSun, as uLight), so
+    // what still shows during a flight is lit by the same blend, never by the date's Sun alone.
+    const groundFade = site && this.hasGround ? slipGroundFade(smooth(0.03, 0.016, alt), this.slip) : 0;
     this.ground.visible = groundFade > 0.001;
-    this.groundMat.uniforms.uFade.value = groundFade;
+    this.groundLook.fade = groundFade;
     const u = this.moon.uniforms;
     if (groundFade > 0.999 && site) {
       u.uHideDir.value.set(...site.frame.up);
@@ -518,6 +584,15 @@ export class World {
       u.uHideCos.value = 2;
     }
     u.uDraw.value = this.draw;
+    u.uSlip.value = this.slip;
+    // The Slip Planner: while `slip > 0`, uSun blends to the fixed drawing light, so the ground
+    // never changes with the landing date (slip-planner.md, "Honesty"). The ground look (#91)
+    // reads this same uniform as its uLight, so the site's ground is lit by this fixed vector
+    // too, and gets the real Sun back with the Moon when the view is left.
+    if (this.slip > 0) u.uSun.value.set(...slerp(inputs.sunDir, this.slipLight, this.slip));
+    else u.uSun.value.set(...inputs.sunDir);
+    if (this.slipShading && this.sunlight === "none") this.loadSunlight();
+    u.uAvgK.value = this.slipShading && this.sunlight === "ready" ? this.slip : 0;
 
     // Pip: only near the ground, larger than life, gone as the camera drops to its eye.
     let landerScale = 0;
@@ -538,7 +613,7 @@ export class World {
 
     // Sight-lines: true directions from the site (or from Pip's panel and dish).
     const sight = inputs.sight;
-    const show = Boolean(site && sight && siteGround && inputs.view !== "map" && inputs.view !== "panorama");
+    const show = Boolean(site && sight && siteGround && inputs.view !== "map" && inputs.view !== "panorama" && inputs.view !== "slip");
     this.sightGroup.visible = show;
     if (show && site && sight && siteGround) {
       this.sightGroup.position.copy(siteGround);
@@ -573,7 +648,47 @@ export class World {
     return anchors;
   }
 
+  /** NASA's average sunlight over the cap (scene/sunlight_2k.webp), loaded the first time it is shown. */
+  private loadSunlight(): void {
+    this.sunlight = "loading";
+    void this.load("scene/sunlight_2k.webp", false, true).then((texture) => {
+      if (!texture) {
+        this.sunlight = this.disposed ? "none" : "failed";
+        return;
+      }
+      this.moon.uniforms.uAvg.value = texture;
+      this.sunlight = "ready";
+      this.invalidate();
+    });
+  }
+
+  /** True once the average-sunlight image is in, so its label can say it is drawn. */
+  get sunlightReady(): boolean {
+    return this.sunlight === "ready";
+  }
+
   /** Releases every geometry, material and texture on the GPU. */
+  /** The Moon's spheres by segment count, made when first needed (perf.ts, `moonSegments`). */
+  private readonly moonLods = new Map<number, THREE.BufferGeometry>();
+  private moonSegmentsNow = 384;
+
+  /**
+   * Level of detail: draws the Moon with `segments` around (and half as many pole to pole).
+   * Shading is per pixel from the normalised position, so this moves only the silhouette, by
+   * under a quarter of a pixel at the size the Director asks for it. 384 is the full mesh.
+   */
+  setMoonSegments(segments: number): void {
+    if (segments === this.moonSegmentsNow) return;
+    if (this.moonLods.size === 0) this.moonLods.set(this.moonSegmentsNow, this.moonMesh.geometry);
+    let geometry = this.moonLods.get(segments);
+    if (!geometry) {
+      geometry = this.own(new THREE.SphereGeometry(1, segments, segments / 2));
+      this.moonLods.set(segments, geometry);
+    }
+    this.moonMesh.geometry = geometry;
+    this.moonSegmentsNow = segments;
+  }
+
   dispose(): void {
     this.disposed = true;
     this.clearGround();

@@ -96,6 +96,14 @@ export function clearScoringCache(): void {
   sweepCache.clear();
 }
 
+/** Drops every cached result of one site: for a custom site that was removed. */
+export function forgetScoringSite(siteId: string): void {
+  const prefix = JSON.stringify([siteId]).slice(0, -1) + ",";
+  for (const cache of [flagsCache, evaluationCache, countdownCache, sweepCache] as Map<string, unknown>[]) {
+    for (const key of [...cache.keys()]) if (key.startsWith(prefix)) cache.delete(key);
+  }
+}
+
 export function scoringCacheSizes(): {
   flags: number;
   sweeps: number;
