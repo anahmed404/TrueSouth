@@ -795,6 +795,33 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-14 · MC9c · Compare two sites at two landing dates
+- **Who:** Claude Code agent, for the orchestrator, from a tester's request
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (a second mode
+  in the approved C2 Compare window, no new colours) — wrote the spec section, the "Sites and
+  dates" mode (`dates.ts`, `dates-view.tsx`, `mode-switch.tsx`, `picks-store.ts`,
+  `probe.tsx`), the dates CSV and JSON exports, the `cmp` share parameter, the shared
+  `LandingDateFields` and `clampLanding`, and 41 vitest tests (32 rule tests; 7 mounted on
+  the shared fixture, comparing each column with the scoring engine and the Slip Planner's
+  sweep for every preset) — checked by the agent with the vitest suite, typecheck and the
+  build, and by eye at 1440 × 900, 1024 × 768 and 390 × 844 (default picks, one site at two
+  dates, the pickers open, "Use this date", a copied link reopened in a fresh browser); a
+  human has not reviewed it yet
+- **State:** built, not verified
+- **Changed:** `web/src/features/mission-control/compare/` (the new mode, its tests; the
+  table takes an optional head, last row and best column; columns have a key and a date),
+  `web/src/features/mission-control/share/share-link.ts` (adds `cmp` while the mode shows),
+  `web/src/app/mission/landing-date-control.tsx` (the form's date and hour fields are now
+  `LandingDateFields`, used by the strip's form unchanged and by Compare's pickers),
+  `web/src/app/mission/landing-control.ts` (`clampLanding`), `docs/features/compare.md`,
+  `docs/features/mission-control.md`, `docs/design/c2/built-compare-dates-*.png`, this entry
+- **Notes:**
+  - Labels: "Sites" (unchanged, the default) and "Sites and dates".
+  - The best column: GO beats CAUTION beats NO-GO, then the higher printed score; ties all
+    marked; none when every column is NO-GO, all four tie, or one is loading.
+  - The share link carries the picks only through the Share button: the address bar is the
+    scenario's, and the scenario store was left as it is. `docs/data-contracts.md`, which
+    lists the link's parameters, does not list `cmp` yet (not this track's file).
 #### 2026-11-14 · MC rail overlays · Popovers and hover cards leave the rail (the black box)
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — portalled `Popover` and `Tip` to the page's
