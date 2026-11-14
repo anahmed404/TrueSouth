@@ -13,14 +13,17 @@ import { FIXTURE_TIME_GRID, hourOnGrid } from "./utc";
  * where the Sun or Earth is (docs/decisions/0002-scoring-in-browser.md).
  */
 
+/** The story month: 720 stored hours from the story landing hour (docs/academy/lessons.md, "Time spans"). */
+export const STORY_MONTH_HOURS = 720;
+
 /** An inclusive span of hour indexes on the time grid. */
 export type HourRange = { fromIndex: number; toIndex: number };
 
 /**
  * The hours a drag-body step drags through.
  * - `utc`: the two instants, inclusive.
- * - `span` `one-month`: the story month, the 720 stored hours from `story.landing_utc` up to
- *   `story.month_end_utc`, exclusive (docs/academy/lessons.md, "Time spans"). `aroundUtc`
+ * - `span` `one-month`: the story month, the 720 stored hours from `story.landing_utc`
+ *   (docs/academy/lessons.md, "Time spans"). `aroundUtc`
  *   must fall inside it; a lesson that names an hour outside the story month is an error.
  * - `hours`: `halfHours` on either side of `aroundUtc`, clamped to the grid.
  * Returns the missing keys while a placeholder has no value, and null for a range that is
@@ -38,17 +41,18 @@ export function resolveTimeRange(
     if (from === null || to === null || to < from) return null;
     return { fromIndex: from, toIndex: to };
   }
+  // The story month is the 720 stored hours from the story landing hour (lessons.md, "Time
+  // spans"); `story.month_end_utc` is that month's exclusive end, so it is not needed here.
+  // (The synthetic fixture gives it the landing's own value; the 720-hour rule still holds.)
   const around = resolveValue(range.aroundUtc, examples);
   const start = resolveValue("{{example.story.landing_utc}}", examples);
-  const end = resolveValue("{{example.story.month_end_utc}}", examples);
-  const missing = [...around.missing, ...start.missing, ...end.missing];
+  const missing = [...around.missing, ...start.missing];
   if (missing.length) return { missing };
-  if (typeof around.value !== "string" || typeof start.value !== "string" || typeof end.value !== "string") return null;
+  if (typeof around.value !== "string" || typeof start.value !== "string") return null;
   const centre = hourOnGrid(grid, around.value);
   const from = hourOnGrid(grid, start.value);
-  const endIndex = hourOnGrid(grid, end.value);
-  if (centre === null || from === null || endIndex === null || endIndex <= from) return null;
-  const to = endIndex - 1;
+  if (centre === null || from === null) return null;
+  const to = Math.min(grid.count - 1, from + STORY_MONTH_HOURS - 1);
   if (centre < from || centre > to) return null;
   return { fromIndex: from, toIndex: to };
 }

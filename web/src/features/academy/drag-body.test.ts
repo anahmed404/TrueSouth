@@ -77,7 +77,7 @@ describe("the drag's time range", () => {
 
   it("reports a missing key, and refuses a month that does not hold its hour", () => {
     expect(resolveTimeRange({ kind: "span", span: "one-month", aroundUtc: "{{example.l1.example_utc}}" }, {}, realGrid)).toEqual({
-      missing: ["l1.example_utc", "story.landing_utc", "story.month_end_utc"],
+      missing: ["l1.example_utc", "story.landing_utc"],
     });
     expect(resolveTimeRange({ kind: "span", span: "one-month", aroundUtc: "2028-06-01T00:00:00Z" }, realExamples, realGrid)).toBeNull();
   });

@@ -60,7 +60,7 @@ export const lesson4 = {
       reveal: {
         kind: "panel",
         panel: "Timeline",
-        caption: "The timeline's Earth band for the month: Earth is above Pip's horizon about {{example.l4.earth_up_pct}}% of the time.",
+        caption: "The month as bands, like the timeline's. The Earth band marks the hours when some of Earth's disc is above Pip's skyline: about {{example.l4.earth_up_pct}}% of them.",
         scene: null,
         when: { kind: "band", band: "earth" },
       },

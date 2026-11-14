@@ -2714,3 +2714,231 @@ button.ac-prog-mark[data-state="current"]:hover i {
     animation: none;
   }
 }
+
+/* ── Lessons' panels: the real Mission Control panel in a lesson (work package A4b) ── */
+
+/* A prediction answered on a panel: the panel takes the stage. */
+.ac-reveal-panel {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-block: auto;
+}
+
+.ac-mcbox {
+  width: min(100%, 560px);
+  margin: 0;
+}
+
+.ac-mcbox-h {
+  justify-content: space-between;
+}
+
+.ac-mcbox-meta {
+  font-weight: 400;
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ac-mcbox-real {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ac-mcbox-chart {
+  position: relative;
+  width: 100%;
+}
+
+.ac-mcbox-read {
+  margin: 0;
+  font-size: var(--t-md);
+  color: var(--ink-2);
+}
+
+.ac-mcbox-note {
+  margin: 0;
+  padding: 24px 12px;
+  text-align: center;
+  font-size: var(--t-md);
+  color: var(--ink-2);
+  background: var(--plot);
+  border-radius: var(--r-sm);
+}
+
+/* System view: the Moon from below its south pole, the Sun's direction round the ring. */
+.ac-system {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.ac-system svg {
+  width: 220px;
+  height: 220px;
+  flex: none;
+  background: var(--plot);
+  border-radius: var(--r-sm);
+}
+
+.ac-system-ring {
+  fill: none;
+  stroke: var(--line-strong);
+}
+
+.ac-system-tick {
+  fill: var(--ink-3);
+  font-size: var(--t-xs);
+}
+
+.ac-system-moon {
+  fill: var(--raised);
+  stroke: var(--terrain-rim);
+}
+
+.ac-system-pip {
+  fill: var(--accent);
+}
+
+.ac-system-sun-trace {
+  fill: none;
+  stroke: var(--sun);
+  stroke-width: 2;
+  stroke-opacity: 0.55;
+}
+
+.ac-system-sun-ray {
+  stroke: var(--sun);
+  stroke-dasharray: 2 4;
+  stroke-opacity: 0.7;
+}
+
+.ac-system-sun {
+  fill: var(--sun-core);
+}
+
+.ac-system-earth {
+  fill: var(--earth-core);
+}
+
+.ac-system-earth-trace {
+  fill: var(--earth);
+  opacity: 0.5;
+}
+
+.ac-system-side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ac-system-side p {
+  margin: 0;
+  font-size: var(--t-md);
+  color: var(--ink-2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ac-system-side .ac-system-when {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.ac-system-side .ac-system-note {
+  font-size: var(--t-sm);
+  color: var(--ink-3);
+}
+
+.ac-system-key {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.ac-system-key--sun {
+  background: var(--sun-core);
+}
+
+.ac-system-key--earth {
+  background: var(--earth-core);
+}
+
+/* Timeline: the month's Sun and Earth bands. */
+.ac-bands {
+  width: 100%;
+}
+
+.ac-bands svg {
+  display: block;
+}
+
+.ac-bands-label {
+  fill: var(--ink-2);
+  font-size: var(--t-sm);
+}
+
+.ac-bands-tick {
+  fill: var(--ink-3);
+  font-size: var(--t-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.ac-bands-well {
+  fill: var(--plot);
+}
+
+.ac-bands-sun {
+  fill: var(--sun);
+}
+
+.ac-bands-earth {
+  fill: var(--earth);
+}
+
+/* The lesson-complete screen: the panels the lesson unlocked, above what they are. */
+.ac-built:has(.ac-mcbox) {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.ac-built .ac-built-art:has(.ac-mcbox) {
+  width: 100%;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .ac-stage.ac-stage--reveal {
+    height: auto;
+    padding: 12px 12px 28px;
+  }
+
+  .ac-system {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ac-system svg {
+    width: 100%;
+    max-width: 240px;
+    height: auto;
+    aspect-ratio: 1;
+    align-self: center;
+  }
+}
