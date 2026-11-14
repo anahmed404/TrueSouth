@@ -55,6 +55,7 @@ export type WorldInputs = {
 /** Pip is drawn this many times larger than life in Local terrain, and a plate says so. */
 export const LANDER_SCALE = 300;
 /** The globe hides its pixels under the apron, within 140 km of the site, once the ground is in. */
+// The ground covers the band beyond this too; its edge sits below the globe there (ground.ts, APRON_EDGE_DROP_M).
 const HIDE_RADIUS = 140_000 / MOON_RADIUS_M;
 
 export type Anchors = {
@@ -432,7 +433,7 @@ export class World {
       meshes.push(new THREE.Mesh(patch, this.groundLook.material));
       const withApron = Boolean(apron && apron.grid.windowM / 2_000 > terrain.windowKm / 2);
       if (apron && withApron) {
-        meshes.push(new THREE.Mesh(apronGeometry(apron.data, apron.grid, terrain.windowKm / 2, g, patchRim(terrain.data, terrain.size, terrain.windowKm)), this.groundLook.material));
+        meshes.push(new THREE.Mesh(apronGeometry(apron.data, apron.grid, terrain.windowKm / 2, g, patchRim(terrain.data, terrain.size, terrain.windowKm, patch)), this.groundLook.material));
       }
       this.groundLook.setHeights(
         { heights: patchUpGrid(terrain.data, terrain.size), columns: terrain.size, rows: terrain.size, halfKm: terrain.windowKm / 2 },

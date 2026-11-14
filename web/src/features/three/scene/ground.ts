@@ -140,17 +140,25 @@ function patchPoint(terrain: DecodedTerrain, size: number, windowKm: number): (r
   };
 }
 
-/** The patch's rim: its edge points, clockwise from the north-west corner, exactly as drawn. */
-export type PatchRim = { points: LocalKm[]; halfKm: number };
+/**
+ * The patch's rim: its edge points, clockwise from the north-west corner, exactly as drawn,
+ * and (given the patch's geometry) its normals there, so the join is shaded like the patch.
+ */
+export type PatchRim = { points: LocalKm[]; halfKm: number; normals?: [number, number, number][] };
 
-export function patchRim(terrain: DecodedTerrain, size: number, windowKm: number): PatchRim {
+export function patchRim(terrain: DecodedTerrain, size: number, windowKm: number, patch?: THREE.BufferGeometry): PatchRim {
   const point = patchPoint(terrain, size, windowKm);
-  const points: LocalKm[] = [];
-  for (let c = 0; c < size - 1; c += 1) points.push(point(0, c));
-  for (let r = 0; r < size - 1; r += 1) points.push(point(r, size - 1));
-  for (let c = size - 1; c > 0; c -= 1) points.push(point(size - 1, c));
-  for (let r = size - 1; r > 0; r -= 1) points.push(point(r, 0));
-  return { points, halfKm: windowKm / 2 };
+  const indices: [number, number][] = [];
+  for (let c = 0; c < size - 1; c += 1) indices.push([0, c]);
+  for (let r = 0; r < size - 1; r += 1) indices.push([r, size - 1]);
+  for (let c = size - 1; c > 0; c -= 1) indices.push([size - 1, c]);
+  for (let r = size - 1; r > 0; r -= 1) indices.push([r, 0]);
+  const normal = patch?.getAttribute("normal");
+  return {
+    points: indices.map(([r, c]) => point(r, c)),
+    halfKm: windowKm / 2,
+    normals: normal ? indices.map(([r, c]) => [normal.getX(r * size + c), normal.getY(r * size + c), normal.getZ(r * size + c)]) : undefined,
+  };
 }
 
 /**
@@ -161,8 +169,25 @@ export function patchRim(terrain: DecodedTerrain, size: number, windowKm: number
 function apronDrawnHeightM(apron: DecodedApron, grid: ApronGrid, row: number, column: number, site: GroundSite): number {
   const halfM = grid.windowM / 2;
   const { eastM, northM } = apronCellOffsetM(row, column, grid);
-  const edge = Math.max(Math.abs(eastM), Math.abs(northM)) / halfM;
-  return finite(apron.heights[row * grid.columns + column], site.groundHeightM) * (1 - smooth(0.8, 0.98, edge));
+  const ease = apronEdgeEase(Math.max(Math.abs(eastM), Math.abs(northM)) / halfM);
+  return finite(apron.heights[row * grid.columns + column], site.groundHeightM) * (1 - ease) + APRON_EDGE_DROP_M * ease;
+}
+
+/**
+ * Where the ground's outer edge meets the globe. The globe is drawn again beyond 140 km of the
+ * site (world.ts, HIDE_RADIUS), while the apron (and a sphere-tier site's smooth ground) runs
+ * to 150 km on each axis and 212 km at its corners, so both surfaces cover that band. The
+ * apron eases from 80 % to 98 % of its half-width to `APRON_EDGE_DROP_M`, below the reference
+ * sphere and below the globe's own triangles, which lie up to `GLOBE_SAG_M` (116.3 m) inside the sphere
+ * (384 × 192 segments). The globe is then in front by tens of metres, far more than the depth
+ * buffer's step there (about 1 m), so the two never fight. Drawing only.
+ */
+export const APRON_EDGE_DROP_M = -150;
+export const GLOBE_SAG_M = 117;
+
+/** 0 inside 80 % of the half-width, 1 from 98 %, smooth between. */
+export function apronEdgeEase(edge: number): number {
+  return smooth(0.8, 0.98, edge);
 }
 
 /**
@@ -217,7 +242,7 @@ export function apronGeometry(apron: DecodedApron, grid: ApronGrid, patchHalfKm:
   const stitch = rim && grid.rows === grid.columns && grid.columns % 2 === 1 ? rimStitch(grid, stepKm, rim, pointAt) : null;
   const ringKm = stitch?.ringKm ?? 0;
   const outsideRing = (east: number, north: number) => Math.max(Math.abs(east), Math.abs(north)) >= ringKm - 1e-6;
-  return gridGeometry(
+  const geometry = gridGeometry(
     { rows: grid.rows, columns: grid.columns },
     site,
     pointAt,
@@ -235,6 +260,14 @@ export function apronGeometry(apron: DecodedApron, grid: ApronGrid, patchHalfKm:
     },
     stitch ? { points: rim!.points, triangles: stitch.triangles } : undefined,
   );
+  // The apron's copies of the rim take the patch's own normals there: no shading seam.
+  if (stitch && rim?.normals) {
+    const normal = geometry.getAttribute("normal");
+    const base = grid.rows * grid.columns;
+    rim.normals.forEach(([x, y, z], i) => normal.setXYZ(base + i, x, y, z));
+    normal.needsUpdate = true;
+  }
+  return geometry;
 }
 
 /**
@@ -295,7 +328,11 @@ export function smoothGroundGeometry(site: GroundSite): THREE.BufferGeometry {
   return gridGeometry(
     { rows: grid.rows, columns: grid.columns },
     site,
-    (row, column) => apronCellLocalKm(row, column, 0, site.groundHeightM, grid),
+    (row, column) => {
+      const { eastM, northM } = apronCellOffsetM(row, column, grid);
+      const ease = apronEdgeEase(Math.max(Math.abs(eastM), Math.abs(northM)) / (grid.windowM / 2));
+      return apronCellLocalKm(row, column, APRON_EDGE_DROP_M * ease, site.groundHeightM, grid);
+    },
     () => true,
   );
 }

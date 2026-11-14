@@ -163,14 +163,17 @@ export async function readGlobalHeights(platform: HeightsPlatform = browserPlatf
   const response = await platform.fetch(sceneImageUrl("scene/moon_height_1440.png"));
   if (!response.ok) throw new Error("the global height map could not be fetched");
   const image = await platform.decode(await response.blob());
-  const context = platform.canvas(image.width, image.height);
+  // Read the size first: a closed ImageBitmap reports 0 × 0.
+  const { width, height } = image;
+  const context = platform.canvas(width, height);
   if (!context) throw new Error("this browser cannot read image pixels");
   context.drawImage(image, 0, 0);
-  const rgba = context.getImageData(0, 0, image.width, image.height).data;
-  const values = new Uint8Array(image.width * image.height);
-  for (let k = 0; k < values.length; k += 1) values[k] = rgba[k * 4]!;
+  const rgba = context.getImageData(0, 0, width, height).data;
   image.close?.();
-  return { width: image.width, height: image.height, values };
+  if (width <= 0 || height <= 0 || rgba.length < width * height * 4) throw new Error("the global height map is empty");
+  const values = new Uint8Array(width * height);
+  for (let k = 0; k < values.length; k += 1) values[k] = rgba[k * 4]!;
+  return { width, height, values };
 }
 
 type HeightsState = { status: SurroundingsStatus; heights: GlobalHeights | null };

@@ -1,6 +1,7 @@
+import type * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { apronCellLocalKm, localKmToSceneOffset, MOON_RADIUS_M } from "../../../lib/geo";
-import { apronGeometry, apronUpGrid, gridIndex, patchUpGrid, type GroundLod } from "./ground";
+import { apronCellLocalKm, localKmToSceneOffset, MOON_RADIUS_M, siteGroundScene } from "../../../lib/geo";
+import { APRON_EDGE_DROP_M, apronGeometry, apronUpGrid, GLOBE_SAG_M, gridIndex, patchUpGrid, smoothGroundGeometry, type GroundLod } from "./ground";
 
 const site = { latDeg: -89.4555, lonDeg: 222.6192, groundHeightM: 1_000 };
 const grid = { rows: 161, columns: 161, windowM: 300_000 };
@@ -57,8 +58,8 @@ describe("what the shadow march and the near-ground texture read", () => {
     // Outside the patch: the drawn vertex. Under it: the true height, 30 m above the drawn vertex.
     expect(heights[80 * 161 + 100]).toBeCloseTo(local.getZ(80 * 161 + 100), 6);
     expect(heights[80 * 161 + 85]! - local.getZ(80 * 161 + 85)).toBeCloseTo(0.03, 6);
-    // The outer edge eases down to the reference sphere, as drawn.
-    const edge = apronCellLocalKm(0, 80, 0, 1_000, grid).upKm;
+    // The outer edge eases down below the reference sphere, as drawn (APRON_EDGE_DROP_M).
+    const edge = apronCellLocalKm(0, 80, APRON_EDGE_DROP_M, 1_000, grid).upKm;
     expect(heights[80]).toBeCloseTo(edge, 6);
     geometry.dispose();
   });
@@ -100,5 +101,35 @@ describe("the ground's coarser mesh levels, for a moving camera", () => {
       expect(inside).toBe(false);
     }
     geometry.dispose();
+  });
+});
+
+describe("where the ground's outer edge meets the globe", () => {
+  it("ends below the globe's own triangles, by far more than the depth buffer's step", () => {
+    // The globe is a 384 × 192 sphere: its triangles lie at most R (1 − cos(√2 π / 384)) inside it.
+    const sag = MOON_RADIUS_M * (1 - Math.cos((Math.SQRT2 * Math.PI) / 384));
+    expect(sag).toBeLessThanOrEqual(GLOBE_SAG_M);
+    expect(sag).toBeGreaterThan(GLOBE_SAG_M - 1);
+    // The logarithmic depth step at the edge (camera far 5,000 Moon radii, 24 bits):
+    // (1 + z) ln 2 log2(5,001) / 2^24 Moon radii, with z up to the far corner, 212 km.
+    const step = (1 + 212 / 1_737.4) * Math.LN2 * Math.log2(5_001) / 2 ** 24 * MOON_RADIUS_M;
+    expect(step).toBeLessThan(1.1);
+    expect(-APRON_EDGE_DROP_M - GLOBE_SAG_M).toBeGreaterThan(10 * step);
+  });
+
+  it("the apron's and the smooth ground's outer rings sit at that depth; the smooth ground's centre stays at the site", () => {
+    const site = { latDeg: -85.3, lonDeg: 31.2, groundHeightM: 0 };
+    const trueHeight = (g: THREE.BufferGeometry, k: number) => {
+      const p = g.getAttribute("position");
+      const o = siteGroundScene(site.latDeg, site.lonDeg, 0);
+      return Math.hypot(o[0] + p.getX(k), o[1] + p.getY(k), o[2] + p.getZ(k)) * MOON_RADIUS_M - MOON_RADIUS_M;
+    };
+    const apronGeo = apronGeometry({ heights: new Float64Array(161 * 161).fill(800), rows: 161, columns: 161 }, grid, 10, site);
+    for (const k of [0, 80, 161 * 80, 161 * 161 - 1]) expect(trueHeight(apronGeo, k)).toBeCloseTo(APRON_EDGE_DROP_M, 0);
+    const smoothGeo = smoothGroundGeometry(site);
+    expect(trueHeight(smoothGeo, 60 * 121 + 60)).toBeCloseTo(0, 3);
+    for (const k of [0, 60, 121 * 60, 121 * 121 - 1]) expect(trueHeight(smoothGeo, k)).toBeCloseTo(APRON_EDGE_DROP_M, 0);
+    apronGeo.dispose();
+    smoothGeo.dispose();
   });
 });

@@ -22,7 +22,7 @@ import {
 } from "./custom-apron";
 import { explanations } from "../../../lib/explain";
 import { sceneContent } from "./plates";
-import { apronGeometry, patchGeometry, smoothGroundGeometry, type GroundSite } from "./ground";
+import { APRON_EDGE_DROP_M, apronGeometry, patchGeometry, smoothGroundGeometry, type GroundSite } from "./ground";
 
 /**
  * A custom site's ground (custom-apron.ts) against the globe: the patch at the site's true
@@ -112,8 +112,8 @@ describe("a custom site's patch, placed against the globe", () => {
         }
       });
 
-      it("ends the apron on the reference sphere, where the globe is drawn (within 1 m)", () => {
-        for (const k of [0, 80, 160, 161 * 80, 161 * 161 - 1]) expect(Math.abs(trueHeight(site, apronPos, k))).toBeLessThan(1);
+      it("ends the apron just below the globe, where the globe takes over (within 1 m of APRON_EDGE_DROP_M)", () => {
+        for (const k of [0, 80, 160, 161 * 80, 161 * 161 - 1]) expect(Math.abs(trueHeight(site, apronPos, k) - APRON_EDGE_DROP_M)).toBeLessThan(1);
       });
 
       it("joins the patch with no step or gap: the height is continuous across the patch's edge (2 m apart, within 0.5 m)", () => {
@@ -153,11 +153,13 @@ describe("a custom site's patch, placed against the globe", () => {
     });
   }
 
-  it("the sphere tier (no terrain): the smooth ground lies on the reference sphere, where the globe is", () => {
+  it("the sphere tier (no terrain): the smooth ground lies on the reference sphere, where the globe is, and its edge just below it", () => {
     const site = { latDeg: 20, lonDeg: 30, groundHeightM: 0 };
     const geometry = smoothGroundGeometry(site);
     const position = geometry.getAttribute("position");
-    for (const k of [0, 60 * 121 + 60, 121 * 121 - 1]) expect(Math.abs(trueHeight(site, position, k))).toBeLessThan(0.01);
+    expect(Math.abs(trueHeight(site, position, 60 * 121 + 60))).toBeLessThan(0.01);
+    expect(Math.abs(trueHeight(site, position, 60 * 121 + 30))).toBeLessThan(0.01);
+    for (const k of [0, 121 * 121 - 1]) expect(Math.abs(trueHeight(site, position, k) - APRON_EDGE_DROP_M)).toBeLessThan(0.01);
   });
 
   it("matches §13: a cell's local up for a true height is what trueLocalPosition gives", () => {
@@ -185,6 +187,18 @@ describe("reading the global height map: loading, ready, failed, and a retry", (
     const map = await readGlobalHeights(good);
     expect(map).toMatchObject({ width: 4, height: 2 });
     expect(map.values[7]).toBe(128);
+  });
+
+  it("keeps the map's size although the decoded image reports 0 × 0 once closed, like an ImageBitmap", async () => {
+    const bitmap = { width: 4, height: 2, close(this: { width: number; height: number }) { this.width = 0; this.height = 0; } } as unknown as { width: number; height: number } & CanvasImageSource;
+    const map = await readGlobalHeights({ ...good, decode: async () => bitmap });
+    expect(map).toMatchObject({ width: 4, height: 2 });
+    expect(Number.isFinite(globalHeightM(map, -45, 10))).toBe(true);
+  });
+
+  it("an empty image is a failure, never a map of NaN heights", async () => {
+    const empty = { width: 0, height: 0 } as unknown as { width: number; height: number } & CanvasImageSource;
+    await expect(readGlobalHeights({ ...good, decode: async () => empty })).rejects.toThrow();
   });
 
   for (const [name, platform] of [
