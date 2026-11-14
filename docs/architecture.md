@@ -258,32 +258,9 @@ pnpm --dir web dev
 
 ### Production (Docker)
 
-Build and run without startup downloads:
-
-```bash
-docker compose -p truesouth-s10b up -d --build
-docker compose -p truesouth-s10b down
-```
-
-Node 22 builds with pnpm 11.10.0, the frozen lockfile and unchanged release-age policy.
-Python 3.12 installs the API and science runtime from uv.lock. Rasterio belongs to the
-science prepare extra (and development dependencies); only prepare_map imports it.
-The final image therefore needs no rasterio or GDAL. The non-root process serves port
-8080 with committed derived data. There is no init service or startup network request.
-
-Compose mounts ./data/prepared read-only and a named custom-cache volume at
-/app/data/cache. TRUESOUTH_PREPARED_HOST selects an existing map directory;
-TRUESOUTH_IMAGE can name an isolated test image. Without the prepared mount the
-container starts, serves the catalog, and explains missing polar maps with HTTP 503.
-API overrides TRUESOUTH_PREPARED, TRUESOUTH_DERIVED, TRUESOUTH_CACHE and
-TRUESOUTH_WEB_DIST are supported. Otherwise prepared and cache follow
-TRUESOUTH_DATA_ROOT, while committed derived data stays in the checkout.
-
-/api/health is the health check: HTTP 200 means the process answered, and its status
-field describes catalog completeness. Client routes return index.html; missing data
-and unknown API URLs remain real 404s.
-
-Development does not use this image. The commands in the previous section are unchanged.
+The image serves the web app, API and committed derived data. Prepared maps are optional
+for catalog use. For deployment, TLS, renewal, resource limits and recovery, see the
+[production runbook](deploy.md).
 
 ## Frontend structure
 

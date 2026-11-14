@@ -1,0 +1,68 @@
+# Standalone production stack; intentionally does not inherit compose.yaml ports.
+name: truesouth
+services:
+  truesouth:
+    image: ${TRUESOUTH_IMAGE:-truesouth:custom}
+    build: .
+    environment:
+      TRUESOUTH_DATA_ROOT: /app/data
+      TRUESOUTH_TRUSTED_PROXIES: 10.231.174.10
+    volumes:
+      - ${TRUESOUTH_PREPARED_HOST:-./data/prepared}:/app/data/prepared:ro
+      - custom-cache:/app/data/cache
+    stop_grace_period: 90s
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    networks: [internal]
+  nginx:
+    image: nginx:1.27.5-alpine
+    environment:
+      TRUESOUTH_DOMAIN: ${TRUESOUTH_DOMAIN:?Set TRUESOUTH_DOMAIN in .env}
+    entrypoint: ["/bin/sh", "/opt/truesouth/start.sh"]
+    volumes:
+      - ./deploy/nginx:/opt/truesouth:ro
+      - acme-webroot:/var/www/acme:ro
+      - letsencrypt:/etc/letsencrypt:ro
+    ports:
+      - "18080:80"
+      - "18443:443"
+    depends_on:
+      truesouth:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/.well-known/acme-challenge/health || [ $$? -eq 8 ]"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      internal:
+        ipv4_address: 10.231.174.10
+  certbot:
+    image: certbot/certbot:v3.2.0
+    entrypoint: ["/bin/sh", "-c"]
+    command: ['trap "exit 0" TERM INT; while :; do certbot renew --webroot -w /var/www/acme; sleep 12h & wait $$!; done']
+    volumes:
+      - acme-webroot:/var/www/acme
+      - letsencrypt:/etc/letsencrypt
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 1"]
+      interval: 1m
+      timeout: 5s
+      retries: 3
+    networks: [internal]
+volumes:
+  custom-cache:
+  acme-webroot:
+  letsencrypt:
+networks:
+  internal:
+    ipam:
+      config:
+        - subnet: 10.231.174.0/24
