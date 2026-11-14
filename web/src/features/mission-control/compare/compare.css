@@ -9,39 +9,46 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: var(--s3);
+  gap: var(--s2);
   min-height: 0;
   color: var(--ink);
   font-size: var(--t-md);
   line-height: 1.4;
 }
 
-/* ── The summary sentence and the two exports ─────────────────────────────── */
-.cmp-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--s2) var(--s4);
+/* In a window, the table runs nearly to the window's foot: no empty band under the notes. */
+.floating-window-body:has(> .cmp) {
+  padding-bottom: var(--s3);
 }
 
-.cmp-summary {
-  flex: 1 1 420px;
-  max-width: 72ch;
+/* ── The landing date and the two exports: in the window's header, beside the title ── */
+.cmp-date {
   margin: 0;
-  color: var(--ink);
-  font-size: var(--t-lg);
-  line-height: 1.45;
-  text-wrap: pretty;
+  color: var(--ink-2);
+  font-size: var(--t-md);
+  white-space: nowrap;
 }
 
 .cmp-actions {
   display: flex;
   flex: none;
   gap: var(--s2);
+  margin-left: auto;
 }
 
-/* ── The table, scrolling inside the window with its first column fixed ───── */
+/* Outside a window (no header to sit in): the same items, in a row above the table. */
+.cmp-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2) var(--s3);
+}
+
+.cmp-empty {
+  margin: 0;
+  color: var(--ink-2);
+}
+
 .cmp-scroll {
   flex: 1 1 auto;
   /* Never smaller than a few rows: in a short window the window's body scrolls instead. */
@@ -90,7 +97,7 @@
 
 .cmp-table th,
 .cmp-table td {
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--line);
   font-weight: 400;
   text-align: left;
@@ -189,8 +196,14 @@
   line-height: 1.4;
 }
 
+/* The variant's line: two lines at most in a narrow column, so one site cannot make the
+   whole header row tall; the full line is in its title. */
 .cmp-meta-line {
-  display: block;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .cmp-note {
@@ -283,7 +296,7 @@
 .cmp-broken {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -297,9 +310,15 @@
 
 .cmp-broken-name {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   color: var(--ink);
+}
+
+/* The lamp sits on the rule name's first line, not between its two lines. */
+.cmp-broken-name > :first-child {
+  flex: none;
+  margin-top: 0.3em;
 }
 
 /* Bars in a row share one scale, 0 to 1. */
@@ -400,12 +419,31 @@
     min-height: 44px;
   }
 
-  .cmp-summary {
-    font-size: var(--t-md);
+  /*
+    On a phone the header is two rows: the title, the date and the close button, then the
+    exports, full width. The header slot lets its items join the header's own row.
+  */
+  .floating-window-head:has(.cmp-date) {
+    flex-wrap: wrap;
+    row-gap: var(--s2);
+  }
+
+  .floating-window-slot:has(.cmp-date) {
+    display: contents;
+  }
+
+  .floating-window-head .cmp-date {
+    flex: 1;
+  }
+
+  .floating-window-head .floating-window-close {
+    order: 1;
   }
 
   .cmp-actions {
+    order: 2;
     width: 100%;
+    margin-left: 0;
   }
 
   .cmp-actions .btn {

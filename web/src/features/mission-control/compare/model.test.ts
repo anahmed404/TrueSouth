@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import type { Manifest, MissionProfile, Site, Sites } from "../../../contracts/generated";
 import { NO_RESULT_TEXT, type SiteStatus } from "../../../app/mission/site-status";
-import { nearbyRangeText } from "./site-wording";
+import { nearbyRangeText } from "../../../app/mission/site-labels";
 import { parseCsv } from "../../../lib/export";
 import type { Evaluation, VetoId } from "../../../lib/scoring";
 import { COMPARE_CSV_HEADER, compareCsv, compareFileName, scenarioFileName, scenarioJson, type ExportScenario } from "./export";

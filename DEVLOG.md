@@ -648,6 +648,37 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-14 · MC9b · Compare: the table gets the space
+- **Who:** Claude Code agent, for the orchestrator, from the team lead's feedback
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (a refinement
+  of the approved C2 window, no redesign) — removed the window's explanation and summary
+  sentence from the screen (both kept as accessible descriptions), put the landing date and
+  the exports in a one-row header through a small header slot on `FloatingWindow`, wrote the
+  temporary fold of the bottom strip while Compare is open (`windowFoldFor`, `toggleStrip`
+  in `shell-layout.ts`), trimmed the table's vertical padding, clamped the best-lit line to
+  two lines, replaced the copied site wording with imports from `site-labels.ts`, updated the
+  specs, and wrote 10 vitest tests (9 for the fold rule; 1 for the header on the real window) —
+  checked by the agent with typecheck, the vitest suite, the build and `uv run pytest`, and
+  by eye at 1440 × 900, 1024 × 768 and 390 × 844 with one, four and eight sites, the strip
+  open before Compare opened, in a camera view and in the Slip Planner, with the strip
+  folded by the user and unfolded by hand; a human has not reviewed it yet
+- **State:** verified (reviewed by Antigravity (gemini-4-hydrogen): approve, two mutations killed; on the tree merged with main d9ea075: 438 Python tests (1 skipped), web tests, typecheck and build all exit 0)
+- **Changed:** `web/src/features/mission-control/compare/` (header items, hidden summary,
+  padding, the shared wording; `site-wording.ts` deleted),
+  `web/src/app/mission/floating-window.tsx` (an optional header slot and a hidden
+  description), `web/src/app/mission/shell-layout.ts` and `shell-layout.test.ts` (the
+  temporary fold), `web/src/app/mission-screen.tsx` (the fold wired in; Compare's
+  description hidden), `web/src/app/shell.css` (the header slot), `docs/features/compare.md`,
+  `docs/features/mission-control.md`, `docs/design/c2/built-compare-space-*.png`, this entry
+- **Notes:**
+  - Table rows fully visible with four sites, the strip open before Compare opened:
+    1440 × 900 from 2 of 9 to 5 of 9 (the table's height from 343 px to 562 px; it needs
+    781 px); 1024 × 768 from 1 of 9 to 4 of 9 (280 px to 438 px). All nine rows at 1440 × 900
+    would need about 220 px more: the rest is content (the Broken rule row wraps in 135 px
+    columns between the open side panels), not padding.
+  - The temporary fold is never saved; closing Compare returns the strip, timeline or Slip
+    Planner panel, to the same place, so the camera's free space is unchanged (checked by
+    rectangle).
 #### 2026-11-13 · MC7 · The Slip Planner, a camera view on the Moon
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (design already

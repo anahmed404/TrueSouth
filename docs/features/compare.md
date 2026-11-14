@@ -17,15 +17,27 @@ leaves the camera where it is. It follows the floating-window rules in
   window rises and fades in over 180 ms (none under "reduce motion").
 - **Size and place.** A solid panel with the popover shadow, centred, at most 1,120 px wide,
   between the view bar and the timeline. On a phone it fills the screen.
-- **Header.** The title "Compare", its one-line explanation and a close button.
-- **Body.** The summary sentence (below) with "Export CSV" and "Export JSON" beside it, then
-  the table. Built in MC9: the summary sits in the body, not the header, so the header stays
-  short and the sentence can wrap.
+- **Header, one row.** The title "Compare"; beside it the landing date and time in UTC
+  ("2028-03-01 00:00 UTC"), quiet; then "Export CSV" and "Export JSON"; then the close
+  button. Nothing else: the profile is in the app bar. On a phone the exports wrap to a
+  second row, full width. The window's one-line explanation ("Compare puts your selected
+  sites side by side, for one mission profile and landing date.") is not drawn: it is the
+  dialog's accessible description (the view bar's "About" button is for camera views only).
+- **Body.** The table, then its notes. (MC9b, asked for by the team lead: the explanation
+  and the summary sentence left the screen so the table gets the height.)
+- **Room for the table.** Opening Compare folds the bottom strip to its one row (the
+  timeline, or the Slip Planner's landing-date panel); the folded row still holds the
+  landing date, "Next GO", the play button and the countdowns. Closing Compare, by any
+  route, restores the strip as it was. If the strip was already folded, it stays folded. If
+  the user unfolds it while Compare is open, it stays unfolded and is not folded again
+  until Compare next opens. This fold is never saved: the fold the user chose is what is
+  remembered. The camera does not move: the strip is back at the same place when the window
+  closes, so the free space is what it was.
 - **Closing.** Escape, or the close button. Focus returns to the view bar button.
 - **Not modal.** `role="dialog"` with `aria-modal="false"`.
 - **What stays visible.** The scene, the app bar, the view bar, the side panels and the
-  timeline. The scrubber and the landing date keep working, and the table updates with
-  them.
+  strip (folded, see above). The scrubber and the landing date keep working, and the table
+  updates with them.
 - The view's address in the shareable link is `view=compare`.
 
 ## Layout
@@ -90,7 +102,10 @@ The site row carries the same notes as the sites rail and the focused-site panel
 
 ## A sentence that sums it up
 
-At the top of the window's body, one generated sentence states the result plainly:
+One generated sentence states the result plainly. Since MC9b it is not drawn: it is the
+table's accessible description (a visually hidden line the table names in
+`aria-describedby`, read politely when it changes), so a screen-reader user still hears the
+one-line answer. The CSV and JSON exports do not carry it.
 
 > For IM-2 Athena landing 2028-03-14 00:00 UTC, Mons Mouton is the only GO site. Connecting
 > Ridge fails on a 31 h blackout (limit 12 h).
@@ -103,8 +118,9 @@ best-lit point"), is split by semicolons.
 
 ## States
 
-- **Fewer than two sites selected.** Proposed: the table shows what there is, with a line
-  saying Compare needs two or more sites. Reason: one column compares nothing.
+- **Fewer than two sites selected.** The table shows what there is, and its notes line
+  starts "Compare needs two or more sites. Add one from the sites rail." One column
+  compares nothing. With no site, the body says so in one line.
 - **A sphere-tier site:** its Slope row says "Slope not assessed: terrain not modelled",
   and its Skyline strip is flat.
 
@@ -116,6 +132,9 @@ best-lit point"), is split by semicolons.
 - The table reads correctly at 1,120 pixels wide (the window's width) with four columns,
   scrolls sideways with eight, and scrolls on a phone with every control at least 44 px.
 - Moving the current time does not re-render the table.
+- The header is one row (title, landing date, exports, close) at 1,440 and 1,024 px wide.
+- Opening Compare with the strip open folds it, and closing restores it; the user's own
+  fold is kept and saved.
 - Opening and closing the window does not move the camera, and Escape returns focus to the
   view bar button.
 - A sunlit-peak site shows its nearby range, a best-lit variant is labelled as chosen by
