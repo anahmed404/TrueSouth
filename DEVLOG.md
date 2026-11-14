@@ -1402,17 +1402,39 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   steps in a browser at 1440 × 900 by mouse and by keyboard only, and at 390 × 844 with
   touch emulation, the failed-load fallback (series blocked) and reduced motion. No
   console errors. A human has not played them. No AI-generated images.
-- **State:** built, not verified (on the merge with main: 2,274 web tests, typecheck and
-  build pass; 425 Python tests pass, 1 skipped; not yet reviewed or played by the team lead)
-- **Changed:** `web/src/features/academy/` only (plus `docs/academy/lessons.md`,
-  `docs/academy/overview.md`, `docs/design/c2/built-lesson-steps-*.png`). Nothing in
-  `web/src/features/panorama/`: the step composes the chart's own `HorizonChart` and
-  geometry helpers, so `LandersEye` needed no new prop.
+- **State:** built, not verified (after the review fixes, on the merge with main: 2,368 web
+  tests, typecheck and build pass; 425 Python tests pass, 1 skipped; reviewed by Codex
+  with changes requested, fixed below; not yet played by the team lead)
+- **Changed:** `web/src/features/academy/` (plus `docs/academy/lessons.md`,
+  `docs/academy/overview.md`, `docs/design/c2/built-lesson-steps-*.png`) and one additive
+  change in `web/src/features/panorama/chart.tsx`: an optional `ground: "skyline" | "level"`
+  prop on `HorizonChart` (default `"skyline"`, Mission Control unchanged), with `Readout`
+  and `LEVEL_NAME` exported for tests. The step composes the chart's own `HorizonChart`, so
+  `LandersEye` is untouched.
+- **Review fixes (Codex, PR #95):**
+  1. Level ground shows nothing that depends on terrain: with `ground="level"` a day dot
+     reads the hour, azimuth and elevation (no disc fraction), the line is "Level ground,
+     0°", and the keyboard hint and announcement say so. `level-ground.test.ts` renders the
+     readout and both lessons' steps at 2028-01-18 00:00 UTC and three other hours.
+  2. The hour on screen is the hour Check judges: the body and the time bar share one drag
+     session (`drag-session.ts`), and any end of a drag (up, cancel, lost capture, window
+     blur, hidden tab) commits the hour on screen.
+  3. Lesson 2 step 4 needs a risen Sun: a value goal may carry an optional second
+     condition, `also` (drag-body only, checked by `validateLesson`). The goal is now
+     `sun_el_deg > 0` and `sun_frac < 0.5`: 20 of the 49 hours pass, 2028-01-04T02:00:00Z to
+     21:00:00Z, the example hour among them; the 9 plain-night hours before are misses
+     whose hint says the Sun must be above level. Luna's line, hint and explanation changed.
+  4. Pip's power meter follows the hour on screen live during a drag, through a small live
+     value read by the meter alone; the static-layer render test still passes.
+  5. The sketch's stroke keeps its line in a ref updated on each move and ends the same way
+     on up, cancel and lost capture; a test checks stroke, up, then Done.
+  6. "Start again" goes once the sketch is revealed, as intended: a sketch step is one
+     attempt (`overview.md`, "Game rules"), and the lesson's words promise no redraw.
 - **Notes:**
   - The real data agrees with the keys: over the story month the stored maximum Sun
     elevation reads 0.63° (`l1.sun_el_max_deg`) and Earth's 6.22° (`l4.earth_el_max_deg`),
-    minima −0.25° and −7.53°; lesson 2's 48 hours hold 29 hours with a disc fraction under
-    0.5, and the example hour's is 0. `drag-body.test.ts` checks all of this.
+    minima −0.25° and −7.53°; lesson 2's 48 hours hold 20 hours with the Sun up and a disc
+    fraction under 0.5, the example hour's 0. `drag-body.test.ts` checks all of this.
   - The series stores elevations in steps of 0.01°, so an exact `==` goal could never
     match a decoded float. Lessons 1 and 4 now carry `tolerance: 0.005` (half a step):
     exactly the hours that read as the month's highest count (test checks every hour).
