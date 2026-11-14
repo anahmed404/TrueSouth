@@ -668,7 +668,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   with typecheck, the vitest suite, the build and `uv run pytest`, and by window captures
   of its own test Chrome window (PrintWindow) before and after the fix; a human has not
   reviewed it yet
-- **State:** built, not verified (all checks exit 0: 2,490 web tests, 438 Python tests
+- **State:** verified (reviewed by Cursor (grok-4.7): approve; the box reproduced on main under software compositing (15,394 page-colour pixels), 0 on the branch, and back when only the opaque background was restored; on the tree merged with main 08d19ea: 458 Python tests (1 skipped), 2,490 web tests, typecheck and build all exit 0. Not yet confirmed on the team lead's machine, where the box also grows on hover)
   (1 skipped), typecheck, build; the box is gone here, only the team lead's laptop can
   confirm it is the same fault)
 - **Changed:** `web/src/components/Popover.tsx`, `Tip.tsx`, `components.css`, new
