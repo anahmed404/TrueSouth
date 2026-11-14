@@ -4,7 +4,7 @@ import { compareGoalValues } from "./evaluator";
 import { resolveValue, type WorkedExamples } from "./placeholders";
 import { resolveCentredHours } from "./time-range";
 import type { GoalOp, TimeRange } from "./types";
-import { FIXTURE_TIME_GRID, hourOnGrid } from "./utc";
+import { FIXTURE_TIME_GRID, hourOnGrid, parseUtcHour } from "./utc";
 
 /**
  * The drag-body step's logic, kept pure so it can be tested without a browser: which hours
@@ -22,8 +22,7 @@ export type HourRange = { fromIndex: number; toIndex: number };
 /**
  * The hours a drag-body step drags through.
  * - `utc`: the two instants, inclusive.
- * - `span` `one-month`: the story month, the 720 stored hours from `story.landing_utc`
- *   (docs/academy/lessons.md, "Time spans"). `aroundUtc`
+ * - `span` `one-month`: the story month (`storyMonth`), which must hold `aroundUtc`. `aroundUtc`
  *   must fall inside it; a lesson that names an hour outside the story month is an error.
  * - `hours`: `halfHours` on either side of `aroundUtc`, clamped to the grid.
  * Returns the missing keys while a placeholder has no value, and null for a range that is
@@ -41,20 +40,42 @@ export function resolveTimeRange(
     if (from === null || to === null || to < from) return null;
     return { fromIndex: from, toIndex: to };
   }
-  // The story month is the 720 stored hours from the story landing hour (lessons.md, "Time
-  // spans"); `story.month_end_utc` is that month's exclusive end, so it is not needed here.
-  // (The synthetic fixture gives it the landing's own value; the 720-hour rule still holds.)
   const around = resolveValue(range.aroundUtc, examples);
-  const start = resolveValue("{{example.story.landing_utc}}", examples);
-  const missing = [...around.missing, ...start.missing];
-  if (missing.length) return { missing };
-  if (typeof around.value !== "string" || typeof start.value !== "string") return null;
+  const month = storyMonth(examples, grid);
+  if ("missing" in month || around.value === null) {
+    return { missing: [...around.missing, ...("missing" in month ? month.missing : [])] };
+  }
+  if ("problem" in month || typeof around.value !== "string") return null;
   const centre = hourOnGrid(grid, around.value);
+  if (centre === null || centre < month.fromIndex || centre > month.toIndex) return null;
+  return month;
+}
+
+/**
+ * The story month (docs/academy/lessons.md, "Time spans"): the 720 stored hours from
+ * `story.landing_utc` to `story.month_end_utc`, exclusive. Both keys must agree: an end that
+ * is not exactly 720 hours after the landing, or a month that does not fit inside the time
+ * grid, is a data error, reported as a problem and never shortened or guessed.
+ */
+export function storyMonth(
+  examples: WorkedExamples,
+  grid: TimeGrid = FIXTURE_TIME_GRID,
+): HourRange | { missing: string[] } | { problem: string } {
+  const start = resolveValue("{{example.story.landing_utc}}", examples);
+  const end = resolveValue("{{example.story.month_end_utc}}", examples);
+  const missing = [...start.missing, ...end.missing];
+  if (missing.length) return { missing };
+  if (typeof start.value !== "string" || typeof end.value !== "string") return { problem: "the story month's ends are not UTC times" };
   const from = hourOnGrid(grid, start.value);
-  if (centre === null || from === null) return null;
-  const to = Math.min(grid.count - 1, from + STORY_MONTH_HOURS - 1);
-  if (centre < from || centre > to) return null;
-  return { fromIndex: from, toIndex: to };
+  const startMs = parseUtcHour(start.value);
+  const endMs = parseUtcHour(end.value);
+  if (from === null || startMs === null || endMs === null) return { problem: "the story month's ends are not hours on the time grid" };
+  const hours = (endMs - startMs) / (grid.step_s * 1000);
+  if (hours !== STORY_MONTH_HOURS) {
+    return { problem: `story.month_end_utc is ${hours} hours after story.landing_utc, not ${STORY_MONTH_HOURS}` };
+  }
+  if (from + STORY_MONTH_HOURS > grid.count) return { problem: "the story month runs past the end of the time grid" };
+  return { fromIndex: from, toIndex: from + STORY_MONTH_HOURS - 1 };
 }
 
 /** The number of hours in a range. */

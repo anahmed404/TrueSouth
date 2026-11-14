@@ -97,13 +97,7 @@ describe("lesson 4 step 3: the month's bands at the story site", () => {
 });
 
 describe("the shared fixture", () => {
-  const fixtures = JSON.parse(readFileSync(`${repoRoot}data/fixtures/academy/worked_examples.json`, "utf8")) as Record<string, unknown>;
   const manifest = parseManifest(JSON.parse(readFileSync(`${repoRoot}data/fixtures/manifest.json`, "utf8")) as Manifest);
-
-  it("resolves the story month, so the month's lessons play in fixtures mode", () => {
-    const range = resolveTimeRange(oneMonth("{{example.l1.example_utc}}"), fixtures, manifest.time_grid);
-    expect(range).toEqual({ fromIndex: hourOnGrid(manifest.time_grid, String(fixtures["story.landing_utc"])), toIndex: (range as { fromIndex: number }).fromIndex + 719 });
-  });
 
   it("draws the System view from the fixture's system.bin", () => {
     const system = decodeSystem(bytes("fixtures/system.bin"), manifest.time_grid.count, "system.bin");

@@ -244,6 +244,7 @@ function HorizonPicture({ title, data, utc, bodies, caption }: { title: string; 
           utcOfHour={utcOf}
           showLabels={false}
           label={alt}
+          interactive={false}
         />
       </div>
       {bodies ? <p className="ac-mcbox-read" aria-hidden="true">{said}</p> : null}
@@ -274,8 +275,15 @@ function SystemPanel({
   const site = useSceneData(siteId);
   const grid = manifest.status === "ready" ? manifest.data.time_grid : null;
   const range = useMonth(examples, aroundUtc, grid);
-  if (system.status === "error" || manifest.status === "error" || site.status === "error") {
-    return <Frame title={title} caption={caption}>{failed(title, site.status === "error" ? site.name : "the Moon")}</Frame>;
+  if (site.status === "error" || manifest.status === "error") return <Frame title={title} caption={caption}>{failed(title, site.status === "error" ? site.name : "the time grid")}</Frame>;
+  if (system.status === "error") {
+    return (
+      <Frame title={title} caption={caption}>
+        <Message alert>
+          The {title} could not load the positions of the Sun and Earth around the Moon, so this picture is missing. The words below still hold.
+        </Message>
+      </Frame>
+    );
   }
   if (system.status !== "ready" || site.status !== "ready" || !grid) {
     return (

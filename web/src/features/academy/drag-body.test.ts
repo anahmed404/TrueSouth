@@ -12,6 +12,7 @@ import {
   metricExtremes,
   resolveTimeRange,
   startHour,
+  storyMonth,
   type HourRange,
   type NumberGoal,
 } from "./drag-body";
@@ -23,6 +24,7 @@ import { initialRunnerState, reduceRunner } from "./runner";
 import { realExamples, realGrid, realSite } from "./testing/real-site";
 import type { Lesson, Step } from "./types";
 import { hourOnGrid } from "./utc";
+import { lessonCheck, lessonScreenKind, validateLesson } from "./validate";
 import { hourIndexToUtc } from "../../lib/time";
 
 type DragStep = Extract<Step, { kind: "drag-body" }>;
@@ -77,7 +79,7 @@ describe("the drag's time range", () => {
 
   it("reports a missing key, and refuses a month that does not hold its hour", () => {
     expect(resolveTimeRange({ kind: "span", span: "one-month", aroundUtc: "{{example.l1.example_utc}}" }, {}, realGrid)).toEqual({
-      missing: ["l1.example_utc", "story.landing_utc"],
+      missing: ["l1.example_utc", "story.landing_utc", "story.month_end_utc"],
     });
     expect(resolveTimeRange({ kind: "span", span: "one-month", aroundUtc: "2028-06-01T00:00:00Z" }, realExamples, realGrid)).toBeNull();
   });
@@ -240,4 +242,39 @@ describe("the drag's time mapping", () => {
     expect(hourNearPointer(points, 31, 80, 0)).toBe(2);
     expect(hourNearPointer([], 0, 0, 0)).toBeNull();
   });
+});
+
+describe("the story month is complete and agrees with its two keys, or it is a data error", () => {
+  const at = (hours: number) => hourIndexToUtc(realGrid, hours);
+  const landing = hour(String(realExamples["story.landing_utc"]));
+  const month = (end: string, start = at(landing)) => ({ ...realExamples, "story.landing_utc": start, "story.month_end_utc": end, "l1.example_utc": start });
+
+  it("on the real data: the 720 hours from the landing, ending at story.month_end_utc", () => {
+    expect(storyMonth(realExamples, realGrid)).toEqual({ fromIndex: landing, toIndex: hour(String(realExamples["story.month_end_utc"])) - 1 });
+    expect(storyMonth(realExamples, realGrid)).toEqual({ fromIndex: landing, toIndex: landing + 719 });
+  });
+
+  it("an end that is not 720 hours after the landing is a problem, and nothing is drawn", () => {
+    const short = month(at(landing + 719));
+    expect(storyMonth(short, realGrid)).toEqual({ problem: "story.month_end_utc is 719 hours after story.landing_utc, not 720" });
+    expect(resolveTimeRange({ kind: "span", span: "one-month", aroundUtc: "{{example.l1.example_utc}}" }, short, realGrid)).toBeNull();
+    // The lesson does not start: the "numbers do not match" page.
+    expect(validateLesson(lesson1, { ...lessonCheck(short), grid: realGrid }).join(" | ")).toMatch(/the story month does not match/);
+    expect(lessonScreenKind(lesson1, { ...lessonCheck(short), grid: realGrid })).toBe("unwritten");
+    expect(validateLesson(lesson1, { ...lessonCheck(realExamples), grid: realGrid })).toEqual([]);
+  });
+
+  it("a month that would run past the end of the time grid is rejected, never shortened", () => {
+    const lateStart = realGrid.count - 100;
+    const late = month(hourEnd(lateStart), at(lateStart));
+    expect(storyMonth(late, realGrid)).toEqual({ problem: "the story month runs past the end of the time grid" });
+    expect(resolveTimeRange({ kind: "span", span: "one-month", aroundUtc: "{{example.l1.example_utc}}" }, late, realGrid)).toBeNull();
+    expect(lessonScreenKind(lesson4, { ...lessonCheck(late), grid: realGrid })).toBe("unwritten");
+  });
+
+  /** The UTC instant 720 hours after hour `from`, which may lie past the grid's last hour. */
+  function hourEnd(from: number): string {
+    const ms = Date.parse(realGrid.start_utc) + (from + 720) * realGrid.step_s * 1000;
+    return new Date(ms).toISOString().replace(".000Z", "Z");
+  }
 });

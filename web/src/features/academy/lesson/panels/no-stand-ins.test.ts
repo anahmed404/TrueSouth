@@ -1,9 +1,11 @@
 /**
- * Lessons 1 to 4 show no stand-in: every step's stage (answered, so each prediction's panel
- * reveal shows) and every lesson-complete screen is rendered on the real derived data, and no
- * text says a panel will come later, is not built, or shows a raw `{{example.…}}`. Every
- * worked-example key the lessons and their cards use has a value, in the real data and in the
- * fixture. A file that fails to load says so, honestly, instead of a stand-in.
+ * Lessons 1 to 4 show no stand-in. On the real derived data: every prompt and conversation
+ * line (question, hint, explanation, reveal) is filled; every step's stage is rendered before
+ * an answer and answered (the answered stage is also what review mode draws); every
+ * Under-the-hood card and every lesson-complete screen is rendered. None says a panel will
+ * come later or is not built, or shows a raw `{{example.…}}`. Every worked-example key the
+ * lessons and their cards need (placeholders, and bare keys such as a slider readout's list)
+ * has a value, in the real data and in the fixture. A file that fails to load says which.
  */
 
 import { readFileSync } from "node:fs";
@@ -25,7 +27,10 @@ import { lesson3 } from "../../lessons/l3";
 import { lesson4 } from "../../lessons/l4";
 import { hasExample, type WorkedExamples } from "../../placeholders";
 import { initialRunnerState, type RunnerState } from "../../runner";
-import { optionViews } from "../../step-view";
+import { conversationFor, initialDraft, optionViews } from "../../step-view";
+import { fillPlaceholders } from "../../placeholders";
+import { missingExampleKeys } from "../../validate";
+import { UnderTheHoodCard } from "../../card";
 import { installDocument, readAll, type FakeNode } from "../../testing/fake-dom";
 import { realExamples, realSite } from "../../testing/real-site";
 import type { Lesson, Step } from "../../types";
@@ -93,7 +98,79 @@ afterAll(async () => {
 
 describe("no stand-in is reachable in lessons 1 to 4", () => {
   for (const lesson of lessons) {
-    it(`${lesson.id}: every step's stage, answered`, async () => {
+    it(`${lesson.id}: every prompt and every conversation line, filled from the real data`, () => {
+      const steps: readonly Step[] = lesson.steps;
+      for (const [index, step] of steps.entries()) {
+        // The question, a miss (hint), and the end (explanation or reveal), as the screen says them.
+        const states: RunnerState[] = [
+          { ...initialRunnerState(), stepIndex: index },
+          { ...initialRunnerState(), stepIndex: index, phase: "hint", misses: 1, attempts: [{ kind: "choice", selected: 0 }] },
+          { ...initialRunnerState(), stepIndex: index, phase: "revealed", misses: 2, attempts: [{ kind: "choice", selected: 0 }, { kind: "choice", selected: 1 }], shownAnswer: "x", stepXp: 2 },
+        ];
+        for (const state of states) {
+          for (const entry of conversationFor(step, state)) {
+            const filled = fillPlaceholders(entry.text, realExamples);
+            expect(filled.missing, `${step.id}: ${entry.text}`).toEqual([]);
+            expect(filled.text, step.id).not.toMatch(STAND_IN);
+          }
+        }
+      }
+      const texts: string[] = [];
+      const walk = (value: unknown) => {
+        if (typeof value === "string") texts.push(value);
+        else if (Array.isArray(value)) value.forEach(walk);
+        else if (value && typeof value === "object") Object.values(value).forEach(walk);
+      };
+      walk(lesson);
+      for (const text of texts) {
+        const filled = fillPlaceholders(text, realExamples);
+        expect(filled.missing, text).toEqual([]);
+        expect(filled.text, text).not.toMatch(STAND_IN);
+      }
+    });
+
+    it(`${lesson.id}: its Under-the-hood card`, async () => {
+      const card = CARDS[lesson.card];
+      if (!card) throw new Error(`${lesson.card} has no card`);
+      // The card's maths measures its own width; the test DOM has no layout, so a stub observer.
+      const host = globalThis as { ResizeObserver?: unknown };
+      host.ResizeObserver = class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      };
+      let text: string;
+      try {
+        text = await show(createElement(UnderTheHoodCard, { card, examples: realExamples, title: lesson.title }));
+      } finally {
+        delete host.ResizeObserver;
+      }
+      expect(text).not.toMatch(STAND_IN);
+      expect(text).not.toMatch(/dashed box is a number/i);
+    });
+
+    it(`${lesson.id}: every step's stage, before an answer`, async () => {
+      const steps: readonly Step[] = lesson.steps;
+      for (const [index, step] of steps.entries()) {
+        const runner: RunnerState = { ...initialRunnerState(), stepIndex: index };
+        const text = await show(
+          createElement(Stage, {
+            step,
+            runner,
+            draft: initialDraft(step),
+            views: optionViews(step, runner, null),
+            examples: realExamples,
+            celebrate: 0,
+            onDraft: () => undefined,
+            sceneFailed: false,
+            onSceneStatus: () => undefined,
+          }),
+        );
+        expect(text, `${step.id}: ${text.slice(0, 300)}`).not.toMatch(STAND_IN);
+      }
+    });
+
+    it(`${lesson.id}: every step's stage, answered (which is also what review shows)`, async () => {
       const steps: readonly Step[] = lesson.steps;
       for (const [index, step] of steps.entries()) {
         const runner = answered(step, index);
@@ -160,12 +237,16 @@ describe("every worked-example key the lessons and their cards use has a value",
     };
     walk(lesson);
     walk(CARDS[lesson.card]);
+    // A bare key that is not written as a placeholder, such as a slider readout's list
+    // (l4.link_pct_by_mask), is in the validator's own list of what a lesson needs.
+    for (const key of missingExampleKeys(lesson, {})) keys.add(key);
     return [...keys];
   };
   for (const lesson of lessons) {
     it(`${lesson.id}: in the real data and in the fixture`, () => {
       const keys = keysOf(lesson);
       expect(keys.length).toBeGreaterThan(0);
+      if (lesson.id === "l4_link") expect(keys).toContain("l4.link_pct_by_mask");
       expect(keys.filter((key) => !hasExample(realExamples, key))).toEqual([]);
       expect(keys.filter((key) => !hasExample(fixture, key))).toEqual([]);
     });
@@ -187,7 +268,7 @@ describe("a file that fails to load", () => {
     const l1 = (lesson1.steps as readonly Step[])[2] as Step;
     if (l1.kind !== "predict" || l1.reveal.kind !== "panel") throw new Error("lesson 1 step 3 reveals a panel");
     const system = await show(createElement(PanelView, { panel: l1.reveal.panel, scene: l1.reveal.scene, when: l1.reveal.when, examples: realExamples }));
-    expect(system).toMatch(/The System view could not load/);
+    expect(system).toMatch(/The System view could not load the positions of the Sun and Earth around the Moon, so this picture is missing/);
     seed();
   });
 });
