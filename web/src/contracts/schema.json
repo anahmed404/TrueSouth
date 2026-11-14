@@ -4,6 +4,12 @@
       "additionalProperties": false,
       "description": "HTTP 422 body, without client values or internal validator details.",
       "properties": {
+        "code": {
+          "const": "invalid_request",
+          "description": "Stable error code.",
+          "title": "Code",
+          "type": "string"
+        },
         "fields": {
           "description": "Safe field identifiers and validation advice.",
           "items": {
@@ -19,6 +25,7 @@
         }
       },
       "required": [
+        "code",
         "message",
         "fields"
       ],
@@ -619,14 +626,57 @@
       "title": "Comparison",
       "type": "object"
     },
+    "CustomSiteErrorResponse": {
+      "additionalProperties": false,
+      "description": "Custom-site HTTP error body.",
+      "properties": {
+        "code": {
+          "description": "Stable error code.",
+          "enum": [
+            "too_large",
+            "invalid_request",
+            "rate_limited",
+            "queue_full",
+            "maps_missing",
+            "ephemeris_missing",
+            "address_limit",
+            "shutting_down",
+            "storage_full",
+            "not_ready",
+            "not_found"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "description": "Plain-language error message.",
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "CustomSiteErrorResponse",
+      "type": "object"
+    },
     "CustomSiteQueued": {
       "additionalProperties": false,
       "description": "Custom site job submission response.",
       "properties": {
         "position_in_queue": {
-          "description": "Position in queue.",
-          "title": "Position In Queue",
-          "type": "integer"
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Queue position, or null when not queued.",
+          "title": "Position In Queue"
         },
         "site_id": {
           "description": "Custom id c_<lat>_<lon>, coordinates rounded to four decimal places.",
@@ -699,6 +749,20 @@
             }
           ],
           "description": "Error code and message, or null."
+        },
+        "position_in_queue": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Queue position, or null when not queued.",
+          "title": "Position In Queue"
         },
         "site": {
           "anyOf": [
@@ -924,6 +988,136 @@
       },
       "title": "Features",
       "type": "array"
+    },
+    "G2Diagnostics": {
+      "additionalProperties": false,
+      "description": "G2 evidence separate from the gate's measured value.",
+      "properties": {
+        "elevation_location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/G2Location"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Location of the elevation maximum."
+        },
+        "elevation_max_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Largest elevation difference in degrees.",
+          "title": "Elevation Max Deg"
+        },
+        "raw_azimuth_hours_over_limit": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Site and body hours above the G2 limit.",
+          "title": "Raw Azimuth Hours Over Limit"
+        },
+        "raw_azimuth_location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/G2Location"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Location of the raw azimuth maximum."
+        },
+        "raw_azimuth_max_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Largest raw compass azimuth difference in degrees.",
+          "title": "Raw Azimuth Max Deg"
+        },
+        "sky_location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/G2Location"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Location of the sky separation maximum."
+        },
+        "sky_max_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Largest full direction separation on the sky in degrees.",
+          "title": "Sky Max Deg"
+        }
+      },
+      "title": "G2Diagnostics",
+      "type": "object"
+    },
+    "G2Location": {
+      "additionalProperties": false,
+      "description": "Location and time of a G2 maximum.",
+      "properties": {
+        "body": {
+          "description": "Compared body.",
+          "enum": [
+            "sun",
+            "earth"
+          ],
+          "title": "Body",
+          "type": "string"
+        },
+        "site_id": {
+          "description": "Site identifier.",
+          "title": "Site Id",
+          "type": "string"
+        },
+        "utc": {
+          "description": "UTC hour of the maximum.",
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d(?::\\d\\d(?:\\.\\d+)?)?Z$",
+          "title": "Utc",
+          "type": "string"
+        }
+      },
+      "required": [
+        "site_id",
+        "body",
+        "utc"
+      ],
+      "title": "G2Location",
+      "type": "object"
     },
     "Gate": {
       "additionalProperties": false,
@@ -2675,6 +2869,18 @@
           },
           "title": "Comparisons",
           "type": "array"
+        },
+        "g2_diagnostics": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/G2Diagnostics"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "G2 diagnostic maxima and their locations, when measured."
         },
         "g2_over_time": {
           "description": "Gate G2 over time, for the chart on the validation page. Empty until the check has been run.",

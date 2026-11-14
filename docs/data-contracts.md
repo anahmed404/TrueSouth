@@ -251,6 +251,13 @@ Described in [`validation.md`](validation.md) and
 together when `validate` did not measure it. `samples` is then 0, and `detail` says
 where that gate is checked. G10 and G11 are written that way.
 
+Optional nullable `g2_diagnostics` records `raw_azimuth_max_deg`,
+`raw_azimuth_hours_over_limit`, `sky_max_deg`, and `elevation_max_deg`; each maximum has
+a corresponding `raw_azimuth_location`, `sky_location`, or `elevation_location` with
+`site_id`, `body`, and UTC `utc`. The raw compass difference is diagnostic; sky separation
+is the full direction separation and the gate separately uses the azimuth sky angle and
+elevation.
+
 ## API messages
 
 ### `POST /api/sites/custom`
@@ -271,6 +278,13 @@ Response:
 to [0, 360); coordinates are rounded before computing, with negative zero removed.
 
 `status` is `queued`, `running`, `ready` or `failed`. A known site returns `ready` at once.
+In both POST and GET answers, `position_in_queue` is a positive integer while queued
+(1 is next to run), and null while running, ready or failed. A sphere-tier site never
+queues. For example, a ready POST returns:
+
+```json
+{ "site_id": "c_0.0000_5.0000", "status": "ready", "position_in_queue": null }
+```
 
 The id is the coordinates rounded to four decimals, as `c_<lat>_<lon>`. Anyone holding the
 id can ask for the site again.
@@ -278,8 +292,10 @@ id can ask for the site again.
 ### `GET /api/sites/custom/{id}`
 
 ```json
-{ "site_id": "c_-89.2000_130.5000", "status": "ready", "site": { "…one sites.json entry…" }, "error": null }
+{ "site_id": "c_-89.2000_130.5000", "status": "ready", "position_in_queue": null, "site": { "…one sites.json entry…" }, "error": null }
 ```
+
+Unknown ids return 404.
 
 `error` is either null or an error detail `{ code, message }`.
 
@@ -317,17 +333,21 @@ Sensitivity arrays are row-major, row 0 is north, and each contains `size * size
 Custom-site success messages and status values above are unchanged. Errors never echo
 submitted values, unknown field names, validator types or internal exception details.
 
-| HTTP | Body | Header |
+| Code | HTTP | Message |
 | :--- | :--- | :--- |
-| 413 | `{ "message": "Custom-site requests must be at most 4096 bytes." }` | None |
-| 422 | `{ "message": "Please check the request fields.", "fields": [{ "field": "lat_deg", "message": "Latitude must be a number from −90 to 90." }] }` | None |
-| 429 | `{ "message": "You may start 6 custom sites per hour. Please try again later." }` | `Retry-After`: integer seconds until a slot becomes available |
-| 429 | `{ "message": "The custom-site queue is full. Please try again later." }` | `Retry-After: 1` |
-| 503 | `{ "message": "Custom sites need the terrain maps, which are not installed on this server." }` | None |
-| 503 | `{ "message": "Custom sites need the global ephemeris, which is not installed on this server." }` | None |
-| 503 | `{ "message": "This server is handling too many client addresses. Please try again later." }` | `Retry-After: 3600` |
-| 503 | `{ "message": "This server is shutting down. Please try again later." }` | None |
-| 507 | `{ "message": "This server's storage for custom sites is full." }` | None |
+| `too_large` | 413 | Custom-site requests must be at most 4096 bytes. |
+| `invalid_request` | 422 | Please check the request fields. |
+| `rate_limited` | 429 | You may start 6 custom sites per hour. Please try again later. |
+| `queue_full` | 429 | The custom-site queue is full. Please try again later. |
+| `maps_missing` | 503 | Custom sites need the terrain maps, which are not installed on this server. |
+| `ephemeris_missing` | 503 | Custom sites need the global ephemeris, which is not installed on this server. |
+| `address_limit` | 503 | This server is handling too many client addresses. Please try again later. |
+| `shutting_down` | 503 | This server is shutting down. Please try again later. |
+| `storage_full` | 507 | This server's storage for custom sites is full. |
+| `not_ready` | 404 | Custom site is not ready. Start it with POST /api/sites/custom. |
+| `not_found` | 404 | Not found |
+
+Every HTTP error body has `code` and `message`. The 429 responses have a `Retry-After` header: seconds until a rate slot is available, or 1 for a full queue. `address_limit` has `Retry-After: 3600`.
 
 The 422 `fields` array contains one or more `{ field, message }` objects. `field` is
 only `lat_deg`, `lon_deg`, `name` or `body`. Latitude advice is the message above, or
@@ -347,7 +367,7 @@ Other job failures use `computation_failed` and a plain message; the status enve
 always retains `site_id`, `status`, `site` and `error`.
 
 Unknown or unfinished custom ids use HTTP 404 with
-`{ "message": "Custom site is not ready. Start it with POST /api/sites/custom." }`.
+`{ "code": "not_ready", "message": "Custom site is not ready. Start it with POST /api/sites/custom." }`.
 
 ## Shareable scenario link
 
