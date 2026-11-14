@@ -41,6 +41,10 @@ Layout and the view bar: [`mission-control.md`](mission-control.md). Prototype:
 
 - **The 20 km patch:** a square centred on the site, 257 × 257 points at 80 m, with the
   Moon's curvature included ([`../science.md`](../science.md) §13).
+- **The close-up,** where NASA has a 5 m map of the site (a close-up DEM, `closeup.bin`,
+  2 km, normally 257 × 257 points, about 7.8 m apart): the real 2 km of ground under the
+  lander, drawn inside the patch. It is on wherever it exists; there is no toggle. See "The
+  close-up" below.
 - **The terrain around it,** from the same 80 m map: a 300 km square (150 km on each side of
   the site) on a coarser grid of 161 × 161 points, so the patch reads as part of the Moon
   and not as a plate floating in space. It runs out to the horizon, which curves away.
@@ -86,8 +90,8 @@ thresholds are mock values; the real thresholds come from the profile.
   down; an arrow key moves the camera the arrow's way.
 - **Vertical exaggeration:** ×1 (default), ×2, ×5. The label always shows the factor: "true
   to scale" at ×1, "shadows not to scale" above it.
-- **Close-up:** for sites with a close-up DEM, a toggle swaps to the 2 km mesh built from
-  5 m data. Close-up data is not available yet, and the prototype has no toggle.
+- **Close-up:** no control. The earlier plan, a toggle that swapped to the 2 km mesh, is
+  dropped: where a site has a close-up DEM it is always drawn (less on screen).
 - **Lander's eye:** a button drops the camera to 2 m above the site, looking at the Sun
   ([`panorama.md`](panorama.md)).
 
@@ -158,16 +162,20 @@ are in `ground-relief.ts` and tested.
    as soft as the Sun's disc (0.27° radius). Toward the terrain's outer edge the drawn
    shadow fades out, because the globe beyond draws none. Pip does not cast a shadow: it is
    drawn 300 times larger than life, so its shadow would be a false stripe kilometres long.
-3. **Near-ground texture.** Close up, small craters, a few rocks and grain, made up in the
-   shader. The craters follow real small lunar craters: many small and few large; most old
-   and worn (a gentle bowl about 0.03 of its diameter deep, no rim), a few fresh (up to 0.2
-   of the diameter, with a sharp rim); scattered by chance in patches, with no grid. A bowl
-   is lit like everything else and, at a low Sun, partly filled by its sunward rim's shadow,
-   at half strength so the texture stays quieter than the real relief. It is generic ground,
-   not real topography: the largest craters are about 11 m across, far below the 80 m data;
-   it is a bump on the lighting and a slight change of albedo only; it never moves the
-   ground or the skyline; and each size fades out as it shrinks to a few pixels, so it
-   shows only close to the camera and never at map scale.
+3. **Near-ground texture.** Close up, a fine grain and sparse, very shallow dimples, made up
+   in the shader: no craters and no rocks (the earlier made-up craters read as features you
+   could walk to, and made the ground look like a generated model). A dimple is a bowl 0.15
+   to 0.7 m across, 0.02 of its diameter deep (about 1 cm), with no rim, few and scattered
+   by chance in patches; its own shadow is drawn at 40 % strength. It is a bump on the lighting
+   and a slight change of albedo only; it never moves the ground or the skyline; and each
+   size fades out as it shrinks to a few pixels, so it shows only close to the camera.
+   The grain is value noise in three octaves (60, 15 and 4 cm), each with a slope of about
+   1 % of its wavelength, so typically under a degree: at the poles the Sun stays within a
+   few degrees of the horizon, and a steeper grain turns into black spots. Each octave stays
+   until its wavelength spans about two pixels. Inside a real close-up nothing is made up
+   but the grain: no dimples. Without it, the 5 m map's ground within a few tens of metres
+   of Lander's eye is a smooth plane, which reads as plastic; `?ground-closeup-grain=off`
+   shows that version, for comparing.
 4. **Tone.** A grey albedo from the Moon's colour map, its range narrowed; a lunar
    photometric function (Lommel–Seeliger and Lambert mixed by phase angle, with the
    brightening when looking down-Sun); and a faint fill from sunlit ground nearby and from
@@ -187,6 +195,52 @@ back. The coarser meshes share the full mesh's index buffer and are picked by dr
 and the effects switch by uniforms, so nothing recompiles or uploads. When a site's ground
 is built, `world.prepareGround` compiles its shader and draws it once off-screen, so its
 meshes and height textures are on the GPU before the first flight.
+
+## The close-up
+
+Where NASA has a 5 m map of the site, its `closeup.bin` (2 km square, normally 257 × 257
+points) is drawn inside the 20 km patch, in Local terrain and Lander's eye. It is drawing
+only: nothing reads it back; the series, the skyline, the slope and every number on screen
+still come from the 80 m map, as before. Only the focused site's close-up is loaded.
+
+- **When it loads.** Only in Local terrain and Lander's eye. The camera view changes when
+  its flight starts, so the file is requested as the flight into either view begins and is
+  usually in by the time it lands; the System view, the Polar map and the Slip Planner
+  never request it. A site without a close-up requests nothing.
+- **Whole or not at all.** A close-up is drawn only if every one of its points has a finite
+  east, north and height, and it has size × size points. The data pipeline writes no
+  missing point, so one NaN or infinity means a bad file: it is rejected whole, the patch
+  is drawn alone, and the plate gives the patch's sentence.
+
+- **Level.** Its heights are moved by one constant so that its centre point sits where the
+  patch's surface is at the site. The two maps can disagree there by a few metres; the
+  lander then stands on the drawn ground and Lander's eye stays 2 m above it.
+- **Edge.** Across its outer 200 m it hands over smoothly to the patch's drawn surface, so
+  at its rim it lies on the patch. The patch leaves a hole for it and joins its rim with
+  the same shared-edge strips as the terrain around the patch, at every detail level the
+  quality governor can show: the drawn surfaces meet within 0.25 m.
+- **Shading and shadows.** Its own normals; the shadow march reads its heights first, and
+  the patch's own 80 m heights outside it, across the joining strips too. As the close-up's
+  rim lies on the patch's surface, that field differs from the drawn strips no more than
+  anywhere else on the patch (at most 0.04 m at full detail; 0.4 m and 2 m at the coarser
+  meshes drawn while moving, which the field never follows).
+- **Texture at its edge.** No dimples inside it, up to its very edge; outside it they fade
+  back in over the next 200 m, over the patch's 80 m ground.
+- **Release.** Its geometry and height texture go when the site changes, and 10 s after the
+  view leaves Local terrain and Lander's eye (`CLOSEUP_GRACE_MS`, `closeup-loading.ts`): a
+  quick look at another view keeps it, moving between the two ground views keeps it. The
+  patch is then built again without its hole, once (about 100 ms). The decoded file stays
+  in the data store's cache, so coming back does not fetch it again.
+- **What the plate says.** One line on what the shape of the ground comes from, chosen by
+  this rule: with the close-up drawn, "The shape of the ground nearest the lander comes
+  from NASA's close-up DEM of this site, with squares 5 metres across."; otherwise the
+  terrain tier's line ("The shape of the ground here comes from NASA's DEM, with squares
+  80 metres across.", or 240 metres for the wide240 tier), which is also what shows while
+  a close-up loads, if it fails, or if it is rejected. It says nothing about detail finer
+  than the map: the decoration plate, shown with it wherever the ground is drawn, already
+  says that the shading, shadows and fine ground texture are drawn for understanding only.
+  Custom sites and the smooth Moon keep their own sentences (see "States"). Text in
+  `explain.ts`.
 
 ## Performance
 

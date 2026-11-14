@@ -7,6 +7,15 @@ import { SYSTEM_MAX_ALTITUDE, TRUE_SCALE_MAX_ALTITUDE } from "./proportions";
 import { slipLightBlend, slipOrbit, slipZoom } from "./slip";
 import { clamp, smooth, type V3 } from "./vec";
 
+/** Scratch objects for the Slip Planner's drag (`slipMove`). */
+const SLIP_SCRATCH = {
+  target: new THREE.Vector3(),
+  up: new THREE.Vector3(),
+  m: new THREE.Matrix4(),
+  at: new THREE.Quaternion(),
+  offset: new THREE.Quaternion(),
+};
+
 /** The rig turns about the Moon in any view but Local terrain and Lander's eye. */
 type Mode = CameraViewId;
 
@@ -286,12 +295,8 @@ export class Rig {
     return this.style !== "none" && !this.locked;
   }
 
-  /**
-   * A drag of (dx, dy) CSS pixels: turn the view (see the rule above). `fromKey` marks an
-   * arrow key, which the scene sends as a 24 px drag the other way; only Lander's eye's
-   * vertical axis tells the two apart.
-   */
-  orbit(dx: number, dy: number, fromKey = false): void {
+  /** A drag of (dx, dy) CSS pixels: turn the view (see the rule above). */
+  orbit(dx: number, dy: number): void {
     const c = this.camera;
     if (!this.turnable) return;
     this.stop();
@@ -339,17 +344,13 @@ export class Rig {
       c.lookAt(ground);
       return;
     }
-    // Lander's eye: look around from where the camera stands. Horizontally the picture follows
-    // the pointer, as in every view. Vertically the view follows the drag instead: dragging up
-    // looks up. The team's tester called the grab-the-world vertical "inverted" here: from
-    // 2 m up there is a horizon, not a globe, in the hand. An arrow key already looks the
-    // arrow's way (it arrives as a drag the other way), so its sign is left alone.
+    // Lander's eye: look around from where the camera stands; the view turns against the drag.
     const look = new THREE.Vector3(0, 0, -1).applyQuaternion(c.quaternion);
     let el = THREE.MathUtils.radToDeg(Math.asin(clamp(look.dot(up), -1, 1)));
     let az = THREE.MathUtils.radToDeg(Math.atan2(look.dot(east), look.dot(north)));
     const k = c.fov / 60;
     az -= dx * 0.12 * k;
-    el = clamp(el + (fromKey ? dy : -dy) * 0.08 * k, -20, 60);
+    el = clamp(el + dy * 0.08 * k, -20, 60);
     c.up.copy(up);
     c.lookAt(c.position.clone().add(along(az, el)));
   }
@@ -401,15 +402,26 @@ export class Rig {
     }
   }
 
-  /** The Slip Planner's drag: about the sites' centre (slip.ts), looking at it. */
+  /**
+   * The Slip Planner's drag: about the sites' centre (slip.ts), keeping the aim the view has.
+   * The pose aims SLIP_AIM_SHARE of the free space's height above the centre (`slipPose`), so
+   * the turn carries over the camera's offset from looking straight at the centre rather than
+   * looking at the centre itself, which made the first drag jump (about 85 px at 1440 × 900).
+   */
   private slipMove(step: (pos: V3) => { pos: V3; up: V3 }): void {
     const centre = this.slipCentre;
     if (!centre) return;
     const c = this.camera;
+    const target = SLIP_SCRATCH.target.set(...centre.centre);
+    const up0 = SLIP_SCRATCH.up.set(...centre.up0);
+    // The aim now, relative to looking at the centre with the ground's up: offset = at⁻¹ · now.
+    const at = SLIP_SCRATCH.at.setFromRotationMatrix(SLIP_SCRATCH.m.lookAt(c.position, target, up0));
+    const offset = SLIP_SCRATCH.offset.copy(at).invert().multiply(c.quaternion);
     const next = step([c.position.x, c.position.y, c.position.z]);
     c.position.set(...next.pos);
     c.up.set(...next.up);
-    c.lookAt(...centre.centre);
+    c.lookAt(target);
+    c.quaternion.multiply(offset);
   }
 
   /**

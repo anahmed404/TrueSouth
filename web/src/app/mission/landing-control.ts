@@ -9,6 +9,7 @@ import type { TimeGrid } from "../../contracts/generated";
 import type { HookResult } from "../../data/hooks";
 import { dayToHour, hourToDay, nextGoDay, windowLength, type DayResult } from "../../lib/scoring";
 import { hourIndexToUtc, utcToHourIndex } from "../../lib/time";
+import { lastLandingHour } from "../../state/scenario";
 import { formatLimit } from "./rules";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -119,4 +120,22 @@ export function nextGoView({ siteId, siteName, days, landingUtc, grid }: NextGoI
     targetUtc,
     description: `Moves the landing to 00:00 UTC on ${dayText(targetUtc)}, the next day ${siteName} is GO for this mission profile. Each day is checked as a landing at 00:00 UTC.`,
   };
+}
+
+/**
+ * A landing date as the scenario would take it (`setLandingDate`): a whole hour of the time
+ * grid, no earlier than its first hour and no later than the last landing whose mission
+ * window ends inside the data. Null for text that is not a time. Used where a landing date
+ * is picked without moving the scenario's (Compare's "Sites and dates").
+ */
+export function clampLanding(grid: TimeGrid, durationDays: number, utc: string): string | null {
+  const ms = Date.parse(utc);
+  if (Number.isNaN(ms)) return null;
+  let hour: number;
+  try {
+    hour = utcToHourIndex(grid, utc);
+  } catch {
+    hour = ms < Date.parse(grid.start_utc) ? 0 : Number.MAX_SAFE_INTEGER;
+  }
+  return hourIndexToUtc(grid, Math.min(Math.max(hour, 0), lastLandingHour(grid, durationDays)));
 }

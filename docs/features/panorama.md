@@ -17,10 +17,9 @@ Layout and the view bar: [`mission-control.md`](mission-control.md). Prototype:
 - **Entering.** Picking "Lander's eye" on the view bar, or the "Lander's eye" button in
   Local terrain, drops the camera to 2 m above the site, with a 26° lens, centred on Earth
   by default. From any other view the camera flies there in one move of 1.3 to 1.5 s.
-- **Looking around.** Drag to look around. Sideways the picture follows the pointer, as in
-  every view (system-view.md, "Camera"): dragging right turns the view left so the scene
-  moves right. Up and down the view follows the drag instead: dragging up looks up (the
-  team's testing, 2026-11-14: the other way felt inverted from 2 m up). An arrow key looks the arrow's
+- **Looking around.** Drag to look around. The picture follows the pointer, as in every view
+  (system-view.md, "Camera"): dragging right turns the view left so the scene moves right,
+  dragging up moves the horizon up so the view looks down. An arrow key looks the arrow's
   way (the left arrow looks left, the up arrow looks up). The control row centres the view
   on Earth, on the Sun or on north.
 - **Leaving.** Picking another view flies the camera there. The view's address in the
@@ -34,8 +33,8 @@ Layout and the view bar: [`mission-control.md`](mission-control.md). Prototype:
   patch and the terrain around it ([`local-terrain.md`](local-terrain.md)). Earth and the
   Sun are drawn at their true angular size. Each has a label with its height and state, for
   example "Earth, 0.9° up · in view" and "Sun, 0.8° up · behind the ridge". The ground
-  near the lander is the 80 m data, which cannot show regolith at 2 m, with an illustrative
-  regolith texture drawn on it close up ([`local-terrain.md`](local-terrain.md), "What is drawn").
+  near the lander is NASA's 5 m close-up of the site where one exists, and otherwise the 80 m
+  data, which cannot show regolith at 2 m; a fine illustrative grain is drawn on it close up ([`local-terrain.md`](local-terrain.md), "What is drawn").
 - **Floating above it,** under the horizon: a panel holding the horizon chart (below), the
   "Why is it dark?" card and a one-line legend. The app bar, view bar, sites rail,
   focused-site panel and timeline float as in every view. The scene's free space ends above

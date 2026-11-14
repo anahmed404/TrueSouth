@@ -801,6 +801,33 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-14 · MC9c · Compare two sites at two landing dates
+- **Who:** Claude Code agent, for the orchestrator, from a tester's request
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (a second mode
+  in the approved C2 Compare window, no new colours) — wrote the spec section, the "Sites and
+  dates" mode (`dates.ts`, `dates-view.tsx`, `mode-switch.tsx`, `picks-store.ts`,
+  `probe.tsx`), the dates CSV and JSON exports, the `cmp` share parameter, the shared
+  `LandingDateFields` and `clampLanding`, and 41 vitest tests (32 rule tests; 7 mounted on
+  the shared fixture, comparing each column with the scoring engine and the Slip Planner's
+  sweep for every preset) — checked by the agent with the vitest suite, typecheck and the
+  build, and by eye at 1440 × 900, 1024 × 768 and 390 × 844 (default picks, one site at two
+  dates, the pickers open, "Use this date", a copied link reopened in a fresh browser); a
+  human has not reviewed it yet
+- **State:** verified (reviewed by Cursor (grok-4.7): approve with fixes; 60 cases on fixture and real data matched the scoring engine, the Sites mode and Python; its must-fix (the summary said all four are NO-GO when a column had no result) and one can-follow (picked dates clamped again when the mission changes) fixed by the orchestrator; on the tree merged with main ccb1389: 471 Python tests (1 skipped), 2,834 web tests with 3 expected to fail on the fixture, typecheck and build all exit 0. Not yet tried by the team)
+- **Changed:** `web/src/features/mission-control/compare/` (the new mode, its tests; the
+  table takes an optional head, last row and best column; columns have a key and a date),
+  `web/src/features/mission-control/share/share-link.ts` (adds `cmp` while the mode shows),
+  `web/src/app/mission/landing-date-control.tsx` (the form's date and hour fields are now
+  `LandingDateFields`, used by the strip's form unchanged and by Compare's pickers),
+  `web/src/app/mission/landing-control.ts` (`clampLanding`), `docs/features/compare.md`,
+  `docs/features/mission-control.md`, `docs/design/c2/built-compare-dates-*.png`, this entry
+- **Notes:**
+  - Labels: "Sites" (unchanged, the default) and "Sites and dates".
+  - The best column: GO beats CAUTION beats NO-GO, then the higher printed score; ties all
+    marked; none when every column is NO-GO, all four tie, or one is loading.
+  - The share link carries the picks only through the Share button: the address bar is the
+    scenario's, and the scenario store was left as it is. `docs/data-contracts.md`, which
+    lists the link's parameters, does not list `cmp` yet (not this track's file).
 #### 2026-11-14 · MC rail overlays · Popovers and hover cards leave the rail (the black box)
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — portalled `Popover` and `Tip` to the page's
@@ -1458,6 +1485,149 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## 3D and Map
 
+#### 2026-11-14 · T5a · Real close-up ground under the lander; the invented texture toned down
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote `closeup-ground.ts` (level, hand-over,
+  fit), the shared-edge join of the patch to the close-up in `ground.ts`, the close-up's
+  height texture and texture rule in `ground-material.ts`, the ground-source plate
+  (`plates.ts`, `explain.ts`), when the close-up loads (`closeup-loading.ts`),
+  `closeup-ground.test.ts`, `closeup-loading.test.ts` and the spec text — checked by the
+  agent with the vitest suite, typecheck, build, a temporary test over the real
+  `closeup.bin` of three sites, and by eye in Chrome (RTX 2060) at 1440 × 900 and
+  1024 × 768 against `main` run side by side; reviewed by Codex (gpt-6.1-terra), whose
+  must-fix items are addressed below; a human has not reviewed it
+- **State:** verified (reviewed by Codex (gpt-6.1-terra): registration recomputed on five real sites (the right way round, centre coincident, RMS 0.9 to 2.6 m against the patch), the join covered at every detail level, three mutations caught; its three must-fix items (a NaN close-up accepted, a false plate sentence, the file fetched outside the ground views) and one more fixed by the author with tests, not re-reviewed; on the tree merged with main a358ea2: 471 Python tests (1 skipped), 2,901 web tests with 3 expected to fail on the fixture, typecheck and build all exit 0. The team lead chose the real look for Lander's eye from captures)
+  tests, typecheck and build all exit 0; pytest not run, no Python changed)
+- **Changed:** `web/src/features/three/scene/closeup-ground.ts` (new), `ground.ts`,
+  `ground-material.ts`, `ground-relief.ts`, `plates.ts`, `scene-root.tsx`, `world.ts` (local:
+  the ground build only), `closeup-loading.ts` (new), `closeup-ground.test.ts` (new),
+  `closeup-loading.test.ts` (new), `plates.test.ts`,
+  `web/src/lib/explain.ts`, `docs/features/local-terrain.md`, `panorama.md`,
+  `docs/design/c2/built-closeup-ground-*.png`, this entry
+- **Notes:**
+  - **What shows:** at the 16 sites with a close-up, Local terrain and Lander's eye draw
+    NASA's 5 m map over the 2 km around the lander, inside the 20 km patch, always (no
+    toggle). Its own relief is untouched except the outer 200 m, which hands over to the
+    patch's drawn surface; the patch joins its rim with shared-edge strips at every detail
+    level. On the real files the centre offset is 0.000 m, the raw rim differs by up to
+    5.1 m (Connecting Ridge), 5.6 m (Shackleton rim) and 4.6 m (Malapert), and the drawn gap
+    is 0.0001 m at steps 1, 2 and 4. The lander stands on the drawn ground; the eye is 2 m
+    up. At the 9 sites without one, and at custom sites, the ground is as before.
+  - **The plate:** one line on where the shape of the ground comes from: the close-up DEM
+    (5 m) when it is drawn, else the tier's DEM (80 m or 240 m), also while it loads, if it
+    fails or if it is rejected; custom sites keep their own line. It no longer says that
+    nothing finer is shown (the grain and dimples are finer): the decoration line beside it
+    already says the fine ground texture is drawn for understanding only.
+  - **Whole or not at all:** a close-up with any non-finite east, north or height, or the
+    wrong number of points, is rejected whole; the patch is drawn alone and the plate gives
+    the patch's sentence (tested: all NaN, one NaN, infinities, wrong length).
+  - **When it loads:** only in Local terrain and Lander's eye, requested when the flight
+    into either starts (the view changes then); never in the System view, the Polar map or
+    the Slip Planner. Released 10 s after leaving the two ground views (`CLOSEUP_GRACE_MS`;
+    moving between them keeps it). Tested with a spy on the fetch behind a real data store.
+    The decoded file stays in the data store's cache (the data layer's, not changed here),
+    so coming back does not fetch it again.
+  - **Its edge:** no dimples inside the close-up up to its very edge; they fade back in over
+    the next 200 m outside it.
+  - **Shadow field across the join:** left as it is, with the reason in
+    `closeup-ground.ts`: as the close-up's rim lies on the patch, the field differs from the
+    drawn strips no more than anywhere on the patch (0.04 m at step 1, 0.4 m at step 2,
+    2 m at step 4, against 0.04, 0.4 and 1.5 m 3 km away); filling the patch's hole with the
+    close-up's heights was tried and made it worse (12 m).
+  - **Texture:** no made-up craters or rocks anywhere. Outside a close-up: a fine grain and
+    sparse dimples 0.15 to 0.7 m across, about 1 cm deep, their shadow at 40 %. Inside: no
+    dimples; the fine grain on, because without it the near ground in Lander's eye is a
+    smooth plastic plane (`?ground-closeup-grain=off` shows it;
+    `built-closeup-ground-grain-off-on.png`). The grain's slope is stated
+    (`GRAIN_SLOPE` 0.012, typically under a degree): at the poles the Sun is a few degrees
+    up, and a steeper grain turns into black spots. Found on the way: that address switch
+    was never read (the app tidies the address before the scene loads); it now reads the
+    address the page was opened with.
+  - **Cost, Connecting Ridge (real), against main:** vertices 92,994 → 160,067; GPU buffers
+    6.94 → 12.23 MB; float height textures about 489 → 841 KB with their mip levels (368 →
+    632 KB at the base level); file 1.06 MB per site (7 ms from the local
+    server); ground build on a site switch 66–142 → 100–174 ms; frame at 1440 × 900, rest
+    10–14 ms both, while moving 1.0–3.8 ms (stage 1) and 0.33–0.44 ms (stage 3) both, within
+    run-to-run noise.
+  - **By eye:** Local terrain close now shows real small craters and the ridge's own
+    roughness where it showed smooth blobs; no seam at the close-up's rim at any site, lit or
+    low Sun, at rest or moving. Lander's eye no longer shows made-up rimmed craters, but it
+    does not yet look like real ground: the 5 m map has nothing under about 15 m, so the
+    first tens of metres are a gentle plane with grain, and in the default heading (toward
+    Earth) the near ground is often away from the Sun and dark.
+  - **Lander's eye, options (not shipped):** `built-closeup-ground-eye-options-*.png`, for
+    Connecting Ridge, Shackleton rim and Malapert at a lit hour: (a) as it opens, facing
+    Earth; (b) turned by hand to the Sun-lit middle distance, horizon in the lower third,
+    26° lens; (c) the same with a 40° lens. (b) reads best at Shackleton and Malapert; the
+    lit side is not the same angle from the Sun at every site (about 60° at Connecting Ridge
+    and Shackleton, down-sun at Malapert).
+  - Seen, not from this package: a hairline dark line along Connecting Ridge's crest for
+    several kilometres in Local terrain (on main too).
+
+#### 2026-11-14 · System view orbits · Faint orbit lines for the Moon and Earth
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote `orbits.ts` (the two circles and the line
+  object), a small hook in `world.ts`, the True-scale glide fade (`proportions.ts`,
+  `screenDisc`, `discInside`, `discLeaving`), one line in `scene-root.tsx`, the About sentence,
+  the spec text and `orbits.test.ts` (run over the real `data/derived/system.bin`) — checked
+  by the agent with the vitest suite (a mutation removing the glide fade fails it), typecheck,
+  build, and by eye in Chrome with hardware WebGL (RTX 2060) at 1440 × 900 and 1024 × 768
+  against `main` (1c3b3b6) run side by side, with the True-scale toggle sampled frame by
+  frame; a human has not reviewed it
+- **State:** verified (reviewed by Codex (gpt-6.1-terra): request changes (segments entering the Moon, a gap at the limb at True scale), both fixed by the author with a per-segment test over all 52,584 hours in both arrangements, not re-reviewed; the True-scale fade simulated with the real rig at both sizes with no frame of Earth outside the free space; the Slip Planner's first-drag snap fixed in the same branch; on the tree merged with main a37446e: 471 Python tests (1 skipped), 2,845 web tests with 3 expected to fail on the fixture, typecheck and build all exit 0. The team approved the look from captures)
+- **Changed:** `web/src/features/three/scene/orbits.ts` and `orbits.test.ts` (new),
+  `world.ts` (construct, place and fade the lines; Earth's glide fade), `proportions.ts`
+  (screen-disc helpers; a comment on the distance curve's joins), `scene-root.tsx` (one line:
+  the free space to the world), `web/src/lib/explain.ts` (`system_view`),
+  `docs/features/system-view.md`, `docs/design/c2/built-system-orbits-*.png`, this entry;
+  after review, `rig.ts`, `drag-directions.test.ts` and `docs/features/slip-planner.md` (the
+  Slip Planner's first drag)
+- **Notes:**
+  - **The lines:** the Moon's orbit is the circle centred on the drawn Earth through the
+    Moon's centre; Earth's orbit is the circle centred on the drawn Sun through Earth's centre.
+    Each lies in the plane through its two bodies that is nearest the Moon's equator; Earth
+    and the Sun stay within about 7° of that plane, so it is always defined and turns at most
+    0.2° from one hour to the next over the whole series (tested). Drawings at the schematic
+    distances, not computed orbits; the About text says "Sizes, distances and orbit lines are
+    not to scale" (263 characters).
+  - **Look:** the Ridge Line grey (`--terrain-rim`) mixed 32 % into Night, opaque one-pixel
+    lines drawn first without depth writes, so every body, guide, sight-line and label covers
+    them; the parts inside the Moon or Earth are left out, so they stop at the limbs. No
+    dashes, labels or controls.
+  - **Where:** the System view only; they fade (180 ms) on the flight to any other view and
+    with the camera's descent to the ground. At true scale the Moon's orbit stays (a circle of
+    221 Moon radii through the Moon about Earth); Earth's orbit is hidden, since the Sun is
+    only a direction there.
+  - **Cost:** two `LineSegments` of 256 segments (512 vertices each), one fixed buffer each,
+    rewritten only when the bodies' drawn places change (the hour, or the True-scale glide);
+    at rest nothing is rewritten and no frame is asked for (tested; 0 frames in 1.2 s at rest
+    in the browser).
+  - **Cursor's note on #111:** during the True-scale glide Earth now fades whenever its disc is
+    outside the free space, or would be at its current speed on screen within 360 ms (twice the
+    fade, since the flight's ease still accelerates when Earth leaves). Sampled every frame
+    both ways at both sizes: Earth outside the free space on 46 to 67 frames per toggle, shown
+    on none of them; fully back at the end. The join note needs no change; a comment says so.
+  - **Review of #115 (Codex), two geometry fixes:** the limb rule tested each step's two ends
+    only, so 366 kept steps of Earth's orbit passed through the Moon over the series (to 0.94
+    Moon radii from its centre), and at true scale, where a step is 5.4 Moon radii long, the
+    Moon's orbit stopped 4 to 4.7 radii short of the limb. Each step is now cut where it meets
+    the Moon's or Earth's sphere (and split if it passes through), so the lines end on the limbs
+    whatever the step length. The test now sweeps every hour in both arrangements: no segment
+    comes nearer either centre than its radius, each line has exactly two ends on its limb
+    (within 1e-9 radii), and the Moon's orbit ends on the limb at the series' extremes. Three
+    mutations (keep a chord through a body; drop a crossing step whole; no cut) each fail it.
+    In the browser the Moon's orbit ends 0.99999997 Moon radii from the centre (Float32) in
+    both arrangements. Even spacing kept: at true scale the circle near the Moon shows no
+    facets by eye. `update` now reuses scratch arrays and allocates nothing. Visible change:
+    Earth's orbit now meets Earth's disc instead of stopping up to a step short (273 pixels at
+    1440 at the opening); the `after-*` captures are retaken, `compare-opening` is the first
+    round's.
+  - **Slip Planner's first drag (separate commit):** `slipMove` looked straight at the sites'
+    centre, but the fit aims 0.2 of the free space above it, so the first drag jumped 83 px at
+    1440 × 900. It now keeps the camera's offset from that look. A new test drags (0, 0) and
+    small steps right after the pose (the old code fails it at 82.9 px); in the browser the
+    centre stays at (684, 444) through a drag of nothing, a 3 px turn and a real 3 px drag.
+
 #### 2026-11-14 · Drag directions · The picture follows the pointer in every view
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — measured every view's drag direction on the real
@@ -1474,6 +1644,9 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   inverted, and the agent had left it as it was. A vertical drag there now looks the way of
   the drag (drag up, look up); arrow keys are unchanged (`rig.ts`, a `fromKey` argument
   passed from `scene-root.tsx`; the table test states the exception and checks the arrows)
+- **Taken back, 2026-11-14:** the team tried that change and asked for it to be reverted.
+  Lander's eye follows the pointer on both axes again, as the agent had left it (dragging up
+  moves the horizon up); the `fromKey` argument and the test's exception are removed
 - **Notes:**
   - **The contract** (from the System view as on `main`): whatever is under the pointer moves
     the way the pointer moves, on both axes; for an orbit, the ground nearest the viewer; for
@@ -2026,6 +2199,56 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - `|latitude| > 89.999°` throws for the local frame and for walking. The sphere point and the Sun-elevation formula still accept the poles.
 
 ## Academy
+
+#### 2026-11-14 · A4b · The lessons' panels show the real thing
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — audited lessons 1 to 4 for stand-ins and
+  missing values, wrote the lesson panels (`lesson/panels/`), their data module and tests,
+  the wiring into the predict reveal and the lesson-complete screen, and the doc changes.
+  Checked by the agent with the tests (on the real derived files and the fixture), the
+  typecheck and the build, and in a browser at 1440 × 900 and 390 × 844, keyboard only,
+  with reduced motion, and with `VITE_DATA=fixtures`. No AI-generated images. A human has
+  not played it.
+- **State:** verified (reviewed by Codex (gpt-6.1-terra): every panel number recomputed from the stored data and equal to the lessons after display rounding; five findings, all fixed by the author (a read-only horizon chart, the month validated, a whole-dataset lesson check, wider no-stand-in coverage); on the tree merged with main 23d3a1b: 471 Python tests (1 skipped), 2,792 web tests with 3 expected to fail on the fixture until S2c lands, typecheck and build all exit 0. Not yet played by a person)
+- **Changed:** `web/src/features/academy/` (`lesson/panels/`, `lesson/stage.tsx`,
+  `complete-screen.tsx`, `drag-body.ts`, `lessons/story.ts`, `lessons/l4.ts`, `academy.css`,
+  tests), `docs/academy/lessons.md`, `docs/academy/overview.md`,
+  `docs/design/c2/built-academy-panels-*.png`. One additive change outside the Academy
+  (review fix): `web/src/features/panorama/chart.tsx` takes an optional
+  `interactive?: boolean` on `HorizonChart` (default true, Mission Control unchanged); with
+  false the chart is a picture (`role="img"`, its label the text alternative; no tab stop,
+  cursor, readout, marking, wheel or key handling, no instructions or live region), and
+  `panorama.css` gives `.pano-chart[data-static]` a default cursor. Otherwise the panels
+  import `HorizonChart` and its geometry, `bandSegments` and `Countdowns` (timeline, lazy),
+  `hourFlags` and `useHourFlags` (scoring) and `drawnDistance` and `DRAWN_EARTH_RADIUS`
+  (`three/scene/proportions.ts`, a pure module) as they are.
+- **Notes:**
+  - Seven stand-ins removed: three prediction reveals (lesson 1 step 3 System view, lesson 2
+    step 1 Lander's eye, lesson 4 step 3 timeline) and four lesson-complete screens ("The …
+    panel appears here once Mission Control builds it"). Each now draws the lesson's stored
+    data at its site and moment; `panel-data.test.ts` checks the numbers against the worked
+    examples, `no-stand-ins.test.ts` renders every step and complete screen.
+  - Lesson 4 step 3's caption called its band "the timeline's Earth band", but that band
+    is link hours (51.5% of the story month at the 1° mask) while the caption quotes
+    `l4.earth_up_pct` (59.7%, any of Earth's disc showing). The reveal draws the latter
+    and the caption now says so (lessons.md first).
+  - The story site is now `story.site_id` (it was hard-coded to `connecting_ridge`, absent
+    from the fixtures). The story month is `story.landing_utc` to `story.month_end_utc`
+    only when they are exactly 720 hours apart and inside the time grid; otherwise the
+    lesson shows "This lesson's numbers do not match the lesson" and nothing is drawn or
+    shortened (review fix; the earlier fixture workaround is gone).
+  - Review fixes (Codex, PR #113): the reveal's horizon chart is read-only (above); the
+    System view names the missing data when `system.bin` fails; `lesson-data.test.ts` runs
+    every lesson's checks on a whole dataset (goals reachable, correct answers true of the
+    drawn data). It passes on the real data and is marked expected-to-fail on the fixture,
+    whose made-up worked examples contradict its own series (lesson 1's highest Sun 4.4°
+    against 2.14° stored, Earth visible all month against "about 60%", the month end equal
+    to the landing): the Science follow-up is making them computed, and the marker comes off
+    when it lands. `no-stand-ins.test.ts` now also covers prompts, conversation lines,
+    cards, live stages and the bare readout key `l4.link_pct_by_mask`.
+  - Cost: about +13 kB JavaScript and +13 kB CSS in all (10 kB of it the timeline's CSS,
+    loaded only with the countdowns on lesson 4's complete screen). No 3D code is loaded;
+    `system.bin` (1.26 MB) is fetched only by lesson 1's reveal and complete screen.
 
 #### 2026-11-14 · A12 · The team proposal
 - **Who:** Claude Code agent, for the orchestrator

@@ -98,6 +98,26 @@ Every step is one of eight kinds. Each is a React component that takes typed pro
 Interactions reuse Mission Control's panels: the Lander's eye view, the timeline, the
 polar map, the Slip Planner and the 3D views.
 
+**The panels in a lesson** (work package A4b). A prediction's reveal and the lesson-complete
+screen show the real panel, drawn from the stored files at the lesson's site and moment
+(`web/src/features/academy/lesson/panels/`):
+
+- Lander's eye: the horizon chart (Mission Control's own `HorizonChart`) for the site and
+  hour, with the Sun's path a day either side. Its height scale comes from the Sun and the
+  skyline within 45° of it, so a ridge a degree tall reads as one.
+- System view: a light drawing, not the 3D scene. Seen from below the south pole, the Sun's
+  direction (its sub-solar longitude) and Earth at the System view's schematic distance
+  (`proportions.ts`), both from `system.bin`, played once over the month (still, with the
+  whole month drawn, under reduced motion; "Play the month" replays it).
+- Timeline: the month's Sun band (lit hours under the profile's rule, the timeline's band
+  logic) and an Earth band of the hours when any of Earth's disc is above the skyline (what
+  `l4.earth_up_pct` counts; the timeline's own Earth band is link hours).
+- Local terrain (lesson 3's complete screen): the skyline its wall is built from, unrolled.
+- Countdowns (lesson 4's complete screen): Mission Control's own, loaded only there.
+
+Each has a one-sentence text alternative from the same numbers. A file that fails to load
+says which picture is missing; the lesson goes on.
+
 **How `drag-body` and `draw-skyline` play** (work package A3):
 
 - `drag-body` shows the Lander's eye horizon chart for the step's site and hours, with only

@@ -13,8 +13,6 @@ import { slipPose } from "./slip";
  * in every view and for every drag input. For an orbit about a point (the Slip Planner,
  * Local terrain) "what was under the pointer" is the ground nearest the viewer, below the
  * point the orbit turns about; for Lander's eye (a look-around) it is the scene far ahead.
- * One deliberate exception, from the team's testing: in Lander's eye a vertical drag looks
- * the way of the drag (drag up, look up), so the scene ahead moves against the pointer.
  * Arrow keys are a 24 px drag the other way (scene-root.tsx): the camera moves the arrow's
  * way, so the picture moves the other way, as on a map.
  */
@@ -23,20 +21,13 @@ const space: FreeSpace = { x: 288, y: 131, width: 793, height: 424, viewport: { 
 const frame: SiteFrame = { ground: siteGroundScene(-89.45, -137.31, 1_900), ...siteFrameScene(-89.45, -137.31) };
 const slip = slipPose([{ latDeg: -89.45, lonDeg: -137.31 }, { latDeg: -86, lonDeg: 0 }], space);
 
-type View = {
-  name: string;
-  mode: Rig["mode"];
-  pose: () => Pose;
-  probe: "surface-front" | "ground-front" | "far-ahead";
-  /** True where a vertical drag looks the way of the drag: Lander's eye only. */
-  verticalLooks?: boolean;
-};
+type View = { name: string; mode: Rig["mode"]; pose: () => Pose; probe: "surface-front" | "ground-front" | "far-ahead" };
 const views: View[] = [
   { name: "System view", mode: "system", pose: () => homePose({ earth: { centre: [3, 0, 0], radius: 1 }, sun: { dir: [0, 0, 1], centre: [0, 0, 29], radius: 3.5 } }, space), probe: "surface-front" },
   { name: "Follow site", mode: "system", pose: () => followSitePose(frame.up, frame.north, space), probe: "surface-front" },
   { name: "Slip Planner", mode: "slip", pose: () => slip, probe: "ground-front" },
   { name: "Local terrain", mode: "terrain", pose: () => terrainPose(frame, 30, 200), probe: "ground-front" },
-  { name: "Lander's eye", mode: "panorama", pose: () => eyePose(frame, 120, 5), probe: "far-ahead", verticalLooks: true },
+  { name: "Lander's eye", mode: "panorama", pose: () => eyePose(frame, 120, 5), probe: "far-ahead" },
 ];
 
 /** The inputs that turn the view, as the pointer tracker turns them into commands. */
@@ -108,15 +99,13 @@ describe("the picture follows the pointer in every view, for every drag input", 
         ["down", 0, 24],
         ["up", 0, -24],
       ] as const) {
-        const looks = dy !== 0 && view.verticalLooks === true;
-        it(`${view.name}, ${input.name}, drag ${label}: ${looks ? `the view looks ${label}` : `what was under the pointer moves ${label}`}`, () => {
+        it(`${view.name}, ${input.name}, drag ${label}: what was under the pointer moves ${label}`, () => {
           const rig = rigFor(view);
           const point = grabbed(rig, view.probe);
           const before = screen(rig, point);
           run(rig, input.drag(new PointerTracker(), dx, dy));
           const after = screen(rig, point);
-          // Looking up moves the scene ahead down the screen, so the sign is the other way.
-          const along = (dx !== 0 ? (after.x - before.x) * Math.sign(dx) : (after.y - before.y) * Math.sign(dy)) * (looks ? -1 : 1);
+          const along = dx !== 0 ? (after.x - before.x) * Math.sign(dx) : (after.y - before.y) * Math.sign(dy);
           const across = dx !== 0 ? after.y - before.y : after.x - before.x;
           expect(along).toBeGreaterThan(0.5);
           expect(along).toBeLessThan(500);
@@ -139,19 +128,36 @@ describe("the picture follows the pointer in every view, for every drag input", 
     }
   });
 
-  it("in Lander's eye the up arrow looks up and the down arrow looks down", () => {
-    // scene-root.tsx sends ArrowUp as orbit(0, 24, true) and ArrowDown as orbit(0, -24, true).
-    const view = views.find((v) => v.name === "Lander's eye")!;
-    const elevation = (rig: Rig) => new THREE.Vector3(0, 0, -1).applyQuaternion(rig.camera.quaternion).dot(new THREE.Vector3(...frame.up));
-    const up = rigFor(view);
-    const start = elevation(up);
-    up.beginDrag();
-    up.orbit(0, 24, true);
-    expect(elevation(up)).toBeGreaterThan(start);
-    const down = rigFor(view);
-    down.beginDrag();
-    down.orbit(0, -24, true);
-    expect(elevation(down)).toBeLessThan(start);
+  it("the Slip Planner's first drag starts from where the view is: no jump to the sites' centre", () => {
+    // The pose aims SLIP_AIM_SHARE of the free space above the sites' centre (slip.ts); the
+    // drag keeps that aim, so a drag of nothing moves nothing and a small drag moves a little.
+    const fresh = () => {
+      const rig = new Rig(new THREE.PerspectiveCamera(30, 1440 / 900, 1e-9, 5000));
+      rig.setFreeSpace(space, 0);
+      rig.mode = "slip";
+      rig.slipCentre = { centre: slip.centre, up0: slip.up0 };
+      rig.apply(slip);
+      return rig;
+    };
+    const centre = new THREE.Vector3(...slip.centre);
+    for (const [dx, dy] of [
+      [0, 0],
+      [2, 0],
+      [0, 2],
+      [-2, -2],
+    ] as const) {
+      const rig = fresh();
+      const points = [centre, grabbed(rig, "ground-front")];
+      const before = points.map((p) => screen(rig, p));
+      rig.beginDrag();
+      rig.orbit(dx, dy);
+      const moved = points.map((p, i) => Math.hypot(screen(rig, p).x - before[i]!.x, screen(rig, p).y - before[i]!.y));
+      for (const m of moved) {
+        if (dx === 0 && dy === 0) expect(m).toBeLessThan(1e-6);
+        else expect(m).toBeLessThan(6);
+      }
+      if (dx !== 0 || dy !== 0) expect(moved[1]!).toBeGreaterThan(0.05);
+    }
   });
 
   it("the Polar map's camera does not turn: it stays a north-up map, and its flat map pans by its own drag", () => {

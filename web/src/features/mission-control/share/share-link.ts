@@ -7,13 +7,21 @@
  */
 
 import { writeScenarioQuery, type ScenarioState } from "../../../state/scenario";
+import { writeCmp, type DatesPicks } from "../compare/dates";
+import { compareStore } from "../compare/picks-store";
 
-export function scenarioLink(state: ScenarioState, location: { origin: string; pathname: string }): string {
-  return `${location.origin}${location.pathname}?${writeScenarioQuery(state)}`;
+/**
+ * The link to a scenario. With Compare open in "Sites and dates", `picks` adds the optional
+ * `cmp` parameter (docs/features/compare.md): an older app ignores it, and a link without it
+ * is unchanged.
+ */
+export function scenarioLink(state: ScenarioState, location: { origin: string; pathname: string }, picks: DatesPicks | null = null): string {
+  const cmp = picks && state.view === "compare" ? `&cmp=${writeCmp(picks).split(",").map(encodeURIComponent).join(",")}` : "";
+  return `${location.origin}${location.pathname}?${writeScenarioQuery(state)}${cmp}`;
 }
 
 /** The link for this page, or "" outside a browser. */
 export function currentScenarioLink(state: ScenarioState): string {
   if (typeof window === "undefined" || !window.location) return "";
-  return scenarioLink(state, window.location);
+  return scenarioLink(state, window.location, compareStore.get().shown);
 }

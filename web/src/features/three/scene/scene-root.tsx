@@ -35,6 +35,8 @@ import {
   type SiteFrame,
 } from "./camera";
 import { Overlay, type OverlayBus, type Preset, type LookToward } from "./overlay";
+import { closeupDrawable, closeupPlateState } from "./closeup-ground";
+import { useCloseupWanted, useGroundCloseup } from "./closeup-loading";
 import { useSurroundings } from "./custom-apron";
 import { apronLoadState, decorationDisclosure, sceneContent, seriesSunAnswer, type LoadState } from "./plates";
 import { southPolePose } from "./navigate";
@@ -130,10 +132,10 @@ type FocusData = {
   siteId: string;
   series: DecodedSeries | null;
   flags: HourFlags | null;
-  terrain: { data: DecodedTerrain; size: number; windowKm: number } | null | "loading";
+  terrain: { data: DecodedTerrain; size: number; windowKm: number; closeup?: { data: DecodedTerrain; size: number; windowKm: number } | null } | null | "loading";
   apron: DecodedApron | null | "loading";
   /** How each file stands, for the plates (plates.ts). */
-  states: { series: LoadState; terrain: LoadState; apron: LoadState | "none" };
+  states: { series: LoadState; terrain: LoadState; apron: LoadState | "none"; closeup: LoadState | "none" };
 };
 
 function loadState(status: "loading" | "ready" | "error"): LoadState {
@@ -143,26 +145,38 @@ function loadState(status: "loading" | "ready" | "error"): LoadState {
 function FocusedSiteData({
   siteId,
   profile,
+  closeupWanted,
   onData,
 }: {
   siteId: string;
   profile: SceneProps["scenario"]["profile"];
+  /** Local terrain or Lander's eye, or just left (closeup-loading.ts): only then is the close-up fetched and drawn. */
+  closeupWanted: boolean;
   onData: (data: FocusData) => void;
 }) {
   const series = useSeries(siteId);
   const flags = useHourFlags(siteId, profile);
   const terrain = useTerrain(siteId);
+  // NASA's 5 m close-up of the site, where it has one: only the focused site's, and only in
+  // the ground views (closeup-ground.ts, closeup-loading.ts).
+  const closeup = useGroundCloseup(siteId, closeupWanted);
   const site = useSite(siteId);
   const apron = useApron(siteId);
   const sceneMeta = useSceneMeta();
   // useSite builds a fresh object each render: read the one number it gives here.
   const windowKm = site.status === "ready" ? (site.data.meta.terrain?.window_km ?? (2 * LOCAL_TERRAIN_HALF_M) / 1000) : null;
+  const closeupWindowKm = site.status === "ready" ? (site.data.meta.closeup?.window_km ?? null) : null;
   const terrainValue = useMemo(() => {
     if (terrain.status === "loading" || (site.status === "loading" && terrain.status === "ready" && terrain.data)) return "loading" as const;
     if (terrain.status !== "ready" || !terrain.data) return null;
     const size = Math.round(Math.sqrt(terrain.data.up_km.length));
-    return { data: terrain.data, size, windowKm: windowKm ?? 20 };
-  }, [terrain.status, terrain.data, site.status, windowKm]);
+    const close =
+      closeup.status === "ready" && closeup.data && closeupWindowKm !== null
+        ? { data: closeup.data, size: Math.round(Math.sqrt(closeup.data.up_km.length)), windowKm: closeupWindowKm }
+        : null;
+    const patch = { data: terrain.data, size, windowKm: windowKm ?? 20 };
+    return { ...patch, closeup: close && closeupDrawable(patch, close) ? close : null };
+  }, [terrain.status, terrain.data, site.status, windowKm, closeup.status, closeup.data, closeupWindowKm]);
   const apronValue = apron.status === "loading" ? "loading" : apron.status === "ready" && apron.data !== "not available" ? apron.data : null;
   const seriesValue = series.status === "ready" ? series.data : null;
   const flagsValue = flags.status === "ready" ? flags.data : null;
@@ -174,6 +188,8 @@ function FocusedSiteData({
   // and "none" when it lists none: a custom site has a patch but never an apron, by design.
   const apronListed = sceneMeta.status === "ready" ? sceneMeta.data.aprons.some((a) => a.site_id === siteId) : true;
   const apronState = apronLoadState(apron.status, apron.data, apronListed);
+  // "ready" only when the close-up is drawn: loaded, whole and fitting the patch.
+  const closeupState: LoadState | "none" = closeupPlateState(closeup.status, Boolean(terrainValue && terrainValue !== "loading" && terrainValue.closeup));
   useEffect(() => {
     onData({
       siteId,
@@ -181,9 +197,9 @@ function FocusedSiteData({
       flags: flagsValue,
       terrain: terrainValue,
       apron: apronValue,
-      states: { series: seriesState, terrain: terrainState, apron: apronState },
+      states: { series: seriesState, terrain: terrainState, apron: apronState, closeup: closeupState },
     });
-  }, [siteId, seriesValue, flagsValue, terrainValue, apronValue, seriesState, terrainState, apronState, onData]);
+  }, [siteId, seriesValue, flagsValue, terrainValue, apronValue, seriesState, terrainState, apronState, closeupState, onData]);
   return null;
 }
 
@@ -387,6 +403,8 @@ function Scene3D(props: SceneProps) {
           ? "ready"
           : "error"
         : "loading";
+  // The close-up is fetched and drawn only in Local terrain and Lander's eye (closeup-loading.ts).
+  const closeupWanted = useCloseupWanted(view);
   // A custom site's surroundings come from the global height map; retried on each visit (custom-apron.ts).
   const surroundings = useSurroundings((view === "terrain" || view === "panorama") && focusReady?.states.apron === "none");
   const content = useMemo(
@@ -395,14 +413,15 @@ function Scene3D(props: SceneProps) {
         view,
         trueScale,
         system: systemState,
-        site: worldSite ? { name: worldSite.name, sphere: worldSite.sphere } : null,
+        site: worldSite ? { name: worldSite.name, sphere: worldSite.sphere, tier: focusedSite?.terrain_tier } : null,
+        closeup: focusReady?.states.closeup ?? "none",
         series: focusReady?.states.series ?? "loading",
         terrain: focusReady?.states.terrain ?? "loading",
         apron: focusReady?.states.apron ?? "loading",
         sun: seriesSunAnswer(focusReady?.series, focusReady?.flags, hourIndex),
         surroundings,
       }),
-    [view, trueScale, systemState, worldSite, focusReady?.states.series, focusReady?.states.terrain, focusReady?.states.apron, focusReady?.series, focusReady?.flags, hourIndex, surroundings],
+    [view, trueScale, systemState, worldSite, focusReady?.states.series, focusReady?.states.terrain, focusReady?.states.apron, focusReady?.series, focusReady?.flags, hourIndex, surroundings, focusReady?.states.closeup, focusedSite?.terrain_tier],
   );
 
   const inputs = useMemo((): WorldInputs => {
@@ -553,7 +572,7 @@ function Scene3D(props: SceneProps) {
     const step = 24;
     const move = (dx: number, dy: number) => () => {
       controls.beginDrag();
-      if (!event.shiftKey || !controls.pan(dx, dy)) controls.orbit(dx, dy, true);
+      if (!event.shiftKey || !controls.pan(dx, dy)) controls.orbit(dx, dy);
     };
     const keys: Record<string, () => void> = {
       ArrowLeft: move(step, 0),
@@ -598,7 +617,7 @@ function Scene3D(props: SceneProps) {
         if (event.button === 1 && !(event.target as HTMLElement).closest("button, a, input, .scene-plate-interactive")) event.preventDefault();
       }}
     >
-      {focusedId ? <FocusedSiteData key={focusedId} siteId={focusedId} profile={scenario.profile} onData={onData} /> : null}
+      {focusedId ? <FocusedSiteData key={focusedId} siteId={focusedId} profile={scenario.profile} closeupWanted={closeupWanted} onData={onData} /> : null}
       <Canvas
         className="scene-canvas"
         // The four GL switches (gl-switches.ts) are off unless the address asks for them.
@@ -693,7 +712,7 @@ type DirectorProps = {
   trueScale: boolean;
   moon8k: boolean;
   sight: { sunAz: number; sunEl: number; earthAz: number; earthEl: number } | null;
-  terrain: { data: DecodedTerrain; size: number; windowKm: number } | null;
+  terrain: { data: DecodedTerrain; size: number; windowKm: number; closeup?: { data: DecodedTerrain; size: number; windowKm: number } | null } | null;
   apron: { data: DecodedApron; grid: ApronGrid } | null;
   bus: { current: OverlayBus };
   dip: (ms: number, cut: () => void) => void;
@@ -768,8 +787,8 @@ function Director(props: DirectorProps) {
   useEffect(() => {
     props.bus.current.controls = {
       beginDrag: () => rig.beginDrag(),
-      orbit: (dx, dy, fromKey) => {
-        rig.orbit(dx, dy, fromKey);
+      orbit: (dx, dy) => {
+        rig.orbit(dx, dy);
         invalidate();
       },
       pan: (dx, dy) => {
@@ -1088,6 +1107,7 @@ function Director(props: DirectorProps) {
     world.draw = rig.draw;
     world.scaleBlend = rig.scaleBlend;
     world.reduceMotion = latest.current.reduceMotion;
+    world.freeSpace = latest.current.sceneSpace;
     world.slip = rig.slip;
     world.slipShading = latest.current.slipShading && latest.current.view === "slip";
     // three updates the camera's matrices during render; the overlay projects before that.
