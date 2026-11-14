@@ -77,7 +77,10 @@ sudo docker compose -f compose.prod.yaml logs --tail=100 truesouth nginx certbot
 HSTS lasts one day, without includeSubDomains or preload. No CSP is supplied because
 it has not been verified against the running app through nginx. TLS uses 1.2/1.3 and
 OCSP stapling when the issuer supplies an OCSP responder. gzip covers text and JSON,
-not images or opaque `.bin` data. POST requests enqueue terrain work and are polled;
+not images or opaque `.bin` data. In one local measurement `system.bin` was 1,262,016
+bytes and gzip produced 1,030,332 bytes; the saving does not justify compressing
+opaque binary data on every request on this small server. POST requests enqueue terrain
+work and are polled;
 nginx uses a 16 KiB body limit, 5-second connect timeout and 30-second read/send
 timeouts. The API itself limits custom-site bodies to 4096 bytes.
 

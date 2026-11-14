@@ -6,6 +6,7 @@ sudo apt-get install -y ca-certificates curl
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
+# shellcheck disable=SC1091
 . /etc/os-release
 [ "$ID" = ubuntu ] && [ "$VERSION_CODENAME" = noble ] || { echo 'Ubuntu 24.04 required' >&2; exit 1; }
 printf 'deb [arch=%s signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu %s stable\n' "$(dpkg --print-architecture)" "$VERSION_CODENAME" | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null

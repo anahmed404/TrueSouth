@@ -49,6 +49,13 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-14 ? S13b ? production deploy files
+- **Who:** Codex implementation agent
+- **AI use:** Codex built the deployment files, trusted-proxy handling, tests and runbook; automated checks run locally, human review pending.
+- **State:** built, not verified
+- **Changed:** production Compose, deploy scripts and nginx configuration, API and tests, architecture, deployment runbook and decision 0017.
+- **Notes:** Ran Compose config, isolated self-signed nginx smoke checks, `sh -n`, ShellCheck, pytest (447 passed, one skipped), frozen pnpm install, web tests (2395 passed), typecheck and build. A local `system.bin` was 1,262,016 bytes; gzip was 1,030,332 bytes. No real certificate or deployment was attempted; the app's observed forwarded address was not logged independently, and peak terrain-job memory remains unmeasured.
+
 #### 2026-11-14 · S10c review · Consistent queue positions
 - **Who:** Codex implementation agent
 - **AI use:** Codex fixed the POST response contract, added test-client coverage and updated the contract documentation; human review pending.

@@ -2,7 +2,10 @@
 set -eu
 cd "$(dirname "$0")/.."
 [ -f .env ] || { echo 'Create .env first' >&2; exit 1; }
-set -a; . ./.env; set +a
+set -a
+# shellcheck disable=SC1091
+. ./.env
+set +a
 : "${TRUESOUTH_DOMAIN:?Set TRUESOUTH_DOMAIN}"
 staging=''
 case "${1:-}" in --staging) staging=--staging;; '') :;; *) echo 'Usage: first-certificate.sh [--staging]' >&2; exit 1;; esac
