@@ -1282,6 +1282,46 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Academy
 
+#### 2026-11-14 · A3 · drag-body and draw-skyline steps: lessons 1, 2 and 4 complete
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the two step kinds (`drag-body.ts`,
+  `sketch.ts`, `lesson/drag-body-stage.tsx`, `lesson/skyline-stage.tsx`,
+  `lesson/scene-data.ts`), their wiring into the lesson screen, the CSS, the vitest tests
+  and the doc changes. Checked by the agent with the tests (against the real
+  `data/derived/` series, skyline and worked examples, and the fixture), the typecheck,
+  the build and pytest, the Impeccable detector (no findings), and by playing the four
+  steps in a browser at 1440 × 900 by mouse and by keyboard only, and at 390 × 844 with
+  touch emulation, the failed-load fallback (series blocked) and reduced motion. No
+  console errors. A human has not played them. No AI-generated images.
+- **State:** built, not verified (on the merge with main: 2,274 web tests, typecheck and
+  build pass; 425 Python tests pass, 1 skipped; not yet reviewed or played by the team lead)
+- **Changed:** `web/src/features/academy/` only (plus `docs/academy/lessons.md`,
+  `docs/academy/overview.md`, `docs/design/c2/built-lesson-steps-*.png`). Nothing in
+  `web/src/features/panorama/`: the step composes the chart's own `HorizonChart` and
+  geometry helpers, so `LandersEye` needed no new prop.
+- **Notes:**
+  - The real data agrees with the keys: over the story month the stored maximum Sun
+    elevation reads 0.63° (`l1.sun_el_max_deg`) and Earth's 6.22° (`l4.earth_el_max_deg`),
+    minima −0.25° and −7.53°; lesson 2's 48 hours hold 29 hours with a disc fraction under
+    0.5, and the example hour's is 0. `drag-body.test.ts` checks all of this.
+  - The series stores elevations in steps of 0.01°, so an exact `==` goal could never
+    match a decoded float. Lessons 1 and 4 now carry `tolerance: 0.005` (half a step):
+    exactly the hours that read as the month's highest count (test checks every hour).
+  - A `flat` or `smooth` scene draws a level skyline at 0° (a drawing with no blockers;
+    values still come from the series). Only the dragged body is drawn, and it sets the
+    vertical range. `smooth` is drawn level too: the stored smooth-Moon skyline exists only
+    for sphere-tier sites.
+  - The `preview` lines of these steps are now the failed-load fallback (and lesson 2
+    step 3's reveal caption); their "Soon you'll…" lines are gone. `drop-pin` keeps its
+    holding form (`PENDING_STEP_KINDS`).
+  - Lesson 2's scene now looks at `l2.example_utc`, so the sketch draws the Sun there; its
+    unused `readout` (the site name) was removed.
+  - The new render-count test found that the chart's static layer redrew on every hour
+    when the lesson's examples object was handed over again; fixed by keying the chart
+    window on its two hours.
+  - In lesson 2 step 4 the Sun's 48-hour path is short on the 360° strip; the time bar
+    under the chart is the easier way to sweep it.
+
 #### 2026-11-13 · A5 · Lessons 1 to 4 playable, with their cards
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — wrote the final hints, explanations, reveals
