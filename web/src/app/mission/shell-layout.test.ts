@@ -253,8 +253,8 @@ describe("the strip folded while Compare is open", () => {
     expect(windowFoldFor(closed, "compare", false).folded).toBe(true);
   });
 
-  it("does nothing for the Slip Planner window, or with no window", () => {
-    expect(windowFoldFor(NO_WINDOW_FOLD, "slip", false).folded).toBe(false);
+  it("does nothing for any other window, or with no window", () => {
+    expect(windowFoldFor(NO_WINDOW_FOLD, "another-window", false).folded).toBe(false);
     expect(windowFoldFor(NO_WINDOW_FOLD, null, false)).toBe(NO_WINDOW_FOLD);
     expect(toggleStrip(NO_WINDOW_FOLD).toggleRemembered).toBe(true);
   });

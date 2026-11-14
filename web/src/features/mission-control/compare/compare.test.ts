@@ -32,8 +32,7 @@ import { formatUtc } from "../../../components/format";
 import Compare, { CompareTable, compareRenders } from "./index";
 import { parseCsv } from "../../../lib/export";
 import { compareCsv } from "./export";
-import { compareColumn, metricRows, statusCells, summarySentence, type ColumnView } from "./model";
-import { NOT_RANKED_NOTE } from "./site-wording";
+import { NOT_RANKED_NOTE, compareColumn, metricRows, statusCells, summarySentence, type ColumnView } from "./model";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../../..");
 const fixtures = path.join(repoRoot, "data", "fixtures");

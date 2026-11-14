@@ -24,13 +24,14 @@ import {
   slopeSources,
   statusCells,
   summarySentence,
+  NOT_RANKED_NOTE,
   TOO_FEW_SITES,
   type Cell,
   type ColumnView,
   type MetricRow,
   type StatusCell,
 } from "./model";
-import { CHOSEN_TAG, CHOSEN_TIP, NOT_RANKED_NOTE, isVariant } from "./site-wording";
+import { CHOSEN_TAG, CHOSEN_TIP, isVariant } from "../../../app/mission/site-labels";
 import "./compare.css";
 
 /** How many times the table has rendered. For the test that a scrub does not re-render it. */
