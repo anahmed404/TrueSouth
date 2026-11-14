@@ -211,13 +211,14 @@ re-encoded. Sizes are from the prototype; they are budgets for the real files.
   System view it is a short direction mark, about 1.15 Moon radii long with its label at
   the end: it shows the direction and does not run all the way to the drawn body.
 - When the focused site changes, the pins and sight-lines update at once.
-- **Labels toggle** (the team lead's wish, 2026-11-14), beside True scale and Sharper Moon;
-  on by default, kept for the session only and not in the link. Off, the name tags on the
-  scene hide in the System view, Slip Planner and Local terrain: the focused site's name tag
+- **Labels toggle** (the team lead's wish, 2026-11-14), beside True scale and Sharper Moon,
+  and in Local terrain's control row; on by default, kept for the session only and not in
+  the link. Off, the name tags on the scene hide in the System view, Polar map (the focused
+  site's name tag), Slip Planner and Local terrain: the focused site's name tag
   (with "and N more sites here"), the "To the Sun" and "To Earth" notes, Earth's and the Sun's
   names, "Lander not to scale", and the Slip Planner's site tags with their leaders. The pins,
   the sight-lines, the orbit lines, the edge pointers to an off-screen body, the plates
-  (including Local terrain's notes) and the panels stay; a pin keeps its name for screen
+  (including Local terrain's short line, which is always shown) and the panels stay; a pin keeps its name for screen
   readers and its hover title. Lander's eye keeps its labels.
 
 ## Camera

@@ -56,6 +56,15 @@ export type Plate = {
   action?: "show-system";
   /** Announced politely, for a state that will change by itself. */
   status?: boolean;
+  /**
+   * The decoration plate's short line ("Lit · drawing only"), shown folded (`visiblePlates`).
+   */
+  short?: string;
+  /**
+   * A folded plate: `text` is the short line, and these are the full sentences it opens to
+   * (hover, focus or click; overlay.tsx `FoldedPlate`).
+   */
+  details?: readonly string[];
 };
 
 export type SceneContent = {
@@ -147,12 +156,31 @@ export function sceneContent(input: PlateInput): SceneContent {
 export function decorationPlate(sun: { lit: boolean; discFraction: number } | null): Plate {
   const note =
     "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right.";
-  if (!sun || !Number.isFinite(sun.discFraction)) return { id: "decoration", text: note, place: "foot" };
+  if (!sun || !Number.isFinite(sun.discFraction)) return { id: "decoration", text: note, place: "foot", short: decorationShort(null) };
   const fraction = Math.min(1, Math.max(0, sun.discFraction));
   const text = sun.lit
     ? `The series says: lit. ${Math.round(fraction * 100)} % of the Sun's disc is above the skyline.`
     : `The series says: dark. Sun disc fraction ${fraction.toFixed(2)} above the skyline.`;
-  return { id: "decoration", text, note, place: "foot" };
+  return { id: "decoration", text, note, place: "foot", short: decorationShort(sun) };
+}
+
+/**
+ * The decoration plate's short line (local-terrain.md, "Shadows are decoration"): the series'
+ * answer in the word the full sentence uses, and that the picture is a drawing.
+ */
+export function decorationShort(sun: { lit: boolean; discFraction: number } | null): string {
+  if (!sun || !Number.isFinite(sun.discFraction)) return "Drawing only";
+  return `${sun.lit ? "Lit" : "Dark"} · drawing only`;
+}
+
+/**
+ * The decoration plate folded with the ground-source line: the short line, opening to the full
+ * sentences in order (what the ground is made from, the series' sentence, the decoration
+ * sentence).
+ */
+export function foldedDecoration(decoration: Plate, source: Plate | null): Plate {
+  const details = [source?.text, decoration.text, decoration.note].filter((t): t is string => Boolean(t));
+  return { id: "decoration", text: decoration.short ?? decorationShort(null), details, place: "foot" };
 }
 
 /**
@@ -198,7 +226,9 @@ export function decorationDisclosure(space: { width: number; height: number; win
 /**
  * Which plates the overlay shows at the top and at the foot of the free space. `hidden` is
  * the overlay's own rule for a tight space or an open window, which hides every other plate;
- * the decoration plate follows `decorationDisclosure` instead.
+ * the decoration plate follows `decorationDisclosure` instead. With room, the decoration plate
+ * is folded to its short line, and the ground-source line folds into it rather than taking a
+ * plate at the top (`foldedDecoration`).
  */
 export function visiblePlates(
   plates: readonly Plate[],
@@ -208,9 +238,12 @@ export function visiblePlates(
   const disclosure = decorationDisclosure(space);
   const foot: Plate[] = [];
   const top: Plate[] = [];
+  const folding = disclosure === "full" && !hidden && plates.some((p) => p.id === "decoration");
+  const source = plates.find((p) => p.id === "ground-source") ?? null;
   for (const plate of plates) {
+    if (folding && plate.id === "ground-source") continue;
     if (plate.id === "decoration") {
-      if (disclosure === "full" && !hidden) foot.push(plate);
+      if (folding) foot.push(foldedDecoration(plate, source));
       else if (disclosure !== "none") foot.push({ id: "decoration", text: DECORATION_SHORT, place: "foot" });
     } else if (!hidden) {
       (plate.place === "foot" ? foot : top).push(plate);
