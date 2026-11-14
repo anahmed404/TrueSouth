@@ -137,14 +137,18 @@ function extents(subjects: Subjects, right: V3, up: V3): { halfX: number; halfY:
  *   radius and its label below it.
  * - Earth is whole inside the free space in every layout, never a slice behind or between
  *   panels: at 1024 × 768 with the panels open that puts the Moon at about 45 px (Earth
- *   needs 4.04 Moon radii of the 188 px half-width). `minMoonPx` only guards free spaces
+ *   needs about 4.1 Moon radii of the 188 px half-width). `minMoonPx` only guards free spaces
  *   smaller than any of the four layouts tested.
  */
+/** How far the opening view leans away from Earth's side, in degrees. */
+const OPENING_TILT_DEG = 15;
+
 export const OPENING = {
-  earthReach: drawnDistance(EARTH_FARTHEST_KM) + DRAWN_EARTH_RADIUS,
+  // Seen with the lean, Earth's centre is cos(tilt) as far to the side.
+  earthReach: drawnDistance(EARTH_FARTHEST_KM) * Math.cos((OPENING_TILT_DEG * Math.PI) / 180) + DRAWN_EARTH_RADIUS,
   across: 2.1,
   margin: 1.03,
-  tiltDeg: 12,
+  tiltDeg: OPENING_TILT_DEG,
   minMoonPx: 30,
 } as const;
 
