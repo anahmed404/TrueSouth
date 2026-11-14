@@ -94,7 +94,7 @@ export type Countdowns = {
 /**
  * Compact result of evaluating every landing hour.
  * Index `i >= landingCount` has no result (the window runs off the grid).
- * Metrics were summed in float64. Pass the same profile back to
+ * Metrics use exact integer counts in float64. Pass the same profile back to
  * `evaluationAt` to rebuild one landing.
  */
 export type SlipSweep = {
@@ -145,53 +145,54 @@ function at(values: ArrayLike<number>, index: number): number {
   return value === undefined ? Number.NaN : value;
 }
 
+/** Canonical limit comparison and returned score (docs/science.md §9). */
+function q(value: number): number {
+  return Math.floor(value * 1e12 + 0.5) / 1e12;
+}
+
 /** Per-hour lit and link flags (docs/science.md §9). */
 export function hourFlags(series: Series, profile: ScoringProfile): HourFlags {
   const count = seriesCount(series);
   const lit = new Uint8Array(count);
   const link = new Uint8Array(count);
-  const minSun = profile.min_sun_fraction;
-  const elMin = profile.ops_sun_el_min_deg;
-  const mask = profile.antenna_mask_deg;
+  const minSun = q(profile.min_sun_fraction);
+  const elMin = profile.ops_sun_el_min_deg === null ? null : q(profile.ops_sun_el_min_deg);
+  const mask = q(profile.antenna_mask_deg);
   const relay = profile.relay_available;
   for (let i = 0; i < count; i++) {
-    let isLit = at(series.sun_frac, i) >= minSun;
-    if (elMin !== null && !(at(series.sun_el, i) >= elMin)) {
+    let isLit = q(at(series.sun_frac, i)) >= minSun;
+    if (elMin !== null && !(q(at(series.sun_el, i)) >= elMin)) {
       isLit = false;
     }
     lit[i] = isLit ? 1 : 0;
-    link[i] = relay || at(series.earth_clear, i) >= mask ? 1 : 0;
+    link[i] = relay || q(at(series.earth_clear, i)) >= mask ? 1 : 0;
   }
   return { lit, link };
 }
 
 /**
- * Window means from a float64 prefix sum (docs/science.md §11).
- * Addition runs from the start of `values`, matching `np.cumsum`.
+ * Exact integer prefix counts, then one division (docs/science.md §§9, 11).
+ * units is 10,000 for Sun fractions and 1 for the binary hour flags.
  */
-function prefixMeans(values: ArrayLike<number>, n: number, landingCount: number): Float64Array {
+function prefixMeans(values: ArrayLike<number>, n: number, landingCount: number, units = 1): Float64Array {
   const prefix = new Float64Array(values.length + 1);
   for (let i = 0; i < values.length; i++) {
-    prefix[i + 1] = prefix[i]! + at(values, i);
+    prefix[i + 1] = prefix[i]! + Math.floor(at(values, i) * units + 0.5);
   }
   const means = new Float64Array(landingCount);
   for (let i = 0; i < landingCount; i++) {
-    means[i] = (prefix[i + n]! - prefix[i]!) / n;
+    means[i] = (prefix[i + n]! - prefix[i]!) / (n * units);
   }
   return means;
 }
 
-function windowMean(values: ArrayLike<number>, start: number, n: number): number {
-  let prefix = 0;
-  for (let i = 0; i < start; i++) {
-    prefix += at(values, i);
-  }
-  const prefixStart = prefix;
+function windowMean(values: ArrayLike<number>, start: number, n: number, units = 1): number {
+  let count = 0;
   const stop = start + n;
   for (let i = start; i < stop; i++) {
-    prefix += at(values, i);
+    count += Math.floor(at(values, i) * units + 0.5);
   }
-  return (prefix - prefixStart) / n;
+  return count / (n * units);
 }
 
 /** Longest unbroken run inside one window. A direct scan (docs/science.md §9). */
@@ -284,7 +285,8 @@ function buildRangeMax(values: Int32Array): (left: number, right: number) => num
 }
 
 function g(x: number, m: number): number {
-  return m > 0 ? Math.max(0, 1 - x / m) : 1;
+  if (q(m) <= 0 || q(x) <= 0) return 1;
+  return q(x) >= q(m) ? 0 : Math.max(0, 1 - x / m);
 }
 
 function clamp01(value: number): number {
@@ -309,17 +311,17 @@ function evaluationFromMetrics(
 ): Evaluation {
   const vetoes: Vetoes = {
     slope: {
-      triggered: slopeDeg !== null && slopeDeg > profile.max_slope_deg,
+      triggered: slopeDeg !== null && q(slopeDeg) > q(profile.max_slope_deg),
       measured: slopeDeg,
       limit: profile.max_slope_deg,
     },
     darkness: {
-      triggered: metrics.longestDarkH > profile.max_dark_h,
+      triggered: q(metrics.longestDarkH) > q(profile.max_dark_h),
       measured: metrics.longestDarkH,
       limit: profile.max_dark_h,
     },
     blackout: {
-      triggered: !profile.relay_available && metrics.longestBlackoutH > profile.max_blackout_h,
+      triggered: !profile.relay_available && q(metrics.longestBlackoutH) > q(profile.max_blackout_h),
       measured: metrics.longestBlackoutH,
       limit: profile.max_blackout_h,
     },
@@ -331,25 +333,27 @@ function evaluationFromMetrics(
     landing_sun_low: {
       triggered:
         profile.landing_sun_el_min_deg !== null &&
-        metrics.landingSunElDeg < profile.landing_sun_el_min_deg,
+        q(metrics.landingSunElDeg) < q(profile.landing_sun_el_min_deg),
       measured: metrics.landingSunElDeg,
       limit: profile.landing_sun_el_min_deg,
     },
     landing_sun_high: {
       triggered:
         profile.landing_sun_el_max_deg !== null &&
-        metrics.landingSunElDeg > profile.landing_sun_el_max_deg,
+        q(metrics.landingSunElDeg) > q(profile.landing_sun_el_max_deg),
       measured: metrics.landingSunElDeg,
       limit: profile.landing_sun_el_max_deg,
     },
   };
 
-  const slope =
-    slopeDeg === null
-      ? null
-      : clamp01(
-          (profile.max_slope_deg - slopeDeg) / (profile.max_slope_deg - profile.slope_ideal_deg),
-        );
+  let slope: number | null = null;
+  if (slopeDeg !== null) {
+    if (q(slopeDeg) <= q(profile.slope_ideal_deg)) slope = 1;
+    else if (q(slopeDeg) >= q(profile.max_slope_deg)) slope = 0;
+    else slope = clamp01(
+      (profile.max_slope_deg - slopeDeg) / (profile.max_slope_deg - profile.slope_ideal_deg),
+    );
+  }
   const power = metrics.sunFractionMean * g(metrics.longestDarkH, profile.max_dark_h);
   const comms = profile.relay_available
     ? 1
@@ -366,7 +370,7 @@ function evaluationFromMetrics(
   if (denominator === 0) {
     throw new Error("score is undefined when assessed weights sum to zero");
   }
-  const score = (100 * numerator) / denominator;
+  const score = q((100 * numerator) / denominator);
 
   let status: Status = "CAUTION";
   if (
@@ -399,7 +403,7 @@ function metricsAt(
   n: number,
 ): Metrics {
   return {
-    sunFractionMean: windowMean(series.sun_frac, landingHour, n),
+    sunFractionMean: windowMean(series.sun_frac, landingHour, n, 10000),
     litFraction: windowMean(flags.lit, landingHour, n),
     longestDarkH: longestRunInWindow(flags.lit, landingHour, n, 0),
     linkFraction: windowMean(flags.link, landingHour, n),
@@ -453,7 +457,7 @@ export function slipSweep(
     windowHours: n,
     landingCount,
     slopeDeg,
-    sunFractionMean: prefixMeans(series.sun_frac, n, landingCount),
+    sunFractionMean: prefixMeans(series.sun_frac, n, landingCount, 10000),
     litFraction: prefixMeans(flags.lit, n, landingCount),
     longestDarkH: longestRuns(flags.lit, n, 0),
     linkFraction: prefixMeans(flags.link, n, landingCount),
@@ -587,9 +591,9 @@ function crossing(
 
   const times: number[] = [];
   for (const condition of conditions) {
-    const left = at(condition.values, index);
-    const right = at(condition.values, index + 1);
-    const threshold = condition.threshold;
+    const left = q(at(condition.values, index));
+    const right = q(at(condition.values, index + 1));
+    const threshold = q(condition.threshold);
     const changed = rising
       ? left < threshold && threshold <= right
       : left >= threshold && threshold > right;

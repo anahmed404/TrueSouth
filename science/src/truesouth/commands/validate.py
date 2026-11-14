@@ -201,7 +201,7 @@ def direction_evidence(site_id, body, predicted, reference, times, step_h=24):
                                      step_h=step_h, max_difference_deg=daily.tolist())
 
 
-def directions_gate(sites, system, times, directory):
+def directions_gate(sites, system, times, directory, diagnostics=None):
     reports, charts, missing = [], [], []
     for site in sites:
         # A best-lit variant has no saved Horizons response. G2 stays on the
@@ -228,16 +228,24 @@ def directions_gate(sites, system, times, directory):
         return unmeasured_gate('G2', 'Sun and Earth directions match JPL Horizons', .02, 'deg',
                                'saved site responses missing: '+', '.join(missing)), charts
     maximum = max(max(r['az_max_deg'], r['el_max_deg']) for r in reports)
+    worst_by_name = {name: max(reports, key=lambda r: r[name+'_max_deg']) for name in ('az', 'el', 'sky', 'raw')}
+    raw_hours = sum(r['raw_above_mark'] for r in reports)
+    if diagnostics is not None:
+        for prefix, name in (('raw_azimuth', 'raw'), ('sky', 'sky'), ('elevation', 'el')):
+            worst = worst_by_name[name]
+            diagnostics[prefix+'_max_deg'] = worst[name+'_max_deg']
+            diagnostics[prefix+'_location'] = dict(site_id=worst['site_id'], body=worst['body'], utc=worst[name+'_max_utc'])
+        diagnostics['raw_azimuth_hours_over_limit'] = raw_hours
     detail = ['Compared directions from stored Float32 system.bin at ground height 0 plus 2 m '
               '(science section 3.3); each azimuth sky angle and elevation is gated at 0.02 deg.']
     for name in ('az', 'el', 'sky', 'raw'):
-        worst = max(reports, key=lambda r: r[name+'_max_deg'])
+        worst = worst_by_name[name]
         samples = sum(r['samples'] for r in reports)
         rms = (float(np.sqrt(sum(r[name+'_rms_deg']**2*r['samples'] for r in reports)/samples))
                if name != 'raw' else None)
         detail.append(f'{name}: max {worst[name+"_max_deg"]:.12g} deg at {worst["site_id"]}/{worst["body"]} '
                       f'{worst[name+"_max_utc"]}'+(f', RMS {rms:.12g} deg.' if rms is not None else '.'))
-    detail.append(f'Raw compass azimuth is diagnostic only: {sum(r["raw_above_mark"] for r in reports)} '
+    detail.append(f'Raw compass azimuth is diagnostic only: {raw_hours} '
                   'site/body hours above 0.02 deg; daily chart uses full sky separation.')
     if missing:
         detail.append('Incomplete coverage; missing responses: '+', '.join(missing)+'.')
@@ -271,7 +279,8 @@ def run(args):
     times = np.datetime64(grid.start_utc.removesuffix('Z'), 's')+np.arange(grid.count)*np.timedelta64(grid.step_s, 's')
     system = read_system(output/'system.bin', grid.count)
     gates = [parser_gate(saved_response(raw/'horizons', global_request(), 'global'))]
-    gate, charts = directions_gate(sites, system, times, raw/'horizons')
+    diagnostics = {}
+    gate, charts = directions_gate(sites, system, times, raw/'horizons', diagnostics)
     gates.append(gate)
     comparisons, not_run = [], []
     covered = {'R1': [], 'R2': []}
@@ -374,7 +383,7 @@ def run(args):
                           used_for='R1 and R2 pixel references')]
     if any(c.id == 'R3' for c in comparisons):
         sources.append(DataSource(name='LOLA 80 m slope map', url=TERRAIN_SOURCE, used_for='R3 slope reference'))
-    report = Validation(generated_utc=args.generated_utc or datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'),
+    report = Validation(g2_diagnostics=diagnostics or None, generated_utc=args.generated_utc or datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'),
                         gates=sorted(gates, key=lambda g: int(g.id[1:])),
                         comparisons=sorted(comparisons, key=lambda c: (c.id, c.site_id)),
                         g2_over_time=charts, sources=sources)

@@ -157,13 +157,27 @@ def _worked():
 def _cases(root, sites, profiles):
     profiles = {p.id:p for p in profiles}
     series = {s['id']:io.read_series(root/'sites'/s['id']/'series.bin', N) for s in sites}
+    # Scoring-only series: preserve a nonzero prefix in each translated A1 case.
+    # It has the full contract grid, but is not another catalog site.
+    boundary_folder = root/'scoring'/'boundary'
+    boundary_folder.mkdir(parents=True, exist_ok=True)
+    boundary = {c.name: np.full(N, .7 if c.name == 'sun_frac' else
+                               0. if c.name.endswith('_az') else 1.)
+                for c in SeriesLayout().arrays}
+    boundary['sun_frac'][16] = .6
+    io.write_series(boundary_folder/'series.bin', boundary)
+    _json(boundary_folder/'meta.json', json.loads((root/'sites'/'fixture_ridge'/'meta.json').read_text(encoding='utf-8')))
+    boundary = io.read_series(boundary_folder/'series.bin', N)
     cases = []
-    def add(label, sid, profile, landing, slope, current=None):
+    def add(label, sid, profile, landing, slope, current=None, *, use_boundary=False, end_hour=None):
         current = landing if current is None else current
         n = scoring.window_length(profile.duration_days)
         start = min(landing, current)
         end = min(N, max(landing+n, current+3000))
-        part = {k:v[start:end] for k,v in series[sid].items()}
+        if end_hour is not None:
+            end = end_hour
+        source = boundary if use_boundary else series[sid]
+        part = {k:v[start:end] for k,v in source.items()}
         local = landing-start
         result = scoring.evaluate(part, profile, local, slope)
         flags = scoring.hour_flags(part, profile)
@@ -171,7 +185,7 @@ def _cases(root, sites, profiles):
         expected = None if result is None else dict(window_length=n, lit=flags[0][local:local+n].tolist(),
                          link=flags[1][local:local+n].tolist(), evaluation=asdict(result), countdowns=countdowns)
         cases.append(dict(labels=label if isinstance(label,list) else [label], site_id=sid,
-            series_file=f'sites/{sid}/series.bin', hour_range=[start,end], profile=profile.model_dump(mode='json'),
+            series_file='scoring/boundary/series.bin' if use_boundary else f'sites/{sid}/series.bin', hour_range=[start,end], profile=profile.model_dump(mode='json'),
             landing_hour=landing, landing_utc=_utc(landing), slope_deg=slope, current_hour=current,
             countdowns=countdowns, expected=expected))
     base = profiles['im2_athena']
@@ -213,6 +227,23 @@ def _cases(root, sites, profiles):
                         ('current_linked', flags[1]), ('current_blackout', ~flags[1])]:
         current = int(np.flatnonzero(mask & (np.arange(N) >= 10))[0])
         add(label, 'fixture_wide', base, current-10, 9, current)
+    stable = p.model_copy(update={'duration_days':1/24, 'min_sun_fraction':.5,
+        'relay_available':False, 'antenna_mask_deg':1, 'max_dark_h':0, 'max_blackout_h':0,
+        'max_slope_deg':10, 'slope_ideal_deg':0, 'weights':Weights(slope=0,power=1,comms=0)})
+    for landing in range(16):
+        add(['a1_exact_seventy_translated', f'a1_landing_{landing}'], 'fixture_ridge', stable,
+            landing, None, current=0, use_boundary=True, end_hour=16)
+        # An independent oracle must survive regenerating both copies of G10.
+        assert cases[-1]['expected']['evaluation']['score'] == 70
+        assert cases[-1]['expected']['evaluation']['status'] == 'GO'
+    add('exact_veto_limit', 'fixture_ridge', stable, 0, 10, current=0,
+        use_boundary=True, end_hour=16)
+    assert not any(v['triggered'] for v in cases[-1]['expected']['evaluation']['vetoes'].values())
+    three = stable.model_copy(update={'relay_available':True, 'weights':Weights(slope=1,power=1,comms=1)})
+    add('all_three_weights_exact_seventy', 'fixture_ridge', three, 16, 5, current=0,
+        use_boundary=True, end_hour=17)
+    assert cases[-1]['expected']['evaluation']['score'] == 70
+    assert cases[-1]['expected']['evaluation']['status'] == 'GO'
     return {'format': 'series_file is relative to data/fixtures; hour_range is a half-open slice of the full time grid. landing_hour and current_hour are full-grid indices. expected is null when the window has no result.',
             'generated_by': 'uv run truesouth build-fixtures', 'cases': cases}
 
