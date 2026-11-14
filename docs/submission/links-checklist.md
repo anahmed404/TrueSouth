@@ -4,15 +4,16 @@ Every link the submission will contain, and what must be true before sending it.
 The last column is for the team to fill: open each link in a **private (incognito)
 window, signed out**, and tick it only if the right page loads.
 
-State checked at 2026-11-13 22:14 UTC (`origin/main` at 63d518a).
+State checked at **2026-11-14 (`origin/main` at `5a5fd84`)**.
 
 ## Must be true before submitting
 
 - [ ] **The live link opens without logging in**, in a private window, on a different
   device or network from the one that built it. It opens straight to the start screen.
-- [ ] **The live link is the build that has the 3D scene.** Open
-  `<live>/mission?...&view=system` and check the Moon is drawn.
-- [ ] **Every demo link A to G below opens** and shows the date in the top bar.
+- [ ] **The live link is the build that has the 3D scene and all five views.** Open
+  `<live>/mission?...&view=system` and check the Moon is drawn, and test `Slip Planner`,
+  `Polar map`, `Local terrain`, `Lander's eye`, and `Compare`.
+- [ ] **Every demo link below opens** and shows the right landing date and view.
 - [ ] **The repository link works for a judge.** The repository is **private today**
   (`gh repo view` reports `PRIVATE`, and there is no licence). A private link will not open
   for judges. Either make the repository public, or attach a zip of it, or both. If it
@@ -22,15 +23,18 @@ State checked at 2026-11-13 22:14 UTC (`origin/main` at 63d518a).
   the end. A recorded backup of the demo is also on the presenter's machine.
 - [ ] **No link in the submission text goes to `localhost`**, a pull request, or a page
   behind a login.
-- [ ] The pull requests that the texts depend on are merged, or the texts are edited:
-  #81 (Academy), #83 (landing date in the timeline, "Next GO"), #77 (variants), #80
-  (custom-site server). See
-  [`objectives-map.md`](objectives-map.md).
-- [ ] The Docker image builds from a clean checkout (`docker compose -p truesouth-s13 up -d --build`,
-  then open <http://localhost:8080>), if the repository or zip is what judges will run. CHECK: this was last
-  proved at pull request #71; the image should be rebuilt after the scene merged
-  (`docs/orchestration/status.md`).
-- [ ] The footer line is on screen: "Planning aid, not flight certification. Limits marked
+- [ ] **Check open pull requests before the final deploy:** `#93` (scoring boundary fix),
+  `#94` (science docs), `#95` (Academy `A3` interactive panel steps), `#96` (server queue
+  position and validation fields). Confirm `docs/submission/` matches whatever is live on the day.
+- [ ] **Confirm custom-site availability on the live server:** in the catalog-only Docker
+  build without mounted NASA terrain maps, `/api/health` reports custom sites unavailable
+  and the UI shows the `501` notice cleanly. If custom coordinates are part of the live
+  demo, confirm the prepared terrain maps are mounted and `/api/sites/custom` responds.
+- [ ] **The Docker image builds from a clean checkout** (`docker compose -p truesouth-s13 up -d --build`,
+  then open <http://localhost:8080>), if the repository or zip is what judges will run.
+  CHECK: `status.md` last recorded a full container check at PR #71; rebuild and verify on
+  `origin/main` (`5a5fd84`).
+- [ ] **The footer line is on screen:** "Planning aid, not flight certification. Limits marked
   assumed are our estimates."
 
 ## 1. The submission's own links
@@ -40,7 +44,7 @@ Fill the middle column. The team lead owns these.
 | Link | URL | Opens in a private window |
 | :--- | :--- | :--- |
 | Live demo | CHECK: not known yet | [ ] |
-| Repository (public link, or "zip attached") | CHECK: not known yet; the repository is private | [ ] |
+| Repository (public link, or "zip attached") | CHECK: not known yet; `https://github.com/anahmed404/TrueSouth` is currently private | [ ] |
 | Demo video | CHECK: not recorded yet | [ ] |
 | Challenge page | <https://www.spaceappschallenge.org/2026/challenges/lunar-landing-site-navigator/> | [ ] |
 
@@ -58,32 +62,30 @@ pattern; a date is `2028-01-22T00%3A00Z` in a link. Every one must be tried befo
 | E, the dark hour, Lander's eye | link B with `view=panorama` | [ ] |
 | F, the dark hour, Local terrain | link B with `view=terrain` | [ ] |
 | G, Apollo 11 | `/mission?profile=im2_athena&sites=apollo11,connecting_ridge&land=2028-01-03T00%3A00Z&t=0&view=system` | [ ] |
+| Slip Planner (link A) | link A with `view=slip` | [ ] |
+| Polar map (link A) | link A with `view=map` | [ ] |
+| Compare window (link B) | link B with `view=compare` | [ ] |
+| Academy path & Lesson 1 | `/academy` and `/academy/l1_sun` | [ ] |
 | Validation page | `/validation` | [ ] |
-| Academy | `/academy` | [ ] |
 
 ## 3. NASA data sources used
 
-From `data/derived/validation.json` (`sources`). The product names are NASA's.
+From `data/derived/validation.json` (`sources`) and the scene/app source files. The product names are NASA's.
 
 | What | Used for | URL | Opens in a private window |
 | :--- | :--- | :--- | :--- |
 | JPL Horizons System | Sun and Earth positions; checks G1 and G2 | <https://ssd.jpl.nasa.gov/horizons/> | [ ] |
-| LOLA 80 m and 240 m polar terrain (PGDA product 90) | Terrain behind every skyline and series | <https://pgda.gsfc.nasa.gov/products/90> | [ ] |
-| LOLA average sunlight and Earth visibility, 60 m and 120 m (PGDA product 69) | Comparisons R1 and R2 | <https://pgda.gsfc.nasa.gov/products/69> | [ ] |
+| LOLA 80 m and 240 m polar terrain (PGDA product 90) | Terrain behind every skyline, slope, and 3D ground | <https://pgda.gsfc.nasa.gov/products/90> | [ ] |
+| LOLA average sunlight and Earth visibility, 60 m and 120 m (PGDA product 69) | Polar map context overlays; comparisons R1 and R2 | <https://pgda.gsfc.nasa.gov/products/69> | [ ] |
 | LOLA 80 m slope map (PGDA product 90) | Comparison R3 | <https://pgda.gsfc.nasa.gov/products/90> | [ ] |
-
-More NASA sources, from [`../site-catalog.md`](../site-catalog.md) and
-[`../architecture.md`](../architecture.md):
-
-| What | Used for | URL | Opens in a private window |
-| :--- | :--- | :--- | :--- |
 | LOLA 5 m close-up maps (PGDA product 78) | Positions of Artemis candidate sites; slope check | <https://pgda.gsfc.nasa.gov/products/78> | [ ] |
 | NASA Scientific Visualization Studio 4720 | The Moon's colour map and height map in the scene | <https://svs.gsfc.nasa.gov/4720> | [ ] |
 | Blue Marble Next Generation, NASA Earth Observatory | The Earth picture in the scene | CHECK: no page link in the repository; the file is `world.topo.bathy.200403.3x5400x2700.jpg` from `assets.science.nasa.gov` (`docs/architecture.md`) | [ ] |
+| Yale Bright Star Catalogue V/50 (NASA/ADC, via HEASARC `bsc5p`) | The 8,404 stars in the System view background | <https://heasarc.gsfc.nasa.gov/FTP/heasarc/dbase/tdat_files/heasarc_bsc5p.tdat.gz> | [ ] |
 | NASA Artemis candidate regions | Names of the nine regions | <https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/> | [ ] |
 | IAU gazetteer of planetary nomenclature | Crater names for map labels | <https://planetarynames.wr.usgs.gov/> | [ ] |
-| Quickmap | Linked from each site (home page) | <https://quickmap.lroc.asu.edu/> | [ ] |
-| Moon Trek | Linked from each site (home page) | <https://trek.nasa.gov/moon/> | [ ] |
+| LROC Quickmap | Deep-linked from Compare's "Open in NASA's maps" (`nasa-links.ts`) | <https://quickmap.lroc.im-ldi.com/> | [ ] |
+| Moon Trek | Deep-linked from Compare's "Open in NASA's maps" (`nasa-links.ts`) | <https://trek.nasa.gov/moon/> | [ ] |
 
 Credit lines, as recorded in `data/derived/scene/meta.json`:
 
@@ -93,7 +95,8 @@ Credit lines, as recorded in `data/derived/scene/meta.json`:
 
 ## 4. Site sources
 
-Each catalog site's coordinates come from one of these (`data/derived/sites.json`).
+Each catalog site's coordinates come from one of these (`data/derived/sites.json`). The five
+`*_best_lit` variants are generated from the `80 m` LOLA map by TrueSouth (`Offset 71–149 m`).
 
 | Sites | URL | Opens in a private window |
 | :--- | :--- | :--- |
