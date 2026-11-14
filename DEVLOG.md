@@ -87,7 +87,7 @@ each integration checkpoint.
   reviewed code, checked current stored-file counts without rebuilding data,
   and recorded each A9 finding's status. Both Academy teaching formulas are
   unchanged. No code, contract, screen or data changed.
-- **State:** built, not verified
+- **State:** verified (432 Python tests and 2,344 web tests pass on the merge with main, including the Academy's card-formula tests; reviewed by Gemini, which checked each passage against the code and recounted the data (58 stored 360-degree azimuths; sub-solar latitude within 1.59 degrees; no empty skyline bins at the 20 terrain sites); one error found and corrected by the orchestrator: the highest stored Sun at Connecting Ridge is 2.10 degrees (2.13 had been computed at longitude 0))
 - **Changed:** `docs/science.md`, the Status table and later-state notes in
   `docs/reviews/a9-math-review.md`, and the dated outcome in decision 0004.
 - **Notes:**
