@@ -38,13 +38,13 @@ A mission planner must choose where and when a lander touches down. Near the Moo
 When hardware or launch delays move the landing date, the planner must start again. NASA's challenge says the existing tools hold the information but "are often difficult for non-specialists to use effectively for rapid scenario comparison". Planners need a fast answer for each site and date. Learners need to see why.
 
 ## Background & Literature Review (200 words max)
-<!-- 199 words -->
+<!-- 192 words -->
 
 NASA already offers good tools. LROC QuickMap and Moon Trek are browser portals to lunar map layers. JPL Horizons gives the Sun's and Earth's positions for a chosen place and time, without terrain. NASA's Scientific Visualization Studio publishes Moon colour and elevation maps for rendering. The Planetary Geodesy Data Archive publishes LOLA terrain maps and maps of average sunlight and Earth visibility.
 
 Each does its job well. None of them, as far as we found, answers "is this landing date GO for this mission at this site, and what if it slips?" The sunlight maps are averages over 18.6 years, so they say where, not when.
 
-The research is solid. Mazarico et al. (2011) modelled polar illumination from LOLA topography over a full nutation cycle of about 18.6 years, at one-hour steps. Gläser et al. (2014) studied south-pole illumination with higher-resolution LOLA terrain models. Barker et al. (2021) estimated the errors in LOLA south-pole maps and their effect on illumination. Barker et al. (2023) published the newer maps we use.
+The research is solid. Mazarico et al. (2011) modelled polar illumination from LOLA topography over several 18.6-year precession cycles. Gläser et al. (2014) studied south-pole illumination with higher-resolution LOLA terrain models. Barker et al. (2021) estimated the errors in LOLA south-pole maps and their effect on illumination. Barker et al. (2023) published the newer maps we use.
 
 These studies give averages and a few named points. We add time: an hourly series for six years, scored against a mission's own rules, and checked against NASA's maps.
 
@@ -55,7 +55,7 @@ We built the method as a pipeline that runs once, and a browser that scores.
 1. **Read the challenge.** We mapped every objective on NASA's page to a feature, and wrote a glossary and a written spec for each feature.
 2. **Get NASA data.** NASA's LOLA terrain maps at 80 m and 240 m. One pull from JPL Horizons gives the Sun's and Earth's positions over the Moon for every hour from 2026-01-01 to 2031-12-31 (52,584 hours).
 3. **Build a skyline per site.** For an observer 2 m above the ground, the highest terrain in each of 1,440 compass directions, out to 300 km, with the dip of the curved Moon's horizon (science.md §4–5).
-4. **Build the hourly series.** For each site and hour: the Sun's and Earth's azimuth, elevation, share of the disc above the skyline, and clearance (§6–7). A site uses 80 m terrain south of 80°S, 240 m terrain from 80°S to 60°S, and a smooth Moon north of 60°S.
+4. **Build the hourly series.** For each site and hour: the Sun's and Earth's azimuth, elevation, share of the disc above the skyline, and clearance (§6–7). A site uses 80 m terrain at or south of 80°S, 240 m terrain from there to 60°S, and a smooth Moon north of 60°S.
 5. **Write mission profiles.** Five presets named after real missions, and a custom one. Every value is tagged sourced (with a link) or assumed.
 6. **Score in the browser.** Window metrics, vetoes, utilities, a weighted score and a status (§9–10). A six-year sweep runs in a Web Worker (§11).
 7. **Validate.** Eleven gates, and 59 comparisons with NASA's maps and with ourselves.
@@ -74,7 +74,7 @@ We built the method as a pipeline that runs once, and a browser that scores.
 
 The Slip Planner shows each site's status and score across six years of landing dates. "Slip +7 d" and "Next GO" answer the question a delay raises.
 
-*Custom coordinates:* type a latitude and east longitude, or click the Polar map. The server computes the site from real terrain. On our development machine an 80 m site took 44 to 49 seconds.
+*Custom coordinates:* type a latitude and east longitude, or click the Polar map. South of 60°S the server computes the site from real terrain; farther north it uses a smooth Moon. On our development machine an 80 m site took 43 to 49 seconds.
 
 *The Academy* teaches the same physics in four lessons, guided by Luna, to land a fictional lander called Pip. Each lesson has an "Under the hood" card with the real formula and numbers from the pipeline.
 
@@ -113,7 +113,7 @@ All four members test the running app and choose between design variants at chec
 
 **Tawfic Kobtan: Mission Control and the scoring engine.** Owns the planner's answer: the mission profiles and their rules, every value tagged sourced or assumed; the scoring engine that turns the hourly record into a score and a GO, CAUTION or NO-GO status with the rule that decided it, identical in Python and the browser; the timeline, the Slip Planner's six-year sweep, "Next GO" and Compare with its exports. A planner acts on it.
 
-**Ahmed Salah: visualisation and the Academy.** Owns how people see and learn it: the 3D scene and the map, drawn from NASA's data (the System view, Polar map, Local terrain and Lander's eye) and kept fast on ordinary laptops; and the Academy, the product's second mode, whose interactive lessons run on the same engine and data, each with the formula behind it. It shows why a site is lit or dark.
+**Ahmed Salah: visualisation and the Academy.** Owns how people see and learn it: the 3D scene and the map, drawn from NASA's data (the System view, Polar map, Local terrain and Lander's eye) and its performance on ordinary laptops; and the Academy, the product's second mode, whose interactive lessons run on the same engine and data, each with the formula behind it. It shows why a site is lit or dark.
 
 ## Workflow Strategy
 
@@ -155,7 +155,7 @@ All four members test the running app and choose between design variants at chec
 | LOLA 80 m and 240 m south-polar terrain (PGDA product 90) | Skylines, slope, the 3D ground | https://pgda.gsfc.nasa.gov/products/90 |
 | LOLA 80 m slope map (PGDA product 90) | Validation of our slope | https://pgda.gsfc.nasa.gov/products/90 |
 | LOLA average sunlight and Earth visibility, 60 m and 120 m (PGDA product 69) | Polar map overlays; validation | https://pgda.gsfc.nasa.gov/products/69 |
-| LOLA 5 m close-up maps (PGDA product 78) | Positions of Artemis candidate sites; slope check | https://pgda.gsfc.nasa.gov/products/78 |
+| LOLA 5 m close-up maps (PGDA product 78) | Representative points for six Artemis candidate regions | https://pgda.gsfc.nasa.gov/products/78 |
 | NASA SVS 4720, CGI Moon Kit | The Moon's colour and height maps in the scene | https://svs.gsfc.nasa.gov/4720 |
 | Blue Marble Next Generation (NASA Earth Observatory) | The Earth picture in the scene | https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography-bathymetry/march/world.topo.bathy.200403.3x5400x2700.jpg |
 | Yale Bright Star Catalogue (NASA/ADC, via HEASARC) | The 8,404 stars in the System view | https://heasarc.gsfc.nasa.gov/W3Browse/star-catalog/bsc5p.html |
@@ -176,7 +176,7 @@ Also: site coordinates from published studies (references 2, 5 and 6), and the m
 8. NASA (2024, October 28). NASA provides update on Artemis III Moon landing regions. Release 24-136. https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/
 9. NASA JPL Solar System Dynamics Group. Horizons System. https://ssd.jpl.nasa.gov/horizons/
 
-**AI tools used.** Claude Code (Claude Fable 5.2, Opus 5.5 and Sonnet 5.5), Codex (gpt-6.1-sol and gpt-6.1-terra), Cursor (grok-4.7 and grok-4.6) and Antigravity (gemini-4-argon, gemini-4-hydrogen and gemini-3.8-flash). The `impeccable` design skill was used inside Claude Code. The only AI-made images are placeholder drawings of Luna, two start-screen drawings and one lesson diagram, all inline SVG made by Claude Code. NASA images and data are never AI-generated or altered. Full details are in our AI-use disclosure.
+**AI tools used.** Claude Code (Claude Fable 5.2, Opus 5.5 and Sonnet 5.5), Codex (gpt-6.1-sol and gpt-6.1-terra), Cursor (grok-4.7 and grok-4.6) and Antigravity (gemini-4-argon, gemini-4-hydrogen and gemini-3.8-flash). The `impeccable` design skill was used inside Claude Code. The only AI-made images are placeholder drawings of Luna, two start-screen drawings and one lesson diagram, all inline SVG made by Claude Code. NASA images and data are never AI-generated; NASA's images are only resized, cropped or re-encoded. Full details are in our AI-use disclosure.
 
 ## Team
 
