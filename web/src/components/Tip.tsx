@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { bridgeTab, overlayHost, tabStopAfter, tabbables, withinEither } from "./overlay-host";
+import { announceOverlayChange, bridgeTab, overlayHost, tabStopAfter, tabbables, withinEither } from "./overlay-host";
 
 /**
  * A small bubble of text tied to one control: a tooltip, or, with `interactive`, a
@@ -108,6 +108,7 @@ export function Tip({ content, children, interactive = false, placement = "top",
     const centred = t.left + t.width / 2 - b.width / 2;
     const left = Math.min(Math.max(centred, MARGIN), vw - b.width - MARGIN);
     setPosition({ left: Math.round(left), top: Math.round(Math.max(top, MARGIN)) });
+    announceOverlayChange();
   }, [placement]);
 
   // Show or hide the bubble in the top layer, then place it.

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode, type Ref } from "react";
 import { createPortal } from "react-dom";
 import { cx } from "./format";
-import { bridgeTab, overlayHost, placePanel, returnsFocus, tabStopAfter, tabbables } from "./overlay-host";
+import { announceOverlayChange, bridgeTab, overlayHost, placePanel, returnsFocus, tabStopAfter, tabbables } from "./overlay-host";
 
 export type PopoverTriggerProps = {
   ref: (node: HTMLButtonElement | null) => void;
@@ -113,6 +113,7 @@ export function Popover({ label, trigger, children, align = "start", width = 360
     panel.style.top = spot.top === null ? "auto" : `${spot.top}px`;
     panel.style.bottom = spot.bottom === null ? "auto" : `${spot.bottom}px`;
     panel.style.maxHeight = `${spot.maxHeight}px`;
+    announceOverlayChange();
   }, [align, width, placement]);
 
   useEffect(() => {

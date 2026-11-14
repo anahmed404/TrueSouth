@@ -122,3 +122,20 @@ export function placePanel(input: {
   if (above) return { left, width, top: null, bottom: viewH - trigger.top + gap, maxHeight: Math.max(0, roomAbove) };
   return { left, width, top: trigger.bottom + gap, bottom: null, maxHeight: Math.max(0, roomBelow) };
 }
+
+/**
+ * Sent on the document when a popover panel or tip bubble moves or changes size (opening and
+ * closing already send the popover's own `toggle` event). The 3D scene, which draws only when
+ * something changes, draws a few fresh frames on either, in case a GPU loses the canvas's
+ * picture under a newly composited overlay (the black box's leading theory).
+ */
+export const OVERLAY_CHANGED_EVENT = "truesouth:overlay-changed";
+
+export function announceOverlayChange(): void {
+  if (typeof document === "undefined" || typeof document.dispatchEvent !== "function") return;
+  try {
+    document.dispatchEvent(new Event(OVERLAY_CHANGED_EVENT));
+  } catch {
+    // No events here (a test's stand-in document).
+  }
+}
