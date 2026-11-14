@@ -1,4 +1,6 @@
 import type { CameraViewId } from "../../../app/scene";
+import type { HourFlags } from "../../../lib/scoring";
+import { sightState } from "./sight";
 
 /**
  * What the scene may draw and which plain-words plates it shows, from the load state of each
@@ -20,13 +22,25 @@ export type PlateInput = {
   series: LoadState;
   /** The focused site's `terrain.bin`. Ignored for a sphere-tier site, which has none. */
   terrain: LoadState;
-  /** The focused site's apron. Ignored for a sphere-tier site. */
-  apron: LoadState;
+  /**
+   * The focused site's apron. Ignored for a sphere-tier site. "none": the site has no apron by
+   * design (a custom site): the 20 km patch is drawn alone and nothing is reported missing.
+   */
+  apron: LoadState | "none";
+  /**
+   * The series' answer for the Sun at the current hour (its hour flag and disc fraction), or
+   * null while it is not in. Optional: without it the decoration plate says only what is drawn.
+   */
+  sun?: { lit: boolean; discFraction: number } | null;
 };
 
 export type Plate = {
   id: string;
   text: string;
+  /** A second, quieter line. */
+  note?: string;
+  /** At the foot of the free space, above the view's controls, instead of at the top. */
+  place?: "foot";
   /** A button on the plate: back to the System view. */
   action?: "show-system";
   /** Announced politely, for a state that will change by itself. */
@@ -85,9 +99,95 @@ export function sceneContent(input: PlateInput): SceneContent {
     else if (input.terrain === "ready") ground = "terrain";
   }
 
+  // Wherever the ground is drawn with shading and shadows, the series' answer and what the
+  // drawing is (docs/features/local-terrain.md, "Shadows are decoration").
+  // In Lander's eye the horizon bar already gives the series' answer, so the plate is one line
+  // there and covers less of the horizon.
+  if (groundView(view) && ground !== "none") plates.push(decorationPlate(view === "panorama" ? null : (input.sun ?? null)));
+
   if (site && input.series === "error" && view !== "map") {
     plates.push({ id: "series-error", text: `The Sun and Earth series for ${site.name} could not be loaded, so its sight-lines are not drawn.` });
   }
 
   return { bodies, sightLines, ground, plates };
+}
+
+/**
+ * The plate that keeps the drawing honest. The drawn ground is coarser and nearer than the
+ * 300 km skyline the series used, so its shadow at the lander can differ from the series;
+ * the plate says which one is right in every case, without the browser judging the drawing.
+ */
+export function decorationPlate(sun: { lit: boolean; discFraction: number } | null): Plate {
+  const note =
+    "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right.";
+  if (!sun || !Number.isFinite(sun.discFraction)) return { id: "decoration", text: note, place: "foot" };
+  const fraction = Math.min(1, Math.max(0, sun.discFraction));
+  const text = sun.lit
+    ? `The series says: lit. ${Math.round(fraction * 100)} % of the Sun's disc is above the skyline.`
+    : `The series says: dark. Sun disc fraction ${fraction.toFixed(2)} above the skyline.`;
+  return { id: "decoration", text, note, place: "foot" };
+}
+
+/**
+ * The series' answer for the Sun at one hour, as the decoration plate states it: lit or dark
+ * from the profile's hour flag (science.md §9), and the disc fraction from the series. The
+ * scene passes this straight to `sceneContent`; null while the series or flags are not in.
+ */
+export function seriesSunAnswer(
+  series: { sun_frac: ArrayLike<number> } | null | undefined,
+  flags: HourFlags | null | undefined,
+  hourIndex: number | null,
+): { lit: boolean; discFraction: number } | null {
+  if (!series || !flags || hourIndex === null) return null;
+  const state = sightState(flags, hourIndex);
+  if (!state) return null;
+  return { lit: state.sun === "lit", discFraction: series.sun_frac[hourIndex] ?? Number.NaN };
+}
+
+/** The decoration plate's one line for a tight space or beside an open window. */
+export const DECORATION_SHORT = "Shadows and ground texture are illustrative.";
+
+/** The smallest free space for each form of the decoration plate, in CSS pixels. */
+export const DISCLOSURE_ROOM = { full: { width: 360, height: 140 }, short: { width: 200, height: 56 } } as const;
+
+/**
+ * How the decoration plate is shown in a free space. The rule: wherever drawn shadows or the
+ * made-up ground texture are on screen, the plate saying so is on screen too.
+ *
+ * - "full": the plate as `decorationPlate` gives it.
+ * - "short": one line, `DECORATION_SHORT`, when the space is tight or a floating window is
+ *   open (the free space is then what is still visible beside the window). Other plates and
+ *   the scene's labels are hidden there; this one is not.
+ * - "none": not even one line fits. The ground then drops its shadows and texture
+ *   (`GroundLook.setDisclosed(false)`) for as long as this lasts, so nothing undisclosed is drawn.
+ */
+export function decorationDisclosure(space: { width: number; height: number; windowOpen: boolean }): "full" | "short" | "none" {
+  const { full, short } = DISCLOSURE_ROOM;
+  if (!space.windowOpen && space.width >= full.width && space.height >= full.height) return "full";
+  if (space.width >= short.width && space.height >= short.height) return "short";
+  return "none";
+}
+
+/**
+ * Which plates the overlay shows at the top and at the foot of the free space. `hidden` is
+ * the overlay's own rule for a tight space or an open window, which hides every other plate;
+ * the decoration plate follows `decorationDisclosure` instead.
+ */
+export function visiblePlates(
+  plates: readonly Plate[],
+  space: { width: number; height: number; windowOpen: boolean },
+  hidden: boolean,
+): { top: Plate[]; foot: Plate[] } {
+  const disclosure = decorationDisclosure(space);
+  const foot: Plate[] = [];
+  const top: Plate[] = [];
+  for (const plate of plates) {
+    if (plate.id === "decoration") {
+      if (disclosure === "full" && !hidden) foot.push(plate);
+      else if (disclosure !== "none") foot.push({ id: "decoration", text: DECORATION_SHORT, place: "foot" });
+    } else if (!hidden) {
+      (plate.place === "foot" ? foot : top).push(plate);
+    }
+  }
+  return { top, foot };
 }

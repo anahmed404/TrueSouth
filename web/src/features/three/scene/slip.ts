@@ -200,3 +200,12 @@ function frameAt(up0: V3): { north: V3; east: V3 } {
   const east = norm(cross(north, up0));
   return { north, east };
 }
+
+/**
+ * The site's close-up ground in and out of the Slip Planner: its usual fade by altitude, times
+ * how much the Moon still shows the real Sun. At slip = 1 no ground is drawn, so no drawn
+ * shadow can follow the date there.
+ */
+export function slipGroundFade(fade: number, slip: number): number {
+  return fade * (1 - Math.min(1, Math.max(0, slip)));
+}

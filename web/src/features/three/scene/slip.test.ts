@@ -9,6 +9,7 @@ import {
   SLIP_MIN_EL_DEG,
   inSlipView,
   projectPose,
+  slipGroundFade,
   slipLightBlend,
   slipOrbit,
   slipPose,
@@ -216,5 +217,61 @@ describe("the Slip Planner's entry in the rig's per-view table", () => {
     expect(len(sub(at(), pose.centre))).toBeGreaterThanOrEqual(SLIP_MIN_DISTANCE - 1e-9);
     for (let i = 0; i < 40; i += 1) rig.zoom(2, null);
     expect(len(sub(at(), pose.centre))).toBeLessThanOrEqual(SLIP_MAX_DISTANCE + 1e-9);
+  });
+});
+
+describe("the ground's light in the Slip Planner (the ground look, #91)", () => {
+  const sunDir: [number, number, number] = [1, 0, 0];
+  const fixed: [number, number, number] = [0, -1, 0];
+  async function frame(view: "slip" | "terrain", slip: number) {
+    const THREE = await import("three");
+    const { World } = await import("./world");
+    const world = new World(() => undefined, 1);
+    world.setInputs({
+      bodies: true,
+      sunDir,
+      earthDir: [0, 0, 1],
+      earthCentre: [0, 0, 60],
+      earthRadius: 0.1,
+      trueScale: false,
+      earthDistKm: 384_400,
+      sunDistKm: 149_600_000,
+      hourIndex: 0,
+      site: null,
+      sight: null,
+      view,
+    });
+    world.slipLight = fixed;
+    world.slip = slip;
+    const camera = new THREE.PerspectiveCamera(30, 1.6, 1e-7, 5000);
+    camera.position.set(0, -1.3, 0.2);
+    camera.lookAt(0, -1, 0);
+    camera.updateMatrixWorld();
+    world.layout(camera);
+    const light = world.groundLook.uniforms.uLight.value as { x: number; y: number; z: number };
+    const moon = (world as unknown as { moon: { uniforms: { uSun: unknown } } }).moon.uniforms.uSun;
+    return { light: [light.x, light.y, light.z] as [number, number, number], shared: world.groundLook.uniforms.uLight === moon };
+  }
+
+  it("is the Moon's own light uniform: the fixed vector at slip = 1, never the date's Sun", async () => {
+    const { light, shared } = await frame("slip", 1);
+    expect(shared).toBe(true);
+    expect(dot(norm(light), fixed)).toBeGreaterThan(1 - 1e-9);
+    expect(dot(norm(light), sunDir)).toBeLessThan(1e-9);
+  });
+
+  it("blends with the Moon during a flight, and leaving the view gives the ground the real Sun back", async () => {
+    const mid = await frame("slip", 0.5);
+    expect(dot(norm(mid.light), sunDir)).toBeGreaterThan(0.1);
+    expect(dot(norm(mid.light), fixed)).toBeGreaterThan(0.1);
+    const left = await frame("terrain", 0);
+    expect(dot(norm(left.light), sunDir)).toBeGreaterThan(1 - 1e-9);
+  });
+
+  it("the site's ground fades out as the fixed light blends in: none is drawn at slip = 1", () => {
+    expect(slipGroundFade(1, 0)).toBe(1);
+    expect(slipGroundFade(1, 0.5)).toBeCloseTo(0.5, 12);
+    expect(slipGroundFade(1, 1)).toBe(0);
+    expect(slipGroundFade(0.7, 1)).toBe(0);
   });
 });

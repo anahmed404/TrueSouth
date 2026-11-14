@@ -37,7 +37,7 @@ import {
   type SiteFrame,
 } from "./camera";
 import { Overlay, type OverlayBus, type Preset, type LookToward } from "./overlay";
-import { sceneContent, type LoadState } from "./plates";
+import { decorationDisclosure, sceneContent, seriesSunAnswer, type LoadState } from "./plates";
 import { southPolePose } from "./navigate";
 import { Rig } from "./rig";
 import { sightState, type SightState } from "./sight";
@@ -133,7 +133,7 @@ type FocusData = {
   terrain: { data: DecodedTerrain; size: number; windowKm: number } | null | "loading";
   apron: DecodedApron | null | "loading";
   /** How each file stands, for the plates (plates.ts). */
-  states: { series: LoadState; terrain: LoadState; apron: LoadState };
+  states: { series: LoadState; terrain: LoadState; apron: LoadState | "none" };
 };
 
 function loadState(status: "loading" | "ready" | "error"): LoadState {
@@ -154,6 +154,7 @@ function FocusedSiteData({
   const terrain = useTerrain(siteId);
   const site = useSite(siteId);
   const apron = useApron(siteId);
+  const sceneMeta = useSceneMeta();
   // useSite builds a fresh object each render: read the one number it gives here.
   const windowKm = site.status === "ready" ? (site.data.meta.terrain?.window_km ?? (2 * LOCAL_TERRAIN_HALF_M) / 1000) : null;
   const terrainValue = useMemo(() => {
@@ -169,9 +170,11 @@ function FocusedSiteData({
   const seriesState: LoadState =
     series.status === "error" || flags.status === "error" ? "error" : series.status === "ready" && flags.status === "ready" ? "ready" : "loading";
   const terrainState = terrainValue === "loading" ? "loading" : loadState(terrain.status);
-  // A missing apron file ("not available") is a load that failed for this purpose.
-  const apronState: LoadState =
-    apron.status === "ready" ? (apron.data === "not available" ? "error" : "ready") : loadState(apron.status);
+  // "not available" is a failed load when the scene's metadata lists an apron for the site,
+  // and "none" when it lists none: a custom site has a patch but never an apron, by design.
+  const apronListed = sceneMeta.status === "ready" ? sceneMeta.data.aprons.some((a) => a.site_id === siteId) : true;
+  const apronState: LoadState | "none" =
+    apron.status === "ready" ? (apron.data === "not available" ? (apronListed ? "error" : "none") : "ready") : loadState(apron.status);
   useEffect(() => {
     onData({
       siteId,
@@ -395,8 +398,9 @@ function Scene3D(props: SceneProps) {
         series: focusReady?.states.series ?? "loading",
         terrain: focusReady?.states.terrain ?? "loading",
         apron: focusReady?.states.apron ?? "loading",
+        sun: seriesSunAnswer(focusReady?.series, focusReady?.flags, hourIndex),
       }),
-    [view, trueScale, systemState, worldSite, focusReady?.states.series, focusReady?.states.terrain, focusReady?.states.apron],
+    [view, trueScale, systemState, worldSite, focusReady?.states.series, focusReady?.states.terrain, focusReady?.states.apron, focusReady?.series, focusReady?.flags, hourIndex],
   );
 
   const inputs = useMemo((): WorldInputs => {
@@ -695,6 +699,8 @@ function Director(props: DirectorProps) {
   const setDpr = useThree((state) => state.setDpr);
   const perspective = camera as THREE.PerspectiveCamera;
   const world = useMemo(() => new World(invalidate, gl.capabilities.getMaxAnisotropy()), [invalidate, gl]);
+  // Where the plate that discloses the drawn shadows and texture cannot be shown, neither are they (plates.ts).
+  useEffect(() => world.groundLook.setDisclosed(decorationDisclosure(props.freeSpace) !== "none"), [world, props.freeSpace]);
   const rig = useMemo(() => new Rig(perspective), [perspective]);
   const latest = useRef(props);
   latest.current = props;
@@ -739,7 +745,8 @@ function Director(props: DirectorProps) {
 
   useEffect(() => {
     world.setGround(props.inputs.site, props.smoothGround ? null : props.terrain, props.smoothGround ? null : props.apron, props.smoothGround);
-  }, [world, props.inputs.site, props.terrain, props.apron, props.smoothGround]);
+    world.prepareGround(gl, camera);
+  }, [world, props.inputs.site, props.terrain, props.apron, props.smoothGround, gl, camera]);
 
   // The controls the overlay's pointer and key handlers call.
   useEffect(() => {
@@ -1064,6 +1071,8 @@ function Director(props: DirectorProps) {
         : Number.POSITIVE_INFINITY;
     // Only while moving: at rest the full mesh, so a still picture is exactly today's.
     world.setMoonSegments(inMotion ? moonSegments(moonPixels) : MOON_SEGMENTS_FULL);
+    // The ground the same way: coarser and lighter while moving on a slow machine (ground-material.ts).
+    world.groundLook.setMotion(inMotion, quality.stage);
     const overlayStart = devMeter ? performance.now() : 0;
     latest.current.bus.current.overlay?.(anchors, frameCamera as THREE.PerspectiveCamera, size);
     // The Slip Planner's spots follow the camera: the projector's subscribers run after every frame.
