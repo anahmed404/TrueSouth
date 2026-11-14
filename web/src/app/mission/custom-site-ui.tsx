@@ -1,4 +1,4 @@
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, Crosshair, X } from "lucide-react";
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useStore } from "zustand";
 import { Button, IconButton } from "../../components/Button";
@@ -151,8 +151,12 @@ export function CustomPendingRow({ entry, handle, onAnnounce }: { entry: CustomE
 }
 
 /**
- * "Your own coordinates", inside the add-site picker: closed by default, so the picker is no
- * busier for someone who never uses it. Checks `/api/health` once, when the picker opens.
+ * "Enter coordinates", inside the add-site picker: closed by default, so the picker is no
+ * busier for someone who never uses it, but drawn as a control (an outlined full-width row
+ * with a crosshair) so nobody takes it for a heading and misses it. Opening it moves focus
+ * to the latitude field. When the server has no custom sites the row still shows, with
+ * "Not available on this server" under its label. Checks `/api/health` once, when the
+ * picker opens.
  */
 export function CustomCoordinates({ full, onStarted }: { full: boolean; onStarted: () => void }) {
   const scenario = useScenarioStore();
@@ -202,9 +206,18 @@ export function CustomCoordinates({ full, onStarted }: { full: boolean; onStarte
           aria-expanded={open}
           aria-controls={`${id}-body`}
           aria-describedby={open && (unavailable || full) ? `${id}-why` : undefined}
-          onClick={() => setOpen(!open)}
+          onClick={() => {
+            const next = !open;
+            setOpen(next);
+            // Straight to typing: the latitude field, once the form is there and usable.
+            if (next && !disabled) requestAnimationFrame(() => document.getElementById(latId)?.focus());
+          }}
         >
-          Your own coordinates
+          <Crosshair size={16} strokeWidth={1.8} aria-hidden="true" className="cs-toggle-icon" />
+          <span className="cs-toggle-text">
+            <span className="cs-toggle-label">Enter coordinates</span>
+            {unavailable ? <span className="cs-toggle-note">Not available on this server</span> : null}
+          </span>
           <ChevronDown size={14} strokeWidth={1.8} aria-hidden="true" className="cs-chevron" />
         </button>
       </h3>

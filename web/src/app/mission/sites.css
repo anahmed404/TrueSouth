@@ -162,7 +162,7 @@
     background: transparent;
   }
 
-  /* ── "Your own coordinates", in the add-site picker ────────────────────── */
+  /* ── "Enter coordinates", in the add-site picker ──────────────────────── */
   .cs {
     border-bottom: 1px solid var(--line);
     padding-bottom: var(--s2);
@@ -173,25 +173,54 @@
     font: inherit;
   }
 
+  /*
+    The closed row is a control, not a heading: a secondary button's Control Edge outline,
+    full width, a crosshair before the label and the chevron at the end, so it reads as
+    something to press (the team lead first missed it as a plain text toggle).
+  */
   .cs-toggle {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: var(--s2);
     width: 100%;
-    min-height: 32px;
-    padding: 0 var(--s2);
-    border: 0;
-    border-radius: var(--r-md);
+    min-height: 40px;
+    padding: 6px var(--s3);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-sm);
     background: transparent;
-    color: var(--ink-2);
+    color: var(--ink);
     font: inherit;
     text-align: left;
     cursor: pointer;
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out);
   }
 
-  .cs-toggle:hover {
+  .cs-toggle:hover,
+  .cs-toggle[aria-expanded="true"] {
     background: var(--hover);
-    color: var(--ink);
+  }
+
+  .cs-toggle-icon {
+    flex: none;
+    color: var(--ink-2);
+  }
+
+  .cs-toggle-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .cs-toggle-label {
+    font-weight: 500;
+  }
+
+  .cs-toggle-note {
+    color: var(--ink-3);
+    font-size: var(--t-sm);
   }
 
   .cs-chevron {
