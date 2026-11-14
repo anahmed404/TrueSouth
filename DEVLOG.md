@@ -1520,6 +1520,39 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - The orbit lines follow the drawn distance and were checked by eye: the Moon's orbit
     circles the drawn Earth through the Moon's centre, Earth's runs through Earth.
 
+#### 2026-11-14 · T9 · A Labels toggle hides the name tags on the scene
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote `labels.ts` (the session-only store and the
+  `data-labels` rule), the Labels button in `overlay.tsx`, the CSS rules in `scene.css` and
+  `slip-planner.css`, one attribute in `spots-layer.tsx`, the spec bullet and `labels.test.ts`
+  — checked by the agent with vitest, typecheck, build, and by eye in Chrome at 1440 × 900
+  and 1280 × 720; a human has not reviewed it
+- **State:** verified (reviewed by Cursor Grok 4.7 with no blockers; on the tree merged with main b8d1bd2: 472 Python tests (1 skipped), the web tests, typecheck and build all exit 0)
+- **Changed:** `web/src/features/three/scene/labels.ts` and `labels.test.ts` (new),
+  `overlay.tsx`, `scene.css`, `web/src/features/mission-control/slip-planner/spots-layer.tsx`
+  and `slip-planner.css` (Mission Control's folder: one attribute and one CSS rule, for their
+  review), `docs/features/system-view.md`, this entry
+- **Notes:**
+  - The team lead's wish: hide the labels when zoomed out. **Labels** sits beside True scale
+    and Sharper Moon, on by default. Off, in the System view, Slip Planner and Local terrain:
+    the focused site's name tag, the sight-line notes, Earth's and the Sun's names, "Lander
+    not to scale" and the Slip Planner's site tags and leaders hide. The pins, sight-lines,
+    orbit lines, edge pointers, plates (Local terrain's notes too), panels and timeline stay.
+    Lander's eye is untouched.
+  - Hidden with `visibility: hidden !important` on a `data-labels="off"` root, so the layout
+    loops place everything as before and the toggle needs no redraw. The pins keep their
+    accessible names ("Connecting Ridge, NO-GO") and their `title`, so hovering a pin still
+    shows its name as the browser's tooltip; in the Slip Planner the existing hover card still
+    names a spot. A CSS-only hover reveal of the scene's name tag is not cheap: it is one
+    shared element for the focused site, not a child of each pin, so it is skipped.
+  - Not in the scenario or the link; kept for the session in a small store, as "Sharper
+    Moon" is kept in component state (not remembered across reloads). The button is in the
+    System view's row only (the row exists only there); the choice carries into the Slip
+    Planner and Local terrain.
+  - By eye: with labels off, only "Sun ↗" (the edge pointer) is left on the System view, and
+    the Slip Planner shows its spots with no tags. The toggle row is 581 px wide at 1280 and
+    1440, with no overflow.
+
 #### 2026-11-14 · T5a · Real close-up ground under the lander; the invented texture toned down
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — wrote `closeup-ground.ts` (level, hand-over,

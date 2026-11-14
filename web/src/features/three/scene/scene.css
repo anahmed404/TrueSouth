@@ -212,6 +212,12 @@
     flex: none;
   }
 
+  /* The Labels toggle off (labels.ts): the name tags hide; the edge pointers (.scene-marker)
+     and the pins stay. Visibility, not display, so the layout loop places everything as before. */
+  .scene-overlay[data-labels="off"] .scene-label:not(.scene-marker) {
+    visibility: hidden !important;
+  }
+
   .scene-toggle[aria-pressed="true"] {
     border-color: var(--ink-2);
     background: var(--raised);

@@ -1,4 +1,5 @@
 import { memo, useLayoutEffect, useRef } from "react";
+import { useStore } from "zustand";
 import * as THREE from "three";
 import type { CameraViewId, FreeSpace } from "../../../app/scene";
 import { BodyIcon } from "../../../components/BodyIcon";
@@ -8,6 +9,7 @@ import { StatusLamp, type Status } from "../../../components/StatusLamp";
 import type { MissionProfile, Site } from "../../../contracts/generated";
 import { surfacePointScene } from "../../../lib/geo";
 import { useEvaluation } from "../../../lib/scoring";
+import { labelsAttr, labelsStore } from "./labels";
 import { groupPins, moreSitesLine, type ScreenPin } from "./pins";
 import { visiblePlates, type Plate } from "./plates";
 import { bodyLabel, sightGood, sightLabel, type SightState } from "./sight";
@@ -106,8 +108,21 @@ function PinStatusWord({ siteId, profile, landingUtc }: { siteId: string; profil
 /** Below this on-screen radius (px) the System view's labels step around the Moon (see the layout loop). */
 const SMALL_MOON_PX = 60;
 
+/**
+ * The Labels toggle (labels.ts): off hides the name tags on the scene; the markers, the sight
+ * lines, the edge pointers and the plates stay.
+ */
+export function LabelsToggle({ on, onChange }: { on: boolean; onChange: (on: boolean) => void }) {
+  return (
+    <Button aria-pressed={on} className="scene-toggle" onClick={() => onChange(!on)} title="Names on the Moon, Earth and the Sun. Off, only the markers show.">
+      Labels
+    </Button>
+  );
+}
+
 export function Overlay(props: OverlayProps) {
   const { bus, view, freeSpace, focusedId, focusedSite, sight, trueScale } = props;
+  const labels = useStore(labelsStore);
   const pinRefs = useRef(new Map<string, HTMLButtonElement>());
   const nameRef = useRef<HTMLDivElement>(null);
   const moreRef = useRef<HTMLSpanElement>(null);
@@ -342,7 +357,7 @@ export function Overlay(props: OverlayProps) {
   const focusedName = props.sites.find((s) => s.id === focusedId)?.name ?? focusedId ?? "";
 
   return (
-    <div className="scene-overlay" data-view={view}>
+    <div className="scene-overlay" data-view={view} data-labels={labelsAttr(view, labels.on)}>
       {props.sites.map((site) => (
         <button
           key={site.id}
@@ -437,6 +452,7 @@ export function Overlay(props: OverlayProps) {
                 <Button aria-pressed={props.moon8k} className="scene-toggle" onClick={() => props.onMoon8k(!props.moon8k)} title="Loads two more images, 3 MB">
                   Sharper Moon
                 </Button>
+                <LabelsToggle on={labels.on} onChange={labels.setOn} />
               </div>
             ) : null}
             {view === "panorama" && focusedSite ? (
