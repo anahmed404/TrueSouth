@@ -14,8 +14,10 @@ import { ScenarioProvider, useScenario, useScenarioStore } from "./mission/scena
 import { windowPlacement, type Rect, type ShellState } from "./mission/free-space";
 import { SceneSlot } from "./mission/scene-slot";
 import { SpaceScene } from "../features/three/scene";
+import { LandingDatePanel, SLIP_PLANNER_LAYER, slipStore, type LandingWrite } from "../features/mission-control/slip-planner";
 import { polarMapLayer } from "../features/polar-map";
 import { useRequestCustomSite } from "./mission/custom-site-actions";
+import { useStore } from "zustand";
 import { TRY_AGAIN_ANNOUNCEMENT } from "./mission/scene-status";
 import {
   OVERLAY_SELECTOR,
@@ -99,6 +101,8 @@ function MissionShell() {
   const commands = useViewCommands(state);
   const requestCustomSite = useRequestCustomSite();
   const polarMap = useMemo(() => polarMapLayer({ onRequestSite: requestCustomSite }), [requestCustomSite]);
+  // The flat layers over the scene: the Polar map's flat map, and the Slip Planner's spots.
+  const flatLayers = useMemo(() => [polarMap, SLIP_PLANNER_LAYER] as const, [polarMap]);
   const windowOpen = state.window !== null;
   const shellRef = useRef<HTMLDivElement>(null);
 
@@ -293,6 +297,14 @@ function MissionShell() {
 
   const scenario = useScenario(selectScenario);
 
+  // ── The Slip Planner: spots over the scene, landing dates in the timeline's slot ──
+  const slip = state.camera === "slip";
+  const slipShading = useStore(slipStore, (s) => s.shading);
+  useEffect(() => {
+    if (!slip) slipStore.getState().leave();
+  }, [slip]);
+  const openMap = useCallback(() => pick("map"), [pick]);
+
   return (
     <div
       ref={shellRef}
@@ -320,7 +332,7 @@ function MissionShell() {
 
       <SceneSlot
         Scene={SpaceScene}
-        flat={polarMap}
+        flat={flatLayers}
         view={state.camera}
         scenario={scenario}
         freeSpace={freeSpace}
@@ -329,12 +341,14 @@ function MissionShell() {
         onViewChange={setCameraView}
         onAddSite={addSite}
         onTryAgain={tryAgain}
+        onProjector={slipStore.getState().setProjector}
+        slipShading={slipShading}
       />
 
       <FootStack
         ref={footRef}
         camera={state.camera}
-        hidden={windowOpen}
+        hidden={windowOpen || slip}
         onShowLandersEye={showLandersEye}
         onShowSystemView={showSystemView}
       />
@@ -358,7 +372,7 @@ function MissionShell() {
         />
       ) : null}
 
-      <TimelineStrip folded={timelineFolded} compact={phone} onToggleFold={toggleTimeline} regionRef={strip} />
+      <TimelineStrip folded={timelineFolded} compact={phone} onToggleFold={toggleTimeline} regionRef={strip} slip={slip} onOpenMap={openMap} />
 
       <footer className="mc-foot">
         <p className="plate">{FOOTER_LINE}</p>
@@ -379,7 +393,7 @@ type OpenWindowProps = {
   closedByUser: { current: boolean };
 };
 
-/** The open floating window, with its placeholder content until MC7 (Slip Planner) and MC9 (Compare). */
+/** The open floating window, with its placeholder content until MC9 (Compare). */
 const OpenWindow = memo(function OpenWindow({ id, windowRef, onClose, windowButtons, closedByUser }: OpenWindowProps) {
   const view = windowView(id);
   const scenario = useScenario(selectScenario);
@@ -389,7 +403,7 @@ const OpenWindow = memo(function OpenWindow({ id, windowRef, onClose, windowButt
       ref={windowRef}
       id={windowElementId(id)}
       title={view.name}
-      closeLabel={id === "slip" ? "Close the Slip Planner" : "Close Compare"}
+      closeLabel="Close Compare"
       description={firstSentence(explanations[view.term]?.text ?? "")}
       descriptionHidden={id === "compare"}
       onClose={onClose}
@@ -448,19 +462,56 @@ const FootStack = memo(function FootStack({
   );
 });
 
-type TimelineStripProps = { folded: boolean; compact: boolean; onToggleFold: () => void; regionRef: Ref<HTMLElement> };
+type TimelineStripProps = {
+  folded: boolean;
+  compact: boolean;
+  onToggleFold: () => void;
+  regionRef: Ref<HTMLElement>;
+  /** In the Slip Planner the slot holds the landing-date panel instead (slip-planner.md). */
+  slip: boolean;
+  onOpenMap: () => void;
+};
 
 /**
  * The bottom strip: the landing date at the left of the timeline, the timeline and the two
- * countdown cards. Folded, one row; on a phone, the compact strip.
+ * countdown cards. Folded, one row; on a phone, the compact strip. In the Slip Planner it
+ * swaps to the landing-date panel; the two never stack.
  */
-const TimelineStrip = memo(function TimelineStrip({ folded, compact, onToggleFold, regionRef }: TimelineStripProps) {
+const TimelineStrip = memo(function TimelineStrip({ folded, compact, onToggleFold, regionRef, slip, onOpenMap }: TimelineStripProps) {
   const store = useScenarioStore();
   const scenario = useScenario(selectScenario);
   const onTimeChange = useCallback(
     (utc: string, write: TimeWrite) => store.getState().setCurrentTime(utc, write),
     [store],
   );
+  const onLandingChange = useCallback(
+    (utc: string, write: LandingWrite) => store.getState().setLandingDate(utc, write),
+    [store],
+  );
+  const onFocusSite = useCallback((siteId: string) => store.getState().focusSite(siteId), [store]);
+  if (slip) {
+    return (
+      <Panel
+        as="section"
+        ref={regionRef}
+        className="shell-strip"
+        data-folded={folded}
+        data-compact={compact}
+        data-slip="true"
+        aria-label="Landing dates"
+      >
+        <LandingDatePanel
+          scenario={scenario}
+          folded={folded}
+          compact={compact}
+          onToggleFold={compact ? undefined : onToggleFold}
+          onLandingChange={onLandingChange}
+          onFocusSite={onFocusSite}
+          onOpenMap={onOpenMap}
+        />
+      </Panel>
+    );
+  }
   return (
     <Panel
       as="section"

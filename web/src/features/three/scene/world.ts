@@ -8,7 +8,8 @@ import { apronGeometry, apronUpGrid, patchGeometry, patchOutline, patchUpGrid, s
 import { GroundLook } from "./ground-material";
 import { aimLander, createLander, LANDER_HEIGHT_M, partAxis, type Lander } from "./lander";
 import { earthMaterial, landerMaterial, moonMaterial, solidTexture, sunMaterial } from "./materials";
-import { smooth, type V3 } from "./vec";
+import { slipGroundFade } from "./slip";
+import { slerp, smooth, type V3 } from "./vec";
 
 /**
  * Everything drawn in the one scene (docs/features/system-view.md): the Moon with its polar
@@ -112,6 +113,16 @@ export class World {
   textureState: TextureState = { moon: "none", cap: false, earth: false };
   /** Draw the cap's fixed top-left lighting (the flat map's look) instead of the real Sun: 0 to 1. */
   draw = 0;
+  /**
+   * The Slip Planner (slip.ts): 0 to 1, how much the Moon is lit by `slipLight`, a fixed
+   * drawing light, instead of the real Sun. In that view Earth, the Sun, the guides, the
+   * sight-lines and the site's ground are hidden, so nothing on screen follows the date.
+   */
+  slip = 0;
+  slipLight: V3 = [0, -1, 0];
+  /** NASA's average sunlight on the cap, in the Slip Planner, when its switch is on. */
+  slipShading = false;
+  private sunlight: "none" | "loading" | "ready" | "failed" = "none";
 
   constructor(invalidate: () => void, maxAnisotropy: number) {
     this.invalidate = invalidate;
@@ -124,6 +135,7 @@ export class World {
     this.moon = moonMaterial(blank, flat, flatSlope);
     this.moonMesh = new THREE.Mesh(this.own(new THREE.SphereGeometry(1, 384, 192)), this.own(this.moon.material));
     this.moonMesh.name = "moon";
+    this.moon.uniforms.uWarm.value = new THREE.Color(css("--sun", "#ffe2a0"));
     this.root.add(this.moonMesh);
 
     this.earth = earthMaterial(blank, new THREE.Color(css("--earth", "#6cc4ff")));
@@ -545,13 +557,23 @@ export class World {
     // Guides fade as the camera nears the ground, and stay off over the Polar map.
     const far = 1 - smooth(0.5, 0.15, alt);
     for (const { material, opacity } of this.guideMaterials) material.opacity = opacity * far;
-    this.guides.visible = far > 0.01 && inputs.view !== "map";
+    this.guides.visible = far > 0.01 && inputs.view !== "map" && inputs.view !== "slip" && this.slip < 0.5;
+    // The Slip Planner hides the bodies halfway through the flight in, and shows them again
+    // halfway through the flight out.
+    if (this.slip >= 0.5) {
+      this.earthMesh.visible = false;
+      this.sunMesh.visible = false;
+      anchors.sun = null;
+    }
     this.terminator.visible = inputs.bodies;
     this.terminator.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(...inputs.sunDir));
 
     // The ground dissolves in between 52 and 28 km altitude: only during flights, since the
     // System view's zoom stops at 60 km.
-    const groundFade = site && this.hasGround ? smooth(0.03, 0.016, alt) : 0;
+    // In the Slip Planner the ground fades out as the fixed light blends in (slip.ts), so no
+    // ground is drawn at slip = 1. It shares the Moon's light uniform (uSun, as uLight), so
+    // what still shows during a flight is lit by the same blend, never by the date's Sun alone.
+    const groundFade = site && this.hasGround ? slipGroundFade(smooth(0.03, 0.016, alt), this.slip) : 0;
     this.ground.visible = groundFade > 0.001;
     this.groundLook.fade = groundFade;
     const u = this.moon.uniforms;
@@ -562,6 +584,15 @@ export class World {
       u.uHideCos.value = 2;
     }
     u.uDraw.value = this.draw;
+    u.uSlip.value = this.slip;
+    // The Slip Planner: while `slip > 0`, uSun blends to the fixed drawing light, so the ground
+    // never changes with the landing date (slip-planner.md, "Honesty"). The ground look (#91)
+    // reads this same uniform as its uLight, so the site's ground is lit by this fixed vector
+    // too, and gets the real Sun back with the Moon when the view is left.
+    if (this.slip > 0) u.uSun.value.set(...slerp(inputs.sunDir, this.slipLight, this.slip));
+    else u.uSun.value.set(...inputs.sunDir);
+    if (this.slipShading && this.sunlight === "none") this.loadSunlight();
+    u.uAvgK.value = this.slipShading && this.sunlight === "ready" ? this.slip : 0;
 
     // Pip: only near the ground, larger than life, gone as the camera drops to its eye.
     let landerScale = 0;
@@ -582,7 +613,7 @@ export class World {
 
     // Sight-lines: true directions from the site (or from Pip's panel and dish).
     const sight = inputs.sight;
-    const show = Boolean(site && sight && siteGround && inputs.view !== "map" && inputs.view !== "panorama");
+    const show = Boolean(site && sight && siteGround && inputs.view !== "map" && inputs.view !== "panorama" && inputs.view !== "slip");
     this.sightGroup.visible = show;
     if (show && site && sight && siteGround) {
       this.sightGroup.position.copy(siteGround);
@@ -615,6 +646,25 @@ export class World {
       anchors.sightEnds = ends;
     }
     return anchors;
+  }
+
+  /** NASA's average sunlight over the cap (scene/sunlight_2k.webp), loaded the first time it is shown. */
+  private loadSunlight(): void {
+    this.sunlight = "loading";
+    void this.load("scene/sunlight_2k.webp", false, true).then((texture) => {
+      if (!texture) {
+        this.sunlight = this.disposed ? "none" : "failed";
+        return;
+      }
+      this.moon.uniforms.uAvg.value = texture;
+      this.sunlight = "ready";
+      this.invalidate();
+    });
+  }
+
+  /** True once the average-sunlight image is in, so its label can say it is drawn. */
+  get sunlightReady(): boolean {
+    return this.sunlight === "ready";
   }
 
   /** Releases every geometry, material and texture on the GPU. */

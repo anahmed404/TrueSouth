@@ -131,7 +131,7 @@ describe("the Next GO button", () => {
     sweep.rows = rowsWithGo("2027-01-01T00:00:00Z");
     const host = await mount(createScenarioStore(catalog, "?sites=fixture_ridge&land=2028-03-01T00:00Z"));
     expect(buttons(host, "Next GO")).toHaveLength(0);
-    expect(textOf(host)).toContain("No GO date before 2032");
+    expect(textOf(host)).toContain("No later GO before 2032");
   });
 
   it("moves the landing to 00:00 UTC on the next GO day, says so, and Undo puts it back", async () => {

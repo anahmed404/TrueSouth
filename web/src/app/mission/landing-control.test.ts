@@ -66,7 +66,7 @@ describe("the Next GO button's states", () => {
   it("says there is no later GO date, from the grid's real end, and offers no button", () => {
     const view = nextGoView({ ...base, days: { status: "ready", data: days(["2028-02-01T00:00:00Z"]), error: null } });
     expect(view.kind).toBe("none");
-    expect(view.kind === "none" && view.text).toBe("No GO date before 2032");
+    expect(view.kind === "none" && view.text).toBe("No later GO before 2032");
   });
 });
 
@@ -77,7 +77,7 @@ describe("the landing-date words", () => {
 
   it("finds the year the time grid ends before", () => {
     expect(gridEndYear(grid)).toBe(2032);
-    expect(noGoText(grid)).toBe("No GO date before 2032");
+    expect(noGoText(grid)).toBe("No later GO before 2032");
   });
 
   it("confirms a jump and an undo in plain words", () => {
