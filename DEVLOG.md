@@ -2033,7 +2033,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   typecheck and the build, and in a browser at 1440 × 900 and 390 × 844, keyboard only,
   with reduced motion, and with `VITE_DATA=fixtures`. No AI-generated images. A human has
   not played it.
-- **State:** built, not verified
+- **State:** verified (reviewed by Codex (gpt-6.1-terra): every panel number recomputed from the stored data and equal to the lessons after display rounding; five findings, all fixed by the author (a read-only horizon chart, the month validated, a whole-dataset lesson check, wider no-stand-in coverage); on the tree merged with main 23d3a1b: 471 Python tests (1 skipped), 2,792 web tests with 3 expected to fail on the fixture until S2c lands, typecheck and build all exit 0. Not yet played by a person)
 - **Changed:** `web/src/features/academy/` (`lesson/panels/`, `lesson/stage.tsx`,
   `complete-screen.tsx`, `drag-body.ts`, `lessons/story.ts`, `lessons/l4.ts`, `academy.css`,
   tests), `docs/academy/lessons.md`, `docs/academy/overview.md`,
