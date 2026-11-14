@@ -211,13 +211,35 @@ meshes and height textures are on the GPU before the first flight.
 
 ## States
 
-- **Sphere-tier site (Apollo 11):** no ground. A plate at the top of the free space reads "No terrain data for
-  Apollo 11. It is far from the pole, so TrueSouth treats the ground there as a smooth
-  sphere." A button offers "Show Apollo 11 in the System view", and the camera follows the
-  site on the globe instead of descending.
-- **A site with no terrain around the patch by design (a custom site):** the scene's
-  metadata lists no apron for it, so the 20 km patch is drawn alone and no plate says
-  anything is missing. An apron that is listed but fails to load keeps its message.
+- **Sphere-tier site (Apollo 11, or a custom site north of 60° S):** the smooth Moon: a
+  300 km square on the reference sphere, where the globe is, so it joins the globe with no
+  step. A plate at the top of the free space reads "No terrain data for Apollo 11. This is
+  the smooth Moon." with a button "Show it in the System view". (Seen, not changed: in
+  Lander's eye at such a site the camera looks toward Earth or the Sun, often tens of
+  degrees up, so little or no ground is in the picture.)
+- **A custom site with terrain (80 m or 240 m tier).** The API makes the patch but no
+  apron, and having none is by design, not an error: no plate says anything failed to load.
+  An apron that is listed in the scene's metadata but fails to load keeps its message
+  (`apronLoadState`, `plates.ts`). Without an apron the patch sat alone at the site's true
+  height, often kilometres above or below the globe's reference sphere, in the 140 km hole
+  the globe leaves for an apron. So the browser builds the apron from data it already has
+  (`custom-apron.ts`), and invents nothing:
+  - on the patch, the patch's own heights;
+  - farther out, NASA's global height map that the globe already uses
+    (`scene/moon_height_1440.png`: LOLA, 4 pixels a degree, so one height about every
+    7.6 km north to south), read at each point's true position
+    ([`../science.md`](../science.md) §2.2);
+  - between them, the patch's edge carried outward and handed over to the global map within
+    25 km of the edge, with no step at the edge;
+  - in the catalog apron's layout (161 × 161 over 300 km), eased down to the reference
+    sphere at its outer edge like every apron, and shaded, shadowed and stepped down on a
+    slow machine the same way.
+
+  One quiet plate line says what that means: "Around a custom site, the ground beyond the
+  nearest few kilometres is drawn from a coarse height map of the whole Moon, so it shows
+  only large hills and craters." (`explain.ts`, `custom_site_surroundings`). If the global
+  height map cannot be read, the patch is drawn alone. A finer apron would need the API to
+  make one (see the DEVLOG entry "T3b").
 - **Missing terrain in part of the mesh:** holes are left open, not filled.
 - **Terrain still loading.** Proposed: the camera flies, and the ground appears when it is
   ready; the globe stays in place until then. Reason: a flight should never wait on a file.

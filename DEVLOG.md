@@ -1258,6 +1258,49 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## 3D and Map
 
+#### 2026-11-14 · T3b · A custom site's ground joins the Moon
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — measured the fault, wrote `custom-apron.ts`
+  and its tests, the apron state and the plate line in `plates.ts`, the explanation in
+  `explain.ts`, the hook in `world.ts` and the spec; captured before and after pictures in
+  a headless Chrome with hardware WebGL (RTX 2060) against its own API (port 8123, the main
+  checkout's `data/prepared` read-only) and dev server (port 5198); no AI-generated imagery;
+  a human has not reviewed it yet
+- **State:** built, not verified (TESTCOUNTS)
+- **Changed:** `web/src/features/three/scene/custom-apron.ts` and its test (new);
+  `world.ts` (`setGround` builds the apron for a custom site; the height map is read once);
+  `plates.ts` and its test (`apronLoadState`, the "surroundings" plate); `scene-root.tsx`
+  (one line: the apron state comes from `apronLoadState`); `web/src/lib/explain.ts`
+  (`custom_site_surroundings`, outside this track's folders: the text the plate shows);
+  `docs/features/local-terrain.md` ("States"); `docs/design/c2/built-custom-site-ground-*.png`;
+  this entry
+- **Notes:**
+  - The cause, measured: a custom site's patch is placed at the site's true ground height
+    (`elevation_m`; the 11 cached custom sites range from −3,188 m to +1,394 m), but the
+    globe is a plain sphere at the reference radius. A catalog site's apron eases from the
+    true heights down to that sphere and fills the 140 km disc the globe stops drawing
+    around the site once the ground is in. A custom site has no apron (the API makes none),
+    so its 20 km patch sat alone in that hole, kilometres above or below the globe; zoomed
+    out, the hole closes and the globe covers it again.
+  - The fix: the browser builds the custom site's apron from the patch's own heights and the
+    global height map it already loads for the globe (LOLA, 4 pixels a degree), joined at
+    the patch's edge with no step and eased to the reference sphere at its outer edge; one
+    quiet plate line says the surroundings are coarse. No terrain is invented, and the
+    series still decides lit or dark (decision 0015).
+  - Checked: the 80 m tier at −2,603 m and +261 m, the 240 m tier (72° S 10° E) and the
+    smooth tier (20° N 30° E), in Local terrain close and zoomed out and in Lander's eye, at
+    1440 × 900 and 1024 × 768; Connecting Ridge takes the unchanged path; the quality
+    governor's stages coarsen the new apron while moving and restore it at rest.
+  - Seen, not changed: in Lander's eye at a smooth-tier site (also the catalog's Apollo 11)
+    the camera looks toward Earth or the Sun, tens of degrees up, so the picture shows sky
+    only; that is the camera's framing (`rig.ts`), not the ground.
+  - For the API later, so a custom site looks like a catalog site: the same apron the
+    catalog has, made by the same step (`build-scene-assets`): `aprons/<site_id>.bin`,
+    161 × 161 heights over 300 km at the 80 m or 240 m map's resolution where it covers
+    (uint16, (h + 12,000) × 2, 51.8 kB), listed in a custom site's metadata (for example
+    `apron: { file, rows, columns, window_m }` in its `meta.json`, or served at
+    `/api/custom/{id}/apron.bin`), so the browser stops using the coarse global map.
+
 #### 2026-11-14 · T7b · The Moon around the Polar map's detailed square
 - **Who:** implementation agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — built the context reprojection, border,
