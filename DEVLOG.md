@@ -1320,7 +1320,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   a headless Chrome with hardware WebGL (RTX 2060) against its own API (port 8123, the main
   checkout's `data/prepared` read-only) and dev server (port 5198); no AI-generated imagery;
   a human has not reviewed it yet
-- **State:** built, not verified (after the review fixes: 2,521 web tests, typecheck and build pass; Python unchanged and not rerun; first round: 438 Python tests, 1 skipped)
+- **State:** built, not verified (TESTCOUNTS2)
 - **Changed:** `web/src/features/three/scene/custom-apron.ts` and its test (new);
   `world.ts` (`setGround` builds the apron for a custom site; the height map is read once);
   `plates.ts` and its test (`apronLoadState`, the "surroundings" plate); `scene-root.tsx`
@@ -1371,6 +1371,21 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     - The ground's key is checked before the apron is built.
     - Seen, not changed: at grazing angles a thin broken line of drawn shadow can follow a
       crest-like rim; it is decoration (gone with shadows off), not a gap.
+  - Re-check fixes (Codex re-check of #105), 2026-11-14:
+    - The join at every level: while moving, the patch and the apron share one step (2 or
+      4), and each level now has its own strip to the patch's edge as that level draws it.
+      Tested at every level on a ridge and a flat patch at −2,600, 0 and +1,400 m on both
+      tiers (0.25 m); removing the coarse strips fails 25 of 46 cases.
+    - The globe keeps its finest mesh while ground is drawn (`globeSegments` in
+      `World.setMoonSegments`): the coarser meshes the governor picks while moving lie 262 m
+      to 4.2 km inside the sphere, deeper than the ground's edge. Tested for every selectable
+      count, on the finest mesh's own triangles and through `World`; checked by eye at the
+      90 km zoom limit and in Lander's eye, at rest and with moving simulated (globe asked for
+      64 segments, ground at stage 3), for Connecting Ridge and a custom site: no slit or step.
+    - Reading the global height map fails after 20 s if it never settles (then retried on
+      the next visit); a late answer is ignored. Tested.
+    - Connecting Ridge before and after, close and at the zoom limit: identical by eye; 0.05 %
+      and 0.01 % of pixels differ by more than 24 grey levels.
   - For the API later, so a custom site looks like a catalog site: the same apron the
     catalog has, made by the same step (`build-scene-assets`): `aprons/<site_id>.bin`,
     161 × 161 heights over 300 km at the 80 m or 240 m map's resolution where it covers

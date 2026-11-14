@@ -240,21 +240,25 @@ meshes and height textures are on the GPU before the first flight.
   being read, the plate says "Loading the ground around … ". If it cannot be read (a failed
   fetch, a failed decode, or no way to read image pixels), the patch is drawn alone and the
   plate says so plainly: "The ground around … could not be loaded, so only the nearest ground
-  is drawn." A failure is not kept for the session: the next visit to Local terrain or
-  Lander's eye tries again. A finer apron would need the API to make one (see the DEVLOG
+  is drawn." A read that has not finished after 20 s counts as failed. A failure is not kept
+  for the session: the next visit to Local terrain or Lander's eye tries again. A finer apron would need the API to make one (see the DEVLOG
   entry "T3b").
 - **How every apron meets the patch and the globe** (catalog and custom alike, `ground.ts`):
   - At full detail the apron leaves out every cell inside its first ring of points beyond
     the patch, and a strip of triangles joins that ring to the patch's own rim points, which
     it repeats exactly, with the patch's normals there. The two surfaces share their edge:
     sampled on the drawn triangles 10 cm either side of the rim they differ by under
-    0.25 m. (While the camera moves on a slow machine the coarser levels keep the older
-    join, the apron's cells crossing the patch's edge 30 m lower.)
+    0.25 m. The same holds at every coarser level drawn while the camera moves on a slow
+    machine: the patch and the apron are then both drawn at one step (every second or every
+    fourth point), and that level has its own strip to the patch's edge as it then draws it.
   - From 80 % to 98 % of its half-width the apron eases to 150 m below the reference sphere
-    (`APRON_EDGE_DROP_M`). The globe is drawn again beyond 140 km of the site and its own
-    triangles lie up to 116.3 m inside the sphere, so where both cover the ground the globe
-    is in front by tens of metres, far more than the depth buffer's step there (about
-    1 m): they never fight. A sphere-tier site's smooth ground eases the same way.
+    (`APRON_EDGE_DROP_M`). The globe is drawn again beyond 140 km of the site. Its finest
+    mesh (384 × 192) lies up to 116.3 m inside the sphere, its coarser ones 262 m to 4.2 km,
+    so while any ground is drawn the globe keeps its finest mesh, even when the quality
+    governor would pick a coarser one while moving (`globeSegments`). Where both cover the
+    ground the globe is then in front by more than 30 m, far more than the depth buffer's
+    step there (about 1 m): they never fight. A sphere-tier site's smooth ground eases the
+    same way.
 - **Missing terrain in part of the mesh:** holes are left open, not filled.
 - **Terrain still loading.** Proposed: the camera flies, and the ground appears when it is
   ready; the globe stays in place until then. Reason: a flight should never wait on a file.
