@@ -662,7 +662,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   `uv run pytest`, and by eye with
   hardware WebGL (NVIDIA, ANGLE D3D11) at 2000, 1440, 1024, folded and 390 px; a human has
   not reviewed it yet
-- **State:** built, not verified (2,429 web tests, 438 Python tests with 1 skipped, typecheck and
+- **State:** verified (reviewed by Codex (requested changes, all four addressed by the author); on the tree merged with main a35133f: 438 Python tests (1 skipped), 2,465 web tests, typecheck and build all exit 0. The black box is not fixed by this package: not reproduced; a follow-up moves the rail's popovers out of the rail)
   build pass on the merge with main; the team lead has not seen it)
 - **Changed:** `web/src/app/mission/timeline/countdowns.tsx` and a new `countdowns.test.ts`,
   `timeline/timeline.css`, `web/src/app/shell.css` (containment on the countdown column),
