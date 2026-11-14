@@ -204,7 +204,8 @@ export function CustomCoordinates({ full, onStarted }: { full: boolean; onStarte
           type="button"
           className="cs-toggle"
           aria-expanded={open}
-          aria-controls={`${id}-body`}
+          // Only while the form exists: it is unmounted when closed.
+          aria-controls={open ? `${id}-body` : undefined}
           aria-describedby={open && (unavailable || full) ? `${id}-why` : undefined}
           onClick={() => {
             const next = !open;

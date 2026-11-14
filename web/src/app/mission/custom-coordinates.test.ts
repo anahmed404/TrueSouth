@@ -62,6 +62,8 @@ describe('the "Enter coordinates" row in the add-site picker', () => {
     const row = toggle(host);
     expect(textOf(row).trim()).toBe("Enter coordinates");
     expect(propsOf(row)["aria-expanded"]).toBe(false);
+    // Closed, the form is not in the page, so the row points at nothing.
+    expect(propsOf(row)["aria-controls"]).toBeUndefined();
     expect(allNodes(host).some((node) => propsOf(node).id && String(propsOf(node).id).endsWith("-lat"))).toBe(false);
   });
 
@@ -69,6 +71,9 @@ describe('the "Enter coordinates" row in the add-site picker', () => {
     const host = await mount("available");
     await act(async () => click(toggle(host)));
     expect(propsOf(toggle(host))["aria-expanded"]).toBe(true);
+    const controls = propsOf(toggle(host))["aria-controls"];
+    expect(typeof controls).toBe("string");
+    expect(allNodes(host).some((node) => node.nodeName === "FORM" && propsOf(node).id === controls)).toBe(true);
     expect(allNodes(host).some((node) => node.nodeName === "INPUT" && String(propsOf(node).id).endsWith("-lat"))).toBe(true);
     expect(buttons(host, "Compute this site").length + allNodes(host).filter((n) => n.nodeName === "FORM").length).toBeGreaterThan(0);
   });
