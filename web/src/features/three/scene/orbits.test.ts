@@ -87,10 +87,14 @@ describe("the orbit lines' geometry, over the real series", () => {
         orbitSegments(orbitCircle(sun.centre, earth.centre), [MOON, earth]),
       ]) {
         expect(segments.length).toBeLessThanOrEqual(ORBIT_SEGMENTS * 2);
+        let nearestMoon = Infinity;
+        let nearestEarth = Infinity;
         for (const p of segments) {
-          expect(dist(p, MOON.centre)).toBeGreaterThanOrEqual(1);
-          expect(dist(p, earth.centre)).toBeGreaterThanOrEqual(earth.radius);
+          nearestMoon = Math.min(nearestMoon, dist(p, MOON.centre));
+          nearestEarth = Math.min(nearestEarth, dist(p, earth.centre));
         }
+        expect(nearestMoon).toBeGreaterThanOrEqual(1);
+        expect(nearestEarth).toBeGreaterThanOrEqual(earth.radius);
       }
       // The Moon's orbit comes back to within a step of the Moon's limb on both sides.
       const moonOrbit = orbitSegments(orbitCircle(earth.centre, [0, 0, 0]), [MOON, earth]);
