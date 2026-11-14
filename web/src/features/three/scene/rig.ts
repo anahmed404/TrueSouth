@@ -7,6 +7,15 @@ import { SYSTEM_MAX_ALTITUDE, TRUE_SCALE_MAX_ALTITUDE } from "./proportions";
 import { slipLightBlend, slipOrbit, slipZoom } from "./slip";
 import { clamp, smooth, type V3 } from "./vec";
 
+/** Scratch objects for the Slip Planner's drag (`slipMove`). */
+const SLIP_SCRATCH = {
+  target: new THREE.Vector3(),
+  up: new THREE.Vector3(),
+  m: new THREE.Matrix4(),
+  at: new THREE.Quaternion(),
+  offset: new THREE.Quaternion(),
+};
+
 /** The rig turns about the Moon in any view but Local terrain and Lander's eye. */
 type Mode = CameraViewId;
 
@@ -393,15 +402,26 @@ export class Rig {
     }
   }
 
-  /** The Slip Planner's drag: about the sites' centre (slip.ts), looking at it. */
+  /**
+   * The Slip Planner's drag: about the sites' centre (slip.ts), keeping the aim the view has.
+   * The pose aims SLIP_AIM_SHARE of the free space's height above the centre (`slipPose`), so
+   * the turn carries over the camera's offset from looking straight at the centre rather than
+   * looking at the centre itself, which made the first drag jump (about 85 px at 1440 × 900).
+   */
   private slipMove(step: (pos: V3) => { pos: V3; up: V3 }): void {
     const centre = this.slipCentre;
     if (!centre) return;
     const c = this.camera;
+    const target = SLIP_SCRATCH.target.set(...centre.centre);
+    const up0 = SLIP_SCRATCH.up.set(...centre.up0);
+    // The aim now, relative to looking at the centre with the ground's up: offset = at⁻¹ · now.
+    const at = SLIP_SCRATCH.at.setFromRotationMatrix(SLIP_SCRATCH.m.lookAt(c.position, target, up0));
+    const offset = SLIP_SCRATCH.offset.copy(at).invert().multiply(c.quaternion);
     const next = step([c.position.x, c.position.y, c.position.z]);
     c.position.set(...next.pos);
     c.up.set(...next.up);
-    c.lookAt(...centre.centre);
+    c.lookAt(target);
+    c.quaternion.multiply(offset);
   }
 
   /**

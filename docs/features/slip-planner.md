@@ -32,7 +32,9 @@ Polar map and Local terrain.
 - **Orbit and zoom.** Drag orbits around the sites' centre, from 28° to 88° up. The picture
   follows the pointer, as in every view (system-view.md, "Camera"): dragging right turns the
   scene so the ground nearest the viewer moves right, dragging down moves it down; an arrow
-  key moves the camera the arrow's way. (Until 2026-11-14 the horizontal turn was reversed.) Scroll zooms
+  key moves the camera the arrow's way. (Until 2026-11-14 the horizontal turn was reversed.) The
+  drag keeps the fit's aim (0.2 of the free space above the centre), so the first drag starts
+  from where the view is rather than jumping to look at the centre. Scroll zooms
   from 60 km to 2,600 km, along the line to that centre, keeping the aim: not toward the
   pointer, which would move the aim off the centre the orbit turns about. There is no pan
   (a right-drag, Shift-drag or two-finger drag turns as a drag does), so the sites never
