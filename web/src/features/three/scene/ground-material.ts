@@ -52,14 +52,16 @@ void main() {
 }`;
 
 const fragmentShader = `${LOGDEPTH_F}
-uniform sampler2D uMap, uCapN, uCoreN, uHPatch, uHApron;
+uniform sampler2D uMap, uCapN, uCoreN, uHPatch, uHApron, uHClose;
 uniform float uLoaded, uCapLoaded, uFade, uNoLight, uGain, uEarthLight, uBounce;
 // 0 turns the near-ground texture off without recompiling: while the camera moves on a weak
 // GPU, and whenever the plate that discloses it cannot be shown.
 uniform float uGrainOn;
 uniform vec3 uLight, uEarth, uUp, uEast, uNorth, uCamL;
 // Height grids: (half-width km, points a side, km a point, 1 when loaded).
-uniform vec4 uPatch, uApron;
+uniform vec4 uPatch, uApron, uClose;
+// 1: a very fine grain also inside a real close-up; 0: none there (closeup-ground.ts).
+uniform float uCloseGrain;
 // Loop counts as uniforms: ANGLE's Direct3D compiler then keeps them as loops instead of
 // unrolling them, which took minutes to compile. A loop with a uniform bound is valid GLSL
 // ES 3.00 (WebGL 2), which this renderer always is: three.js r163+ supports only WebGL 2,
@@ -120,6 +122,7 @@ float gridHeight(sampler2D t, vec4 g, vec2 q, float footKm) {
   return textureLod(t, uv, max(log2(footKm / g.z), 0.)).r;
 }
 float heightAt(vec2 q, float footKm) {
+  if (uClose.w > .5 && max(abs(q.x), abs(q.y)) < uClose.x) return gridHeight(uHClose, uClose, q, footKm);
   if (uPatch.w > .5 && max(abs(q.x), abs(q.y)) < uPatch.x) return gridHeight(uHPatch, uPatch, q, footKm);
   return gridHeight(uHApron, uApron, q, footKm);
 }
@@ -130,7 +133,8 @@ float drawnShadow(vec3 p, vec3 sL) {
   vec2 dir = sL.xy / hor;
   bool inPatch = uPatch.w > .5 && max(abs(p.x), abs(p.y)) < uPatch.x;
   float reach = uApron.w > .5 ? uApron.x : uPatch.x;
-  float t = inPatch ? .04 : .6 * uApron.z;
+  bool inClose = uClose.w > .5 && max(abs(p.x), abs(p.y)) < uClose.x;
+  float t = inClose ? .012 : inPatch ? .04 : .6 * uApron.z;
   float grow = exp(log(2.9 * reach / t) / float(uSteps));
   float z0 = heightAt(p.xy, 0.) + .002;
   float best = -1e3;
@@ -162,15 +166,14 @@ vec4 hash4(vec2 cell, float seed) {
 float fade(float foot, float cell) {
   return 1. - smoothstep(${f(GRAIN_FADE.lo, 4)} * cell, ${f(GRAIN_FADE.hi, 4)} * cell, foot);
 }
-// Small craters in one size band: (∂h/∂E, ∂h/∂N, albedo change, light left by the
-// craters' own rims). Like real small lunar craters: most are old and worn, a gentle bowl with
-// no rim (depth about 0.03 of the diameter); a few are fresh, a steeper bowl (up to 0.2 of the
-// diameter) with a sharp, slightly bright rim. A cell holds a crater with a chance that varies
-// slowly across the ground, and anywhere in it, so there is no grid and no even spacing. At a
-// low Sun a bowl fills with the shadow of its sunward rim: the ray toward the light leaves the
-// bowl at distance t, where the rim stands "rise" above this point. sd is the light's
-// direction across the ground and tanEl its elevation over the ground under the crater.
-vec4 craters(vec2 p, float S, float seed, float density, vec2 sd, float tanEl) {
+// Dimples in one size band: (∂h/∂E, ∂h/∂N, 0, light left by their own edge). Very shallow,
+// sparse bowls (depth 0.02 of the diameter, no rim, no rocks): enough to break up a smooth
+// slope at a few metres, too shallow and too few to read as craters you could walk to.
+// Illustrative only. A cell holds a dimple with a chance that varies slowly across the
+// ground, anywhere in it, so there is no grid. At a very low Sun a bowl may hold a little
+// shadow of its sunward edge: the ray toward the light leaves the bowl at distance t, where
+// the edge stands "rise" above this point.
+vec4 dimples(vec2 p, float S, float seed, float density, vec2 sd, float tanEl) {
   vec2 c = floor(p / S);
   vec4 acc = vec4(0., 0., 0., 1.);
   for (int k = 0; k < uNine; k++) {
@@ -179,48 +182,18 @@ vec4 craters(vec2 p, float S, float seed, float density, vec2 sd, float tanEl) {
     float patchy = density * (.2 + 1.6 * hash4(floor(cell / 6.), seed + 5.).y);
     if (r.w > patchy) continue;
     vec2 d = p - (cell + r.xy) * S;
-    // Many small, few large: radius from 0.05 S to 0.35 S, weighted to the small end.
-    float rad = S * (.05 + .3 * r.z * r.z * r.z);
+    float rad = S * (.08 + .25 * r.z * r.z);
     float rho = length(d);
     float x = rho / rad;
-    if (x > 1.8 || rho < 1e-6) continue;
-    float fresh = pow(fract(r.z * 7.31 + r.w * 3.7), 6.);
-    float depth = 2. * rad * mix(.03, .2, fresh);
-    float e = x - 1.;
-    float rimH = .25 * depth * fresh;
-    float rim = rimH * exp(-e * e / .05);
-    // Old: h = −depth (1 − x²)², smooth at the edge. Fresh: h = depth (x² − 1), with a rim.
-    float inside = x < 1. ? 1. : 0.;
-    float dOld = inside * depth * 4. * x * (1. - x * x);
-    float dFresh = inside * 2. * depth * x;
-    float dhdx = mix(dOld, dFresh, fresh) - rim * 2. * e / .05;
+    if (x >= 1. || rho < 1e-6) continue;
+    float depth = 2. * rad * .02;
+    // h = −depth (1 − x²)²: smooth at the edge, no rim.
+    float dhdx = depth * 4. * x * (1. - x * x);
     acc.xy += dhdx / rad * d / rho;
-    acc.z += .05 * fresh * exp(-e * e / .3);
-    if (x < 1.) {
-      float hp = mix(-depth * (1. - x * x) * (1. - x * x), depth * (x * x - 1.), fresh);
-      float along = dot(d, sd);
-      float t = -along + sqrt(max(along * along - rho * rho + rad * rad, 0.));
-      float rise = rimH - hp;
-      acc.w = min(acc.w, smoothstep(-SUN_R, SUN_R, atan(tanEl) - atan(rise / max(t, 1e-4))));
-    }
-  }
-  return acc;
-}
-// Rocks: low bumps a few centimetres to a few decimetres across.
-vec3 rocks(vec2 p, float S, float seed, float density) {
-  vec2 c = floor(p / S);
-  vec3 acc = vec3(0.);
-  for (int k = 0; k < uNine; k++) {
-    vec2 cell = c + vec2(float(k % 3 - 1), float(k / 3 - 1));
-    vec4 r = hash4(cell, seed);
-    if (r.w > density) continue;
-    vec2 d = p - (cell + .2 + .6 * r.xy) * S;
-    float rad = S * (.04 + .2 * r.z * r.z * r.z);
-    float x = length(d) / rad;
-    if (x >= 1.) continue;
-    float h = .6 * rad;
-    acc.xy += -4. * h * (1. - x * x) / (rad * rad) * d;
-    acc.z += .08 * (1. - x * x);
+    float hp = -depth * (1. - x * x) * (1. - x * x);
+    float along = dot(d, sd);
+    float t = -along + sqrt(max(along * along - rho * rho + rad * rad, 0.));
+    acc.w = min(acc.w, smoothstep(-SUN_R, SUN_R, atan(tanEl) - atan(-hp / max(t, 1e-4))));
   }
   return acc;
 }
@@ -241,25 +214,24 @@ vec3 grainOctave(vec2 p, float L, float A, float seed, mat2 turn) {
   return vec3(transpose(turn) * n.yz * A / L, n.x - .5);
 }
 // The whole near-ground texture at ground point p (metres): (∂h/∂E, ∂h/∂N, albedo change,
-// light left by small craters' rims).
-vec4 grain(vec2 p, float foot, vec2 sd, float tanEl) {
+// light left by the dimples' edges). "inClose" is 1 inside a real close-up (NASA's 5 m map):
+// no dimples there at all, and the fine grain only when uCloseGrain is on.
+vec4 grain(vec2 p, float foot, vec2 sd, float tanEl, float inClose) {
   vec4 acc = vec4(0., 0., 0., 1.);
   vec4 cr;
   float w;
+  float invented = 1. - inClose;
+  float fine = mix(1., uCloseGrain, inClose);
   mat2 t1 = mat2(.8, .6, -.6, .8), t2 = mat2(.28, .96, -.96, .28);
   #if GROUND_GRAIN > 1
-  w = fade(foot, 16.); if (w > 0.) { cr = craters(p, 16., 11., .12, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
-  w = fade(foot, 6.); if (w > 0.) { cr = craters(p, 6., 17., .22, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
-  w = fade(foot, 2.2); if (w > 0.) { cr = craters(p, 2.2, 23., .32, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
-  w = fade(foot, .8); if (w > 0.) { cr = craters(p, .8, 37., .3, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
-  w = fade(foot, .5); if (w > 0.) acc.xyz += w * rocks(p, .5, 41., .1);
-  w = fade(foot, .6); if (w > 0.) { vec3 g = grainOctave(p, .6, .005, 53., t1); acc.xyz += w * vec3(g.xy, g.z * .05); }
-  w = fade(foot, .15); if (w > 0.) { vec3 g = grainOctave(p, .15, .0016, 59., t2); acc.xyz += w * vec3(g.xy, g.z * .04); }
-  w = fade(foot, .04); if (w > 0.) { vec3 g = grainOctave(p, .04, .0006, 61., t1); acc.xy += w * g.xy; }
+  w = fade(foot, 3.) * invented; if (w > 0.) { cr = dimples(p, 3., 17., .08, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
+  w = fade(foot, 1.) * invented; if (w > 0.) { cr = dimples(p, 1., 23., .1, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
+  w = fade(foot, .6) * fine; if (w > 0.) { vec3 g = grainOctave(p, .6, .003, 53., t1); acc.xyz += w * vec3(g.xy, g.z * .03); }
+  w = fade(foot, .15) * fine; if (w > 0.) { vec3 g = grainOctave(p, .15, .0012, 59., t2); acc.xyz += w * vec3(g.xy, g.z * .03); }
+  w = fade(foot, .04) * fine; if (w > 0.) { vec3 g = grainOctave(p, .04, .0005, 61., t1); acc.xy += w * g.xy; }
   #else
-  w = fade(foot, 5.); if (w > 0.) { cr = craters(p, 5., 23., .2, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
-  w = fade(foot, 1.2); if (w > 0.) { cr = craters(p, 1.2, 37., .35, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
-  w = fade(foot, .4); if (w > 0.) { vec3 g = grainOctave(p, .4, .004, 53., t1); acc.xyz += w * vec3(g.xy, g.z * .05); }
+  w = fade(foot, 2.) * invented; if (w > 0.) { cr = dimples(p, 2., 23., .1, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
+  w = fade(foot, .4) * fine; if (w > 0.) { vec3 g = grainOctave(p, .4, .002, 53., t1); acc.xyz += w * vec3(g.xy, g.z * .03); }
   #endif
   return acc;
 }
@@ -312,7 +284,9 @@ void main() {
     float foot = max(length(dFdx(pm)), length(dFdy(pm)));
     float mu0 = dot(n, uLight);
     vec2 sd = length(sL.xy) > 1e-5 ? normalize(sL.xy) : vec2(0., 1.);
-    vec4 gr = grain(pm, foot, sd, mu0 / sqrt(max(1. - mu0 * mu0, 1e-6)));
+    // Inside a real close-up no invented features (fading out over its last 50 m).
+    float inClose = uClose.w * (1. - smoothstep(uClose.x - .05, uClose.x, max(abs(vL.x), abs(vL.y))));
+    vec4 gr = grain(pm, foot, sd, mu0 / sqrt(max(1. - mu0 * mu0, 1e-6)), inClose);
     n = normalize(n - gr.x * E - gr.y * N);
     alb *= 1. + gr.z;
     // The texture stays quieter than the real relief: its own shadows are softened.
@@ -449,6 +423,14 @@ export function groundRuntime(
   };
 }
 
+/**
+ * Whether a very fine grain is drawn inside a real close-up. Off by default: the 5 m map has
+ * its own relief. The address can turn it on for comparing (`?ground-closeup-grain=on`).
+ */
+export function closeupGrainFromQuery(search: string = typeof location !== "undefined" ? location.search : ""): boolean {
+  return new URLSearchParams(search).get("ground-closeup-grain") === "on";
+}
+
 /** How strong earthshine is drawn at full Earth, against the Sun's 1. Far above the real ratio, so night stays faintly readable. */
 const EARTHSHINE = 0.12;
 
@@ -458,7 +440,7 @@ export class GroundLook {
   quality: GroundQuality;
   private readonly invalidate: () => void;
   private readonly blankHeight: THREE.DataTexture;
-  private grids: { patch: HeightGrid | null; apron: HeightGrid | null } = { patch: null, apron: null };
+  private grids: { patch: HeightGrid | null; apron: HeightGrid | null; close: HeightGrid | null } = { patch: null, apron: null, close: null };
   private built = false;
   private textures: THREE.DataTexture[] = [];
   private frame: SiteFrame | null = null;
@@ -481,6 +463,9 @@ export class GroundLook {
       uHApron: { value: this.blankHeight as THREE.Texture },
       uPatch: { value: new THREE.Vector4(10, 2, 1, 0) },
       uApron: { value: new THREE.Vector4(150, 2, 1, 0) },
+      uHClose: { value: this.blankHeight as THREE.Texture },
+      uClose: { value: new THREE.Vector4(1, 2, 1, 0) },
+      uCloseGrain: { value: closeupGrainFromQuery() ? 1 : 0 },
       uGain: { value: 3.4 },
       uBounce: { value: 0.12 },
       uEarthLight: { value: 0 },
@@ -565,19 +550,21 @@ export class GroundLook {
   }
 
   /** The heights the shadows are marched over: exactly what is drawn (ground.ts). */
-  setHeights(patch: HeightGrid | null, apron: HeightGrid | null): void {
+  setHeights(patch: HeightGrid | null, apron: HeightGrid | null, close: HeightGrid | null = null): void {
     this.clearHeights();
-    this.grids = { patch, apron };
+    this.grids = { patch, apron, close };
   }
 
   clearHeights(): void {
     this.meshes.clear();
     for (const texture of this.textures) texture.dispose();
     this.textures = [];
-    this.grids = { patch: null, apron: null };
+    this.grids = { patch: null, apron: null, close: null };
     this.built = false;
     this.uniforms.uHPatch.value = this.blankHeight;
     this.uniforms.uHApron.value = this.blankHeight;
+    this.uniforms.uHClose.value = this.blankHeight;
+    this.uniforms.uClose.value.w = 0;
     this.uniforms.uPatch.value.w = 0;
     this.uniforms.uApron.value.w = 0;
   }
@@ -623,7 +610,13 @@ export class GroundLook {
   private build(renderer: THREE.WebGLRenderer): void {
     this.built = true;
     const floatLinear = renderer.extensions.has("OES_texture_float_linear");
-    const { patch, apron } = this.grids;
+    const { patch, apron, close } = this.grids;
+    if (close) {
+      const texture = heightTexture(close, floatLinear);
+      this.textures.push(texture);
+      this.uniforms.uHClose.value = texture;
+      this.uniforms.uClose.value.set(close.halfKm, close.columns, (2 * close.halfKm) / (close.columns - 1), 1);
+    }
     if (patch) {
       const texture = heightTexture(patch, floatLinear);
       this.textures.push(texture);

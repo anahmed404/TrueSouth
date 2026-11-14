@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, 
 import * as THREE from "three";
 import type { CameraViewId, FreeSpace, SceneProjector, SceneProps } from "../../../app/scene";
 import type { Site } from "../../../contracts/generated";
-import { useApron, useManifest, useSceneMeta, useSeries, useSite, useSites, useSystem, useTerrain } from "../../../data";
+import { useApron, useCloseup, useManifest, useSceneMeta, useSeries, useSite, useSites, useSystem, useTerrain } from "../../../data";
 import type { DecodedApron, DecodedSeries, DecodedSystem, DecodedTerrain } from "../../../data";
 import {
   LOCAL_TERRAIN_HALF_M,
@@ -37,6 +37,7 @@ import {
   type SiteFrame,
 } from "./camera";
 import { Overlay, type OverlayBus, type Preset, type LookToward } from "./overlay";
+import { closeupFits } from "./closeup-ground";
 import { useSurroundings } from "./custom-apron";
 import { apronLoadState, decorationDisclosure, sceneContent, seriesSunAnswer, type LoadState } from "./plates";
 import { southPolePose } from "./navigate";
@@ -132,10 +133,10 @@ type FocusData = {
   siteId: string;
   series: DecodedSeries | null;
   flags: HourFlags | null;
-  terrain: { data: DecodedTerrain; size: number; windowKm: number } | null | "loading";
+  terrain: { data: DecodedTerrain; size: number; windowKm: number; closeup?: { data: DecodedTerrain; size: number; windowKm: number } | null } | null | "loading";
   apron: DecodedApron | null | "loading";
   /** How each file stands, for the plates (plates.ts). */
-  states: { series: LoadState; terrain: LoadState; apron: LoadState | "none" };
+  states: { series: LoadState; terrain: LoadState; apron: LoadState | "none"; closeup: LoadState | "none" };
 };
 
 function loadState(status: "loading" | "ready" | "error"): LoadState {
@@ -154,17 +155,25 @@ function FocusedSiteData({
   const series = useSeries(siteId);
   const flags = useHourFlags(siteId, profile);
   const terrain = useTerrain(siteId);
+  // NASA's 5 m close-up of the site, where it has one: only the focused site's (closeup-ground.ts).
+  const closeup = useCloseup(siteId);
   const site = useSite(siteId);
   const apron = useApron(siteId);
   const sceneMeta = useSceneMeta();
   // useSite builds a fresh object each render: read the one number it gives here.
   const windowKm = site.status === "ready" ? (site.data.meta.terrain?.window_km ?? (2 * LOCAL_TERRAIN_HALF_M) / 1000) : null;
+  const closeupWindowKm = site.status === "ready" ? (site.data.meta.closeup?.window_km ?? null) : null;
   const terrainValue = useMemo(() => {
     if (terrain.status === "loading" || (site.status === "loading" && terrain.status === "ready" && terrain.data)) return "loading" as const;
     if (terrain.status !== "ready" || !terrain.data) return null;
     const size = Math.round(Math.sqrt(terrain.data.up_km.length));
-    return { data: terrain.data, size, windowKm: windowKm ?? 20 };
-  }, [terrain.status, terrain.data, site.status, windowKm]);
+    const close =
+      closeup.status === "ready" && closeup.data && closeupWindowKm !== null
+        ? { data: closeup.data, size: Math.round(Math.sqrt(closeup.data.up_km.length)), windowKm: closeupWindowKm }
+        : null;
+    const patch = { data: terrain.data, size, windowKm: windowKm ?? 20 };
+    return { ...patch, closeup: close && closeupFits(patch, close) ? close : null };
+  }, [terrain.status, terrain.data, site.status, windowKm, closeup.status, closeup.data, closeupWindowKm]);
   const apronValue = apron.status === "loading" ? "loading" : apron.status === "ready" && apron.data !== "not available" ? apron.data : null;
   const seriesValue = series.status === "ready" ? series.data : null;
   const flagsValue = flags.status === "ready" ? flags.data : null;
@@ -176,6 +185,9 @@ function FocusedSiteData({
   // and "none" when it lists none: a custom site has a patch but never an apron, by design.
   const apronListed = sceneMeta.status === "ready" ? sceneMeta.data.aprons.some((a) => a.site_id === siteId) : true;
   const apronState = apronLoadState(apron.status, apron.data, apronListed);
+  // "ready" only when the close-up is drawn: loaded and fitting the patch.
+  const closeupState: LoadState | "none" =
+    closeup.status !== "ready" ? closeup.status : terrainValue && terrainValue !== "loading" && terrainValue.closeup ? "ready" : "none";
   useEffect(() => {
     onData({
       siteId,
@@ -183,9 +195,9 @@ function FocusedSiteData({
       flags: flagsValue,
       terrain: terrainValue,
       apron: apronValue,
-      states: { series: seriesState, terrain: terrainState, apron: apronState },
+      states: { series: seriesState, terrain: terrainState, apron: apronState, closeup: closeupState },
     });
-  }, [siteId, seriesValue, flagsValue, terrainValue, apronValue, seriesState, terrainState, apronState, onData]);
+  }, [siteId, seriesValue, flagsValue, terrainValue, apronValue, seriesState, terrainState, apronState, closeupState, onData]);
   return null;
 }
 
@@ -397,14 +409,15 @@ function Scene3D(props: SceneProps) {
         view,
         trueScale,
         system: systemState,
-        site: worldSite ? { name: worldSite.name, sphere: worldSite.sphere } : null,
+        site: worldSite ? { name: worldSite.name, sphere: worldSite.sphere, tier: focusedSite?.terrain_tier } : null,
+        closeup: focusReady?.states.closeup ?? "none",
         series: focusReady?.states.series ?? "loading",
         terrain: focusReady?.states.terrain ?? "loading",
         apron: focusReady?.states.apron ?? "loading",
         sun: seriesSunAnswer(focusReady?.series, focusReady?.flags, hourIndex),
         surroundings,
       }),
-    [view, trueScale, systemState, worldSite, focusReady?.states.series, focusReady?.states.terrain, focusReady?.states.apron, focusReady?.series, focusReady?.flags, hourIndex, surroundings],
+    [view, trueScale, systemState, worldSite, focusReady?.states.series, focusReady?.states.terrain, focusReady?.states.apron, focusReady?.series, focusReady?.flags, hourIndex, surroundings, focusReady?.states.closeup, focusedSite?.terrain_tier],
   );
 
   const inputs = useMemo((): WorldInputs => {
@@ -695,7 +708,7 @@ type DirectorProps = {
   trueScale: boolean;
   moon8k: boolean;
   sight: { sunAz: number; sunEl: number; earthAz: number; earthEl: number } | null;
-  terrain: { data: DecodedTerrain; size: number; windowKm: number } | null;
+  terrain: { data: DecodedTerrain; size: number; windowKm: number; closeup?: { data: DecodedTerrain; size: number; windowKm: number } | null } | null;
   apron: { data: DecodedApron; grid: ApronGrid } | null;
   bus: { current: OverlayBus };
   dip: (ms: number, cut: () => void) => void;

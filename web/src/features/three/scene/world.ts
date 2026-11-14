@@ -4,7 +4,8 @@ import type { DecodedApron, DecodedTerrain } from "../../../data";
 import { isCustomSiteId, sceneImageUrl } from "../../../data";
 import { EARTH_RADIUS_KM, MOON_RADIUS_M, SQUEEZED_DISTANCE, SQUEEZED_SUN_RADIUS, SUN_RADIUS_KM, type ApronGrid } from "../../../lib/geo";
 import { altitudeOf, type SiteFrame } from "./camera";
-import { apronGeometry, apronUpGrid, globeSegments, patchGeometry, patchOutline, patchRim, patchUpGrid, smoothGroundGeometry, type GroundSite } from "./ground";
+import { apronGeometry, apronUpGrid, globeSegments, patchOutline, patchRim, patchUpGrid, smoothGroundGeometry, type GroundSite } from "./ground";
+import { patchWithCloseup } from "./closeup-ground";
 import { CONTINUATION_GRID, continuationApron, globalHeightsState, requestGlobalHeights, subscribeGlobalHeights } from "./custom-apron";
 import { GroundLook } from "./ground-material";
 import { aimLander, createLander, LANDER_HEIGHT_M, partAxis, type Lander } from "./lander";
@@ -399,7 +400,7 @@ export class World {
    */
   setGround(
     site: WorldSite | null,
-    terrain: { data: DecodedTerrain; size: number; windowKm: number } | null,
+    terrain: { data: DecodedTerrain; size: number; windowKm: number; closeup?: { data: DecodedTerrain; size: number; windowKm: number } | null } | null,
     apron: { data: DecodedApron; grid: ApronGrid } | null,
     smooth = false,
   ): void {
@@ -413,7 +414,7 @@ export class World {
       requestGlobalHeights();
     }
     // The key first: building a custom site's apron costs 15 to 30 ms.
-    const key = site ? `${site.id}|${terrain ? "t" : ""}|${apron ? "a" : heights ? "c" : ""}|${smooth ? "s" : ""}|${site.groundHeightM}` : null;
+    const key = site ? `${site.id}|${terrain ? "t" : ""}${terrain?.closeup ? "u" : ""}|${apron ? "a" : heights ? "c" : ""}|${smooth ? "s" : ""}|${site.groundHeightM}` : null;
     if (key === this.groundFor) return;
     if (heights && site && terrain) {
       apron = { data: continuationApron(terrain.data, terrain.size, terrain.windowKm, site, heights), grid: CONTINUATION_GRID };
@@ -430,8 +431,11 @@ export class World {
       // It sits at the site's own height, where Pip and the camera stand.
       meshes.push(new THREE.Mesh(smoothGroundGeometry(g), this.groundLook.material));
     } else if (terrain) {
-      const patch = patchGeometry(terrain.data, terrain.size, terrain.windowKm, g);
+      // The patch, and NASA's 5 m close-up inside it where the site has one (closeup-ground.ts).
+      const parts = patchWithCloseup(terrain, g);
+      const patch = parts.patch;
       meshes.push(new THREE.Mesh(patch, this.groundLook.material));
+      if (parts.closeup) meshes.push(new THREE.Mesh(parts.closeup, this.groundLook.material));
       const withApron = Boolean(apron && apron.grid.windowM / 2_000 > terrain.windowKm / 2);
       if (apron && withApron) {
         meshes.push(new THREE.Mesh(apronGeometry(apron.data, apron.grid, terrain.windowKm / 2, g, patchRim(terrain.data, terrain.size, terrain.windowKm, patch)), this.groundLook.material));
@@ -441,6 +445,7 @@ export class World {
         apron && withApron
           ? { heights: apronUpGrid(apron.data, apron.grid, g), columns: apron.grid.columns, rows: apron.grid.rows, halfKm: apron.grid.windowM / 2_000 }
           : null,
+        parts.closeHeights,
       );
       const lift = new THREE.Vector3(...site.frame.up).multiplyScalar(4 / MOON_RADIUS_M);
       const outline = new THREE.LineLoop(
