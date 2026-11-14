@@ -161,10 +161,29 @@ uv run truesouth build-sites --closeups-only --only artemis_de_gerlache_rim_2 ar
 Normal `build-sites --only <ids>` also builds accepted close-ups; custom callers
 of the shared builder do not receive one. `--closeups-only` keeps the existing
 manifest rather than regenerating it. Prepare, refresh and idempotent fetch
-checks all exited 0. Final requested suite results will be recorded here.
+checks all exited 0. The five requested final checks ran once each, sequentially,
+with numerical threads and Vitest workers limited to one:
+
+| Command | Result | Exit code |
+| :--- | :--- | ---: |
+| `uv run pytest -q` | 471 passed, 1 skipped; 226.36 s | 0 |
+| `pnpm --dir web install --frozen-lockfile` | installed with the frozen lockfile | 0 |
+| `pnpm --dir web test` | 117 files, 2,589 tests passed; 84.58 s | 0 |
+| `pnpm --dir web typecheck` | passed | 0 |
+| `pnpm --dir web build` | passed; existing large-chunk warning | 0 |
+
+Synthetic tests cover known plane and bump georeferencing (including
+PixelIsPoint), bilinear resampling, nodata/NaN, full-window coverage with a hole
+between vertices, a recovered known 40 m horizontal shift, fetch idempotence and
+missing-crop resume, deletion before the next fallback download, size limits,
+atomic failure recovery and unchanged fixture science on both normal and
+close-up-only builds. No network or real maps are needed by these tests.
 
 **Not verified:** visual integration belongs to the scene agent; sub-10 m
 horizontal offsets and independent absolute vertical accuracy were not measured.
+The existing real-map custom-site byte-identity pytest was skipped because the
+suite ran without the shared-data environment override; the separate catalog
+audit above did use the real prepared maps and checked every existing artifact.
 NASA's slope files were deliberately not downloaded, so the independent close-up
 slope comparison R4 remains deferred. NASA reports about 90% interpolated 5 m
 pixels and 0.30–0.50 m median RMS height uncertainty in its regions of interest;
