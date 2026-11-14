@@ -55,5 +55,8 @@
     "size": 257,
     "window_km": 20.0
   },
-  "closeup": null
+  "closeup": {
+    "size": 257,
+    "window_km": 2.0
+  }
 }

@@ -11,9 +11,9 @@ the Moon's curvature is in the mesh and the site itself sits at the origin
 when its own height is known. Missing heights stay NaN in every array. They
 are never filled with zero.
 
-``closeup_mesh`` only samples a ``PreparedMap``. That class already assumes
-the south polar stereographic projection. Real 5 m products are not read here;
-do not pass one until its projection is known and it can be opened that way.
+``closeup_mesh`` samples a ``PreparedMap`` or a sampling wrapper. Real 5 m
+products are validated and cropped by closeups.py before reaching this helper.
+The wrapper registers the drawing heights to the unchanged polar-map ground.
 
 Per-vertex ``slope_deg`` is the section 13 overlay slope: the angle of the
 gradient of sampled height ``z`` on the offset grid ``(E, N)``, in degrees.

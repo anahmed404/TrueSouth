@@ -72,7 +72,7 @@ An array of catalog sites.
 | `source_url` | string | Where the coordinates come from |
 | `outcome` | string \| null | For real missions: what happened |
 | `terrain_tier` | `"core80"` \| `"wide240"` \| `"sphere"` | Which terrain the skyline used |
-| `has_closeup` | boolean | A close-up DEM exists |
+| `has_closeup` | boolean | A complete, accepted close-up drawing mesh exists for this site's own centre |
 | `elevation_m` | number \| null | Ground height above the reference sphere |
 | `slope` | `{ deg, baseline_m, source }` \| null | See [`science.md`](science.md) §8 |
 | `quickmap_url`, `moontrek_url` | string | Links out to the NASA tools |
