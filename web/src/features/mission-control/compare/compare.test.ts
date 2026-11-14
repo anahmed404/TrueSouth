@@ -26,7 +26,9 @@ import { useSiteStatus, type SiteStatus } from "../../../app/mission/site-status
 import { hourIndexToUtc } from "../../../lib/time";
 import { dataStore, seriesKey } from "../../../state/data";
 import { createScenarioStore, type ScenarioCatalog } from "../../../state/scenario";
-import { allNodes, installDocument, propsOf, type FakeNode } from "../../../app/mission/fake-dom";
+import { allNodes, installDocument, propsOf, textOf, type FakeNode } from "../../../app/mission/fake-dom";
+import { FloatingWindow } from "../../../app/mission/floating-window";
+import { formatUtc } from "../../../components/format";
 import Compare, { CompareTable, compareRenders } from "./index";
 import { parseCsv } from "../../../lib/export";
 import { compareCsv } from "./export";
@@ -428,5 +430,51 @@ describe("custom sites (made up here; the sites package, #92, adds them to useSi
     }, new Date("2026-11-14T00:00:00Z"));
     const parsed = parseCsv(csv);
     expect(parsed.rows[0]?.[1]).toBe(`'=HYPERLINK("http://x","click")`);
+  });
+});
+
+describe("the window's header (MC9b): the title, the landing date, the exports, the close button", () => {
+  it("shows those and nothing else; the description and the summary are for assistive technology", async () => {
+    const landingUtc = hourIndexToUtc(grid, 4700);
+    const store = createScenarioStore(catalog, `?profile=im2_athena&sites=${SITE_IDS.slice(0, 4).join(",")}&land=${landingUtc}&t=0&view=compare`);
+    const closedByUser = { current: false };
+    const dom = await mount(
+      createElement(ScenarioStoreProvider, {
+        store,
+        children: createElement(FloatingWindow, {
+          id: "window-compare",
+          title: "Compare",
+          closeLabel: "Close Compare",
+          description: "Compare puts your selected sites side by side, for one mission profile and landing date.",
+          descriptionHidden: true,
+          onClose: () => undefined,
+          button: () => null,
+          closedByUser,
+          children: createElement(Compare, { scenario: store.getState().scenario, mode: "mission" }),
+        }),
+      }),
+    );
+    const head = byClass(dom, "floating-window-head")[0] as FakeNode;
+    // What a sighted user reads in the header, in order.
+    expect(flat(seen(head))).toBe(flat(`Compare ${formatUtc(landingUtc)} Export CSV Export JSON`));
+    expect(seen(head)).toContain("2026-07-15 20:00 UTC");
+    expect(byTag(head, "BUTTON").map((b) => String(propsOf(b)["aria-label"] ?? seen(b)))).toEqual(["Export CSV", "Export JSON", "Close Compare"]);
+
+    // The description: the dialog's accessible description, visually hidden.
+    const dialog = byTag(dom, "SECTION").find((n) => propsOf(n).role === "dialog") as FakeNode;
+    const description = allNodes(dialog).find((n) => propsOf(n).id === propsOf(dialog)["aria-describedby"]) as FakeNode;
+    expect(propsOf(description).className).toBe("sr-only");
+    expect(textOf(description)).toContain("side by side");
+
+    // The summary sentence: the table's accessible description, visually hidden, still produced.
+    const table = byTag(dom, "TABLE")[0] as FakeNode;
+    const summary = allNodes(dom).find((n) => propsOf(n).id === propsOf(table)["aria-describedby"]) as FakeNode;
+    expect(propsOf(summary).className).toBe("sr-only");
+    expect(textOf(summary)).toMatch(/^For IM-2 Athena landing 2026-07-15 20:00 UTC, /);
+    // Neither sentence is anywhere a sighted user sees it.
+    expect(seen(dom)).not.toContain("For IM-2 Athena landing");
+    expect(seen(dom)).not.toContain("side by side");
+    // The notes under the table stay.
+    expect(seen(byClass(dom, "cmp-foot")[0])).toContain("A tie for best marks every tied site.");
   });
 });

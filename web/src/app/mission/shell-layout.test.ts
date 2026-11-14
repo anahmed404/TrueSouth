@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { closeWindow, pickView, viewState, type ViewId } from "./views";
 import {
   DEFAULT_SHELL_LAYOUT,
   SHELL_STORAGE_KEY,
@@ -14,6 +15,11 @@ import {
   toggleShellPanel,
   type ShellLayout,
   type ShortcutEvent,
+  NO_WINDOW_FOLD,
+  stripFolded,
+  toggleStrip,
+  windowFoldFor,
+  type WindowFold,
 } from "./shell-layout";
 
 function memoryStorage(initial: Record<string, string> = {}) {
@@ -186,5 +192,74 @@ describe("shortcutPanel", () => {
     for (const part of ['[role="dialog"]', '[role="menu"]', '[role="listbox"]', "[popover]"]) {
       expect(OVERLAY_SELECTOR).toContain(part);
     }
+  });
+});
+
+describe("the strip folded while Compare is open", () => {
+  // The shell's own path from a view to the open window: `viewState`, and the two ways to
+  // close (`closeWindow` for the close button and Escape, `pickView` for a camera view).
+  const open = viewState("compare", "system");
+  const windowAfter = (view: ViewId) => viewState(view, open.camera).window;
+  const OPEN_STRIP = DEFAULT_SHELL_LAYOUT;
+  const FOLDED_STRIP = setShellPanel(DEFAULT_SHELL_LAYOUT, "timeline", true);
+
+  /** The fold once Compare opens over `layout`. */
+  function opened(layout: ShellLayout): WindowFold {
+    const fold = windowFoldFor(NO_WINDOW_FOLD, null, layout.timeline.collapsed);
+    return windowFoldFor(fold, open.window, layout.timeline.collapsed);
+  }
+
+  it("folds an open strip when Compare opens, without touching the remembered fold", () => {
+    const fold = opened(OPEN_STRIP);
+    expect(fold).toEqual({ window: "compare", folded: true });
+    expect(stripFolded(OPEN_STRIP, fold)).toBe(true);
+    expect(OPEN_STRIP.timeline.collapsed).toBe(false);
+    expect(serializeShellLayout(OPEN_STRIP)).toContain('"timeline":{"collapsed":false}');
+  });
+
+  it.each([
+    ["the close button", closeWindow(open)],
+    ["Escape", closeWindow(open)],
+    ["picking a camera view", pickView(open, "map")],
+  ])("restores the open strip when Compare closes by %s", (_how, view) => {
+    const closed = windowFoldFor(opened(OPEN_STRIP), windowAfter(view), false);
+    expect(closed.window).toBeNull();
+    expect(stripFolded(OPEN_STRIP, closed)).toBe(false);
+  });
+
+  it("leaves a strip the user folded folded, before, during and after", () => {
+    const fold = opened(FOLDED_STRIP);
+    expect(fold.folded).toBe(false);
+    expect(stripFolded(FOLDED_STRIP, fold)).toBe(true);
+    const closed = windowFoldFor(fold, windowAfter(closeWindow(open)), true);
+    expect(stripFolded(FOLDED_STRIP, closed)).toBe(true);
+  });
+
+  it("lets the user unfold it while Compare is open, and does not fold it again", () => {
+    const { fold, toggleRemembered } = toggleStrip(opened(OPEN_STRIP));
+    expect(toggleRemembered).toBe(false);
+    expect(stripFolded(OPEN_STRIP, fold)).toBe(false);
+    // The next render with Compare still open keeps it unfolded (the same object back).
+    expect(windowFoldFor(fold, "compare", false)).toBe(fold);
+    // A second press is the user's own fold, remembered as usual.
+    expect(toggleStrip(fold).toggleRemembered).toBe(true);
+    // And closing leaves the strip as the user left it.
+    expect(stripFolded(OPEN_STRIP, windowFoldFor(fold, null, false))).toBe(false);
+  });
+
+  it("folds again the next time Compare opens", () => {
+    const { fold } = toggleStrip(opened(OPEN_STRIP));
+    const closed = windowFoldFor(fold, null, false);
+    expect(windowFoldFor(closed, "compare", false).folded).toBe(true);
+  });
+
+  it("does nothing for the Slip Planner window, or with no window", () => {
+    expect(windowFoldFor(NO_WINDOW_FOLD, "slip", false).folded).toBe(false);
+    expect(windowFoldFor(NO_WINDOW_FOLD, null, false)).toBe(NO_WINDOW_FOLD);
+    expect(toggleStrip(NO_WINDOW_FOLD).toggleRemembered).toBe(true);
+  });
+
+  it("folds when the page opens straight onto Compare from a link", () => {
+    expect(windowFoldFor(NO_WINDOW_FOLD, "compare", false)).toEqual({ window: "compare", folded: true });
   });
 });
