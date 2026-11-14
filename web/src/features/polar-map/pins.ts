@@ -55,6 +55,8 @@ export type PlacedPin = {
   folded: string[];
   /** For a best-lit variant, its parent's id. */
   parentId: string | null;
+  /** False for a site outside the detailed square: the 80 m terrain map does not reach it. */
+  detailed: boolean;
 };
 
 /** Whether a site lies on the map's square (within ±half-width metres of the pole). */
@@ -62,6 +64,15 @@ export function onMap(site: Pick<Site, "lat_deg" | "lon_deg">, halfWidthM = DEFA
   if (site.lat_deg > -60) return false;
   const { x_m, y_m } = polarStereoForward(site.lat_deg, site.lon_deg);
   return Math.abs(x_m) <= halfWidthM && Math.abs(y_m) <= halfWidthM;
+}
+
+/**
+ * Whether a site lies on the context around the square: the southern hemisphere, which the
+ * context images cover out to the equator (context.ts). Its pin is drawn there, in the right
+ * place, and marked as outside the detailed map.
+ */
+export function onContext(site: Pick<Site, "lat_deg" | "lon_deg">): boolean {
+  return site.lat_deg <= 0;
 }
 
 type PlaceInput = {
@@ -88,7 +99,7 @@ type PlaceInput = {
 export function placePins({ sites, selectedIds, focusedId, states, view, halfWidthM }: PlaceInput): PlacedPin[] {
   const selected = new Set(selectedIds);
   const base = sites
-    .filter((site) => onMap(site, halfWidthM))
+    .filter((site) => onContext(site))
     .map((site): PlacedPin => {
       const at = latLonToScreen(site.lat_deg, site.lon_deg, view);
       return {
@@ -100,6 +111,7 @@ export function placePins({ sites, selectedIds, focusedId, states, view, halfWid
         state: selected.has(site.id) ? (states.get(site.id) ?? { kind: "loading" }) : { kind: "catalog" },
         folded: [],
         parentId: site.variant_of ?? null,
+        detailed: onMap(site, halfWidthM),
       };
     });
   const ids = new Set(base.map((pin) => pin.site.id));

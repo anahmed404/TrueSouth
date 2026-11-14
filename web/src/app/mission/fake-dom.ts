@@ -68,6 +68,11 @@ export class FakeNode {
     return false;
   }
   focus() {}
+  scrollIntoView() {}
+  /** Not modelled: nothing is found (focus moves are checked in a browser). */
+  getElementById() {
+    return null;
+  }
   createElement(tag: string) {
     const node = new FakeNode(1, tag.toUpperCase());
     node.ownerDocument = this;

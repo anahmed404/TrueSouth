@@ -95,11 +95,26 @@ export function fitView(frame: Frame, halfWidthM = DEFAULT_HALF_WIDTH_M, margin 
 }
 
 /**
- * How far the map may zoom: out to 70 % of the fit, in to 25 m a pixel. The sharpest relief
- * pixel is 74 m (the 8K image); closer than this only blurs it.
+ * The strip at the foot of the free space that the 3D scene keeps for a view's controls when
+ * it frames the Polar map (features/three/scene/scene-root.tsx `CONTROLS_FOOT`; a test reads
+ * that value so the two cannot drift). The flat map's controls sit in it, so the map fits
+ * above it, at the scale the globe had.
+ */
+export const CONTROLS_FOOT_PX = 60;
+
+/** The free space less the controls' strip at its foot, as the scene's `shrink` does it. */
+export function fitRectOf(rect: Frame["rect"], footPx: number): Frame["rect"] {
+  if (footPx <= 0 || rect.height <= footPx + 80) return rect;
+  return { ...rect, height: rect.height - footPx };
+}
+
+/**
+ * How far the map may zoom: out to 40 % of the fit, so the Moon around the detailed square
+ * can be looked at, and in to 25 m a pixel. The sharpest relief pixel is 74 m (the 8K
+ * image); closer than this only blurs it.
  */
 export function zoomExtent(fit: MapView): [number, number] {
-  return [fit.k * 0.7, WORLD_UNIT_M / 25];
+  return [fit.k * 0.4, WORLD_UNIT_M / 25];
 }
 
 /**

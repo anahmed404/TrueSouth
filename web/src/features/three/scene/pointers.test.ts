@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PointerTracker, type Command } from "./pointers";
+import { MIDDLE_BUTTON_DRAG, PointerTracker, type Command } from "./pointers";
 
 const kinds = (commands: Command[]) => commands.map((c) => c.type);
 
@@ -117,5 +117,76 @@ describe("sliding and double taps", () => {
     t.down(1, 50, 50, "mouse", 0, false, 1_100);
     t.move(1, 80, 50, 1, false);
     expect(t.up(1, 80, 50, 1_200)).toEqual([]);
+  });
+});
+
+describe("the middle mouse button (the wheel pressed)", () => {
+  // `buttons` bits: left 1, right 2, middle 4.
+  it("turns like the left button: down, move, up", () => {
+    expect(MIDDLE_BUTTON_DRAG).toBe("turn");
+    const t = new PointerTracker();
+    expect(kinds(t.down(1, 100, 100, "mouse", 1, false, 0))).toEqual(["begin"]);
+    expect(t.move(1, 112, 95, 4, false)).toEqual([{ type: "orbit", dx: 12, dy: -5 }]);
+    t.up(1, 112, 95, 80);
+    expect(t.size).toBe(0);
+    expect(t.move(1, 140, 95, 0, false)).toEqual([]);
+  });
+
+  it("slides with Shift, like Shift and the left button, and the right button still slides", () => {
+    const t = new PointerTracker();
+    t.down(1, 100, 100, "mouse", 1, true, 0);
+    expect(t.move(1, 110, 100, 4, true)).toEqual([{ type: "pan", dx: 10, dy: 0, orFallback: true }]);
+    // Shift let go mid-drag: back to turning, from a fresh turn.
+    expect(kinds(t.move(1, 120, 100, 4, false))).toEqual(["begin", "orbit"]);
+    t.up(1, 120, 100, 50);
+
+    const r = new PointerTracker();
+    r.down(2, 100, 100, "mouse", 2, false, 0);
+    expect(r.move(2, 90, 100, 2, false)).toEqual([{ type: "pan", dx: -10, dy: 0, orFallback: true }]);
+  });
+
+  it("ends when the window loses focus mid-drag", () => {
+    const t = new PointerTracker();
+    t.down(1, 100, 100, "mouse", 1, false, 0);
+    t.move(1, 120, 100, 4, false);
+    t.clear();
+    expect(t.size).toBe(0);
+    expect(t.move(1, 140, 100, 4, false)).toEqual([]);
+  });
+
+  it("ends when its own button comes up while another is still held (the wrong button released)", () => {
+    const t = new PointerTracker();
+    t.down(1, 100, 100, "mouse", 1, false, 0);
+    expect(kinds(t.move(1, 110, 100, 4 | 1, false))).toEqual(["orbit"]); // left pressed too: still the middle drag
+    expect(t.move(1, 120, 100, 1, false)).toEqual([]); // the middle button let go, left still down
+    expect(t.size).toBe(0);
+    expect(t.move(1, 130, 100, 1, false)).toEqual([]);
+
+    // The other way round: releasing a button that did not start the drag changes nothing.
+    const u = new PointerTracker();
+    u.down(1, 100, 100, "mouse", 1, false, 0);
+    u.move(1, 105, 100, 4 | 2, false);
+    expect(kinds(u.move(1, 110, 100, 4, false))).toEqual(["orbit"]);
+  });
+
+  it("does nothing on a middle click without a drag, even twice in a row", () => {
+    const t = new PointerTracker();
+    t.down(1, 100, 100, "mouse", 1, false, 0);
+    expect(t.up(1, 100, 100, 60)).toEqual([]);
+    t.down(1, 101, 100, "mouse", 1, false, 150);
+    expect(t.up(1, 101, 100, 200)).toEqual([]);
+    // A left double click still centres a spot.
+    t.down(1, 100, 100, "mouse", 0, false, 300);
+    t.up(1, 100, 100, 350);
+    t.down(1, 100, 100, "mouse", 0, false, 450);
+    expect(kinds(t.up(1, 100, 100, 500))).toEqual(["focus"]);
+  });
+
+  it("ignores the back and forward buttons", () => {
+    const t = new PointerTracker();
+    expect(t.down(1, 100, 100, "mouse", 3, false, 0)).toEqual([]);
+    expect(t.size).toBe(0);
+    expect(t.move(1, 120, 100, 8, false)).toEqual([]);
+    expect(t.down(1, 100, 100, "mouse", 4, false, 0)).toEqual([]);
   });
 });

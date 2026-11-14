@@ -30,12 +30,14 @@ import {
 } from "../../../app/mission/rules";
 import { NO_RESULT_TEXT, isSphere, siteName, type SiteStatus } from "../../../app/mission/site-status";
 import type { ProfileField } from "../../../state/scenario";
-import { ARTEMIS_NOTE, nearbyRangeText, upperReadingLine, variantLine } from "./site-wording";
+import { ARTEMIS_NOTE, nearbyRangeText, parentOf, upperReadingLine, variantLine } from "../../../app/mission/site-labels";
 
-/** The note for an Artemis candidate entry (the shared wording, see `site-wording.ts`). */
+/** The note for an Artemis candidate entry (the shared wording, `app/mission/site-labels.ts`). */
 export const MAP_CENTRE_NOTE = ARTEMIS_NOTE;
 export const SPHERE_NOTE = "Terrain not modelled";
 export const SLOPE_NOT_ASSESSED = "Slope not assessed";
+/** Why a best-lit point carries no "best" mark for sunlight: the table's footer says so. */
+export const NOT_RANKED_NOTE = "A best-lit point is not ranked for sunlight, because its reading is an upper one.";
 export const TOO_FEW_SITES = "Compare needs two or more sites. Add one from the sites rail.";
 
 /** One selected site, ready to draw as a column. */
@@ -59,10 +61,6 @@ export type ColumnView = {
   /** `describeMetrics`, keyed by its `term`. */
   metrics: Readonly<Record<string, MetricView>> | null;
 };
-
-function parentOf(site: Site | null, sites: readonly Site[]): Site | null {
-  return site?.variant_of ? (sites.find((s) => s.id === site.variant_of) ?? null) : null;
-}
 
 function variantNote(site: Site, sites: readonly Site[]): string | null {
   const parent = parentOf(site, sites);

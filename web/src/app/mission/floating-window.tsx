@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useId, useLayoutEffect, useRef, type ReactNode, type Ref, type RefObject } from "react";
+import { createContext, useId, useLayoutEffect, useRef, useState, type ReactNode, type Ref, type RefObject } from "react";
 import { IconButton } from "../../components/Button";
 import { assignRef } from "../../components/refs";
 import { focusAfterClose, focusOnOpen } from "./window-focus";
@@ -12,6 +12,11 @@ type FloatingWindowProps = {
   closeLabel: string;
   /** One sentence saying what the window shows. */
   description: ReactNode;
+  /**
+   * Keep the description for assistive technology only (the dialog's accessible
+   * description), so the header stays one row and the content gets the height (Compare).
+   */
+  descriptionHidden?: boolean;
   onClose: () => void;
   /** The view bar's button for this window: focus returns to it on close. */
   button: () => HTMLElement | null;
@@ -20,6 +25,13 @@ type FloatingWindowProps = {
   ref?: Ref<HTMLElement>;
   children: ReactNode;
 };
+
+/**
+ * The header's free space, between the title and the close button. A window's content can
+ * put its own header items there (Compare's landing date and exports) with a portal.
+ * Null outside a window, where the content draws them itself.
+ */
+export const WindowHeaderSlot = createContext<HTMLElement | null>(null);
 
 /**
  * A floating window over the scene: the Slip Planner or Compare
@@ -32,11 +44,12 @@ type FloatingWindowProps = {
  * - Focus moves to the window on open, and back to its view-bar button on close.
  *   Escape is handled by the shell, which knows what else is open.
  */
-export function FloatingWindow({ id, title, closeLabel, description, onClose, button, closedByUser, ref, children }: FloatingWindowProps) {
+export function FloatingWindow({ id, title, closeLabel, description, descriptionHidden = false, onClose, button, closedByUser, ref, children }: FloatingWindowProps) {
   const titleId = useId();
   const descriptionId = useId();
   const sectionRef = useRef<HTMLElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
 
   // The latest values, read when the window closes.
   const buttonRef = useRef(button);
@@ -82,10 +95,11 @@ export function FloatingWindow({ id, title, closeLabel, description, onClose, bu
           <h2 id={titleId} className="floating-window-title">
             {title}
           </h2>
-          <p id={descriptionId} className="floating-window-description">
+          <p id={descriptionId} className={descriptionHidden ? "sr-only" : "floating-window-description"}>
             {description}
           </p>
         </div>
+        <div ref={setSlot} className="floating-window-slot" />
         <IconButton
           ref={closeRef}
           label={closeLabel}
@@ -95,7 +109,9 @@ export function FloatingWindow({ id, title, closeLabel, description, onClose, bu
           className="floating-window-close"
         />
       </header>
-      <div className="floating-window-body">{children}</div>
+      <div className="floating-window-body">
+        <WindowHeaderSlot value={slot}>{children}</WindowHeaderSlot>
+      </div>
     </section>
   );
 }

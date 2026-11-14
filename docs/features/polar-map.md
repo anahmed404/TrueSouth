@@ -54,6 +54,23 @@ map is flat, and the globe lives in the [System view](system-view.md).
 - **Base layer:** shaded relief from the 80 m map, covering 80°S to the pole, with a sharper
   core near the pole. It is lit from the top-left of the image as a drawing convention
   ([`science.md`](../science.md) §2.4), not by the real Sun.
+- **Around the detailed square (as built):** the scene's existing NASA Moon image,
+  `scene/moon_4k.webp`, is redrawn in the same projection in the browser. Two cached canvases
+  cover the southern hemisphere to the equator: a 1,024 px outer image and a 2,048 px inner
+  image reaching 960 km from the pole (about 59°S along its sides). The context is grey,
+  dimmer and lower in contrast than the relief. It is only a picture; no readout samples it.
+  North of the equator the background stays Night. The build starts during the flight,
+  yields between short chunks, and fades in over 400 ms when ready (appears immediately
+  with reduced motion). While building, or if the source image fails, the detailed square
+  still works. The canvases are released when the view is left; lesson boxes use the context
+  only if already cached.
+- **The detailed square's edge (as built):** a one-pixel Control Edge border follows the
+  relief and lookup grids' square extent, rather than the 80°S latitude circle. Its quiet
+  label, "Detailed terrain · 80 m map", keeps one screen size. It sits above the top edge
+  when that fits in the free space, otherwise just inside it; the bottom edge is used when
+  the top is out of view. Grid labels give way to it, and pin and feature labels avoid it.
+  If neither edge or the label fits, the border remains without the label. Lesson boxes
+  keep the border without the label.
 - **Overlays,** one at a time, with an opacity slider:
   - NASA's average sunlight (share of time lit, averaged over 18.6 years), tinted Sun
     Cream.
@@ -82,11 +99,12 @@ map is flat, and the globe lives in the [System view](system-view.md).
 ## Interaction
 
 - **Pan and zoom** with `d3-zoom`: drag to pan; scroll, or the + and − buttons, to zoom. The
-  sharper 8K relief image loads once zoomed in. As built: zoom runs from 70 % of the opening
+  sharper 8K relief image loads once zoomed in. As built: zoom runs from 40 % of the opening
   fit in to 25 m a pixel (the 8K image's pixel is 74 m); the 8K image loads once a 4K pixel
   would cover more than one device pixel, and is let go after 20 s zoomed back out and when
   the view is left (with the overlay images). Pan stops while a third of the map's width (or
-  half the free space, zoomed in) is still inside the free space. Until the user moves the map it follows the free
+  half the free space, zoomed in) is still inside the free space. This limit still uses the
+  detailed square, keeping it reachable while the surroundings can be explored. Until the user moves the map it follows the free
   space; reset (or `0`) returns to the fit.
 - **Keyboard (as built).** The map is one Tab stop. Arrows pan (Shift for more), `+` and `−`
   zoom, `0` resets, Enter marks a "New site here?" point at the centre and the arrows then
@@ -107,7 +125,7 @@ map is flat, and the globe lives in the [System view](system-view.md).
 Built: the server is PR #80, the web side PR #92. Formats
 are in [`../data-contracts.md`](../data-contracts.md), "API messages".
 
-1. The user types a latitude and east longitude under "Your own coordinates" in the
+1. The user types a latitude and east longitude under "Enter coordinates" in the
    add-site picker, or clicks "Compute this site" on the map.
 2. The app calls `POST /api/sites/custom`. The row appears in the sites rail at once,
    "Computing terrain for your site…", with its coordinates, its place in the queue, the
@@ -143,6 +161,12 @@ are in [`../data-contracts.md`](../data-contracts.md), "API messages".
   while the server can compute custom sites (`/api/health`, asked once when the Polar map
   view first opens): it starts the same flow and the same row as the form, with one POST
   per press. A ready custom site's pin carries "Your site"; one still computing has no pin.
+- Outside the detailed square, NASA's average values say "Outside the detailed map" in
+  hover, point and nudge readouts. The compute button may still be offered: its readout says
+  which terrain will be used, following the latitude bounds in
+  [`architecture.md`](../architecture.md): 80 m terrain at and south of 80°S, 240 m terrain
+  north of 80°S through 60°S, and a smooth Moon north of 60°S. The square's corners do not
+  change those latitude bounds.
 - A POST is made only by a button press, once per press. A link, a remount, the page
   being shown again or the network coming back only look the id up (GET).
 
@@ -184,7 +208,10 @@ Contrast sites away from the pole, such as Apollo 11, are not on the flat map. P
 short list floats beside the map's controls, and each row's "Show on Moon" button flies
 the camera back to the System view following that site. Reason: the earlier strip with a
 locator globe is now redundant, because the System view is the globe and is one pick away.
-As built: the list shows the selected sites that are off the map; "Show on Moon" focuses the
+As built: pins for catalog and ready custom sites anywhere in the southern hemisphere are
+drawn on the context in their true places. A pin outside the square says "Outside the
+detailed map" on its plate; a custom pin also says "Your site". Sites north of the equator
+stay in the list. The list shows the selected sites that are off the map; "Show on Moon" focuses the
 site and picks the System view. Following the site is the scene's own "Follow site" camera
 preset, which the map cannot set from outside the scene.
 Selecting one works as usual.
@@ -206,6 +233,10 @@ Selecting one works as usual.
   layer from outside, which hides the map's own overlay choice) and `onProjector` (a
   projector with the same shape as the 3D scene's `SceneProjector`: `project(lat, lon)` and
   `subscribe(onFrame)`).
+  `readouts={false}` switches off the map's hover, point and nudge readouts. The detailed
+  square's label follows that switch by default, so the Slip Planner's spots keep their
+  own labels clear; the border and context stay drawn. A caller may set `detailLabel`
+  explicitly to show or hide only that label. Existing prop meanings stay the same.
   Proposed. Reason: the overlays arrive after the first paint, so the choice must not be
   live before they do.
 - **No WebGL or the still picture:** the flat map is a 2D canvas, so it still opens, with a
