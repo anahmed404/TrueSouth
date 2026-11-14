@@ -1,5 +1,9 @@
-/** Catalog ids stay on `/data/sites/`. Custom ids are `c_<lat>_<lon>` from the contract. */
-const CUSTOM_SITE_ID = /^c_-?\d+\.\d{4}_\d+\.\d{4}$/;
+import { isCanonicalCustomId } from "./custom-site-id.ts";
+
+/**
+ * Catalog ids stay on `/data/sites/`. Custom ids are `c_<lat>_<lon>` in the server's
+ * canonical form and range (`custom-site-id.ts`); anything else is not a custom site.
+ */
 
 export const dataPaths = {
   manifest: "/data/manifest.json",
@@ -21,7 +25,7 @@ export function sceneFile(file: string): string {
 }
 
 export function isCustomSiteId(siteId: string): boolean {
-  return CUSTOM_SITE_ID.test(siteId);
+  return isCanonicalCustomId(siteId);
 }
 
 export function siteBase(siteId: string): string {

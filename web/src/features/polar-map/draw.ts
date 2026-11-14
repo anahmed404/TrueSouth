@@ -6,6 +6,7 @@
  * Colours are read from the theme's tokens (web/src/app/theme.css), never typed here.
  */
 
+import { isCustomSiteId } from "../../data/paths";
 import type { Feature } from "../../contracts/generated";
 import type { Status } from "../../lib/scoring";
 import { PIN, featuresToName, moreSitesLine, overlaps, type Box, type PlacedPin } from "./pins";
@@ -459,6 +460,7 @@ function labelPin(input: DrawInput, pin: PlacedPin, taken: Box[], plates: (() =>
     if (more) lines.push({ text: more, colour: palette.ink2, weight: 400, size: 12 });
   }
   if (pin.parentId !== null) lines.push({ text: "Chosen by TrueSouth", colour: palette.ink2, weight: 400, size: 12 });
+  if (isCustomSiteId(pin.site.id)) lines.push({ text: "Your site", colour: palette.ink2, weight: 400, size: 12 });
   if (!pin.detailed) lines.push({ text: "Outside the detailed map", colour: palette.ink2, weight: 400, size: 12 });
   const gap = (pin.focused ? PIN.focusRing : PIN.selectedRing) + 6;
   plateAt(input, pin.drawAt, gap, lines, taken, plates, pin.focused);

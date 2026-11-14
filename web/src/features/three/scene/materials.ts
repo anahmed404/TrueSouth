@@ -43,9 +43,9 @@ void main() {
  * `capUv` is the same mapping, and its tests check Shackleton and 80° S).
  */
 const moonFragment = `${LOGDEPTH_F}${SRGB_TO_LINEAR}
-uniform sampler2D uMap, uMapE, uH, uCap, uCore, uCapN, uCoreN;
-uniform float uLoaded, uCapLoaded, uSplit, uDraw, uHideCos, uGain, uBump, uNoSun;
-uniform vec3 uSun, uHideDir;
+uniform sampler2D uMap, uMapE, uH, uCap, uCore, uCapN, uCoreN, uAvg;
+uniform float uLoaded, uCapLoaded, uSplit, uDraw, uHideCos, uGain, uBump, uNoSun, uSlip, uAvgK;
+uniform vec3 uSun, uHideDir, uWarm;
 varying vec3 vP;
 const float HW = ${HW};
 const float HWC = ${HWC};
@@ -105,10 +105,22 @@ void main() {
   float ndl = dot(n, uSun);
   float light = max(ndl, 0.) * smoothstep(-.06, .02, dot(p, uSun));
   // Without the Sun's position (system.bin not in), an even light: no made-up day/night line.
-  light = mix(light, .5, uNoSun);
+  light = mix(light, .5, uNoSun * (1. - uSlip));
   float detail = mix(1., hs / .707, capW * .2);
   // A soft roll-off: a face-on Moon never clips to white.
   vec3 real = vec3(1.) - exp(-(alb * detail * light * uGain + alb * .012));
+  // The Slip Planner (slip.ts): uSun is then a fixed drawing light, at half strength, so the
+  // ground never changes with the landing date. NASA's average sunlight can shade the cap
+  // from dark grey (never lit) to Sun cream (always lit). Context only, never a result.
+  real *= mix(1., .5, uSlip);
+  if (uAvgK > 0.) {
+    vec4 avg = texture(uAvg, capUv);
+    float inMap = (1. - smoothstep(HW * .965, HW * .995, rho)) * step(lat, 0.) * avg.a;
+    float rel = clamp(light * 1.25, 0., 1.);
+    float lum = (.01 + .52 * avg.r) * (.5 + .5 * rel);
+    vec3 tone = mix(vec3(lum * .8), uWarm * lum, .35 + .65 * avg.r);
+    real = mix(real, tone, uAvgK * inMap);
+  }
   vec3 drawn = s2l(vec3(hs));
   gl_FragColor = vec4(mix(real, drawn, uDraw * capW), 1.);
   #include <colorspace_fragment>
@@ -130,6 +142,10 @@ export type MoonUniforms = {
   uGain: { value: number };
   uBump: { value: number };
   uNoSun: { value: number };
+  uSlip: { value: number };
+  uAvg: { value: THREE.Texture };
+  uAvgK: { value: number };
+  uWarm: { value: THREE.Color };
   uSun: { value: THREE.Vector3 };
   uHideDir: { value: THREE.Vector3 };
 };
@@ -151,6 +167,10 @@ export function moonMaterial(blank: THREE.Texture, flat: THREE.Texture, flatSlop
     uGain: { value: 2.6 },
     uBump: { value: 1.6 },
     uNoSun: { value: 1 },
+    uSlip: { value: 0 },
+    uAvg: { value: blank },
+    uAvgK: { value: 0 },
+    uWarm: { value: new THREE.Color(1, 0.886, 0.627) },
     uSun: { value: new THREE.Vector3(1, 0, 0) },
     uHideDir: { value: new THREE.Vector3(0, -1, 0) },
   };

@@ -117,6 +117,12 @@ export type MapCoreProps = {
    * when the map unmounts.
    */
   onProjector?: (projector: MapProjector | null) => void;
+  /**
+   * Optional: false switches off the map's own readouts, the point readout on a click or
+   * Enter, the nudge on N and the hover readout, for a view that draws its own things over
+   * the map (the Slip Planner with 3D off). Default true.
+   */
+  readouts?: boolean;
 };
 
 /** Where a place is on the map's screen now, in CSS pixels from the map box's top left. */
@@ -608,7 +614,7 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
     }
     const pin = pinAt(pinsRef.current, point);
     event.currentTarget.style.cursor = pin ? (pin.focused ? "grab" : "pointer") : "";
-    setHover({ at: point, point: screenToLatLon(point.x, point.y, viewRef.current) });
+    if (props.readouts !== false) setHover({ at: point, point: screenToLatLon(point.x, point.y, viewRef.current) });
   };
 
   const onPointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -639,6 +645,7 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
     }
     const current = readoutRef.current;
     if (current?.kind === "nudge" && current.dragging) return;
+    if (props.readouts === false) return;
     setReadout({ kind: "point", at: screenToLatLon(point.x, point.y, viewRef.current) });
   };
 
@@ -707,12 +714,12 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
     } else if (event.key === "0") {
       event.preventDefault();
       reset();
-    } else if (event.key === "Enter" || event.key === " ") {
+    } else if ((event.key === "Enter" || event.key === " ") && props.readouts !== false) {
       event.preventDefault();
       if (readoutRef.current?.kind === "point" || readoutRef.current?.kind === "nudge") return;
       const centre = { x: fitRect.x + fitRect.width / 2, y: fitRect.y + fitRect.height / 2 };
       setReadout({ kind: "point", at: screenToLatLon(centre.x, centre.y, viewRef.current) });
-    } else if ((event.key === "n" || event.key === "N") && focusedSite && onContext(focusedSite)) {
+    } else if ((event.key === "n" || event.key === "N") && props.readouts !== false && focusedSite && onContext(focusedSite)) {
       event.preventDefault();
       startNudge(focusedSite.id);
     } else if (event.key === "Escape" && readoutRef.current) {
