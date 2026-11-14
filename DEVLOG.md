@@ -1497,7 +1497,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   `slip-planner.css`, one attribute in `spots-layer.tsx`, the spec bullet and `labels.test.ts`
   — checked by the agent with vitest, typecheck, build, and by eye in Chrome at 1440 × 900
   and 1280 × 720; a human has not reviewed it
-- **State:** built, not verified
+- **State:** verified (reviewed by Cursor Grok 4.7 with no blockers; on the tree merged with main b8d1bd2: 472 Python tests (1 skipped), the web tests, typecheck and build all exit 0)
 - **Changed:** `web/src/features/three/scene/labels.ts` and `labels.test.ts` (new),
   `overlay.tsx`, `scene.css`, `web/src/features/mission-control/slip-planner/spots-layer.tsx`
   and `slip-planner.css` (Mission Control's folder: one attribute and one CSS rule, for their
