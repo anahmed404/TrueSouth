@@ -36,7 +36,7 @@ function gridGeometry(
   site: GroundSite,
   localKm: (row: number, column: number) => LocalKm,
   keepQuad: (row: number, column: number, step: number) => boolean,
-  extra?: { points: LocalKm[]; triangles: number[] },
+  extra?: { points: LocalKm[]; trianglesByStep: Partial<Record<number, number[]>> },
 ): THREE.BufferGeometry {
   const { rows, columns } = size;
   const gridCount = rows * columns;
@@ -68,7 +68,7 @@ function gridGeometry(
   geometry.setAttribute("aL", new THREE.BufferAttribute(local, 3));
   // Normals from the full mesh only, before the coarser levels join the index.
   const full = gridIndex(rows, columns, 1, keepQuad);
-  if (extra) for (const k of extra.triangles) full.push(k);
+  for (const k of extra?.trianglesByStep[1] ?? []) full.push(k);
   geometry.setIndex(full);
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
@@ -80,6 +80,7 @@ function gridGeometry(
   for (const step of GROUND_LOD_STEPS) {
     if (step === 1 || (rows - 1) % step !== 0 || (columns - 1) % step !== 0) continue;
     const coarse = gridIndex(rows, columns, step, keepQuad);
+    for (const k of extra?.trianglesByStep[step] ?? []) coarse.push(k);
     levels[step] = { start: all.length, count: coarse.length };
     // concat, not push(...): a spread of 100,000 arguments can overflow the stack.
     all = all.concat(coarse);
@@ -239,9 +240,16 @@ export function apronGeometry(apron: DecodedApron, grid: ApronGrid, patchHalfKm:
     if (Math.max(Math.abs(east), Math.abs(north)) < patchHalfKm) height -= 30;
     return apronCellLocalKm(row, column, height, site.groundHeightM, grid);
   };
-  const stitch = rim && grid.rows === grid.columns && grid.columns % 2 === 1 ? rimStitch(grid, stepKm, rim, pointAt) : null;
-  const ringKm = stitch?.ringKm ?? 0;
-  const outsideRing = (east: number, north: number) => Math.max(Math.abs(east), Math.abs(north)) >= ringKm - 1e-6;
+  // One joining strip for every detail level the scene can draw: while the camera moves the
+  // patch and the apron are both drawn at the governor's one mesh step (GroundLook), so each
+  // level's strip joins the patch's edge as that level draws it.
+  const stitches = new Map<number, { triangles: number[]; ringKm: number }>();
+  if (rim && grid.rows === grid.columns && grid.columns % 2 === 1) {
+    for (const step of GROUND_LOD_STEPS) {
+      const stitch = rimStitch(grid, stepKm, rim, pointAt, step);
+      if (stitch) stitches.set(step, stitch);
+    }
+  }
   const geometry = gridGeometry(
     { rows: grid.rows, columns: grid.columns },
     site,
@@ -249,19 +257,23 @@ export function apronGeometry(apron: DecodedApron, grid: ApronGrid, patchHalfKm:
     (row, column, step) => {
       const a = offsetKm(row, column);
       const b = offsetKm(row + step, column + step);
-      if (step === 1 && stitch) {
-        // Only quads wholly on or beyond the first ring: the strip covers the rest.
-        return outsideRing(a.east, a.north) && outsideRing(b.east, b.north) && outsideRing(a.east, b.north) && outsideRing(b.east, a.north);
+      const stitch = stitches.get(step);
+      if (stitch) {
+        // Only cells wholly on or beyond this level's first ring: its strip covers the rest.
+        const outside = (east: number, north: number) => Math.max(Math.abs(east), Math.abs(north)) >= stitch.ringKm - 1e-6;
+        return outside(a.east, a.north) && outside(b.east, b.north) && outside(a.east, b.north) && outside(b.east, a.north);
       }
       const inside =
         Math.max(Math.abs(a.east), Math.abs(b.east)) < patchHalfKm - 1e-6 &&
         Math.max(Math.abs(a.north), Math.abs(b.north)) < patchHalfKm - 1e-6;
       return !inside;
     },
-    stitch ? { points: rim!.points, triangles: stitch.triangles } : undefined,
+    stitches.size > 0
+      ? { points: rim!.points, trianglesByStep: Object.fromEntries([...stitches].map(([step, stitch]) => [step, stitch.triangles])) }
+      : undefined,
   );
   // The apron's copies of the rim take the patch's own normals there: no shading seam.
-  if (stitch && rim?.normals) {
+  if (stitches.size > 0 && rim?.normals) {
     const normal = geometry.getAttribute("normal");
     const base = grid.rows * grid.columns;
     rim.normals.forEach(([x, y, z], i) => normal.setXYZ(base + i, x, y, z));
@@ -272,28 +284,37 @@ export function apronGeometry(apron: DecodedApron, grid: ApronGrid, patchHalfKm:
 
 /**
  * Triangles joining the patch's rim (inner ring, appended after the grid's points) to the
- * first ring of apron grid points beyond it (outer ring). Both rings run clockwise from their
+ * first ring of apron grid points beyond it (outer ring), at one detail level `step`: the
+ * patch's edge as that level draws it (every `step`-th rim point) and the apron's first ring
+ * on that level's grid (every `step`-th row and column). Both rings run clockwise from their
  * north-west corner and are walked by their share of the way round, so the corners meet.
+ * Null when the grids do not line up at that level.
  */
 function rimStitch(
   grid: ApronGrid,
   stepKm: number,
   rim: PatchRim,
   pointAt: (row: number, column: number) => LocalKm,
-): { triangles: number[]; ringKm: number } {
+  step: number,
+): { triangles: number[]; ringKm: number } | null {
   const columns = grid.columns;
   const centre = (columns - 1) / 2;
+  const side = rim.points.length / 4;
+  if (!Number.isInteger(side) || side % step !== 0) return null;
   let k = 1;
-  while (k * stepKm <= rim.halfKm + 1e-6) k += 1;
+  while (k * stepKm <= rim.halfKm + 1e-6 || (centre - k) % step !== 0) k += 1;
+  if (k > centre) return null;
   const r0 = centre - k;
   const r1 = centre + k;
   const outer: number[] = [];
-  for (let c = r0; c < r1; c += 1) outer.push(r0 * columns + c);
-  for (let r = r0; r < r1; r += 1) outer.push(r * columns + r1);
-  for (let c = r1; c > r0; c -= 1) outer.push(r1 * columns + c);
-  for (let r = r1; r > r0; r -= 1) outer.push(r * columns + r0);
+  for (let c = r0; c < r1; c += step) outer.push(r0 * columns + c);
+  for (let r = r0; r < r1; r += step) outer.push(r * columns + r1);
+  for (let c = r1; c > r0; c -= step) outer.push(r1 * columns + c);
+  for (let r = r1; r > r0; r -= step) outer.push(r * columns + r0);
   const base = grid.rows * columns;
-  const nIn = rim.points.length;
+  const inner: number[] = [];
+  for (let i = 0; i < rim.points.length; i += step) inner.push(base + i);
+  const nIn = inner.length;
   const nOut = outer.length;
   const en = (index: number): [number, number] => {
     const p = index >= base ? rim.points[index - base]! : pointAt(Math.floor(index / columns), index % columns);
@@ -312,10 +333,10 @@ function rimStitch(
   let j = 0;
   while (i < nIn || j < nOut) {
     if (j < nOut && (i >= nIn || (j + 1) / nOut <= (i + 1) / nIn)) {
-      push(base + (i % nIn), outer[j]!, outer[(j + 1) % nOut]!);
+      push(inner[i % nIn]!, outer[j]!, outer[(j + 1) % nOut]!);
       j += 1;
     } else {
-      push(base + i, outer[j % nOut]!, base + ((i + 1) % nIn));
+      push(inner[i]!, outer[j % nOut]!, inner[(i + 1) % nIn]!);
       i += 1;
     }
   }

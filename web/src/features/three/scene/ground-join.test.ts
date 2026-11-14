@@ -5,7 +5,9 @@ import type * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import { decodeTerrain } from "../../../data/decode";
 import { CONTINUATION_GRID, continuationApron, type GlobalHeights } from "./custom-apron";
-import { apronGeometry, patchGeometry, patchRim, type GroundLod, type GroundSite } from "./ground";
+import { apronGeometry, GROUND_LOD_STEPS, patchGeometry, patchRim, type GroundLod, type GroundLodStep, type GroundSite } from "./ground";
+import { MOTION_DETAIL } from "./ground-material";
+import { trueLocalPosition } from "../../../lib/geo";
 
 /**
  * The drawn join between the patch and the apron: the triangles themselves are sampled, not
@@ -25,13 +27,13 @@ function flatMap(metres: number): GlobalHeights {
   return { width: 1440, height: 720, values };
 }
 
-/** The drawn surface's local up (km) at (east, north) km, from the triangles in the full-detail range. */
-function drawnUpAt(geometry: THREE.BufferGeometry, east: number, north: number): number | null {
+/** The drawn surface's local up (km) at (east, north) km, from the triangles of detail level `step`. */
+function drawnUpAt(geometry: THREE.BufferGeometry, east: number, north: number, step: GroundLodStep = 1): number | null {
   const local = geometry.getAttribute("aL");
   const index = geometry.index!.array;
   const lod = geometry.userData.lod as GroundLod | undefined;
-  const start = lod?.[1]?.start ?? 0;
-  const count = lod?.[1]?.count ?? index.length;
+  const start = lod?.[step]?.start ?? 0;
+  const count = lod?.[step]?.count ?? index.length;
   for (let t = start; t < start + count; t += 3) {
     const [a, b, c] = [index[t]!, index[t + 1]!, index[t + 2]!];
     const ax = local.getX(a), ay = local.getY(a);
@@ -48,9 +50,18 @@ function drawnUpAt(geometry: THREE.BufferGeometry, east: number, north: number):
   return null;
 }
 
-/** The largest drawn height difference (m) across the rim, sampled along every rim segment. */
-function largestGapM(patch: THREE.BufferGeometry, apron: THREE.BufferGeometry, offsetKm: number): { gap: number; missing: number } {
-  const rim = patchRim(terrain, SIZE, WINDOW_KM).points;
+/**
+ * The largest drawn height difference (m) across the rim at detail level `step`, sampled along
+ * every segment of the patch's edge as that level draws it (every `step`-th rim point).
+ */
+function largestGapM(
+  patch: THREE.BufferGeometry,
+  apron: THREE.BufferGeometry,
+  offsetKm: number,
+  step: GroundLodStep = 1,
+  source = terrain,
+): { gap: number; missing: number } {
+  const rim = patchRim(source, SIZE, WINDOW_KM).points.filter((_, i) => i % step === 0);
   let gap = 0;
   let missing = 0;
   for (let i = 0; i < rim.length; i += 1) {
@@ -61,8 +72,8 @@ function largestGapM(patch: THREE.BufferGeometry, apron: THREE.BufferGeometry, o
       const n = p.northKm + (q.northKm - p.northKm) * f;
       // Outward: away from the centre along the side's own axis.
       const [ox, oy] = Math.abs(e) > Math.abs(n) ? [Math.sign(e), 0] : [0, Math.sign(n)];
-      const inside = drawnUpAt(patch, e - ox * offsetKm, n - oy * offsetKm);
-      const outside = drawnUpAt(apron, e + ox * offsetKm, n + oy * offsetKm);
+      const inside = drawnUpAt(patch, e - ox * offsetKm, n - oy * offsetKm, step);
+      const outside = drawnUpAt(apron, e + ox * offsetKm, n + oy * offsetKm, step);
       if (inside === null || outside === null) {
         missing += 1;
         continue;
@@ -113,6 +124,62 @@ describe("the drawn join between the patch and the apron", () => {
         const scale = r / Math.max(Math.abs(Math.cos(t)), Math.abs(Math.sin(t)));
         expect(drawnUpAt(joined, Math.cos(t) * scale, Math.sin(t) * scale)).not.toBeNull();
       }
+    }
+  });
+});
+
+/** The fixture's patch made flat at a true height of `metres`: up from §13 at every point. */
+function flatTerrain(metres: number, siteHeightM: number) {
+  const up = new Float32Array(SIZE * SIZE);
+  for (let r = 0; r < SIZE; r += 1) {
+    for (let c = 0; c < SIZE; c += 1) {
+      up[r * SIZE + c] = trueLocalPosition(-10_000 + c * 625, 10_000 - r * 625, metres, siteHeightM).upM / 1_000;
+    }
+  }
+  return { ...terrain, up_km: up };
+}
+
+describe("the drawn join at every detail level the scene can show (patch and apron at the governor's one step)", () => {
+  it("the levels: full detail at rest, and every step the moving levels use, for both meshes", () => {
+    const steps = new Set<number>([1, ...MOTION_DETAIL.filter((d) => d !== null).map((d) => d!.meshStep)]);
+    for (const step of steps) expect(GROUND_LOD_STEPS as readonly number[]).toContain(step);
+    const site: GroundSite = { latDeg: -85.3, lonDeg: 31.2, groundHeightM: 0 };
+    const patch = patchGeometry(terrain, SIZE, WINDOW_KM, site);
+    const data = continuationApron(terrain, SIZE, WINDOW_KM, site, flatMap(0));
+    const apron = apronGeometry(data, CONTINUATION_GRID, WINDOW_KM / 2, site, patchRim(terrain, SIZE, WINDOW_KM));
+    for (const step of steps) {
+      expect((patch.userData.lod as GroundLod)[step as GroundLodStep]).toBeDefined();
+      expect((apron.userData.lod as GroundLod)[step as GroundLodStep]).toBeDefined();
+    }
+  });
+
+  for (const step of GROUND_LOD_STEPS) {
+    for (const groundHeightM of [-2_600, 0, 1_400]) {
+      for (const latDeg of [-85.3, -72]) {
+        for (const shape of ["ridge", "flat"] as const) {
+          it(`step ${step}, ${latDeg}°, ground ${groundHeightM} m, ${shape} patch: no gap, no step (within 0.25 m), no hole`, () => {
+            const site: GroundSite = { latDeg, lonDeg: 31.2, groundHeightM };
+            const source = shape === "ridge" ? terrain : flatTerrain(groundHeightM + 300, groundHeightM);
+            const patch = patchGeometry(source, SIZE, WINDOW_KM, site);
+            const data = continuationApron(source, SIZE, WINDOW_KM, site, flatMap(groundHeightM - 400));
+            const apron = apronGeometry(data, CONTINUATION_GRID, WINDOW_KM / 2, site, patchRim(source, SIZE, WINDOW_KM, patch));
+            const result = largestGapM(patch, apron, 0.0001, step, source);
+            expect(result.missing).toBe(0);
+            expect(result.gap).toBeLessThan(0.25);
+          });
+        }
+      }
+    }
+  }
+
+  it("a catalog-style apron joins the same way at every level", () => {
+    const site: GroundSite = { latDeg: -89.4555, lonDeg: 222.6192, groundHeightM: 1_000 };
+    const patch = patchGeometry(terrain, SIZE, WINDOW_KM, site);
+    const apron = apronGeometry(flatCatalogApron, { rows: 161, columns: 161, windowM: 300_000 }, WINDOW_KM / 2, site, patchRim(terrain, SIZE, WINDOW_KM));
+    for (const step of GROUND_LOD_STEPS) {
+      const result = largestGapM(patch, apron, 0.0001, step);
+      expect(result.missing).toBe(0);
+      expect(result.gap).toBeLessThan(0.25);
     }
   });
 });
