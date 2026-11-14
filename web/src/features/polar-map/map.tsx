@@ -32,8 +32,9 @@ import { useFeatures, useMapLookup, useMapsMeta, useSites } from "../../data";
 import { polarStereoForward, polarStereoInverse, polarStereoScale, wrapLongitude } from "../../lib/geo";
 import { useEvaluation } from "../../lib/scoring";
 import { releaseMapImage, useMapImage } from "./assets";
+import { releaseContext, useMoonContext } from "./context";
 import { drawMap, readPalette, type Marker, type Palette } from "./draw";
-import { onMap, pinAt, placePins, type PinState, type PlacedPin } from "./pins";
+import { onContext, pinAt, placePins, type PinState, type PlacedPin } from "./pins";
 import {
   AVERAGE_CAVEAT,
   CHOSEN_TAG,
@@ -132,6 +133,8 @@ const OVERLAY_TINT: Record<OverlayId, keyof Palette> = { sunlight: "sun", earthv
 const KEY_PAN_PX = 60;
 const KEY_MOVE_PX = 8;
 const SHARP_RELIEF = "hillshade_8k.webp";
+/** The context around the square fades in over this long, once it is ready. */
+const CONTEXT_FADE_MS = 400;
 /** How long the map stays zoomed out before it lets the 8K relief go. */
 const SHARP_RELEASE_MS = 20_000;
 const KEY_NUDGE_M = 100;
@@ -234,6 +237,28 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
   const [wantSharp, setWantSharp] = useState(false);
   const relief8k = useMapImage(wantSharp ? SHARP_RELIEF : null);
   const firstPaint = relief4k.status === "ready" || relief4k.status === "error";
+
+  // The rest of the Moon around the square: built once after the first paint (in a lesson
+  // box only used when this session already has it), then faded in, or shown at once with
+  // reduced motion.
+  const context = useMoonContext(firstPaint && !lesson);
+  const [contextAlpha, setContextAlpha] = useState(() => (context.status === "ready" ? 1 : 0));
+  useEffect(() => {
+    if (context.status !== "ready") return;
+    if (reduceMotion) {
+      setContextAlpha(1);
+      return;
+    }
+    let raf = 0;
+    const start = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / CONTEXT_FADE_MS);
+      setContextAlpha((current) => Math.max(current, t));
+      if (t < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [context.status, reduceMotion]);
   const [ownOverlay, setOverlay] = useState<OverlayId | "none">("none");
   const [ownOpacity, setOpacity] = useState(0.65);
   const outsideOverlay = props.overlay !== undefined;
@@ -280,7 +305,7 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
   const pinsRef = useRef<PlacedPin[]>(pins);
   pinsRef.current = pins;
   const offMap = useMemo(
-    () => (sites ? scenario.siteIds.map((id) => siteById(id)).filter((s): s is Site => Boolean(s) && !onMap(s as Site, halfWidthM)) : []),
+    () => (sites ? scenario.siteIds.map((id) => siteById(id)).filter((s): s is Site => Boolean(s) && !onContext(s as Site)) : []),
     [sites, scenario.siteIds, siteById, halfWidthM],
   );
 
@@ -410,7 +435,7 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
   useEffect(() => {
     if (lastFocused.current === focusedId) return;
     lastFocused.current = focusedId;
-    if (!focusedSite || !onMap(focusedSite, halfWidthM)) return;
+    if (!focusedSite || !onContext(focusedSite)) return;
     bringIntoView(focusedSite.lat_deg, focusedSite.lon_deg);
   }, [focusedId]);
 
@@ -437,6 +462,7 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
       releaseMapImage(SHARP_RELIEF);
       releaseMapImage("sunlight_4k.webp");
       releaseMapImage("earthvis_4k.webp");
+      releaseContext();
     },
     [],
   );
@@ -494,9 +520,10 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
       features: props.showFeatureNames === false ? [] : (features ?? []),
       compact: lesson,
       marker,
+      context: context.status === "ready" ? { layers: context.layers, alpha: contextAlpha } : null,
     });
     for (const listener of frameListeners.current) listener();
-  }, [view, box.width, box.height, dpr, pins, features, props.showFeatureNames, marker, relief4k.status, relief8k.status, overlay, overlayImage?.status, opacity, fontsReady, halfWidthM, lesson]);
+  }, [view, box.width, box.height, dpr, pins, features, props.showFeatureNames, marker, relief4k.status, relief8k.status, overlay, overlayImage?.status, opacity, fontsReady, halfWidthM, lesson, context, contextAlpha]);
 
   // The projector for things drawn over the map (`onProjector`).
   const frameListeners = useRef(new Set<() => void>());
@@ -677,7 +704,7 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
       if (readoutRef.current?.kind === "point" || readoutRef.current?.kind === "nudge") return;
       const centre = { x: frame.x + frame.width / 2, y: frame.y + frame.height / 2 };
       setReadout({ kind: "point", at: screenToLatLon(centre.x, centre.y, viewRef.current) });
-    } else if ((event.key === "n" || event.key === "N") && focusedSite && onMap(focusedSite, halfWidthM)) {
+    } else if ((event.key === "n" || event.key === "N") && focusedSite && onContext(focusedSite)) {
       event.preventDefault();
       startNudge(focusedSite.id);
     } else if (event.key === "Escape" && readoutRef.current) {

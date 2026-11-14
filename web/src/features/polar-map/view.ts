@@ -95,11 +95,12 @@ export function fitView(frame: Frame, halfWidthM = DEFAULT_HALF_WIDTH_M, margin 
 }
 
 /**
- * How far the map may zoom: out to 70 % of the fit, in to 25 m a pixel. The sharpest relief
- * pixel is 74 m (the 8K image); closer than this only blurs it.
+ * How far the map may zoom: out to 40 % of the fit, so the Moon around the detailed square
+ * can be looked at, and in to 25 m a pixel. The sharpest relief pixel is 74 m (the 8K
+ * image); closer than this only blurs it.
  */
 export function zoomExtent(fit: MapView): [number, number] {
-  return [fit.k * 0.7, WORLD_UNIT_M / 25];
+  return [fit.k * 0.4, WORLD_UNIT_M / 25];
 }
 
 /**

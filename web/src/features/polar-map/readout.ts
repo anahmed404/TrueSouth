@@ -57,8 +57,12 @@ export function lookupPercent(fraction: number): { text: string; whole: number }
   return { text: `${formatNumber(whole, 0)}${NNBSP}%`, whole };
 }
 
-/** A lookup value as text: "54 %", "over 99 %", or "no data". */
+/** Outside the lookup grids' square: the context around it is a picture with no values. */
+export const OUTSIDE_TEXT = "outside the detailed map";
+
+/** A lookup value as text: "54 %", "over 99 %", "no data", or "outside the detailed map". */
 export function lookupText(value: LookupValue): string {
+  if (value.kind === "outside") return OUTSIDE_TEXT;
   return value.kind === "value" ? lookupPercent(value.fraction).text : "no data";
 }
 

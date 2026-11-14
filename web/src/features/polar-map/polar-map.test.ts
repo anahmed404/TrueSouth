@@ -2,9 +2,9 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { Feature, Site } from "../../contracts/generated";
 import type { FreeSpace } from "../../app/mission/free-space";
-import { latLonToPixel, latLonToScene, polarStereoForward } from "../../lib/geo";
+import { latLonToPixel, latLonToScene, polarStereoForward, polarStereoInverse } from "../../lib/geo";
 import { SPACE_FOV, polarPose, polarScale } from "../three/scene/camera";
-import { imageRect } from "./draw";
+import { detailLabelBox, imageRect } from "./draw";
 import { PIN, featuresToName, onMap, pinAt, pinRadius, placePins, type PinState } from "./pins";
 import {
   NNBSP,
@@ -230,6 +230,18 @@ describe("the lookup readout", () => {
     expect(readLookup(tiny, -60, 45)).toEqual({ kind: "outside" });
   });
 
+  it("never reads a value outside the detailed square: the context around it has none", () => {
+    const sunlight = grid("data/derived/maps/sunlight_u8.bin", 2048);
+    // Just inside each edge reads a value; just outside, and far out on the context, does not.
+    expect(readLookup(sunlight, -79.2, 45).kind).toBe("value"); // a corner of the square
+    expect(readLookup(sunlight, -80.05, 0).kind).toBe("value"); // 302 km out, inside the top edge
+    expect(readLookup(sunlight, -79.0, 0)).toEqual({ kind: "outside" });
+    expect(readLookup(sunlight, -69.37, 32.32)).toEqual({ kind: "outside" }); // Chandrayaan-3
+    expect(readLookup(sunlight, -45, 180)).toEqual({ kind: "outside" });
+    expect(lookupText({ kind: "outside" })).toBe("outside the detailed map");
+    expect(lookupText({ kind: "no-data" })).toBe("no data");
+  });
+
   it("reads the shared fixture's small grid too", () => {
     const fixture = grid("data/fixtures/maps/sunlight_u8.bin", 64);
     const pole = readLookup(fixture, -89.999, 0);
@@ -253,7 +265,7 @@ describe("the nudge readout", () => {
 
   it("drops the direction word when either end has no data", () => {
     expect(nudgeLine("sunlight", v(0.5), { kind: "no-data" })).toBe(`NASA's average sunlight 50${NNBSP}% → no data`);
-    expect(nudgeLine("sunlight", { kind: "outside" }, v(0.5))).toBe(`NASA's average sunlight no data → 50${NNBSP}%`);
+    expect(nudgeLine("sunlight", { kind: "outside" }, v(0.5))).toBe(`NASA's average sunlight outside the detailed map → 50${NNBSP}%`);
   });
 
   it("matches the lookup grid at a hand-checked nudge", () => {
@@ -404,6 +416,59 @@ describe("pins and labels keep their screen size", () => {
     expect(onMap(realSites.find((s) => s.id === "apollo11") as Site)).toBe(false);
     expect(onMap(realSites.find((s) => s.id === "chandrayaan3") as Site)).toBe(false);
     expect(onMap(realSites.find((s) => s.id === "im1_odysseus") as Site)).toBe(true);
+  });
+
+  it("pins southern sites on the context in their place, marked as outside the detailed map", () => {
+    const view: MapView = { k: 0.3, x: 720, y: 450 };
+    const pins = placePins({ sites: realSites, selectedIds: ["chandrayaan3", "change6", "apollo11"], focusedId: null, states, view });
+    const ids = pins.map((p) => p.site.id);
+    expect(ids).toContain("chandrayaan3");
+    expect(ids).toContain("change6");
+    expect(ids).not.toContain("apollo11"); // north of the equator: the "Outside the map" list
+    const c3 = pins.find((p) => p.site.id === "chandrayaan3");
+    expect(c3?.detailed).toBe(false);
+    // Every pin on the square is marked detailed; every one off it is not.
+    for (const pin of pins) expect(pin.detailed).toBe(onMap(pin.site));
+    expect(pins.some((p) => p.detailed)).toBe(true);
+    // In its true place, by the same projection as the square.
+    const c3Site = realSites.find((s) => s.id === "chandrayaan3") as Site;
+    expect(c3?.at).toEqual(latLonToScreen(c3Site.lat_deg, c3Site.lon_deg, view));
+  });
+});
+
+describe("the detailed square's border and label", () => {
+  const box = { width: 1440, height: 900 };
+
+  it("follows the relief image's extent exactly, at every zoom", () => {
+    for (const view of VIEWS) {
+      const rect = imageRect(view, 304_000);
+      const corner = latLonToScreen(polarStereoInverse(-304_000, 304_000).latDeg, polarStereoInverse(-304_000, 304_000).lonDeg, view);
+      expect(rect.x).toBeCloseTo(corner.x, 6);
+      expect(rect.y).toBeCloseTo(corner.y, 6);
+      expect(rect.width).toBeCloseTo((608 * view.k), 6);
+    }
+  });
+
+  it("puts its label just above the top edge from the left corner, at one size", () => {
+    const rect = { x: 461, y: 135, width: 446, height: 446 };
+    expect(detailLabelBox(rect, 170, box)).toEqual({ x: 461, y: 111, width: 170, height: 20 });
+    // Zoomed in: the same size, kept on screen along the edge.
+    expect(detailLabelBox({ x: -4000, y: 200, width: 9000, height: 9000 }, 170, box)).toEqual({ x: 8, y: 176, width: 170, height: 20 });
+  });
+
+  it("moves the label under the bottom edge when the top is off screen, and drops it when neither shows", () => {
+    expect(detailLabelBox({ x: 100, y: -500, width: 900, height: 800 }, 170, box)).toEqual({ x: 100, y: 304, width: 170, height: 20 });
+    expect(detailLabelBox({ x: -4000, y: -4000, width: 9000, height: 9000 }, 170, box)).toBeNull();
+  });
+
+  it("keeps the label clear of the 0° meridian label at the top edge's middle", () => {
+    const view: MapView = { k: 0.7, x: 684, y: 358 };
+    const rect = imageRect(view, 304_000);
+    const label = detailLabelBox(rect, 170, box);
+    const zero = latLonToScreen(-79.6, 0, view);
+    expect(label).not.toBeNull();
+    if (!label) return;
+    expect(label.x + label.width).toBeLessThan(zero.x - 20);
   });
 });
 

@@ -98,7 +98,28 @@ export type DrawInput = {
   /** The lesson box: no catalog names and fewer labels. */
   compact: boolean;
   marker: Marker | null;
+  /** The rest of the Moon around the square, drawn under it, quieter (context.ts). */
+  context?: { layers: readonly { canvas: Drawable; level: { half_width_m: number } }[]; alpha: number } | null;
 };
+
+/** The label on the detailed square's border (CONTEXT.md, "Polar cap": the 80 m terrain map). */
+export const DETAIL_LABEL = "Detailed terrain · 80 m map";
+
+/**
+ * Where the detailed square's label goes: just outside its top edge, from its left corner,
+ * kept inside the box; under the bottom edge when the top one is off screen; or nowhere when
+ * neither edge is on screen. Its size never changes with the zoom.
+ */
+export function detailLabelBox(rect: Box, labelWidth: number, box: { width: number; height: number }): Box | null {
+  const h = 20;
+  const w = labelWidth;
+  if (rect.x + rect.width < 8 || rect.x > box.width - 8 || rect.width < w) return null;
+  const x = Math.min(Math.max(rect.x, 8), rect.x + rect.width - w, box.width - 8 - w);
+  if (rect.y - h - 4 >= 4 && rect.y <= box.height) return { x, y: rect.y - h - 4, width: w, height: h };
+  const below = rect.y + rect.height + 4;
+  if (below >= 4 && below + h <= box.height - 4) return { x, y: below, width: w, height: h };
+  return null;
+}
 
 /** Draws one frame. */
 export function drawMap(input: DrawInput): void {
@@ -106,6 +127,15 @@ export function drawMap(input: DrawInput): void {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = palette.space;
   ctx.fillRect(0, 0, width, height);
+
+  if (input.context && input.context.alpha > 0) {
+    ctx.save();
+    ctx.globalAlpha = input.context.alpha;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    for (const layer of input.context.layers) drawClipped(ctx, layer.canvas, imageRect(view, layer.level.half_width_m), width, height);
+    ctx.restore();
+  }
 
   const rect = imageRect(view, halfWidthM);
   if (input.relief) {
@@ -118,6 +148,7 @@ export function drawMap(input: DrawInput): void {
 
   const taken: Box[] = [];
   const plates: (() => void)[] = [];
+  drawDetailBorder(input, rect, taken, plates);
   drawTies(input);
   for (const pin of input.pins) drawPin(ctx, pin, palette);
   drawMarker(input);
@@ -427,6 +458,7 @@ function labelPin(input: DrawInput, pin: PlacedPin, taken: Box[], plates: (() =>
     if (more) lines.push({ text: more, colour: palette.ink2, weight: 400, size: 12 });
   }
   if (pin.parentId !== null) lines.push({ text: "Chosen by TrueSouth", colour: palette.ink2, weight: 400, size: 12 });
+  if (!pin.detailed) lines.push({ text: "Outside the detailed map", colour: palette.ink2, weight: 400, size: 12 });
   const gap = (pin.focused ? PIN.focusRing : PIN.selectedRing) + 6;
   plateAt(input, pin.drawAt, gap, lines, taken, plates, pin.focused);
 }
@@ -453,4 +485,34 @@ function labelFeatures(input: DrawInput, taken: Box[], plates: (() => void)[]): 
     if (at.x < -50 || at.y < -50 || at.x > input.width + 50 || at.y > input.height + 50) continue;
     plateAt(input, at, -1, [{ text: feature.name, colour: input.palette.ink2, weight: 400, size: 12 }], taken, plates);
   }
+}
+
+/**
+ * The detailed square's edge: a 1 px Control Edge hairline (the panels' edge token) along the
+ * relief image's extent, which is also the lookup grids' extent, with its label. It follows
+ * the square, not the 80°S ring: the 80 m data fill the whole square, and the ring is already
+ * drawn as a latitude circle.
+ */
+function drawDetailBorder(input: DrawInput, rect: Box, taken: Box[], plates: (() => void)[]): void {
+  const { ctx, palette } = input;
+  ctx.save();
+  ctx.strokeStyle = palette.line;
+  ctx.lineWidth = 1;
+  const x = Math.round(rect.x) + 0.5;
+  const y = Math.round(rect.y) + 0.5;
+  ctx.strokeRect(x, y, Math.round(rect.width) - 1, Math.round(rect.height) - 1);
+  ctx.restore();
+  if (input.compact) return;
+  ctx.font = `400 12px ${palette.font}`;
+  const w = Math.ceil(ctx.measureText(DETAIL_LABEL).width) + 16;
+  const box = detailLabelBox(rect, w, { width: input.width, height: input.height });
+  if (!box) return;
+  taken.push(box);
+  plates.push(() => {
+    plateRect(ctx, box.x, box.y, box.width, box.height, palette.plate);
+    ctx.font = `400 12px ${palette.font}`;
+    ctx.fillStyle = palette.ink2;
+    ctx.textBaseline = "middle";
+    ctx.fillText(DETAIL_LABEL, box.x + 8, box.y + box.height / 2 + 0.5);
+  });
 }
