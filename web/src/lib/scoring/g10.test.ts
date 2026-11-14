@@ -39,6 +39,9 @@ const REQUIRED_LABELS = [
   "current_dark",
   "current_linked",
   "current_blackout",
+  "a1_exact_seventy_translated",
+  "exact_veto_limit",
+  "all_three_weights_exact_seventy",
 ] as const;
 
 const TOLERANCE = 1e-9;
@@ -71,6 +74,16 @@ const cases = loadCases(casesPath);
 let largestDifference = 0;
 
 describe("gate G10", () => {
+  it("anchors the generated boundary cases to independent expected results", () => {
+    const translated = cases.filter((entry) => entry.labels.includes("a1_exact_seventy_translated"));
+    expect(translated).toHaveLength(16);
+    for (const entry of [...translated, ...cases.filter((entry) => entry.labels.includes("all_three_weights_exact_seventy"))]) {
+      expect(entry.expected?.evaluation.score).toBe(70);
+      expect(entry.expected?.evaluation.status).toBe("GO");
+    }
+    const veto = cases.find((entry) => entry.labels.includes("exact_veto_limit"))!;
+    expect(Object.values(veto.expected!.evaluation.vetoes as Record<string, { triggered: boolean }>).some((v) => v.triggered)).toBe(false);
+  });
   it("has at least 40 cases and the required coverage labels", () => {
     expect(cases.length).toBeGreaterThanOrEqual(40);
     const labels = new Set(cases.flatMap((entry) => entry.labels));

@@ -1,5 +1,39 @@
 # A9 math review
 
+## Status
+
+Updated 2026-11-14 UTC. The review and numerical ledger below describe the
+immutable `2f258dd` base. This table records later fixes and clarifications;
+an open pull request is not a claim that its change has merged.
+
+| Finding | Status |
+| :--- | :--- |
+| A1 | Fix proposed in [#93](https://github.com/anahmed404/TrueSouth/pull/93), with passing local checks; exact-count arithmetic and boundary tests. |
+| B1 | Fixed by [#77](https://github.com/anahmed404/TrueSouth/pull/77); nearby ranges and five best-lit variants are published. |
+| B2 | Availability documented in science §12 and §15; implementation left for later. |
+| B3 | Bin ownership and equal-blocker ties documented in science §5. |
+| B4 | Midpoints, clear/hidden shortcuts, singular handling and approximation documented in science §2.1, §6 and §15. |
+| B5 | Existing fallback and missing-slope policy documented in science §5, §8 and §15; code unchanged. |
+| B6 | Polar domain and estimate-versus-bound distinction documented in science §3.4. |
+| B7 | Drawing approximation documented in science §14 and §15. |
+| B8 | Near-pole request refusal fixed by [#80](https://github.com/anahmed404/TrueSouth/pull/80); remaining profile-contract gap documented in science §15, validators left for later. |
+| B9 | Missed sub-hour intervals and lack of a finer-time comparison documented in science §15. |
+| B10 | Stored wrap endpoint, counts and rounding rules documented in science §2.1, §7 and §15. |
+| B11 | Close-up slope/mesh and skyline wall marked specified but not built in science §8, §13 and §15; implementation left for later. |
+| C1 | Fixed by [#85](https://github.com/anahmed404/TrueSouth/pull/85); both scoring paths already name `scoring.ts`. |
+| C2 | Frame wording corrected in science §15; decision 0004 records the completed G2 outcome. |
+| C3 | Python/browser dividing sentence corrected in science §7. |
+| C4 | Clarified in [#93](https://github.com/anahmed404/TrueSouth/pull/93), science §11; kept there to avoid overlapping numerical paragraphs. |
+| C5 | Broad polar-Sun wording corrected in science §4, linking to §3.4. |
+
+The current catalog has 25 sites. A read-only check of its stored files found
+58 rounded 360-degree azimuth samples: 14 Sun and 44 Earth. The original 20
+sites account for the 40 samples in the review; the five variants add 18.
+All 20 terrain-tier files have blockers in every bin and metadata reporting
+zero missing samples. This did not independently rebuild their terrain; the
+independent A9 skyline rebuild remains Connecting Ridge only. No new terrain,
+ephemeris or placement calculation was run for these clarifications.
+
 ## Summary
 
 Reviewed `2f258dd` on 2026-11-13 UTC. All 15 numbered sections of
@@ -66,31 +100,23 @@ also change near-threshold behavior and needs an explicit decision. Update any
 Academy card that quotes the boundary if its meaning changes. Section 15 does
 not disclose this limit. The short retained script reproduces both languages.
 
-### B1. Section 7.1 is implemented as helpers but not published by the pipeline
+### B1. Placement publishing is fixed by PR #77
 
-**Section and sentence:** section 7.1, lines 365–385, promises a nearby range
-and a best-lit variant for every `sunlit_peak` catalog site.
+Section 7.1's nearby ranges and five labelled best-lit variants are now
+published by [#77](https://github.com/anahmed404/TrueSouth/pull/77). The catalog
+has 25 sites. The listed coordinates remain unchanged. The historical finding
+at the reviewed base concerned integration, not an error in those coordinates.
 
-**Code:** `science/src/truesouth/placement.py:90` (`evaluate_placement`) and
-`:138` (`build_variant`) implement the calculation. However,
-`science/src/truesouth/commands/build_sites.py:141`, `:172` and `:193` publish
-only the original catalog sites and never call either helper.
+The original synthetic checks remain useful: an 80 m grid point at a pixel
+centre gives 13 candidates; equal means choose the nearest point; exact
+distance ties choose the smaller row and then the smaller column. Those
+helpers agreed with the specification. A9 did not independently recompute
+every real nearby range or winning pixel.
 
-**Evidence:** five input sites are `sunlit_peak`. The committed derived
-catalog has 20 sites, **zero** `variant_of` values and **zero** `nearby_sun`
-values. The stated result would add five variants and five nearby ranges.
-On two synthetic 80 m grids, a point at a pixel centre correctly produces 13
-candidates. Equal means choose the nearest candidate. Separate exact-distance
-ties choose row 3 before row 5 and column 3 before column 5. Those helpers
-agree with the document; their production integration is missing.
-
-**Effect and fix:** no present listed-point number is wrong for this reason.
-The missing range can matter by tens of percentage points; decision 0012
-reports 59.9% at Connecting Ridge's listed point and 87.0% at its best-lit
-pixel, a 27.1-point difference. I did not independently rebuild that winning
-pixel. Keep section 7.1's math and integrate the helpers, files and consumers,
-or mark the section as planned until that is done. Section 15 does not disclose
-the incomplete integration.
+The remaining scientific limit is selection bias and sensitivity to position.
+Decision 0012 reports 59.9% at Connecting Ridge's listed point and 87.0% at
+its best-lit pixel, a 27.1-point difference. Science §7.1 and §15 disclose
+that the selected maximum is an upper reading and retain the listed point.
 
 ### B2. Section 12 has no sensitivity-grid implementation
 
@@ -209,7 +235,11 @@ corresponding infinite-distance elevation.
 **Evidence:** at Connecting Ridge's −89.4555 degrees the teaching rule gives
 **2.0845 degrees**; the six-year zero-ground-height topocentric maximum is
 **2.131334005655 degrees**, a difference of +0.046834005655 degrees. This is
-reasonable for a rule explicitly described as approximate. At latitude 0,
+reasonable for a rule explicitly described as approximate.
+
+**Correction, 2026-11-14 (from the review of the follow-up):** 2.131334° was computed at
+longitude 0°, not at Connecting Ridge (222.6192° E). At the site the highest stored Sun
+elevation is 2.10° (recomputed: 2.100990°). The finding stands: the rule is an estimate. At latitude 0,
 the same rule gives **91.54 degrees**. An elevation cannot exceed 90 degrees.
 The best-season idealized equatorial maximum is 90 degrees; a fixed-longitude
 hourly sample over the stored six years reaches 89.847733254679 degrees.
@@ -248,6 +278,10 @@ section 3.2 elevation in section 14. Keep the drawing code. Section 15 does
 not disclose this approximation.
 
 ### B8. Contracts accept profiles and sites forbidden by the science conventions
+
+**Later status:** the custom-site near-pole request refusal is fixed by #80.
+The pre-fix request evidence below is historical. Science §15 now distinguishes
+the editor and scoring guards from the remaining file-contract validation gap.
 
 **Section and sentence:** section 2.1 rejects sites beyond 89.999 degrees in
 absolute latitude. Section 10 requires power and comms weights not both zero,
@@ -393,7 +427,8 @@ run, with the implementation free to use this equivalent optimized method.
 
 Section 4, line 282, uses “polar” where it means very close to the pole. At
 Connecting Ridge the stated teaching estimate is already 2.0845 degrees; the
-stored six-year direction reaches 2.131334 degrees. At 80 degrees south,
+stored six-year direction reaches 2.10 degrees at the site (2.131334 degrees was at
+longitude 0°; see the correction under B6). At 80 degrees south,
 section 3.4's same approximate rule gives 11.54 degrees. The text does not
 drive any result, so the numeric effect is zero. Say the Sun stays low near
 the pole and link to section 3.4 rather than giving a universal 1–2-degree
@@ -570,13 +605,16 @@ than a radio link budget, hourly sampling and assumed mission limits. Section
 the raw-azimuth exception; section 7.1 discloses position sensitivity and
 best-lit selection bias. Those are not new hidden errors.
 
-Real limits absent from section 15 are the exact-threshold floating-point
+At the reviewed base, limits absent from section 15 included the exact-threshold floating-point
 status problem; missing-bin sphere substitution; missing slope/plane
 rank behavior; disc quadrature and the near-zenith tangent-plane singularity;
 the polar domain and non-bound nature of the teaching maximum; finite-distance
 versus centre-based drawing directions; missed sub-hour events; quantisation
-effects at thresholds and angle wrap; and the not-yet-published placement,
-sensitivity, close-up and skyline-wall paths. The bin/tie conventions belong
+effects at thresholds and angle wrap; and the implementation state of the
+placement, sensitivity, close-up and skyline-wall paths. Placement is now fixed
+by #77; the other availability limits are documented and remain future work.
+The other method limits are now documented in science §15. The A1 code fix
+is proposed separately in #93. The bin/tie conventions belong
 in their methods, not necessarily in a list of physical limits.
 
 ## What was not checked
@@ -590,6 +628,8 @@ in their methods, not necessarily in a list of physical limits.
   NASA-map numbers in decision 0012. Its “pixels less than 160 m apart” prose
   is not proved by a 160 m search radius, which allows pairs up to 320 m apart.
   The precise pairwise claim remains unverified.
+  Science §7.1 now states the verified search-radius meaning instead of making
+  that pairwise-distance claim.
 - The full G2 rerun uses the repository parser and comparison routine on raw
   saved responses. Independent formula checks cover representative ordinary
   and edge inputs; they are not a second independent ephemeris system. I did
@@ -620,6 +660,15 @@ No other path was replaced. No formula, threshold, production code or derived
 data was edited.
 
 ## Repository checks
+
+The clarification-only follow-up preserves both section 3.4 display formulas
+and all of sections 9 to 11 exactly from its main-based branch. Its sequential
+checks passed: `uv run pytest -q` **425 passed, 1 skipped**; frozen-lockfile
+install **exit 0**; web tests with one worker **2,017 passed in 85 files**;
+typecheck and build **exit 0**. Every command's native exit code was captured
+immediately and was **0**. The Academy card tests passed without a web edit.
+This follow-up changes only documents; the original review checks below remain
+historical evidence.
 
 At the reviewed `2f258dd` base, `uv run pytest -q` passed **322 tests** with
 three warnings; its directly captured exit code was **0**. It ran with

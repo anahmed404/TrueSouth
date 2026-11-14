@@ -5,50 +5,49 @@ The prompt that drives the orchestrator is [`orchestrator-prompt.md`](orchestrat
 
 ## Now
 
-- **Milestone:** M0 complete. M1 (the thin slice) is done in substance: the panels and the
-  timeline run on real data for all 20 catalog sites. Mission Control is "space-first"
-  (decision 0013): **the shell is merged (#66)**; the 3D scene behind it is being built.
-  Checkpoint C2 is owed when the scene merges.
-- **The challenge statement was read in full on 2026-11-13** and is recorded, with a map
-  from each objective to a feature, in [`../challenge.md`](../challenge.md). It is about
-  the stay on the surface only. Read it before proposing a feature.
-- **On `main` (a389a40):** S0 to S9, S10 (minimal: health and static files), S12
-  (validation), S13 (Docker), S15a (placement, part A), S16 (scene image files); MC0 to
-  MC5, MC4c (the space-first shell) and MC7a (the sweep worker); T0; A0, A1, A2, A4, A5a
-  (lesson types and skeletons for lessons 1 to 4), A7; decisions 0011 to 0013; the
-  space-first prototype with the Slip Planner on the Moon. `uv run pytest` passes 308
-  tests; `pnpm --dir web test` passes 1,577; typecheck, build and schema export are clean.
-- **Gates:** G1 to G9 measured by `validate`; G10 and G11 are checked in the web tests and
-  recorded as "not measured here". Validation: sunlight within 6 points of NASA's map at 13
-  of 14 polar sites, Earth visibility within 4 points at all 14, slope within 1.3° at all
-  13. Two results are outside their marks and are published with explanations.
-- **Real derived data on `main`:** 20 sites, `maps/`, `scene/`, `validation.json`, about
-  60 MB. Not built yet: `academy/worked_examples.json` (S12b is computing it; its
-  definitions are final for lessons 1 to 4, in docs/academy/lessons.md, "Decided on
-  2026-11-13").
-- **Docker works:** `docker compose -p truesouth-s13 up -d --build`, then
-  `http://localhost:8080`. One image, 199 MB, non-root, catalog data only. Data files are
-  served with `Cache-Control: no-cache` and answered with a 304 when unchanged, so a
-  rebuilt file is never masked by a browser's copy.
-- **Codex is logged out** ("Codex CLI is not authenticated") since about 21:00 local time
-  on 2026-11-13. The team lead said they would run `codex login`; the last attempt still
-  failed. Until it works its rows go to Cursor, and reviews of Cursor's work go to
-  Antigravity or are done by the orchestrator. Try Codex once before each routing choice.
+- **Submission day, 2026-11-14.** Every major feature is on `main` (5a5fd84, #87). What is
+  left is fixes from the team lead's testing, four small pull requests in review, and the
+  submission texts.
+- **On `main`:** the space-first shell; the 3D scene (the System view turns freely over the
+  poles, real stars, quality stages for slow machines); the flat Polar map (pin nudge,
+  "New site here?", "Compute this site"); the Slip Planner as a camera view; Local terrain
+  and the Lander's eye with relief, drawn shadows and texture; the Lander's eye horizon
+  chart, collapsed by default; the Compare window with CSV and JSON export, share and
+  confirmed QuickMap and Moon Trek links; custom coordinates (API and entry form); 25 sites
+  (20 listed and 5 best-lit variants, decision 0012); the landing date and "Next GO" in the
+  bottom strip; Academy lessons 1 to 4 playable; the validation page; Docker; the math
+  review (docs/reviews/a9-math-review.md); submission drafts (docs/submission/, stale).
+- **Last full check on `main`:** 425 Python tests (1 skipped: the real-map test), 2,317 web
+  tests, typecheck and build.
+- **Servers running for the team lead (do not stop; children use other ports):** the dev
+  server on 5173 from the main checkout (it follows `git pull`), the API on 8000 (uvicorn,
+  needed for custom sites in development), Docker project `truesouth-s13` on 8080. After a
+  batch of merges: `docker compose -p truesouth-s13 up -d --build`.
+- **The machine is the limit.** At most 6 or 7 children at once (the team lead, 2026-11-14,
+  after 12 to 14 at once exhausted CPU and memory). Tell every child: each suite once,
+  nothing in parallel, no dev server or browser left running. Drive C filled completely
+  once that night: remove finished worktrees as packages merge (clean, and on GitHub).
+- **Providers:** all four work. Claude usage ran out once for under an hour and cut four
+  children off mid-task; the team lead restored it with a banked reset. Children commit and
+  push as they go for this reason.
 - **Task ids:** `task_status` needs the full id, which starts
-  `node:delegated-task:command%3Amcp%3A…`. The short `delegate-task%3A…` form is refused
-  after a session is resumed.
+  `node:delegated-task:command%3Amcp%3A…`. A message to a finished child's thread starts a
+  new run in the same worktree with its context, which is the cheapest way to send review
+  findings back.
 
 ## Running now
 
-Each child works in its own worktree and opens a pull request. Five is the limit.
+Each child works in its own worktree and opens a pull request. Seven is the limit.
 
-| Task | Branch | Provider, model, effort | State |
+| Task | Branch or PR | Provider, model | State |
 | :--- | :--- | :--- | :--- |
-| T1 and T2: the 3D scene, with a code-built lander ("Pip") in Local terrain | `three/t1-scene` (was stacked on #66; told to merge `main` and open against `main`) | Claude Code, `claude-opus-5-5`, high | running |
-| MC6: the Lander's eye horizon chart | `mc/mc6-landers-eye` | Claude Code, `claude-opus-5-5`, high | running |
-| Docs: the Slip Planner spec rewritten to the picked design | `docs/slip-planner-on-moon` | Claude Code, `claude-sonnet-5-5`, high | running |
-| S15b: nearby range and best-lit variants in `build-sites` | `science/s15b-placement-build` | Cursor, `grok-4.7`, high | running; about an hour of computing |
-| S12b: `build-worked-examples` for lessons 1 to 4 | `science/s12b-worked-examples` | Cursor, `grok-4.7`, high | running |
+| Team lead's fixes: the bottom strip keeps one height while scrubbing; the middle mouse button turns the camera; "Enter coordinates" reads as a button; a black box beside the folded sites rail (not reproduced so far) | `mc/testing-feedback-3` | Claude Code, `claude-opus-5-5` | finishing; pull request not opened yet |
+| The Moon drawn around the Polar map's square, with a border on the square | `three/t7b-polar-map-context` | Claude Code, `claude-opus-5-5` | finishing; pull request not opened yet |
+| Compare: one-row header with the date; the strip folds while Compare is open | `mc/mc9b-compare-space` | Claude Code, `claude-opus-5-5` | final checks; pull request not opened yet |
+| Submission texts brought up to date | `docs/a11b-submission-update` | Claude Code, `claude-sonnet-5-5` | restarted from nothing |
+| Review of the scoring boundary fix and the science document clarifications | #93, #94 | Antigravity, `gemini-4-hydrogen` | running |
+| Review of the Academy's drag and sketch steps | #95 | Codex, `gpt-6.1-terra` | running |
+| Review of the API status follow-ups and validation fields | #96 | Cursor, `grok-4.7` | running |
 
 ## Site placement: decided
 
@@ -67,55 +66,31 @@ for the listed point and the variant, including the large gaps at `de_gerlache_r
 
 ## What to do next
 
-1. **MC4c (#66): merged.** Its seam for the scene (`SceneProps`): `mode: "3d" | "flat"`
-   (the scene stays mounted), `onStatus(status, report?: { flatViews })`, `onAddSite`,
-   `ignoreSlow`, and `view`, `scenario`, `freeSpace`, `reduceMotion`, `onFocusSite`,
-   `onViewChange`. Small things left for a polish pass: on the phone the "About System
-   view" button is 24 × 24 px; the scrubber's pill covers the "Day 1" label at the start
-   of the timeline.
-2. **T1 and T2:** when the pull request arrives: both test suites on the merge with
-   `main`; open it in a browser with a graphics card (the automated browser falls back to
-   the still picture); a review by Antigravity; merge. Then send checkpoint C2 with
-   screenshots, and tell the team lead how to run it.
-3. **After the scene, on Opus, in parallel:** T7 (Polar map: overlays, labels, the nudge
-   readout, on the flat map the camera ends on), T3 to T5 (Local terrain: overlays, the
-   skyline wall or what replaces it, blockers), MC9 (the Compare window). Each takes the
-   scene's seam as given. MC6 (the Lander's eye horizon chart) is already running; it
-   touches `mission-screen.tsx` in a few lines, so expect a small conflict with T1.
-4. **The Slip Planner: design picked 2026-11-13** (see Design choices). The spec rewrite
-   is running on Sonnet; review it against `design/variants/c2-slip-on-moon.md`, run both
-   test suites (a new CONTEXT.md term can break the glossary test in the web suite), merge.
-   Then build it on Opus after the scene merges, as a fifth camera view, with `useSweeps`;
-   remove the worker's build input from `web/vite.config.ts` then. The shell today still
-   has a "Slip Planner" window button; that build replaces it.
-5. **Custom coordinates (agreed 2026-11-13, after reading the challenge):** a small
-   version, started once the scene and the Polar map are in. The API computes one polar or
-   equatorial point's skyline and series from the prepared maps (about 45 s), no job queue,
-   no "compute for my dates", no sensitivity grid; the web app adds it as a site. It needs
-   the prepared maps at run time, so say what Docker ships or downloads: today's image has
-   only `truesouth_api` and the derived files, not the science package or the prepared
-   maps, and `/api/custom/…` answers 501. Science part on Cursor or Codex; the entry form
-   on Opus.
-6. **Sunlit-peak variants (S15b):** when the pull request arrives, check the table against
-   decision 0012 to three decimals and that the 20 existing sites are byte-identical;
-   review; merge. Then a small Opus task: show the nearby range, the variant label ("chosen
-   by TrueSouth, an upper reading") and the Artemis "map centre, not a chosen landing
-   point" note in the sites rail and the focused-site panel.
-7. **Academy lessons 1 to 4:** the worked-example definitions are final (#70). When
-   S12b's pull request arrives: check its numbers against the readings in
-   docs/academy/lessons.md ("Decided on 2026-11-13"), review by a provider other than
-   Cursor, merge. Then the lesson wording on Claude Sonnet (the list "Lesson text that
-   must change to match" is in that section); A3 (the three panel step kinds) and A5 on
-   Opus once the panels exist.
-8. **A8, the validation page** (Opus): `validation.json` is ready. A gate with a null
-   `passed` reads "checked in the web tests", never "failed".
-9. **Docker (S13): merged (#71).** Left from its review, none urgent: no gzip
-   compression of responses; `/assets/` with a trailing slash returns the app's page;
-   base images are pinned by tag, not by digest. Rebuild and try the image again before
-   the submission, once the scene is in.
-10. **A11, submission materials**, last: [`../challenge.md`](../challenge.md) is the
-    objective-to-feature map.
-11. **Update the status board in `DEVLOG.md`** at each checkpoint.
+1. **Merge what is open, in this order when their reviews return:** #93 (scoring boundary;
+   no status changed across 273,875 results) before #94 (science document); #96 (its full
+   Python suite has not had a clean run: two failures were fixed and only re-run alone);
+   #95 (the Academy steps). Then the three team-lead fixes as their pull requests open,
+   each with a review from another provider.
+2. **Rebuild Docker** after each batch, and tell the team lead what to try.
+3. **Owed by the orchestrator:**
+   - A full catalog rebuild check after #80: `uv run truesouth build-sites` on the real
+     data must leave `git status` clean. About 40 minutes of heavy computing, because #80
+     changed the science package's fingerprint and so emptied the placement cache. Run it
+     when few children are active.
+   - The status board at the top of `DEVLOG.md`.
+4. **Small follow-ups not yet assigned:** Local terrain says a custom site's apron "could
+   not be loaded" though it never has one (the data layer has no "none" state; a scene
+   change); QuickMap and Moon Trek links are in Compare but not in the focused-site panel;
+   the Academy's `drop-pin` step is a holding form (lessons 5 to 8 are out of scope); the
+   validation page still quotes G2's diagnostic from prose and can read the new fields once
+   #96 merges; contract validators for the profile rules (math review, B8).
+5. **Submission:** when the texts are updated, read them against the app once. Only the
+   team lead can settle: the repository is private and has no licence file (judges need a
+   public link or a zip); the live link; the backup video; whether to apply
+   docs/submission/README-proposed.md; why the data covers six years.
+6. **If the team lead reports a bug from testing:** assign it at once to the child that
+   built that part (a message to its thread), and pause a lower-priority child if that
+   would exceed seven.
 
 ## How to brief and check agents: lessons so far
 
@@ -125,6 +100,23 @@ for the listed point and the variant, including the large gaps at `de_gerlache_r
 - **Say where a child may not write.** The Docker child wrote two context files under
   `~/.docker/contexts/meta/`, outside the repo and outside its brief. A brief that touches
   Docker, a global tool or a user profile says: change nothing outside the worktree.
+- **A review is worth its cost.** On 2026-11-13 and 14 every pull request went to a
+  reviewer from another provider, and nearly every review found something real: a
+  validation headline rounded in our favour, a link that could start a server job
+  without a click, a formula that gave 181° for a southern latitude, a drag that turned
+  the wrong way after a pan, a spot that disagreed with the sites rail mid-sweep. Brief
+  the reviewer to recompute independently, not to read; ask for mutations.
+- **Send findings back to the author's own thread**, numbered, with the reviewer's
+  evidence, and say which of your own earlier instructions a new request overrides.
+- **When two open branches edit the same file, say so in both briefs** and merge the
+  first approved; tell the other to merge `main`. A structural collision (#80 against
+  #77 in `build_sites.py`) goes back to an author, not to the orchestrator's editor.
+- **Stopping a background shell does not stop its server on Windows.** Find the
+  `node.exe` or `python.exe` by its command line and end that process by id.
+- **Under load a test can time out.** Re-run that file alone before believing it; with
+  seven children the Python suite takes four to seven minutes, not one.
+- **The team lead judges by using the app.** Keep the dev server and Docker current,
+  say what to try after each merge, and show a screenshot when one exists.
 - **Read each check's exit code directly.** Piping a check into `grep` or `tail` hid a
   typecheck failure and a broken change was merged (#18, fixed by #19). Use
   `cmd > log 2>&1; echo exit=$?`.
@@ -288,12 +280,11 @@ Ids are from [`../build-plan.md`](../build-plan.md). Anything not listed is not 
 
 | Track | Verified | In review | In progress |
 | :--- | :--- | :--- | :--- |
-| Science (S0–S16) | S0 to S9, S10 (minimal), S12 (validation), S13 (Docker), S15a, S16 | — | S15b (variants), S12b (worked examples) |
-| Mission Control (MC0–MC7, MC9, MC11) | MC0 to MC5, MC4c (the space-first shell), MC7a (the sweep worker) | — | MC6 (the Lander's eye horizon chart) |
-| 3D and Map (T0–T8) | T0 | — | T1 and T2 (the scene) |
-| Academy (A0–A11) | A0, A1, A2, A4, A5a (lesson types and skeletons), A7 (first draft) | — | — |
-| Design | The approved look (C2); the Academy screens (built); space-first Mission Control (approved, decision 0013); the Slip Planner on the Moon (picked; #69) | — | — |
-| Docs | The challenge map (#68); final worked-example definitions (#70) | — | The Slip Planner spec |
+| Science (S0–S16) | S0 to S9, S10 (health, static files, custom sites), S12 and S12b, S13, S15a and S15b, S16 | #93 (score boundary), #94 (science document), #96 (API status, validation fields) | — |
+| Mission Control (MC0–MC11) | MC0 to MC7, MC9, the shell feedback, custom coordinates and variant labels | — | strip height, middle mouse, Enter coordinates; Compare header |
+| 3D and Map (T0–T8) | T0, T1, T2, T3, T7, scene polish | — | the Moon around the Polar map's square |
+| Academy (A0–A11) | A0, A1, A2, A4, A5 (lessons 1 to 4), A7, A8 (validation page), A9 (math review), A11 (drafts) | #95 (A3: drag and sketch steps) | A11b (submission texts) |
+| Design | Everything picked; see Design choices | — | — |
 
 Out of scope for the deadline: T8's "compute for my dates", S10's job queue, S11 (the
 sensitivity grid), A6 (lessons 5 to 8).
@@ -304,10 +295,13 @@ An unanswered question takes the orchestrator's recommendation.
 
 | Question | Asked at | Blocks | Running meanwhile |
 | :--- | :--- | :--- | :--- |
-| Run `codex login` in a terminal (Codex is logged out). | 2026-11-13, twice; the team lead said "give me 5 mins", and it still failed afterwards | nothing outright; Cursor carries Codex's work | everything |
-| Delete the stray `default` file a Docker child wrote under `~/.docker/contexts/meta/`? It makes `docker context ls` show `default` twice. The orchestrator will not touch `~/.docker` without a yes. | 2026-11-13 | nothing | — |
-| Links for the five retagged profile values | 2026-11-13 | nothing; they show as assumed until a link arrives | — |
-| The 12 terms the spec rewrite added to CONTEXT.md, and the "Proposed:" items in the space-first specs and in MC4c (#66) | listed in #64 and #66 | nothing; built as proposed | — |
+| The repository is private and has no licence file. Judges need a public link or a zip. | 2026-11-13, three times | the submission | everything |
+| The live demo link and the backup video. | 2026-11-13 | the submission | everything |
+| Apply docs/submission/README-proposed.md? The real README still says "No application code exists yet". | 2026-11-13 | nothing | — |
+| "Slip +7 d" and "+14 d" moved into the date picker to fit the window's end on one row. Back in the strip (at the cost of a second row)? | 2026-11-14 | nothing; left as built | — |
+| The black box beside the folded sites rail: window size, which panels were open, browser. Two children could not reproduce it. | 2026-11-14 | that fix | everything else |
+| Delete the stray `default` file a Docker child wrote under `~/.docker/contexts/meta/`? | 2026-11-13 | nothing | — |
+| Links for the five retagged profile values; Luna's reference photos; the Artemis region outlines. | 2026-11-13 | nothing; shown as assumed, a placeholder, and not drawn | — |
 
 ## Design choices
 
@@ -326,6 +320,13 @@ An unanswered question takes the orchestrator's recommendation.
 | C2 | Mission Control's core layout | **Space-first, directed by the team lead on 2026-11-13.** The System view (a 3D Sun, Earth and Moon) is the home of Mission Control and fills the window. The interface floats above it in the same layout, panels still collapsible. A floating top bar picks the view and the camera does the switching: it flies to the south pole and the flat Polar map takes over; it continues down for Local terrain and the Lander's eye. The Slip Planner and Compare open as floating windows. Earth gets a real texture, the Sun must look good, and the Moon must be sharp: an 8K or 4K NASA globe with our 80 m shaded relief over the polar cap. Local terrain must read as part of the Moon, not a disc. A prototype is being made before anything final is built. | The team lead: "I want the main view to be the system view... the UI elements to kind of float above the space view". This replaces the a-or-b question for the four views; the a variants' content carries over. |
 | C2 | The Slip Planner | **A camera view on the Moon, not a window; spots are variant a, the lamp and ring.** Picked 2026-11-13: "For the slip planner go with your recommendations". The camera stops above the south pole; each selected site is a status lamp with a ring that fills to the score; the bottom panel swaps to landing dates (a strip per site, an "Any site" line, a date slider); the ground's light is fixed; NASA's average sunlight is an optional dark-to-bright shading with its label; the ground between sites is never coloured by date. Prototype and note: `design/variants/c2-slip-on-moon.md` (#69). | The team lead asked for the Moon's surface with a slider instead of rectangles of colour, then took the designer's recommendations. |
 | C2 | A lander in the 3D view | **Yes: a small code-built lander ("Pip") at the site in Local terrain.** Asked for by the team lead on 2026-11-13; part of T1. | "will we have the lander in the 3d view as a spaceship?" |
+| Testing, 2026-11-14 | Every view | **No sentence under the view bar.** Its text is behind an info button on the current view's tab. | The team lead: "is taking too much space, just remove it". |
+| Testing, 2026-11-14 | Bottom strip | **The landing date sits in the timeline's header**, with the window's end and "Next GO"; the strip keeps one height at every hour (the smaller one). | "The landing date selector should go down with the timeline scrub"; "the timeline's height expands while scrubbing which is very bad UX". |
+| Testing, 2026-11-14 | System view | **A free trackball: no limit at the poles.** The middle mouse button turns like the left. No "Distances not to scale" plate (the fact stays in the About text). Real stars. | "I want to be able to freely rotate around the moon by just panning"; "remove the 'Distances are not to scale' label"; "Add some realistic stars". |
+| Testing, 2026-11-14 | Local terrain, Lander's eye | **Relief to the horizon, visible drawn shadows, near-ground texture;** the horizon chart is collapsed by default behind an arrow. Shadows are decoration (decision 0015); the series decides lit or dark. | "it feels like a ps1 video game"; "see the 3d view by default and pop up the 2d detailed view with an arrow button". |
+| Testing, 2026-11-14 | Polar map | **The rest of the Moon shows around the detailed square, and the square has a border.** | "It's just a square and everything else around it is black". |
+| Testing, 2026-11-14 | Compare | **No description or summary sentence; the date beside the title; the table gets the space** (the strip folds while Compare is open). | "this data is useless… remove it"; "the table is barely visible". |
+| Testing, 2026-11-14 | Add site | **Typed coordinates must be obvious:** an "Enter coordinates" row that looks like a control. | The team lead could not find the folded text toggle. |
 | C2 | Skyline sketch XP | **Scored on closeness:** a closer sketch earns more XP. docs/academy/overview.md needs the rule written down beside the 10/5/2 rule for answers. | The team lead took the recommendation on 2026-11-13. |
 
 The shell, start screen and shared components are built in this look (MC4a, #34).

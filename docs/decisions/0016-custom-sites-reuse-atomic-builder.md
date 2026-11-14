@@ -1,4 +1,4 @@
-# 0013. Custom sites share the catalog builder
+# 0016. Custom sites share the catalog builder
 
 **Decision (2026-11-13, S10b).** Extract the catalog's per-site computation and
 atomic publication into build_sites.build_site, and call it from the API. Keep
