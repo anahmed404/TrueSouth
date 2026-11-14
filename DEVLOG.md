@@ -1801,6 +1801,41 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Academy
 
+#### 2026-11-14 · A4b · The lessons' panels show the real thing
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — audited lessons 1 to 4 for stand-ins and
+  missing values, wrote the lesson panels (`lesson/panels/`), their data module and tests,
+  the wiring into the predict reveal and the lesson-complete screen, and the doc changes.
+  Checked by the agent with the tests (on the real derived files and the fixture), the
+  typecheck and the build, and in a browser at 1440 × 900 and 390 × 844, keyboard only,
+  with reduced motion, and with `VITE_DATA=fixtures`. No AI-generated images. A human has
+  not played it.
+- **State:** built, not verified
+- **Changed:** `web/src/features/academy/` (`lesson/panels/`, `lesson/stage.tsx`,
+  `complete-screen.tsx`, `drag-body.ts`, `lessons/story.ts`, `lessons/l4.ts`, `academy.css`,
+  tests), `docs/academy/lessons.md`, `docs/academy/overview.md`,
+  `docs/design/c2/built-academy-panels-*.png`. Nothing changed in another folder: the
+  panels import `HorizonChart` and its geometry (panorama), `bandSegments` (timeline),
+  `Countdowns` (timeline, lazy), `hourFlags` and `useHourFlags` (scoring) and
+  `drawnDistance` (`three/scene/proportions.ts`, a pure module) as they are.
+- **Notes:**
+  - Seven stand-ins removed: three prediction reveals (lesson 1 step 3 System view, lesson 2
+    step 1 Lander's eye, lesson 4 step 3 timeline) and four lesson-complete screens ("The …
+    panel appears here once Mission Control builds it"). Each now draws the lesson's stored
+    data at its site and moment; `panel-data.test.ts` checks the numbers against the worked
+    examples, `no-stand-ins.test.ts` renders every step and complete screen.
+  - Lesson 4 step 3's caption called its band "the timeline's Earth band", but that band
+    is link hours (51.5% of the story month at the 1° mask) while the caption quotes
+    `l4.earth_up_pct` (59.7%, any of Earth's disc showing). The reveal draws the latter
+    and the caption now says so (lessons.md first).
+  - Fixtures mode: the story site is now `story.site_id` (it was hard-coded to
+    `connecting_ridge`, absent from the fixtures), and the story month is the 720 hours
+    from the landing (the fixture's `story.month_end_utc` equals its landing; Science owns
+    the fixture). The fixture's synthetic numbers still do not fit the story's words.
+  - Cost: about +13 kB JavaScript and +13 kB CSS in all (10 kB of it the timeline's CSS,
+    loaded only with the countdowns on lesson 4's complete screen). No 3D code is loaded;
+    `system.bin` (1.26 MB) is fetched only by lesson 1's reveal and complete screen.
+
 #### 2026-11-14 · A12 · The team proposal
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-sonnet-5-5 — wrote `docs/submission/proposal.md`, the team's
