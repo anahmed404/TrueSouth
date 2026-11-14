@@ -39,7 +39,7 @@ export const lesson3 = {
     },
     {
       id: "l3-drop",
-      luna: { mood: "thinking", says: "How far the ground drops away: drop = distance² ÷ ( ? )" },
+      luna: { mood: "thinking", says: "R is my radius, from my centre to my surface. How far the ground drops away: drop = distance² ÷ ( ? )" },
       hint: "My radius R is in it, and the drop has to come out in metres.",
       explain: "Twice my radius, 2R. At 20 km that is a drop of {{example.l3.drop_at_20km_m}} m.",
       kind: "fill-formula",

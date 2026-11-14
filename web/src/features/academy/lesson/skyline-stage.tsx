@@ -16,6 +16,7 @@ import {
   hasLine,
   nudgeHandle,
   sketchAzimuths,
+  sketchFromPoints,
   sketchFromHandles,
   sketchGapDeg,
   skylineInWindow,
@@ -92,7 +93,7 @@ function referenceHour(data: SceneData, step: SketchStep, examples: WorkedExampl
   return typeof utc === "string" ? hourOnGrid(data.grid, utc) : null;
 }
 
-function SketchBoard({ data, step, runner, examples, onDraft }: SkylineStageProps & { data: SceneData }) {
+function SketchBoard({ data, step, runner, draft, examples, onDraft }: SkylineStageProps & { data: SceneData }) {
   const answered = isAnswered(runner);
   const window = useMemo(() => resolveSkylineWindow(step.window, examples), [step.window, examples]);
   const widthDeg = window ? clockwiseWidthDeg(window.fromDeg, window.toDeg) : 0;
@@ -119,8 +120,12 @@ function SketchBoard({ data, step, runner, examples, onDraft }: SkylineStageProp
     [data.skyline.el_deg, data.series.sun_el, hour, data.radii.sun, data.radii.earth],
   );
 
-  const [sketch, setSketch] = useState<Sketch>(() => emptySketch(columns));
-  const [handles, setHandles] = useState<number[]>(() => handlesFrom(emptySketch(columns), 0));
+  // A sketch already drawn (the lesson's draft) is drawn again: on return to a half-done
+  // step, and when a finished step is reviewed.
+  const [sketch, setSketch] = useState<Sketch>(() =>
+    window && draft?.kind === "draw-skyline" ? sketchFromPoints(draft.sketch, window.fromDeg, widthDeg, columns) : emptySketch(columns),
+  );
+  const [handles, setHandles] = useState<number[]>(() => handlesFrom(sketch, 0));
   const [announce, setAnnounce] = useState("");
   const last = useRef<{ column: number; elDeg: number } | null>(null);
   // The sketch as the pointer leaves it, updated at once on every move, so the stroke's end
@@ -142,15 +147,14 @@ function SketchBoard({ data, step, runner, examples, onDraft }: SkylineStageProp
 
   const commit = useCallback(
     (next: Sketch) => {
-      if (!window || !hasLine(next)) {
+      const points = window ? sketchAzimuths(next, window.fromDeg, widthDeg) : [];
+      if (points.length === 0) {
         onDraft(null);
         return;
       }
-      onDraft({
-        kind: "draw-skyline",
-        sketch: sketchAzimuths(next, window.fromDeg, widthDeg),
-        gapDeg: sketchGapDeg(next, real, widthDeg),
-      });
+      // Even one point is kept, so it is still there on return from a review. Its gap is not
+      // a number until there is a line (`sketchGapDeg`), so Done stays off (`canCheck`).
+      onDraft({ kind: "draw-skyline", sketch: points, gapDeg: hasLine(next) ? sketchGapDeg(next, real, widthDeg) : Number.NaN });
     },
     [window, widthDeg, real, onDraft],
   );

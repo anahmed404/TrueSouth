@@ -1,6 +1,7 @@
 import { Antenna, ArrowRight, Sun, X } from "lucide-react";
 import type { MouseEvent } from "react";
 import { useLiveValue, type LiveValue } from "../live-value";
+import type { ProgressMark } from "../review";
 
 /** Antenna with a slash: Pip has no link to Earth. */
 function AntennaOff() {
@@ -45,12 +46,49 @@ function LivePipMeters({ pip, live }: { pip: { power?: number; link?: boolean } 
   return <PipMeters power={power ?? pip?.power} link={pip?.link} />;
 }
 
+/**
+ * The progress marks, one per step. A finished step's mark is a button that opens it for
+ * review; while one is shown, the current step's mark goes back to it. A step not yet
+ * reached is a plain mark, never a control. The row still reads as progress at a glance:
+ * the buttons look exactly like the marks, with a taller hit area and a focus ring.
+ */
+function ProgressMarks({ marks, onMark }: { marks: readonly ProgressMark[]; onMark: (index: number) => void }) {
+  return (
+    <ol className="ac-prog" aria-label="Lesson steps">
+      {marks.map((mark) => (
+        <li key={mark.index}>
+          {mark.control ? (
+            <button
+              type="button"
+              className="ac-prog-mark"
+              data-state={mark.state}
+              aria-label={mark.label}
+              title={mark.state === "done" ? `Review step ${mark.index + 1}` : `Back to step ${mark.index + 1}`}
+              onClick={() => onMark(mark.index)}
+            >
+              <i aria-hidden="true" />
+            </button>
+          ) : (
+            <span className="ac-prog-mark" data-state={mark.state} data-shown={mark.shown || undefined} aria-current={mark.shown ? "step" : undefined}>
+              <i aria-hidden="true" />
+              <span className="ac-visually-hidden">{mark.label}</span>
+            </span>
+          )}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 type LessonTopBarProps = {
   title: string;
   stepIndex: number;
   stepCount: number;
-  /** The current step is answered, so its segment is done. */
-  answered: boolean;
+  /** One mark per step: finished steps are buttons that open them for review. */
+  marks: readonly ProgressMark[];
+  /** The finished step on screen for review, or null. */
+  reviewing: number | null;
+  onMark: (index: number) => void;
   pip: { power?: number; link?: boolean } | null;
   /** Pip's power while a step drives it live (the dragged Sun's disc fraction), or null. */
   livePower?: LiveValue<number | null>;
@@ -59,8 +97,7 @@ type LessonTopBarProps = {
 };
 
 /** Close, progress, "Step n of N", Pip's meters and the skip link. */
-export function LessonTopBar({ title, stepIndex, stepCount, answered, pip, livePower, onClose, onSkip }: LessonTopBarProps) {
-  const doneCount = stepIndex + (answered ? 1 : 0);
+export function LessonTopBar({ title, stepIndex, stepCount, marks, reviewing, onMark, pip, livePower, onClose, onSkip }: LessonTopBarProps) {
   return (
     <header className="ac-lt">
       <div className="ac-lt-a">
@@ -68,21 +105,9 @@ export function LessonTopBar({ title, stepIndex, stepCount, answered, pip, liveP
           <X aria-hidden="true" />
         </button>
         <h1 className="ac-lt-title">{title}</h1>
-        <div
-          className="ac-prog"
-          role="progressbar"
-          aria-label="Lesson progress"
-          aria-valuemin={0}
-          aria-valuemax={stepCount}
-          aria-valuenow={doneCount}
-          aria-valuetext={`${doneCount} of ${stepCount} steps done`}
-        >
-          {Array.from({ length: stepCount }, (_, index) => (
-            <i key={index} data-done={index < doneCount} data-now={index === stepIndex && !answered} />
-          ))}
-        </div>
-        <span className="ac-stepn">
-          Step {stepIndex + 1} of {stepCount}
+        <ProgressMarks marks={marks} onMark={onMark} />
+        <span className="ac-stepn" aria-live="polite">
+          {reviewing !== null ? `Reviewing step ${reviewing + 1} of ${stepCount}` : `Step ${stepIndex + 1} of ${stepCount}`}
         </span>
       </div>
       <div className="ac-lt-b">

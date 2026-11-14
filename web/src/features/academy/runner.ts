@@ -38,6 +38,22 @@ export type RunnerPhase = "prompt" | "hint" | "correct" | "revealed" | "unavaila
  */
 export type StepResult = "first" | "second" | "revealed" | "sketched" | "skipped" | "unavailable" | "unreachable";
 
+/**
+ * What happened on a step the learner has finished, kept for the session so the step can be
+ * reviewed from the progress marks (read-only). It is what the lesson screen showed when the
+ * learner moved on: every attempt, how the step ended, its XP and Luna's feedback.
+ */
+export type StepRecord = {
+  stepIndex: number;
+  /** `skipped`: passed through its holding form ("Continue", for no XP). */
+  phase: "correct" | "revealed" | "unavailable" | "skipped";
+  attempts: readonly Submission[];
+  misses: number;
+  stepXp: number;
+  feedback: string | null;
+  shownAnswer: string | null;
+};
+
 export type RunnerState = {
   stepIndex: number;
   phase: RunnerPhase;
@@ -49,6 +65,8 @@ export type RunnerState = {
   attempts: readonly Submission[];
   /** The submission that ended each earlier step. Kept so a later goal can refer to it. */
   answers: readonly { stepId: string; submission: Submission }[];
+  /** Each finished step, in order: what the learner did there. For review only; never rescored. */
+  history: readonly StepRecord[];
   /** XP the current step earned, once it is answered; null while waiting. */
   stepXp: number | null;
   /** The answer text, set only while it is being shown. */
@@ -73,6 +91,7 @@ export function initialRunnerState(): RunnerState {
     results: [],
     attempts: [],
     answers: [],
+    history: [],
     stepXp: null,
     shownAnswer: null,
     feedback: null,
@@ -255,12 +274,30 @@ function skipStep(state: RunnerState, lesson: Lesson): RunnerState {
   if (state.phase !== "prompt" && state.phase !== "hint") return state;
   const step = lesson.steps[state.stepIndex];
   if (!step || !PANEL_STEP_KINDS.includes(step.kind)) return state;
-  return advance({ ...state, results: [...state.results, "skipped"] }, lesson);
+  const record: StepRecord = {
+    stepIndex: state.stepIndex,
+    phase: "skipped",
+    attempts: state.attempts,
+    misses: state.misses,
+    stepXp: 0,
+    feedback: null,
+    shownAnswer: null,
+  };
+  return advance({ ...state, results: [...state.results, "skipped"], history: [...state.history, record] }, lesson);
 }
 
 function continueLesson(state: RunnerState, lesson: Lesson): RunnerState {
   if (state.phase !== "correct" && state.phase !== "revealed" && state.phase !== "unavailable") return state;
-  return advance(state, lesson);
+  const record: StepRecord = {
+    stepIndex: state.stepIndex,
+    phase: state.phase,
+    attempts: state.attempts,
+    misses: state.misses,
+    stepXp: state.stepXp ?? 0,
+    feedback: state.feedback,
+    shownAnswer: state.shownAnswer,
+  };
+  return advance({ ...state, history: [...state.history, record] }, lesson);
 }
 
 function advance(state: RunnerState, lesson: Lesson): RunnerState {
