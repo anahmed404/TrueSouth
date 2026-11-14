@@ -5,6 +5,7 @@
 
 /* Imported here, inside theme.css's graph, so it lands after Tailwind's layer order. */
 @import "./mission/timeline/timeline.css";
+@import "./mission/sites.css";
 
 @layer components {
   /* ── Brand ──────────────────────────────────────────────────────────────── */

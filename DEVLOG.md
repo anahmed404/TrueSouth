@@ -581,6 +581,49 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-14 · MC-sites · Custom coordinates, best-lit variant labels and the nearby range
+- **Who:** Claude Code agent (Opus 5.5), for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the custom-site client, job store,
+  the coordinates form, the rail's computing rows, the focused-site panel's notes, their
+  tests and these doc changes — checked with vitest (client against every documented
+  status and error with a mocked `fetch`; store; form; row states; labels with made-up
+  and real 25-site data), typecheck, and by eye in the browser at 1440 × 900, 1024 × 768
+  and 390 × 844, against the PR #80 server running on the real prepared maps
+- **State:** verified (425 Python tests, 2,241 web tests, typecheck and build pass on the merge with main; reviewed by Codex (all five variant labels and ranges match the data; no custom file is requested before a job is ready; three mutations caught); six findings fixed with tests (a compute request is sent only on a button press, with the counts recorded; an answer about another place is refused; ready sites and names are validated; removal frees polling and data; polling backs off and announces once per change; invalid ids in links are dropped); run end to end by the builder against the merged server on the real terrain, including Compute this site on the Polar map; not yet tried by the team lead)
+- **Changed:** `web/src/data/custom-sites.ts`, `web/src/state/custom-sites.ts`,
+  `web/src/data/hooks.ts` (`useSites` merges ready custom sites; `useCatalogSites`),
+  `web/src/state/data.ts` (a custom site's files wait for its job), `web/src/app/mission/`
+  (`sites-rail.tsx`, `focused-site-panel.tsx`, `site-status.ts`, new `custom-site-*.ts(x)`,
+  `site-labels.ts`, `sites.css`), `web/src/components/Popover.tsx` (`placement="auto"`),
+  docs, screenshots `docs/design/c2/built-sites-*.png`
+- **Notes:**
+  - Real run: −88.5, 45 queued about 25 s while the server loaded its maps, then ran about
+    50 s; −87.75, 200.5 took about 40 s; 2.5, 334.75 was a smooth-Moon site in under 5 s.
+    Status, timeline, countdowns, the "why is it dark" card, the scene's pin, Local terrain
+    (own `terrain.bin`, no apron) and Lander's eye all read them.
+  - The Polar map's "Compute this site": the shell passes `useRequestCustomSite()` from
+    `custom-site-actions.ts` as `onRequestSite`.
+  - Shared wording for Compare: `web/src/app/mission/site-labels.ts` (`CHOSEN_TAG`,
+    `variantLine`, `upperReadingLine`, `nearbyRangeText`, `ARTEMIS_NOTE`).
+  - Not mine, seen while testing: Local terrain says the apron "could not be loaded" for a
+    custom site, which never has one; the timeline shows "Loading the hourly data…" while a
+    focused custom site is not computed yet.
+  - Review fixes (Codex review of #92): a POST only on a button press (polling, links,
+    remounts, focus and reconnecting are GET; counted in tests); answers must name the id
+    the server's rules make for the coordinates sent (`web/src/data/custom-site-id.ts`
+    ports `site_id` and its Python rounding); ready sites validated field by field; names
+    cleaned of control and bidirectional characters, 60 characters, shown isolated;
+    remove, failure and Stop waiting release polling, waiters, files and scores; request
+    timeouts, back-off, no polling while hidden, `Retry-After` kept to 1 s to 1 h; one
+    shared clock and one announcement per change of state; non-canonical ids in links are
+    left out with one notice.
+  - The Polar map's "Compute this site" is wired (`useRequestCustomSite()` in
+    `mission-screen.tsx`); the map gets no callback until `/api/health` says custom sites
+    work, checked once when the Polar map view first opens. A ready custom pin carries
+    "Your site" (one line in `features/polar-map/draw.ts`).
+  - Not doable on the web side without the scene: Local terrain's apron message for a
+    custom site (`useApron` has no "none" state the scene reads).
+
 #### 2026-11-14 · MC9 · The Compare window, share, CSV and JSON export, confirmed NASA links
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (building the
@@ -951,6 +994,83 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - Measured: 4 vitest tests pass; production bundle 259 kB (82 kB gzipped).
 
 ## 3D and Map
+
+#### 2026-11-14 · T3 · The ground's look in Local terrain and Lander's eye
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (question
+  round skipped, as briefed) — wrote the ground's material (`ground-material.ts`), its pure
+  parts and quality levels (`ground-relief.ts`, `ground-quality.ts`) with vitest tests, the
+  height grids and the local-position attribute in `ground.ts`, the decoration plate, and
+  the docs; captured the before and after screenshots and the frame-time measurements in a
+  headless Chrome with hardware WebGL (RTX 2060, ANGLE D3D11) and with SwiftShader; no
+  AI-generated imagery; a human has not reviewed it yet
+- **State:** verified (2,142 web tests, 425 Python tests, typecheck and build pass on the merge with main; reviewed by Codex (every shader result ends in pixels, with no path to a label or a decision; the fragment-to-map projection matched at three points; two mutations caught); findings fixed: the decoration plate can no longer vanish while the drawing stays (the ground falls back to plain when the plate cannot fit), the plate's link to the series is tested, the near-ground craters follow a realistic size mix, the ground follows the scene's quality stages; seen by the builder on hardware WebGL; not yet seen by the team lead)
+  is not measured, and orbiting by hand was not possible in the headless browser: the views
+  were checked at the camera's arrival poses and while stepping the timeline hour by hour)
+- **Changed:** `web/src/features/three/scene/ground-material.ts`, `ground-relief.ts`,
+  `ground-quality.ts` and their tests (new); `ground.ts` (an `aL` attribute, `patchUpGrid`,
+  `apronUpGrid`) and its test; `world.ts` (the ground uses `GroundLook`: the constructor,
+  `setGround`, `clearGround`, `setInputs` and one line in `layout`; `world.groundLook` is
+  public for the quality stages); `plates.ts` and its test (the decoration plate);
+  `overlay.tsx` (plates may sit at the foot); `scene.css` (the two-line plate, and stacked
+  plates centred once); `scene-root.tsx` (passes the series' Sun answer to the plates: one
+  line and a dependency); `docs/features/local-terrain.md` ("What is drawn", the plate,
+  Performance); `docs/features/panorama.md` (one sentence);
+  `docs/decisions/0015-drawn-ground-shadows.md`; `docs/design/c2/built-ground-*.png`; this
+  entry. `materials.ts` is untouched: its old `groundMaterial` is no longer used and can be
+  deleted by whoever merges second.
+- **Notes:**
+  - Why it looked low quality (before shots): the ground was lit per vertex normal, so the
+    300 km terrain had one light value every 1.9 km and the patch every 78 m, with no cast
+    shadows at all; a milky fill (`alb * 0.19`) and the soft roll-off washed out contrast;
+    the near ground at 2 m was the smooth 80 m ramp; the albedo was the Moon's 4K colour map,
+    about 2.7 km a pixel.
+  - Now: relief at 160 m (core) or 320 m (cap) in every pixel out to the horizon, cast
+    shadows with a Sun-disc edge, illustrative regolith close up, lunar photometry. Each
+    effect is full, reduced or off; costs are in local-terrain.md, "Performance" (all full
+    about 1.8 ms a frame on the RTX 2060 at 1440 × 900; zero frames at rest).
+  - Drawn shadows can differ from the series at the lander (Connecting Ridge, 2028-03-06
+    18:00 UTC: series dark, drawing shows a sunlit patch beside Pip). The plate gives the
+    series' answer and says the series is right. The browser never judges the drawing.
+  - First build hung Chrome for minutes: ANGLE's D3D compiler unrolled the 64-step march and
+    the crater loops. The loop counts are uniforms now; compiling takes well under a second.
+  - Found and fixed: `shell.css` makes every `.scene-plate` absolute with
+    `translateX(-50%)`, so plates in the top stack were centred twice (shifted left by half
+    their width) and stacked plates would overlap.
+  - Seen, not changed: at a sphere-tier site (Apollo 11) Lander's eye looks up at Earth or
+    the Sun, which are 20° to 60° up there, so almost no ground is in view; the frame was
+    nearly black in the headless browser.
+  - What a later pipeline package should ship so the drawing can match the series more
+    often and show more relief: (1) a wider, finer apron, 1,201 × 1,201 points over 300 km
+    (250 m), 2.9 MB as uint16, or 601 × 601 (500 m), 0.7 MB; (2) a 60 km mid patch at 80 m,
+    751 × 751, 1.1 MB as uint16 heights, between the patch and the apron; (3) slope maps at the map's own 80 m
+    for the ±76 km core, 1,900 × 1,900 lossless WebP, a few MB; (4) close-up DEMs (5 m,
+    2 km) for the Lander's eye near ground, already in the contracts as `closeup.bin`; (5) an
+    albedo map of the cap in the same projection (the LROC colour map is 2.7 km a pixel at
+    the pole).
+  - Review fixes (Codex review of #91), 2026-11-14:
+    - The disclosure is on screen wherever the drawing is: the decoration plate is exempt
+      from the overlay's hiding, shortens to "Shadows and ground texture are illustrative."
+      in a tight space or beside an open window, and where not even that fits the ground is
+      drawn without shadows and texture (`decorationDisclosure`, `visiblePlates`,
+      `GroundLook.setDisclosed`). Checked by eye: Compare open (no room: plain ground, no
+      plate; closed again: full), 1024 × 640, a 390 × 844 phone, Lander's eye with the chart
+      folded and open (the plate sits above the view's controls, clear of the chart's row).
+    - The plate's series answer is `seriesSunAnswer`, tested on fixture_ridge at a lit, a
+      dark and a partly hidden hour; a constant "lit" fails two tests, and a test pins the
+      one line in `scene-root.tsx` that passes it.
+    - Texture: craters like real small lunar ones (mostly old and shallow, a few fresh),
+      clustered with no grid, rim shadows at half strength, fewer rocks.
+    - Weak GPU: the ground follows #88's quality governor (`setMotion(moving, stage)`), with
+      coarser meshes by draw range; `prepareGround` uploads the ground before the first
+      flight. Numbers in local-terrain.md, "Performance".
+    - Custom sites (no apron listed) draw the patch alone with no error plate.
+    - One shared draw hook (no per-draw allocation); the loop bounds' comment says why they
+      are uniforms. A WebGL 1-only browser: the scene's own probe (`scene-root.tsx`,
+      `probeWebgl`) asks for WebGL 2 and reports "no-webgl"; the shell's probe
+      (`app/mission/scene-slot.tsx`) accepts WebGL 1 and would mount the scene, which then
+      reports "no-webgl" itself. Not changed here.
+    - Decision renamed 0015 (#88 added 0014).
 
 #### 2026-11-14 · T7 · The flat Polar map
 - **Who:** Claude Code agent, for the orchestrator

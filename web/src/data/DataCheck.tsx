@@ -1,6 +1,6 @@
 import type { Site } from "../contracts/generated.ts";
 import type { DecodedSeries } from "./decode/layouts.ts";
-import { useCloseup, useSeries, useSites, useSkyline, useTerrain, type HookResult } from "./hooks.ts";
+import { useCatalogSites, useCloseup, useSeries, useSkyline, useTerrain, type HookResult } from "./hooks.ts";
 
 function availability(result: HookResult<unknown>): string {
   if (result.status === "loading") return "loading";
@@ -47,7 +47,7 @@ function SiteDataCheck({ site }: { site: Site }) {
 
 /** Plain text check. Not routed. Mount it by hand to see fixture sites load. */
 export function DataCheck() {
-  const sites = useSites();
+  const sites = useCatalogSites();
   if (sites.status === "loading") return <p id="data-check">Loading sites.</p>;
   if (sites.status === "error") return <p id="data-check">Sites error: {sites.error}</p>;
 
