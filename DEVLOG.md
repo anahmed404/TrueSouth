@@ -648,6 +648,53 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-14 · MC rail overlays · Popovers and hover cards leave the rail (the black box)
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — portalled `Popover` and `Tip` to the page's
+  body with Tab bridged across (`overlay-host.ts`), kept a popover inside the window
+  (`placePanel`), added `contain: paint` to the rail and the focused panel, built the
+  `?diag=1` capture (`app/diag.ts`, F9) and four WebGL switches (`gl-switches.ts`), then
+  reproduced the black box in installed Chrome under software compositing and fixed it
+  with one CSS line (`.popover` background at 99 %), and wrote 25 vitest tests (Tab
+  bridge, host, focus return, shell rules, portal mount, placement at 100/125/150 %
+  zoom, the switches, and a CSS test that fails without the fix) — checked by the agent
+  with typecheck, the vitest suite, the build and `uv run pytest`, and by window captures
+  of its own test Chrome window (PrintWindow) before and after the fix; a human has not
+  reviewed it yet
+- **State:** built, not verified (all checks exit 0: 2,490 web tests, 438 Python tests
+  (1 skipped), typecheck, build; the box is gone here, only the team lead's laptop can
+  confirm it is the same fault)
+- **Changed:** `web/src/components/Popover.tsx`, `Tip.tsx`, `components.css`, new
+  `overlay-host.ts` and its test, `web/src/app/shell.css`, new `web/src/app/diag.ts`,
+  `web/src/main.tsx`, new `web/src/features/three/scene/gl-switches.ts` and its test,
+  `scene-root.tsx`, `docs/decisions/0017-popover-background-not-opaque.md`,
+  `docs/design/c2/built-rail-overlays-*.png`
+- **Notes:**
+  - **Reproduced.** Installed Chrome 157, a throwaway profile, `--force-device-scale-factor=1.25`,
+    CSS viewport 1522 × 731, four sites, Slip Planner: fold the rail, press "+", hover rows.
+    With `--disable-gpu-compositing` or `--use-angle=d3d9` (both report "Compositing:
+    software"), a box of the scene shows `--space` instead of the Moon: CSS x up to 326, y 62
+    to 318, growing when a row is hovered; gone when the list closes. Same in the Polar map.
+    Not seen with D3D11, OpenGL, `--disable-direct-composition`, `DelegatedCompositing` on
+    or off, or video overlays off. Chrome's own screenshot shows it too, so the fault is in
+    Chrome's compositor, not the GPU's overlay planes.
+  - **Cause and fix.** The popover is a scroller with an opaque background over a 1,570 px
+    list; the software compositor treats it as covering what is under it and gets that
+    region wrong. One at a time: a 99 % background, `overflow: visible`,
+    `scrollbar-gutter: stable` or an inner scroller each remove it; no shadow, no radius,
+    `isolation`, `contain: paint`, `translateZ(0)`, `preserveDrawingBuffer` and fresh WebGL
+    frames do not. Kept the 99 % background (docs/decisions/0017). Checked after the fix with
+    software compositing in Slip Planner and the Polar map, d3d9 and D3D11: no box.
+  - The fresh-frames mitigation (4 frames, about 8 ms each on an RTX 2060 at 1902 × 913, per
+    popover change) was built, then taken out: an A/B under the reproduction showed no effect.
+  - The portal is kept as hardening, not as the fix (the box appeared with and without it).
+  - **Diagnostic:** add `diag=1` to the address, make the box appear, press F9: a
+    self-contained `.html` downloads (canvas pixels as they are and after a forced frame,
+    the paint list, WebGL state, browser and display). Nothing is sent anywhere.
+  - **Switches**, read once at load: `gl-preserve=1`, `gl-loop=always`, `gl-aa=0`,
+    `gl-power=default`. Without them the scene is as before.
+  - To confirm on the laptop: `chrome://gpu` should say "Compositing: Software only".
+
 #### 2026-11-14 · MC testing feedback 3 · A steady bottom strip, the black box, the middle mouse button, "Enter coordinates"
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (keeping the
