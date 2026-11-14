@@ -124,6 +124,13 @@ def test_cases_match_reference_and_cover_edges():
     assert set(document) == {'format', 'generated_by', 'cases'}
     cases = document['cases']
     assert len(cases) >= 40
+    translated = [c for c in cases if 'a1_exact_seventy_translated' in c['labels']]
+    assert len(translated) == 16
+    for c in translated + [c for c in cases if 'all_three_weights_exact_seventy' in c['labels']]:
+        assert c['expected']['evaluation']['score'] == 70
+        assert c['expected']['evaluation']['status'] == 'GO'
+    boundary = next(c for c in cases if 'exact_veto_limit' in c['labels'])
+    assert not any(v['triggered'] for v in boundary['expected']['evaluation']['vetoes'].values())
     labels = set(label for case in cases for label in case['labels'])
     assert {'relay','max_dark_h_zero','slope_not_assessed','operations_sun_elevation','weights_nonunit_zero','half_hour_window_tie','first_hour','last_landing_that_fits','one_hour_too_late','im2_go','im2_caution'} <= labels
     assert {f'veto_{v}_alone' for v in ('slope','darkness','blackout','landing_dark','landing_sun_low','landing_sun_high')} <= labels

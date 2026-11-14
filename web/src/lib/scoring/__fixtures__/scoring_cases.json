@@ -661,9 +661,9 @@
             "lit_fraction": 0.5541666666666667,
             "longest_blackout_h": 99,
             "longest_dark_h": 107,
-            "sun_fraction_mean": 0.5552479166666668
+            "sun_fraction_mean": 0.5552479166666666
           },
-          "score": 16.000000000000004,
+          "score": 16.0,
           "slope_not_assessed": false,
           "status": "NO-GO",
           "utilities": {
@@ -2577,7 +2577,7 @@
             "longest_dark_h": 240,
             "sun_fraction_mean": 0.0
           },
-          "score": 41.66666666666667,
+          "score": 41.666666666667,
           "slope_not_assessed": true,
           "status": "NO-GO",
           "utilities": {
@@ -3853,7 +3853,7 @@
             "longest_dark_h": 0,
             "sun_fraction_mean": 1.0
           },
-          "score": 59.05555555555555,
+          "score": 59.055555555556,
           "slope_not_assessed": false,
           "status": "CAUTION",
           "utilities": {
@@ -5127,14 +5127,14 @@
             "lit_fraction": 1.0,
             "longest_blackout_h": 0,
             "longest_dark_h": 0,
-            "sun_fraction_mean": 0.8378504166666668
+            "sun_fraction_mean": 0.8378504166666667
           },
-          "score": 62.324764583333334,
+          "score": 62.324764583333,
           "slope_not_assessed": false,
           "status": "CAUTION",
           "utilities": {
             "comms": 1.0,
-            "power": 0.8378504166666668,
+            "power": 0.8378504166666667,
             "slope": 0.2
           },
           "vetoes": {
@@ -5767,7 +5767,7 @@
             "longest_dark_h": 193,
             "sun_fraction_mean": 0.19469
           },
-          "score": 41.66666666666667,
+          "score": 41.666666666667,
           "slope_not_assessed": true,
           "status": "NO-GO",
           "utilities": {
@@ -8317,14 +8317,14 @@
             "lit_fraction": 1.0,
             "longest_blackout_h": 81,
             "longest_dark_h": 0,
-            "sun_fraction_mean": 0.9321004166666694
+            "sun_fraction_mean": 0.9321004166666667
           },
-          "score": 40.62351458333343,
+          "score": 40.623514583333,
           "slope_not_assessed": false,
           "status": "NO-GO",
           "utilities": {
             "comms": 0.0,
-            "power": 0.9321004166666694,
+            "power": 0.9321004166666667,
             "slope": 0.2
           },
           "vetoes": {
@@ -8957,7 +8957,7 @@
             "longest_dark_h": 50,
             "sun_fraction_mean": 0.7933583333333334
           },
-          "score": 41.66666666666667,
+          "score": 41.666666666667,
           "slope_not_assessed": true,
           "status": "NO-GO",
           "utilities": {
@@ -10231,7 +10231,7 @@
             "lit_fraction": 0.25833333333333336,
             "longest_blackout_h": 0,
             "longest_dark_h": 178,
-            "sun_fraction_mean": 0.2594454166666667
+            "sun_fraction_mean": 0.25944541666666665
           },
           "score": 41.0,
           "slope_not_assessed": false,
@@ -13421,9 +13421,9 @@
             "lit_fraction": 0.07916666666666666,
             "longest_blackout_h": 73,
             "longest_dark_h": 221,
-            "sun_fraction_mean": 0.08195541666666666
+            "sun_fraction_mean": 0.08195541666666667
           },
-          "score": 16.000000000000004,
+          "score": 16.0,
           "slope_not_assessed": false,
           "status": "NO-GO",
           "utilities": {
@@ -15337,7 +15337,7 @@
             "longest_dark_h": 123,
             "sun_fraction_mean": 0.48706125
           },
-          "score": 41.66666666666667,
+          "score": 41.666666666667,
           "slope_not_assessed": true,
           "status": "NO-GO",
           "utilities": {
@@ -16611,9 +16611,9 @@
             "lit_fraction": 0.6583333333333333,
             "longest_blackout_h": 164,
             "longest_dark_h": 82,
-            "sun_fraction_mean": 0.6593670833333333
+            "sun_fraction_mean": 0.6593670833333334
           },
-          "score": 16.000000000000004,
+          "score": 16.0,
           "slope_not_assessed": false,
           "status": "NO-GO",
           "utilities": {
@@ -18527,7 +18527,7 @@
             "longest_dark_h": 240,
             "sun_fraction_mean": 0.0
           },
-          "score": 41.66666666666667,
+          "score": 41.666666666667,
           "slope_not_assessed": true,
           "status": "NO-GO",
           "utilities": {
@@ -19163,14 +19163,14 @@
             "lit_fraction": 1.0,
             "longest_blackout_h": 0,
             "longest_dark_h": 0,
-            "sun_fraction_mean": 0.9987994166666666
+            "sun_fraction_mean": 0.9987994166666667
           },
-          "score": 99.95797958333334,
+          "score": 99.957979583333,
           "slope_not_assessed": false,
           "status": "GO",
           "utilities": {
             "comms": 1.0,
-            "power": 0.9987994166666666,
+            "power": 0.9987994166666667,
             "slope": 1.0
           },
           "vetoes": {
@@ -27530,14 +27530,14 @@
             "lit_fraction": 1.0,
             "longest_blackout_h": 11,
             "longest_dark_h": 0,
-            "sun_fraction_mean": 0.9882516666666668
+            "sun_fraction_mean": 0.9882516666666666
           },
-          "score": 52.576655555555554,
+          "score": 52.576655555556,
           "slope_not_assessed": false,
           "status": "CAUTION",
           "utilities": {
             "comms": 0.07951388888888893,
-            "power": 0.9882516666666668,
+            "power": 0.9882516666666666,
             "slope": 0.4
           },
           "vetoes": {
@@ -28650,14 +28650,14 @@
             "lit_fraction": 0.5,
             "longest_blackout_h": 0,
             "longest_dark_h": 1,
-            "sun_fraction_mean": 0.49060000000000004
+            "sun_fraction_mean": 0.4906
           },
           "score": 82.171,
           "slope_not_assessed": false,
           "status": "NO-GO",
           "utilities": {
             "comms": 1.0,
-            "power": 0.49060000000000004,
+            "power": 0.4906,
             "slope": 1.0
           },
           "vetoes": {
@@ -29455,7 +29455,7 @@
             "longest_dark_h": 0,
             "sun_fraction_mean": 0.8346
           },
-          "score": 90.35166666666667,
+          "score": 90.351666666667,
           "slope_not_assessed": true,
           "status": "GO",
           "utilities": {
@@ -29775,14 +29775,14 @@
             "lit_fraction": 0.8958333333333334,
             "longest_blackout_h": 239,
             "longest_dark_h": 25,
-            "sun_fraction_mean": 0.8852908333333337
+            "sun_fraction_mean": 0.8852908333333334
           },
-          "score": 34.71659250000001,
+          "score": 34.7165925,
           "slope_not_assessed": false,
           "status": "CAUTION",
           "utilities": {
             "comms": 0.0031708333333333332,
-            "power": 0.8631585625000003,
+            "power": 0.8631585625,
             "slope": 0.4
           },
           "vetoes": {
@@ -31313,9 +31313,9 @@
             "lit_fraction": 0.8958333333333334,
             "longest_blackout_h": 239,
             "longest_dark_h": 25,
-            "sun_fraction_mean": 0.8852908333333337
+            "sun_fraction_mean": 0.8852908333333334
           },
-          "score": 8.000000000000002,
+          "score": 8.0,
           "slope_not_assessed": false,
           "status": "NO-GO",
           "utilities": {
@@ -31950,9 +31950,9 @@
             "lit_fraction": 0.6333333333333333,
             "longest_blackout_h": 34,
             "longest_dark_h": 88,
-            "sun_fraction_mean": 0.6999158333333332
+            "sun_fraction_mean": 0.6999158333333333
           },
-          "score": 8.000000000000002,
+          "score": 8.0,
           "slope_not_assessed": false,
           "status": "NO-GO",
           "utilities": {
@@ -32587,9 +32587,9 @@
             "lit_fraction": 0.6916666666666667,
             "longest_blackout_h": 10,
             "longest_dark_h": 74,
-            "sun_fraction_mean": 0.7518741666666667
+            "sun_fraction_mean": 0.7518741666666666
           },
-          "score": 11.993055555555557,
+          "score": 11.993055555556,
           "slope_not_assessed": false,
           "status": "NO-GO",
           "utilities": {
@@ -33224,9 +33224,9 @@
             "lit_fraction": 0.8958333333333334,
             "longest_blackout_h": 239,
             "longest_dark_h": 25,
-            "sun_fraction_mean": 0.8852908333333337
+            "sun_fraction_mean": 0.8852908333333334
           },
-          "score": 8.000000000000002,
+          "score": 8.0,
           "slope_not_assessed": false,
           "status": "NO-GO",
           "utilities": {
@@ -33837,6 +33837,2884 @@
       "series_file": "sites/fixture_wide/series.bin",
       "site_id": "fixture_wide",
       "slope_deg": 9
+    },
+    {
+      "countdowns": {
+        "earthrise": null,
+        "earthset": null,
+        "sunrise": null,
+        "sunset": null
+      },
+      "current_hour": 0,
+      "expected": {
+        "countdowns": {
+          "earthrise": null,
+          "earthset": null,
+          "sunrise": null,
+          "sunset": null
+        },
+        "evaluation": {
+          "metrics": {
+            "landing_lit": true,
+            "landing_sun_el_deg": 1.0,
+            "link_fraction": 1.0,
+            "lit_fraction": 1.0,
+            "longest_blackout_h": 0,
+            "longest_dark_h": 0,
+            "sun_fraction_mean": 0.7
+          },
+          "score": 70.0,
+          "slope_not_assessed": true,
+          "status": "GO",
+          "utilities": {
+            "comms": 1.0,
+            "power": 0.7,
+            "slope": null
+          },
+          "vetoes": {
+            "blackout": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "darkness": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "landing_dark": {
+              "limit": true,
+              "measured": true,
+              "triggered": false
+            },
+            "landing_sun_high": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "landing_sun_low": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "slope": {
+              "limit": 10,
+              "measured": null,
+              "triggered": false
+            }
+          }
+        },
+        "link": [
+          true
+        ],
+        "lit": [
+          true
+        ],
+        "window_length": 1
+      },
+      "hour_range": [
+        0,
+        16
+      ],
+      "labels": [
+        "a1_exact_seventy_translated",
+        "a1_landing_0"
+      ],
+      "landing_hour": 0,
+      "landing_utc": "2026-01-01T00:00:00Z",
+      "profile": {
+        "antenna_mask_deg": 1.0,
+        "based_on": "Intuitive Machines IM-2 Athena",
+        "duration_days": 0.041666666666666664,
+        "id": "im2_athena",
+        "landing_sun_el_max_deg": null,
+        "landing_sun_el_min_deg": null,
+        "max_blackout_h": 0.0,
+        "max_dark_h": 0.0,
+        "max_slope_deg": 10.0,
+        "min_sun_fraction": 0.5,
+        "name": "IM-2 Athena",
+        "ops_sun_el_min_deg": null,
+        "provenance": {
+          "antenna_mask_deg": {
+            "kind": "assumed",
+            "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+          },
+          "duration_days": {
+            "kind": "sourced",
+            "quote": "Surface Operations: Approximately 10 days",
+            "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf"
+          },
+          "landing_sun_el_max_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "landing_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "max_blackout_h": {
+            "kind": "assumed",
+            "reason": "No figures are published."
+          },
+          "max_dark_h": {
+            "kind": "assumed",
+            "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+          },
+          "max_slope_deg": {
+            "kind": "assumed",
+            "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+          },
+          "min_sun_fraction": {
+            "kind": "assumed",
+            "reason": "0.5 (half the disc) is assumed for all."
+          },
+          "ops_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No operational Sun elevation limit is specified for this preset."
+          },
+          "relay_available": {
+            "kind": "assumed",
+            "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+          },
+          "slope_ideal_deg": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          },
+          "weights": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          }
+        },
+        "relay_available": false,
+        "slope_ideal_deg": 0.0,
+        "weights": {
+          "comms": 0.0,
+          "power": 1.0,
+          "slope": 0.0
+        }
+      },
+      "series_file": "scoring/boundary/series.bin",
+      "site_id": "fixture_ridge",
+      "slope_deg": null
+    },
+    {
+      "countdowns": {
+        "earthrise": null,
+        "earthset": null,
+        "sunrise": null,
+        "sunset": null
+      },
+      "current_hour": 0,
+      "expected": {
+        "countdowns": {
+          "earthrise": null,
+          "earthset": null,
+          "sunrise": null,
+          "sunset": null
+        },
+        "evaluation": {
+          "metrics": {
+            "landing_lit": true,
+            "landing_sun_el_deg": 1.0,
+            "link_fraction": 1.0,
+            "lit_fraction": 1.0,
+            "longest_blackout_h": 0,
+            "longest_dark_h": 0,
+            "sun_fraction_mean": 0.7
+          },
+          "score": 70.0,
+          "slope_not_assessed": true,
+          "status": "GO",
+          "utilities": {
+            "comms": 1.0,
+            "power": 0.7,
+            "slope": null
+          },
+          "vetoes": {
+            "blackout": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "darkness": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "landing_dark": {
+              "limit": true,
+              "measured": true,
+              "triggered": false
+            },
+            "landing_sun_high": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "landing_sun_low": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "slope": {
+              "limit": 10,
+              "measured": null,
+              "triggered": false
+            }
+          }
+        },
+        "link": [
+          true
+        ],
+        "lit": [
+          true
+        ],
+        "window_length": 1
+      },
+      "hour_range": [
+        0,
+        16
+      ],
+      "labels": [
+        "a1_exact_seventy_translated",
+        "a1_landing_1"
+      ],
+      "landing_hour": 1,
+      "landing_utc": "2026-01-01T01:00:00Z",
+      "profile": {
+        "antenna_mask_deg": 1.0,
+        "based_on": "Intuitive Machines IM-2 Athena",
+        "duration_days": 0.041666666666666664,
+        "id": "im2_athena",
+        "landing_sun_el_max_deg": null,
+        "landing_sun_el_min_deg": null,
+        "max_blackout_h": 0.0,
+        "max_dark_h": 0.0,
+        "max_slope_deg": 10.0,
+        "min_sun_fraction": 0.5,
+        "name": "IM-2 Athena",
+        "ops_sun_el_min_deg": null,
+        "provenance": {
+          "antenna_mask_deg": {
+            "kind": "assumed",
+            "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+          },
+          "duration_days": {
+            "kind": "sourced",
+            "quote": "Surface Operations: Approximately 10 days",
+            "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf"
+          },
+          "landing_sun_el_max_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "landing_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "max_blackout_h": {
+            "kind": "assumed",
+            "reason": "No figures are published."
+          },
+          "max_dark_h": {
+            "kind": "assumed",
+            "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+          },
+          "max_slope_deg": {
+            "kind": "assumed",
+            "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+          },
+          "min_sun_fraction": {
+            "kind": "assumed",
+            "reason": "0.5 (half the disc) is assumed for all."
+          },
+          "ops_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No operational Sun elevation limit is specified for this preset."
+          },
+          "relay_available": {
+            "kind": "assumed",
+            "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+          },
+          "slope_ideal_deg": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          },
+          "weights": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          }
+        },
+        "relay_available": false,
+        "slope_ideal_deg": 0.0,
+        "weights": {
+          "comms": 0.0,
+          "power": 1.0,
+          "slope": 0.0
+        }
+      },
+      "series_file": "scoring/boundary/series.bin",
+      "site_id": "fixture_ridge",
+      "slope_deg": null
+    },
+    {
+      "countdowns": {
+        "earthrise": null,
+        "earthset": null,
+        "sunrise": null,
+        "sunset": null
+      },
+      "current_hour": 0,
+      "expected": {
+        "countdowns": {
+          "earthrise": null,
+          "earthset": null,
+          "sunrise": null,
+          "sunset": null
+        },
+        "evaluation": {
+          "metrics": {
+            "landing_lit": true,
+            "landing_sun_el_deg": 1.0,
+            "link_fraction": 1.0,
+            "lit_fraction": 1.0,
+            "longest_blackout_h": 0,
+            "longest_dark_h": 0,
+            "sun_fraction_mean": 0.7
+          },
+          "score": 70.0,
+          "slope_not_assessed": true,
+          "status": "GO",
+          "utilities": {
+            "comms": 1.0,
+            "power": 0.7,
+            "slope": null
+          },
+          "vetoes": {
+            "blackout": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "darkness": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "landing_dark": {
+              "limit": true,
+              "measured": true,
+              "triggered": false
+            },
+            "landing_sun_high": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "landing_sun_low": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "slope": {
+              "limit": 10,
+              "measured": null,
+              "triggered": false
+            }
+          }
+        },
+        "link": [
+          true
+        ],
+        "lit": [
+          true
+        ],
+        "window_length": 1
+      },
+      "hour_range": [
+        0,
+        16
+      ],
+      "labels": [
+        "a1_exact_seventy_translated",
+        "a1_landing_2"
+      ],
+      "landing_hour": 2,
+      "landing_utc": "2026-01-01T02:00:00Z",
+      "profile": {
+        "antenna_mask_deg": 1.0,
+        "based_on": "Intuitive Machines IM-2 Athena",
+        "duration_days": 0.041666666666666664,
+        "id": "im2_athena",
+        "landing_sun_el_max_deg": null,
+        "landing_sun_el_min_deg": null,
+        "max_blackout_h": 0.0,
+        "max_dark_h": 0.0,
+        "max_slope_deg": 10.0,
+        "min_sun_fraction": 0.5,
+        "name": "IM-2 Athena",
+        "ops_sun_el_min_deg": null,
+        "provenance": {
+          "antenna_mask_deg": {
+            "kind": "assumed",
+            "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+          },
+          "duration_days": {
+            "kind": "sourced",
+            "quote": "Surface Operations: Approximately 10 days",
+            "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf"
+          },
+          "landing_sun_el_max_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "landing_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "max_blackout_h": {
+            "kind": "assumed",
+            "reason": "No figures are published."
+          },
+          "max_dark_h": {
+            "kind": "assumed",
+            "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+          },
+          "max_slope_deg": {
+            "kind": "assumed",
+            "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+          },
+          "min_sun_fraction": {
+            "kind": "assumed",
+            "reason": "0.5 (half the disc) is assumed for all."
+          },
+          "ops_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No operational Sun elevation limit is specified for this preset."
+          },
+          "relay_available": {
+            "kind": "assumed",
+            "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+          },
+          "slope_ideal_deg": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          },
+          "weights": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          }
+        },
+        "relay_available": false,
+        "slope_ideal_deg": 0.0,
+        "weights": {
+          "comms": 0.0,
+          "power": 1.0,
+          "slope": 0.0
+        }
+      },
+      "series_file": "scoring/boundary/series.bin",
+      "site_id": "fixture_ridge",
+      "slope_deg": null
+    },
+    {
+      "countdowns": {
+        "earthrise": null,
+        "earthset": null,
+        "sunrise": null,
+        "sunset": null
+      },
+      "current_hour": 0,
+      "expected": {
+        "countdowns": {
+          "earthrise": null,
+          "earthset": null,
+          "sunrise": null,
+          "sunset": null
+        },
+        "evaluation": {
+          "metrics": {
+            "landing_lit": true,
+            "landing_sun_el_deg": 1.0,
+            "link_fraction": 1.0,
+            "lit_fraction": 1.0,
+            "longest_blackout_h": 0,
+            "longest_dark_h": 0,
+            "sun_fraction_mean": 0.7
+          },
+          "score": 70.0,
+          "slope_not_assessed": true,
+          "status": "GO",
+          "utilities": {
+            "comms": 1.0,
+            "power": 0.7,
+            "slope": null
+          },
+          "vetoes": {
+            "blackout": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "darkness": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "landing_dark": {
+              "limit": true,
+              "measured": true,
+              "triggered": false
+            },
+            "landing_sun_high": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "landing_sun_low": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "slope": {
+              "limit": 10,
+              "measured": null,
+              "triggered": false
+            }
+          }
+        },
+        "link": [
+          true
+        ],
+        "lit": [
+          true
+        ],
+        "window_length": 1
+      },
+      "hour_range": [
+        0,
+        16
+      ],
+      "labels": [
+        "a1_exact_seventy_translated",
+        "a1_landing_3"
+      ],
+      "landing_hour": 3,
+      "landing_utc": "2026-01-01T03:00:00Z",
+      "profile": {
+        "antenna_mask_deg": 1.0,
+        "based_on": "Intuitive Machines IM-2 Athena",
+        "duration_days": 0.041666666666666664,
+        "id": "im2_athena",
+        "landing_sun_el_max_deg": null,
+        "landing_sun_el_min_deg": null,
+        "max_blackout_h": 0.0,
+        "max_dark_h": 0.0,
+        "max_slope_deg": 10.0,
+        "min_sun_fraction": 0.5,
+        "name": "IM-2 Athena",
+        "ops_sun_el_min_deg": null,
+        "provenance": {
+          "antenna_mask_deg": {
+            "kind": "assumed",
+            "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+          },
+          "duration_days": {
+            "kind": "sourced",
+            "quote": "Surface Operations: Approximately 10 days",
+            "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf"
+          },
+          "landing_sun_el_max_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "landing_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "max_blackout_h": {
+            "kind": "assumed",
+            "reason": "No figures are published."
+          },
+          "max_dark_h": {
+            "kind": "assumed",
+            "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+          },
+          "max_slope_deg": {
+            "kind": "assumed",
+            "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+          },
+          "min_sun_fraction": {
+            "kind": "assumed",
+            "reason": "0.5 (half the disc) is assumed for all."
+          },
+          "ops_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No operational Sun elevation limit is specified for this preset."
+          },
+          "relay_available": {
+            "kind": "assumed",
+            "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+          },
+          "slope_ideal_deg": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          },
+          "weights": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          }
+        },
+        "relay_available": false,
+        "slope_ideal_deg": 0.0,
+        "weights": {
+          "comms": 0.0,
+          "power": 1.0,
+          "slope": 0.0
+        }
+      },
+      "series_file": "scoring/boundary/series.bin",
+      "site_id": "fixture_ridge",
+      "slope_deg": null
+    },
+    {
+      "countdowns": {
+        "earthrise": null,
+        "earthset": null,
+        "sunrise": null,
+        "sunset": null
+      },
+      "current_hour": 0,
+      "expected": {
+        "countdowns": {
+          "earthrise": null,
+          "earthset": null,
+          "sunrise": null,
+          "sunset": null
+        },
+        "evaluation": {
+          "metrics": {
+            "landing_lit": true,
+            "landing_sun_el_deg": 1.0,
+            "link_fraction": 1.0,
+            "lit_fraction": 1.0,
+            "longest_blackout_h": 0,
+            "longest_dark_h": 0,
+            "sun_fraction_mean": 0.7
+          },
+          "score": 70.0,
+          "slope_not_assessed": true,
+          "status": "GO",
+          "utilities": {
+            "comms": 1.0,
+            "power": 0.7,
+            "slope": null
+          },
+          "vetoes": {
+            "blackout": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "darkness": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "landing_dark": {
+              "limit": true,
+              "measured": true,
+              "triggered": false
+            },
+            "landing_sun_high": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "landing_sun_low": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "slope": {
+              "limit": 10,
+              "measured": null,
+              "triggered": false
+            }
+          }
+        },
+        "link": [
+          true
+        ],
+        "lit": [
+          true
+        ],
+        "window_length": 1
+      },
+      "hour_range": [
+        0,
+        16
+      ],
+      "labels": [
+        "a1_exact_seventy_translated",
+        "a1_landing_4"
+      ],
+      "landing_hour": 4,
+      "landing_utc": "2026-01-01T04:00:00Z",
+      "profile": {
+        "antenna_mask_deg": 1.0,
+        "based_on": "Intuitive Machines IM-2 Athena",
+        "duration_days": 0.041666666666666664,
+        "id": "im2_athena",
+        "landing_sun_el_max_deg": null,
+        "landing_sun_el_min_deg": null,
+        "max_blackout_h": 0.0,
+        "max_dark_h": 0.0,
+        "max_slope_deg": 10.0,
+        "min_sun_fraction": 0.5,
+        "name": "IM-2 Athena",
+        "ops_sun_el_min_deg": null,
+        "provenance": {
+          "antenna_mask_deg": {
+            "kind": "assumed",
+            "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+          },
+          "duration_days": {
+            "kind": "sourced",
+            "quote": "Surface Operations: Approximately 10 days",
+            "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf"
+          },
+          "landing_sun_el_max_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "landing_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "max_blackout_h": {
+            "kind": "assumed",
+            "reason": "No figures are published."
+          },
+          "max_dark_h": {
+            "kind": "assumed",
+            "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+          },
+          "max_slope_deg": {
+            "kind": "assumed",
+            "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+          },
+          "min_sun_fraction": {
+            "kind": "assumed",
+            "reason": "0.5 (half the disc) is assumed for all."
+          },
+          "ops_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No operational Sun elevation limit is specified for this preset."
+          },
+          "relay_available": {
+            "kind": "assumed",
+            "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+          },
+          "slope_ideal_deg": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          },
+          "weights": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          }
+        },
+        "relay_available": false,
+        "slope_ideal_deg": 0.0,
+        "weights": {
+          "comms": 0.0,
+          "power": 1.0,
+          "slope": 0.0
+        }
+      },
+      "series_file": "scoring/boundary/series.bin",
+      "site_id": "fixture_ridge",
+      "slope_deg": null
+    },
+    {
+      "countdowns": {
+        "earthrise": null,
+        "earthset": null,
+        "sunrise": null,
+        "sunset": null
+      },
+      "current_hour": 0,
+      "expected": {
+        "countdowns": {
+          "earthrise": null,
+          "earthset": null,
+          "sunrise": null,
+          "sunset": null
+        },
+        "evaluation": {
+          "metrics": {
+            "landing_lit": true,
+            "landing_sun_el_deg": 1.0,
+            "link_fraction": 1.0,
+            "lit_fraction": 1.0,
+            "longest_blackout_h": 0,
+            "longest_dark_h": 0,
+            "sun_fraction_mean": 0.7
+          },
+          "score": 70.0,
+          "slope_not_assessed": true,
+          "status": "GO",
+          "utilities": {
+            "comms": 1.0,
+            "power": 0.7,
+            "slope": null
+          },
+          "vetoes": {
+            "blackout": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "darkness": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "landing_dark": {
+              "limit": true,
+              "measured": true,
+              "triggered": false
+            },
+            "landing_sun_high": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "landing_sun_low": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "slope": {
+              "limit": 10,
+              "measured": null,
+              "triggered": false
+            }
+          }
+        },
+        "link": [
+          true
+        ],
+        "lit": [
+          true
+        ],
+        "window_length": 1
+      },
+      "hour_range": [
+        0,
+        16
+      ],
+      "labels": [
+        "a1_exact_seventy_translated",
+        "a1_landing_5"
+      ],
+      "landing_hour": 5,
+      "landing_utc": "2026-01-01T05:00:00Z",
+      "profile": {
+        "antenna_mask_deg": 1.0,
+        "based_on": "Intuitive Machines IM-2 Athena",
+        "duration_days": 0.041666666666666664,
+        "id": "im2_athena",
+        "landing_sun_el_max_deg": null,
+        "landing_sun_el_min_deg": null,
+        "max_blackout_h": 0.0,
+        "max_dark_h": 0.0,
+        "max_slope_deg": 10.0,
+        "min_sun_fraction": 0.5,
+        "name": "IM-2 Athena",
+        "ops_sun_el_min_deg": null,
+        "provenance": {
+          "antenna_mask_deg": {
+            "kind": "assumed",
+            "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+          },
+          "duration_days": {
+            "kind": "sourced",
+            "quote": "Surface Operations: Approximately 10 days",
+            "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf"
+          },
+          "landing_sun_el_max_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "landing_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "max_blackout_h": {
+            "kind": "assumed",
+            "reason": "No figures are published."
+          },
+          "max_dark_h": {
+            "kind": "assumed",
+            "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+          },
+          "max_slope_deg": {
+            "kind": "assumed",
+            "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+          },
+          "min_sun_fraction": {
+            "kind": "assumed",
+            "reason": "0.5 (half the disc) is assumed for all."
+          },
+          "ops_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No operational Sun elevation limit is specified for this preset."
+          },
+          "relay_available": {
+            "kind": "assumed",
+            "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+          },
+          "slope_ideal_deg": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          },
+          "weights": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          }
+        },
+        "relay_available": false,
+        "slope_ideal_deg": 0.0,
+        "weights": {
+          "comms": 0.0,
+          "power": 1.0,
+          "slope": 0.0
+        }
+      },
+      "series_file": "scoring/boundary/series.bin",
+      "site_id": "fixture_ridge",
+      "slope_deg": null
+    },
+    {
+      "countdowns": {
+        "earthrise": null,
+        "earthset": null,
+        "sunrise": null,
+        "sunset": null
+      },
+      "current_hour": 0,
+      "expected": {
+        "countdowns": {
+          "earthrise": null,
+          "earthset": null,
+          "sunrise": null,
+          "sunset": null
+        },
+        "evaluation": {
+          "metrics": {
+            "landing_lit": true,
+            "landing_sun_el_deg": 1.0,
+            "link_fraction": 1.0,
+            "lit_fraction": 1.0,
+            "longest_blackout_h": 0,
+            "longest_dark_h": 0,
+            "sun_fraction_mean": 0.7
+          },
+          "score": 70.0,
+          "slope_not_assessed": true,
+          "status": "GO",
+          "utilities": {
+            "comms": 1.0,
+            "power": 0.7,
+            "slope": null
+          },
+          "vetoes": {
+            "blackout": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "darkness": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "landing_dark": {
+              "limit": true,
+              "measured": true,
+              "triggered": false
+            },
+            "landing_sun_high": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "landing_sun_low": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "slope": {
+              "limit": 10,
+              "measured": null,
+              "triggered": false
+            }
+          }
+        },
+        "link": [
+          true
+        ],
+        "lit": [
+          true
+        ],
+        "window_length": 1
+      },
+      "hour_range": [
+        0,
+        16
+      ],
+      "labels": [
+        "a1_exact_seventy_translated",
+        "a1_landing_6"
+      ],
+      "landing_hour": 6,
+      "landing_utc": "2026-01-01T06:00:00Z",
+      "profile": {
+        "antenna_mask_deg": 1.0,
+        "based_on": "Intuitive Machines IM-2 Athena",
+        "duration_days": 0.041666666666666664,
+        "id": "im2_athena",
+        "landing_sun_el_max_deg": null,
+        "landing_sun_el_min_deg": null,
+        "max_blackout_h": 0.0,
+        "max_dark_h": 0.0,
+        "max_slope_deg": 10.0,
+        "min_sun_fraction": 0.5,
+        "name": "IM-2 Athena",
+        "ops_sun_el_min_deg": null,
+        "provenance": {
+          "antenna_mask_deg": {
+            "kind": "assumed",
+            "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+          },
+          "duration_days": {
+            "kind": "sourced",
+            "quote": "Surface Operations: Approximately 10 days",
+            "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf"
+          },
+          "landing_sun_el_max_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "landing_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "max_blackout_h": {
+            "kind": "assumed",
+            "reason": "No figures are published."
+          },
+          "max_dark_h": {
+            "kind": "assumed",
+            "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+          },
+          "max_slope_deg": {
+            "kind": "assumed",
+            "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+          },
+          "min_sun_fraction": {
+            "kind": "assumed",
+            "reason": "0.5 (half the disc) is assumed for all."
+          },
+          "ops_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No operational Sun elevation limit is specified for this preset."
+          },
+          "relay_available": {
+            "kind": "assumed",
+            "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+          },
+          "slope_ideal_deg": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          },
+          "weights": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          }
+        },
+        "relay_available": false,
+        "slope_ideal_deg": 0.0,
+        "weights": {
+          "comms": 0.0,
+          "power": 1.0,
+          "slope": 0.0
+        }
+      },
+      "series_file": "scoring/boundary/series.bin",
+      "site_id": "fixture_ridge",
+      "slope_deg": null
+    },
+    {
+      "countdowns": {
+        "earthrise": null,
+        "earthset": null,
+        "sunrise": null,
+        "sunset": null
+      },
+      "current_hour": 0,
+      "expected": {
+        "countdowns": {
+          "earthrise": null,
+          "earthset": null,
+          "sunrise": null,
+          "sunset": null
+        },
+        "evaluation": {
+          "metrics": {
+            "landing_lit": true,
+            "landing_sun_el_deg": 1.0,
+            "link_fraction": 1.0,
+            "lit_fraction": 1.0,
+            "longest_blackout_h": 0,
+            "longest_dark_h": 0,
+            "sun_fraction_mean": 0.7
+          },
+          "score": 70.0,
+          "slope_not_assessed": true,
+          "status": "GO",
+          "utilities": {
+            "comms": 1.0,
+            "power": 0.7,
+            "slope": null
+          },
+          "vetoes": {
+            "blackout": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "darkness": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "landing_dark": {
+              "limit": true,
+              "measured": true,
+              "triggered": false
+            },
+            "landing_sun_high": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "landing_sun_low": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "slope": {
+              "limit": 10,
+              "measured": null,
+              "triggered": false
+            }
+          }
+        },
+        "link": [
+          true
+        ],
+        "lit": [
+          true
+        ],
+        "window_length": 1
+      },
+      "hour_range": [
+        0,
+        16
+      ],
+      "labels": [
+        "a1_exact_seventy_translated",
+        "a1_landing_7"
+      ],
+      "landing_hour": 7,
+      "landing_utc": "2026-01-01T07:00:00Z",
+      "profile": {
+        "antenna_mask_deg": 1.0,
+        "based_on": "Intuitive Machines IM-2 Athena",
+        "duration_days": 0.041666666666666664,
+        "id": "im2_athena",
+        "landing_sun_el_max_deg": null,
+        "landing_sun_el_min_deg": null,
+        "max_blackout_h": 0.0,
+        "max_dark_h": 0.0,
+        "max_slope_deg": 10.0,
+        "min_sun_fraction": 0.5,
+        "name": "IM-2 Athena",
+        "ops_sun_el_min_deg": null,
+        "provenance": {
+          "antenna_mask_deg": {
+            "kind": "assumed",
+            "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+          },
+          "duration_days": {
+            "kind": "sourced",
+            "quote": "Surface Operations: Approximately 10 days",
+            "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf"
+          },
+          "landing_sun_el_max_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "landing_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "max_blackout_h": {
+            "kind": "assumed",
+            "reason": "No figures are published."
+          },
+          "max_dark_h": {
+            "kind": "assumed",
+            "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+          },
+          "max_slope_deg": {
+            "kind": "assumed",
+            "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+          },
+          "min_sun_fraction": {
+            "kind": "assumed",
+            "reason": "0.5 (half the disc) is assumed for all."
+          },
+          "ops_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No operational Sun elevation limit is specified for this preset."
+          },
+          "relay_available": {
+            "kind": "assumed",
+            "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+          },
+          "slope_ideal_deg": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          },
+          "weights": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          }
+        },
+        "relay_available": false,
+        "slope_ideal_deg": 0.0,
+        "weights": {
+          "comms": 0.0,
+          "power": 1.0,
+          "slope": 0.0
+        }
+      },
+      "series_file": "scoring/boundary/series.bin",
+      "site_id": "fixture_ridge",
+      "slope_deg": null
+    },
+    {
+      "countdowns": {
+        "earthrise": null,
+        "earthset": null,
+        "sunrise": null,
+        "sunset": null
+      },
+      "current_hour": 0,
+      "expected": {
+        "countdowns": {
+          "earthrise": null,
+          "earthset": null,
+          "sunrise": null,
+          "sunset": null
+        },
+        "evaluation": {
+          "metrics": {
+            "landing_lit": true,
+            "landing_sun_el_deg": 1.0,
+            "link_fraction": 1.0,
+            "lit_fraction": 1.0,
+            "longest_blackout_h": 0,
+            "longest_dark_h": 0,
+            "sun_fraction_mean": 0.7
+          },
+          "score": 70.0,
+          "slope_not_assessed": true,
+          "status": "GO",
+          "utilities": {
+            "comms": 1.0,
+            "power": 0.7,
+            "slope": null
+          },
+          "vetoes": {
+            "blackout": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "darkness": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "landing_dark": {
+              "limit": true,
+              "measured": true,
+              "triggered": false
+            },
+            "landing_sun_high": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "landing_sun_low": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "slope": {
+              "limit": 10,
+              "measured": null,
+              "triggered": false
+            }
+          }
+        },
+        "link": [
+          true
+        ],
+        "lit": [
+          true
+        ],
+        "window_length": 1
+      },
+      "hour_range": [
+        0,
+        16
+      ],
+      "labels": [
+        "a1_exact_seventy_translated",
+        "a1_landing_8"
+      ],
+      "landing_hour": 8,
+      "landing_utc": "2026-01-01T08:00:00Z",
+      "profile": {
+        "antenna_mask_deg": 1.0,
+        "based_on": "Intuitive Machines IM-2 Athena",
+        "duration_days": 0.041666666666666664,
+        "id": "im2_athena",
+        "landing_sun_el_max_deg": null,
+        "landing_sun_el_min_deg": null,
+        "max_blackout_h": 0.0,
+        "max_dark_h": 0.0,
+        "max_slope_deg": 10.0,
+        "min_sun_fraction": 0.5,
+        "name": "IM-2 Athena",
+        "ops_sun_el_min_deg": null,
+        "provenance": {
+          "antenna_mask_deg": {
+            "kind": "assumed",
+            "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+          },
+          "duration_days": {
+            "kind": "sourced",
+            "quote": "Surface Operations: Approximately 10 days",
+            "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf"
+          },
+          "landing_sun_el_max_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "landing_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "max_blackout_h": {
+            "kind": "assumed",
+            "reason": "No figures are published."
+          },
+          "max_dark_h": {
+            "kind": "assumed",
+            "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+          },
+          "max_slope_deg": {
+            "kind": "assumed",
+            "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+          },
+          "min_sun_fraction": {
+            "kind": "assumed",
+            "reason": "0.5 (half the disc) is assumed for all."
+          },
+          "ops_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No operational Sun elevation limit is specified for this preset."
+          },
+          "relay_available": {
+            "kind": "assumed",
+            "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+          },
+          "slope_ideal_deg": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          },
+          "weights": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          }
+        },
+        "relay_available": false,
+        "slope_ideal_deg": 0.0,
+        "weights": {
+          "comms": 0.0,
+          "power": 1.0,
+          "slope": 0.0
+        }
+      },
+      "series_file": "scoring/boundary/series.bin",
+      "site_id": "fixture_ridge",
+      "slope_deg": null
+    },
+    {
+      "countdowns": {
+        "earthrise": null,
+        "earthset": null,
+        "sunrise": null,
+        "sunset": null
+      },
+      "current_hour": 0,
+      "expected": {
+        "countdowns": {
+          "earthrise": null,
+          "earthset": null,
+          "sunrise": null,
+          "sunset": null
+        },
+        "evaluation": {
+          "metrics": {
+            "landing_lit": true,
+            "landing_sun_el_deg": 1.0,
+            "link_fraction": 1.0,
+            "lit_fraction": 1.0,
+            "longest_blackout_h": 0,
+            "longest_dark_h": 0,
+            "sun_fraction_mean": 0.7
+          },
+          "score": 70.0,
+          "slope_not_assessed": true,
+          "status": "GO",
+          "utilities": {
+            "comms": 1.0,
+            "power": 0.7,
+            "slope": null
+          },
+          "vetoes": {
+            "blackout": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "darkness": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "landing_dark": {
+              "limit": true,
+              "measured": true,
+              "triggered": false
+            },
+            "landing_sun_high": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "landing_sun_low": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "slope": {
+              "limit": 10,
+              "measured": null,
+              "triggered": false
+            }
+          }
+        },
+        "link": [
+          true
+        ],
+        "lit": [
+          true
+        ],
+        "window_length": 1
+      },
+      "hour_range": [
+        0,
+        16
+      ],
+      "labels": [
+        "a1_exact_seventy_translated",
+        "a1_landing_9"
+      ],
+      "landing_hour": 9,
+      "landing_utc": "2026-01-01T09:00:00Z",
+      "profile": {
+        "antenna_mask_deg": 1.0,
+        "based_on": "Intuitive Machines IM-2 Athena",
+        "duration_days": 0.041666666666666664,
+        "id": "im2_athena",
+        "landing_sun_el_max_deg": null,
+        "landing_sun_el_min_deg": null,
+        "max_blackout_h": 0.0,
+        "max_dark_h": 0.0,
+        "max_slope_deg": 10.0,
+        "min_sun_fraction": 0.5,
+        "name": "IM-2 Athena",
+        "ops_sun_el_min_deg": null,
+        "provenance": {
+          "antenna_mask_deg": {
+            "kind": "assumed",
+            "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+          },
+          "duration_days": {
+            "kind": "sourced",
+            "quote": "Surface Operations: Approximately 10 days",
+            "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf"
+          },
+          "landing_sun_el_max_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "landing_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "max_blackout_h": {
+            "kind": "assumed",
+            "reason": "No figures are published."
+          },
+          "max_dark_h": {
+            "kind": "assumed",
+            "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+          },
+          "max_slope_deg": {
+            "kind": "assumed",
+            "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+          },
+          "min_sun_fraction": {
+            "kind": "assumed",
+            "reason": "0.5 (half the disc) is assumed for all."
+          },
+          "ops_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No operational Sun elevation limit is specified for this preset."
+          },
+          "relay_available": {
+            "kind": "assumed",
+            "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+          },
+          "slope_ideal_deg": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          },
+          "weights": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          }
+        },
+        "relay_available": false,
+        "slope_ideal_deg": 0.0,
+        "weights": {
+          "comms": 0.0,
+          "power": 1.0,
+          "slope": 0.0
+        }
+      },
+      "series_file": "scoring/boundary/series.bin",
+      "site_id": "fixture_ridge",
+      "slope_deg": null
+    },
+    {
+      "countdowns": {
+        "earthrise": null,
+        "earthset": null,
+        "sunrise": null,
+        "sunset": null
+      },
+      "current_hour": 0,
+      "expected": {
+        "countdowns": {
+          "earthrise": null,
+          "earthset": null,
+          "sunrise": null,
+          "sunset": null
+        },
+        "evaluation": {
+          "metrics": {
+            "landing_lit": true,
+            "landing_sun_el_deg": 1.0,
+            "link_fraction": 1.0,
+            "lit_fraction": 1.0,
+            "longest_blackout_h": 0,
+            "longest_dark_h": 0,
+            "sun_fraction_mean": 0.7
+          },
+          "score": 70.0,
+          "slope_not_assessed": true,
+          "status": "GO",
+          "utilities": {
+            "comms": 1.0,
+            "power": 0.7,
+            "slope": null
+          },
+          "vetoes": {
+            "blackout": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "darkness": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "landing_dark": {
+              "limit": true,
+              "measured": true,
+              "triggered": false
+            },
+            "landing_sun_high": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "landing_sun_low": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "slope": {
+              "limit": 10,
+              "measured": null,
+              "triggered": false
+            }
+          }
+        },
+        "link": [
+          true
+        ],
+        "lit": [
+          true
+        ],
+        "window_length": 1
+      },
+      "hour_range": [
+        0,
+        16
+      ],
+      "labels": [
+        "a1_exact_seventy_translated",
+        "a1_landing_10"
+      ],
+      "landing_hour": 10,
+      "landing_utc": "2026-01-01T10:00:00Z",
+      "profile": {
+        "antenna_mask_deg": 1.0,
+        "based_on": "Intuitive Machines IM-2 Athena",
+        "duration_days": 0.041666666666666664,
+        "id": "im2_athena",
+        "landing_sun_el_max_deg": null,
+        "landing_sun_el_min_deg": null,
+        "max_blackout_h": 0.0,
+        "max_dark_h": 0.0,
+        "max_slope_deg": 10.0,
+        "min_sun_fraction": 0.5,
+        "name": "IM-2 Athena",
+        "ops_sun_el_min_deg": null,
+        "provenance": {
+          "antenna_mask_deg": {
+            "kind": "assumed",
+            "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+          },
+          "duration_days": {
+            "kind": "sourced",
+            "quote": "Surface Operations: Approximately 10 days",
+            "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf"
+          },
+          "landing_sun_el_max_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "landing_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "max_blackout_h": {
+            "kind": "assumed",
+            "reason": "No figures are published."
+          },
+          "max_dark_h": {
+            "kind": "assumed",
+            "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+          },
+          "max_slope_deg": {
+            "kind": "assumed",
+            "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+          },
+          "min_sun_fraction": {
+            "kind": "assumed",
+            "reason": "0.5 (half the disc) is assumed for all."
+          },
+          "ops_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No operational Sun elevation limit is specified for this preset."
+          },
+          "relay_available": {
+            "kind": "assumed",
+            "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+          },
+          "slope_ideal_deg": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          },
+          "weights": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          }
+        },
+        "relay_available": false,
+        "slope_ideal_deg": 0.0,
+        "weights": {
+          "comms": 0.0,
+          "power": 1.0,
+          "slope": 0.0
+        }
+      },
+      "series_file": "scoring/boundary/series.bin",
+      "site_id": "fixture_ridge",
+      "slope_deg": null
+    },
+    {
+      "countdowns": {
+        "earthrise": null,
+        "earthset": null,
+        "sunrise": null,
+        "sunset": null
+      },
+      "current_hour": 0,
+      "expected": {
+        "countdowns": {
+          "earthrise": null,
+          "earthset": null,
+          "sunrise": null,
+          "sunset": null
+        },
+        "evaluation": {
+          "metrics": {
+            "landing_lit": true,
+            "landing_sun_el_deg": 1.0,
+            "link_fraction": 1.0,
+            "lit_fraction": 1.0,
+            "longest_blackout_h": 0,
+            "longest_dark_h": 0,
+            "sun_fraction_mean": 0.7
+          },
+          "score": 70.0,
+          "slope_not_assessed": true,
+          "status": "GO",
+          "utilities": {
+            "comms": 1.0,
+            "power": 0.7,
+            "slope": null
+          },
+          "vetoes": {
+            "blackout": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "darkness": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "landing_dark": {
+              "limit": true,
+              "measured": true,
+              "triggered": false
+            },
+            "landing_sun_high": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "landing_sun_low": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "slope": {
+              "limit": 10,
+              "measured": null,
+              "triggered": false
+            }
+          }
+        },
+        "link": [
+          true
+        ],
+        "lit": [
+          true
+        ],
+        "window_length": 1
+      },
+      "hour_range": [
+        0,
+        16
+      ],
+      "labels": [
+        "a1_exact_seventy_translated",
+        "a1_landing_11"
+      ],
+      "landing_hour": 11,
+      "landing_utc": "2026-01-01T11:00:00Z",
+      "profile": {
+        "antenna_mask_deg": 1.0,
+        "based_on": "Intuitive Machines IM-2 Athena",
+        "duration_days": 0.041666666666666664,
+        "id": "im2_athena",
+        "landing_sun_el_max_deg": null,
+        "landing_sun_el_min_deg": null,
+        "max_blackout_h": 0.0,
+        "max_dark_h": 0.0,
+        "max_slope_deg": 10.0,
+        "min_sun_fraction": 0.5,
+        "name": "IM-2 Athena",
+        "ops_sun_el_min_deg": null,
+        "provenance": {
+          "antenna_mask_deg": {
+            "kind": "assumed",
+            "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+          },
+          "duration_days": {
+            "kind": "sourced",
+            "quote": "Surface Operations: Approximately 10 days",
+            "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf"
+          },
+          "landing_sun_el_max_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "landing_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "max_blackout_h": {
+            "kind": "assumed",
+            "reason": "No figures are published."
+          },
+          "max_dark_h": {
+            "kind": "assumed",
+            "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+          },
+          "max_slope_deg": {
+            "kind": "assumed",
+            "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+          },
+          "min_sun_fraction": {
+            "kind": "assumed",
+            "reason": "0.5 (half the disc) is assumed for all."
+          },
+          "ops_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No operational Sun elevation limit is specified for this preset."
+          },
+          "relay_available": {
+            "kind": "assumed",
+            "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+          },
+          "slope_ideal_deg": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          },
+          "weights": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          }
+        },
+        "relay_available": false,
+        "slope_ideal_deg": 0.0,
+        "weights": {
+          "comms": 0.0,
+          "power": 1.0,
+          "slope": 0.0
+        }
+      },
+      "series_file": "scoring/boundary/series.bin",
+      "site_id": "fixture_ridge",
+      "slope_deg": null
+    },
+    {
+      "countdowns": {
+        "earthrise": null,
+        "earthset": null,
+        "sunrise": null,
+        "sunset": null
+      },
+      "current_hour": 0,
+      "expected": {
+        "countdowns": {
+          "earthrise": null,
+          "earthset": null,
+          "sunrise": null,
+          "sunset": null
+        },
+        "evaluation": {
+          "metrics": {
+            "landing_lit": true,
+            "landing_sun_el_deg": 1.0,
+            "link_fraction": 1.0,
+            "lit_fraction": 1.0,
+            "longest_blackout_h": 0,
+            "longest_dark_h": 0,
+            "sun_fraction_mean": 0.7
+          },
+          "score": 70.0,
+          "slope_not_assessed": true,
+          "status": "GO",
+          "utilities": {
+            "comms": 1.0,
+            "power": 0.7,
+            "slope": null
+          },
+          "vetoes": {
+            "blackout": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "darkness": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "landing_dark": {
+              "limit": true,
+              "measured": true,
+              "triggered": false
+            },
+            "landing_sun_high": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "landing_sun_low": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "slope": {
+              "limit": 10,
+              "measured": null,
+              "triggered": false
+            }
+          }
+        },
+        "link": [
+          true
+        ],
+        "lit": [
+          true
+        ],
+        "window_length": 1
+      },
+      "hour_range": [
+        0,
+        16
+      ],
+      "labels": [
+        "a1_exact_seventy_translated",
+        "a1_landing_12"
+      ],
+      "landing_hour": 12,
+      "landing_utc": "2026-01-01T12:00:00Z",
+      "profile": {
+        "antenna_mask_deg": 1.0,
+        "based_on": "Intuitive Machines IM-2 Athena",
+        "duration_days": 0.041666666666666664,
+        "id": "im2_athena",
+        "landing_sun_el_max_deg": null,
+        "landing_sun_el_min_deg": null,
+        "max_blackout_h": 0.0,
+        "max_dark_h": 0.0,
+        "max_slope_deg": 10.0,
+        "min_sun_fraction": 0.5,
+        "name": "IM-2 Athena",
+        "ops_sun_el_min_deg": null,
+        "provenance": {
+          "antenna_mask_deg": {
+            "kind": "assumed",
+            "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+          },
+          "duration_days": {
+            "kind": "sourced",
+            "quote": "Surface Operations: Approximately 10 days",
+            "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf"
+          },
+          "landing_sun_el_max_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "landing_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "max_blackout_h": {
+            "kind": "assumed",
+            "reason": "No figures are published."
+          },
+          "max_dark_h": {
+            "kind": "assumed",
+            "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+          },
+          "max_slope_deg": {
+            "kind": "assumed",
+            "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+          },
+          "min_sun_fraction": {
+            "kind": "assumed",
+            "reason": "0.5 (half the disc) is assumed for all."
+          },
+          "ops_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No operational Sun elevation limit is specified for this preset."
+          },
+          "relay_available": {
+            "kind": "assumed",
+            "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+          },
+          "slope_ideal_deg": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          },
+          "weights": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          }
+        },
+        "relay_available": false,
+        "slope_ideal_deg": 0.0,
+        "weights": {
+          "comms": 0.0,
+          "power": 1.0,
+          "slope": 0.0
+        }
+      },
+      "series_file": "scoring/boundary/series.bin",
+      "site_id": "fixture_ridge",
+      "slope_deg": null
+    },
+    {
+      "countdowns": {
+        "earthrise": null,
+        "earthset": null,
+        "sunrise": null,
+        "sunset": null
+      },
+      "current_hour": 0,
+      "expected": {
+        "countdowns": {
+          "earthrise": null,
+          "earthset": null,
+          "sunrise": null,
+          "sunset": null
+        },
+        "evaluation": {
+          "metrics": {
+            "landing_lit": true,
+            "landing_sun_el_deg": 1.0,
+            "link_fraction": 1.0,
+            "lit_fraction": 1.0,
+            "longest_blackout_h": 0,
+            "longest_dark_h": 0,
+            "sun_fraction_mean": 0.7
+          },
+          "score": 70.0,
+          "slope_not_assessed": true,
+          "status": "GO",
+          "utilities": {
+            "comms": 1.0,
+            "power": 0.7,
+            "slope": null
+          },
+          "vetoes": {
+            "blackout": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "darkness": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "landing_dark": {
+              "limit": true,
+              "measured": true,
+              "triggered": false
+            },
+            "landing_sun_high": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "landing_sun_low": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "slope": {
+              "limit": 10,
+              "measured": null,
+              "triggered": false
+            }
+          }
+        },
+        "link": [
+          true
+        ],
+        "lit": [
+          true
+        ],
+        "window_length": 1
+      },
+      "hour_range": [
+        0,
+        16
+      ],
+      "labels": [
+        "a1_exact_seventy_translated",
+        "a1_landing_13"
+      ],
+      "landing_hour": 13,
+      "landing_utc": "2026-01-01T13:00:00Z",
+      "profile": {
+        "antenna_mask_deg": 1.0,
+        "based_on": "Intuitive Machines IM-2 Athena",
+        "duration_days": 0.041666666666666664,
+        "id": "im2_athena",
+        "landing_sun_el_max_deg": null,
+        "landing_sun_el_min_deg": null,
+        "max_blackout_h": 0.0,
+        "max_dark_h": 0.0,
+        "max_slope_deg": 10.0,
+        "min_sun_fraction": 0.5,
+        "name": "IM-2 Athena",
+        "ops_sun_el_min_deg": null,
+        "provenance": {
+          "antenna_mask_deg": {
+            "kind": "assumed",
+            "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+          },
+          "duration_days": {
+            "kind": "sourced",
+            "quote": "Surface Operations: Approximately 10 days",
+            "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf"
+          },
+          "landing_sun_el_max_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "landing_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "max_blackout_h": {
+            "kind": "assumed",
+            "reason": "No figures are published."
+          },
+          "max_dark_h": {
+            "kind": "assumed",
+            "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+          },
+          "max_slope_deg": {
+            "kind": "assumed",
+            "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+          },
+          "min_sun_fraction": {
+            "kind": "assumed",
+            "reason": "0.5 (half the disc) is assumed for all."
+          },
+          "ops_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No operational Sun elevation limit is specified for this preset."
+          },
+          "relay_available": {
+            "kind": "assumed",
+            "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+          },
+          "slope_ideal_deg": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          },
+          "weights": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          }
+        },
+        "relay_available": false,
+        "slope_ideal_deg": 0.0,
+        "weights": {
+          "comms": 0.0,
+          "power": 1.0,
+          "slope": 0.0
+        }
+      },
+      "series_file": "scoring/boundary/series.bin",
+      "site_id": "fixture_ridge",
+      "slope_deg": null
+    },
+    {
+      "countdowns": {
+        "earthrise": null,
+        "earthset": null,
+        "sunrise": null,
+        "sunset": null
+      },
+      "current_hour": 0,
+      "expected": {
+        "countdowns": {
+          "earthrise": null,
+          "earthset": null,
+          "sunrise": null,
+          "sunset": null
+        },
+        "evaluation": {
+          "metrics": {
+            "landing_lit": true,
+            "landing_sun_el_deg": 1.0,
+            "link_fraction": 1.0,
+            "lit_fraction": 1.0,
+            "longest_blackout_h": 0,
+            "longest_dark_h": 0,
+            "sun_fraction_mean": 0.7
+          },
+          "score": 70.0,
+          "slope_not_assessed": true,
+          "status": "GO",
+          "utilities": {
+            "comms": 1.0,
+            "power": 0.7,
+            "slope": null
+          },
+          "vetoes": {
+            "blackout": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "darkness": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "landing_dark": {
+              "limit": true,
+              "measured": true,
+              "triggered": false
+            },
+            "landing_sun_high": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "landing_sun_low": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "slope": {
+              "limit": 10,
+              "measured": null,
+              "triggered": false
+            }
+          }
+        },
+        "link": [
+          true
+        ],
+        "lit": [
+          true
+        ],
+        "window_length": 1
+      },
+      "hour_range": [
+        0,
+        16
+      ],
+      "labels": [
+        "a1_exact_seventy_translated",
+        "a1_landing_14"
+      ],
+      "landing_hour": 14,
+      "landing_utc": "2026-01-01T14:00:00Z",
+      "profile": {
+        "antenna_mask_deg": 1.0,
+        "based_on": "Intuitive Machines IM-2 Athena",
+        "duration_days": 0.041666666666666664,
+        "id": "im2_athena",
+        "landing_sun_el_max_deg": null,
+        "landing_sun_el_min_deg": null,
+        "max_blackout_h": 0.0,
+        "max_dark_h": 0.0,
+        "max_slope_deg": 10.0,
+        "min_sun_fraction": 0.5,
+        "name": "IM-2 Athena",
+        "ops_sun_el_min_deg": null,
+        "provenance": {
+          "antenna_mask_deg": {
+            "kind": "assumed",
+            "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+          },
+          "duration_days": {
+            "kind": "sourced",
+            "quote": "Surface Operations: Approximately 10 days",
+            "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf"
+          },
+          "landing_sun_el_max_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "landing_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "max_blackout_h": {
+            "kind": "assumed",
+            "reason": "No figures are published."
+          },
+          "max_dark_h": {
+            "kind": "assumed",
+            "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+          },
+          "max_slope_deg": {
+            "kind": "assumed",
+            "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+          },
+          "min_sun_fraction": {
+            "kind": "assumed",
+            "reason": "0.5 (half the disc) is assumed for all."
+          },
+          "ops_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No operational Sun elevation limit is specified for this preset."
+          },
+          "relay_available": {
+            "kind": "assumed",
+            "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+          },
+          "slope_ideal_deg": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          },
+          "weights": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          }
+        },
+        "relay_available": false,
+        "slope_ideal_deg": 0.0,
+        "weights": {
+          "comms": 0.0,
+          "power": 1.0,
+          "slope": 0.0
+        }
+      },
+      "series_file": "scoring/boundary/series.bin",
+      "site_id": "fixture_ridge",
+      "slope_deg": null
+    },
+    {
+      "countdowns": {
+        "earthrise": null,
+        "earthset": null,
+        "sunrise": null,
+        "sunset": null
+      },
+      "current_hour": 0,
+      "expected": {
+        "countdowns": {
+          "earthrise": null,
+          "earthset": null,
+          "sunrise": null,
+          "sunset": null
+        },
+        "evaluation": {
+          "metrics": {
+            "landing_lit": true,
+            "landing_sun_el_deg": 1.0,
+            "link_fraction": 1.0,
+            "lit_fraction": 1.0,
+            "longest_blackout_h": 0,
+            "longest_dark_h": 0,
+            "sun_fraction_mean": 0.7
+          },
+          "score": 70.0,
+          "slope_not_assessed": true,
+          "status": "GO",
+          "utilities": {
+            "comms": 1.0,
+            "power": 0.7,
+            "slope": null
+          },
+          "vetoes": {
+            "blackout": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "darkness": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "landing_dark": {
+              "limit": true,
+              "measured": true,
+              "triggered": false
+            },
+            "landing_sun_high": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "landing_sun_low": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "slope": {
+              "limit": 10,
+              "measured": null,
+              "triggered": false
+            }
+          }
+        },
+        "link": [
+          true
+        ],
+        "lit": [
+          true
+        ],
+        "window_length": 1
+      },
+      "hour_range": [
+        0,
+        16
+      ],
+      "labels": [
+        "a1_exact_seventy_translated",
+        "a1_landing_15"
+      ],
+      "landing_hour": 15,
+      "landing_utc": "2026-01-01T15:00:00Z",
+      "profile": {
+        "antenna_mask_deg": 1.0,
+        "based_on": "Intuitive Machines IM-2 Athena",
+        "duration_days": 0.041666666666666664,
+        "id": "im2_athena",
+        "landing_sun_el_max_deg": null,
+        "landing_sun_el_min_deg": null,
+        "max_blackout_h": 0.0,
+        "max_dark_h": 0.0,
+        "max_slope_deg": 10.0,
+        "min_sun_fraction": 0.5,
+        "name": "IM-2 Athena",
+        "ops_sun_el_min_deg": null,
+        "provenance": {
+          "antenna_mask_deg": {
+            "kind": "assumed",
+            "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+          },
+          "duration_days": {
+            "kind": "sourced",
+            "quote": "Surface Operations: Approximately 10 days",
+            "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf"
+          },
+          "landing_sun_el_max_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "landing_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "max_blackout_h": {
+            "kind": "assumed",
+            "reason": "No figures are published."
+          },
+          "max_dark_h": {
+            "kind": "assumed",
+            "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+          },
+          "max_slope_deg": {
+            "kind": "assumed",
+            "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+          },
+          "min_sun_fraction": {
+            "kind": "assumed",
+            "reason": "0.5 (half the disc) is assumed for all."
+          },
+          "ops_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No operational Sun elevation limit is specified for this preset."
+          },
+          "relay_available": {
+            "kind": "assumed",
+            "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+          },
+          "slope_ideal_deg": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          },
+          "weights": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          }
+        },
+        "relay_available": false,
+        "slope_ideal_deg": 0.0,
+        "weights": {
+          "comms": 0.0,
+          "power": 1.0,
+          "slope": 0.0
+        }
+      },
+      "series_file": "scoring/boundary/series.bin",
+      "site_id": "fixture_ridge",
+      "slope_deg": null
+    },
+    {
+      "countdowns": {
+        "earthrise": null,
+        "earthset": null,
+        "sunrise": null,
+        "sunset": null
+      },
+      "current_hour": 0,
+      "expected": {
+        "countdowns": {
+          "earthrise": null,
+          "earthset": null,
+          "sunrise": null,
+          "sunset": null
+        },
+        "evaluation": {
+          "metrics": {
+            "landing_lit": true,
+            "landing_sun_el_deg": 1.0,
+            "link_fraction": 1.0,
+            "lit_fraction": 1.0,
+            "longest_blackout_h": 0,
+            "longest_dark_h": 0,
+            "sun_fraction_mean": 0.7
+          },
+          "score": 70.0,
+          "slope_not_assessed": false,
+          "status": "GO",
+          "utilities": {
+            "comms": 1.0,
+            "power": 0.7,
+            "slope": 0.0
+          },
+          "vetoes": {
+            "blackout": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "darkness": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "landing_dark": {
+              "limit": true,
+              "measured": true,
+              "triggered": false
+            },
+            "landing_sun_high": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "landing_sun_low": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "slope": {
+              "limit": 10,
+              "measured": 10,
+              "triggered": false
+            }
+          }
+        },
+        "link": [
+          true
+        ],
+        "lit": [
+          true
+        ],
+        "window_length": 1
+      },
+      "hour_range": [
+        0,
+        16
+      ],
+      "labels": [
+        "exact_veto_limit"
+      ],
+      "landing_hour": 0,
+      "landing_utc": "2026-01-01T00:00:00Z",
+      "profile": {
+        "antenna_mask_deg": 1.0,
+        "based_on": "Intuitive Machines IM-2 Athena",
+        "duration_days": 0.041666666666666664,
+        "id": "im2_athena",
+        "landing_sun_el_max_deg": null,
+        "landing_sun_el_min_deg": null,
+        "max_blackout_h": 0.0,
+        "max_dark_h": 0.0,
+        "max_slope_deg": 10.0,
+        "min_sun_fraction": 0.5,
+        "name": "IM-2 Athena",
+        "ops_sun_el_min_deg": null,
+        "provenance": {
+          "antenna_mask_deg": {
+            "kind": "assumed",
+            "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+          },
+          "duration_days": {
+            "kind": "sourced",
+            "quote": "Surface Operations: Approximately 10 days",
+            "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf"
+          },
+          "landing_sun_el_max_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "landing_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "max_blackout_h": {
+            "kind": "assumed",
+            "reason": "No figures are published."
+          },
+          "max_dark_h": {
+            "kind": "assumed",
+            "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+          },
+          "max_slope_deg": {
+            "kind": "assumed",
+            "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+          },
+          "min_sun_fraction": {
+            "kind": "assumed",
+            "reason": "0.5 (half the disc) is assumed for all."
+          },
+          "ops_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No operational Sun elevation limit is specified for this preset."
+          },
+          "relay_available": {
+            "kind": "assumed",
+            "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+          },
+          "slope_ideal_deg": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          },
+          "weights": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          }
+        },
+        "relay_available": false,
+        "slope_ideal_deg": 0.0,
+        "weights": {
+          "comms": 0.0,
+          "power": 1.0,
+          "slope": 0.0
+        }
+      },
+      "series_file": "scoring/boundary/series.bin",
+      "site_id": "fixture_ridge",
+      "slope_deg": 10
+    },
+    {
+      "countdowns": {
+        "earthrise": null,
+        "earthset": null,
+        "sunrise": null,
+        "sunset": null
+      },
+      "current_hour": 0,
+      "expected": {
+        "countdowns": {
+          "earthrise": null,
+          "earthset": null,
+          "sunrise": null,
+          "sunset": null
+        },
+        "evaluation": {
+          "metrics": {
+            "landing_lit": true,
+            "landing_sun_el_deg": 1.0,
+            "link_fraction": 1.0,
+            "lit_fraction": 1.0,
+            "longest_blackout_h": 0,
+            "longest_dark_h": 0,
+            "sun_fraction_mean": 0.6
+          },
+          "score": 70.0,
+          "slope_not_assessed": false,
+          "status": "GO",
+          "utilities": {
+            "comms": 1.0,
+            "power": 0.6,
+            "slope": 0.5
+          },
+          "vetoes": {
+            "blackout": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "darkness": {
+              "limit": 0,
+              "measured": 0,
+              "triggered": false
+            },
+            "landing_dark": {
+              "limit": true,
+              "measured": true,
+              "triggered": false
+            },
+            "landing_sun_high": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "landing_sun_low": {
+              "limit": null,
+              "measured": 1.0,
+              "triggered": false
+            },
+            "slope": {
+              "limit": 10,
+              "measured": 5,
+              "triggered": false
+            }
+          }
+        },
+        "link": [
+          true
+        ],
+        "lit": [
+          true
+        ],
+        "window_length": 1
+      },
+      "hour_range": [
+        0,
+        17
+      ],
+      "labels": [
+        "all_three_weights_exact_seventy"
+      ],
+      "landing_hour": 16,
+      "landing_utc": "2026-01-01T16:00:00Z",
+      "profile": {
+        "antenna_mask_deg": 1.0,
+        "based_on": "Intuitive Machines IM-2 Athena",
+        "duration_days": 0.041666666666666664,
+        "id": "im2_athena",
+        "landing_sun_el_max_deg": null,
+        "landing_sun_el_min_deg": null,
+        "max_blackout_h": 0.0,
+        "max_dark_h": 0.0,
+        "max_slope_deg": 10.0,
+        "min_sun_fraction": 0.5,
+        "name": "IM-2 Athena",
+        "ops_sun_el_min_deg": null,
+        "provenance": {
+          "antenna_mask_deg": {
+            "kind": "assumed",
+            "reason": "No mission publishes a minimum Earth elevation. 1° is assumed for all."
+          },
+          "duration_days": {
+            "kind": "sourced",
+            "quote": "Surface Operations: Approximately 10 days",
+            "source_url": "https://www.nasa.gov/wp-content/uploads/2025/02/np-2025-02-005-jsc-clps-intuitive-machines-press-kit-508-2-25-25.pdf"
+          },
+          "landing_sun_el_max_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "landing_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No landing Sun elevation limit is specified for this preset."
+          },
+          "max_blackout_h": {
+            "kind": "assumed",
+            "reason": "No figures are published."
+          },
+          "max_dark_h": {
+            "kind": "assumed",
+            "reason": "No figures are published. The lander \"cannot survive lunar night\"; 6 h allows a short eclipse on battery."
+          },
+          "max_slope_deg": {
+            "kind": "assumed",
+            "reason": "A 10° figure appears only in a secondary source we could not read. Intuitive Machines publishes no limit."
+          },
+          "min_sun_fraction": {
+            "kind": "assumed",
+            "reason": "0.5 (half the disc) is assumed for all."
+          },
+          "ops_sun_el_min_deg": {
+            "kind": "assumed",
+            "reason": "No operational Sun elevation limit is specified for this preset."
+          },
+          "relay_available": {
+            "kind": "assumed",
+            "reason": "The mission used the company's ground network, direct to Earth. We have no document to cite for this, so the value is tagged assumed."
+          },
+          "slope_ideal_deg": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          },
+          "weights": {
+            "kind": "assumed",
+            "reason": "Team settings."
+          }
+        },
+        "relay_available": true,
+        "slope_ideal_deg": 0.0,
+        "weights": {
+          "comms": 1.0,
+          "power": 1.0,
+          "slope": 1.0
+        }
+      },
+      "series_file": "scoring/boundary/series.bin",
+      "site_id": "fixture_ridge",
+      "slope_deg": 5
     }
   ],
   "format": "series_file is relative to data/fixtures; hour_range is a half-open slice of the full time grid. landing_hour and current_hour are full-grid indices. expected is null when the window has no result.",

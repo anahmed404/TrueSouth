@@ -46,6 +46,11 @@ $$e = \arcsin(\hat d\cdot\hat{up}) \qquad A = \operatorname{atan2}(\hat d\cdot\h
 East and north are undefined exactly at a pole. Sites with $|\varphi| > 89.999°$ are
 rejected.
 
+A direction straight up or down has no azimuth. The code reports 0° when its
+local horizontal component has magnitude at most $10^{-12}$.
+Stored azimuths can round to 360° at the series' 0.01° step. Readers must wrap
+them modulo 360° before using this convention; section 7 describes the rounding.
+
 `frames.py::unit_vector`, `local_basis`, `az_el`
 
 ### 2.2 Walking along the surface
@@ -244,16 +249,23 @@ These are approximations for teaching. No result in TrueSouth is computed from t
 every direction comes from sections 3.1 and 3.2.
 
 **The highest Sun.** The Moon's equator is tilted about 1.54° to the plane of its path
-around the Sun, so the sub-solar latitude stays close to the equator. In the stored
-ephemeris (2026 to 2031) it stays within ±1.59°. On a smooth sphere, seen from the
-surface at latitude $\varphi$, the centre of the Sun's disc can rise to about
+around the Sun, so the sub-solar latitude stays close to the equator. This is
+the nominal tilt. The apparent sub-solar latitude in the stored ephemeris
+(2026 to 2031) stays within ±1.59°; it is a different quantity.
+The rule below estimates the best-season maximum for latitudes poleward of
+that sub-solar band ($|\varphi| > 1.59°$ here). It is meant for sites near a
+pole and is not a strict bound. On a smooth sphere, seen from the surface at
+latitude $\varphi$, the centre of the Sun's disc can rise to about
 
 $$E_{max} \approx 90° - |\varphi| + 1.54°$$
 
 above the local level. The rule ignores the terrain, the observer's height (which lowers
-the horizon, section 4) and the Sun's disc, whose radius is about 0.27°. It gives the most
-the Sun can reach in the best season, not what it reaches in a given month. At Connecting
-Ridge ($\varphi = -89.4555°$) it gives 2.08°.
+the horizon, section 4) and the Sun's disc, whose radius is about 0.27°. It estimates
+the best-season maximum. A given month can reach less. At Connecting
+Ridge ($\varphi = -89.4555°$) it gives 2.08°, while the highest Sun in the stored
+series there is 2.10°. The two differ because the apparent sub-solar latitude reaches
+±1.59°, not exactly 1.54°, and because the full calculation (section 3.2) works from
+the site's own position and height.
 
 **Earth's off-centre shift.** Section 3.2 subtracts the site's position from the body's.
 For Earth this moves its direction, compared with the direction from the Moon's centre,
@@ -279,7 +291,7 @@ For intuition, when $s \ll R$ it becomes
 $$e \approx \arctan\left(\frac{(z - z_0 - h_{obs}) - \dfrac{s^2}{2R}}{s}\right)$$
 
 The term $s^2/2R$ is how far the round Moon drops away. At 20 km it is 115 m, which is
-0.33°. The polar Sun is only 1–2° high, so the drop matters.
+0.33°. The Sun stays low near a pole (section 3.4), so the drop matters.
 
 With flat terrain at $z = 0$ and the observer at height $h$, the horizon is at
 $-\arccos\left(\tfrac{R}{R+h}\right) \approx -\sqrt{2h/R}$. For $h = 2$ m that is −0.087°.
@@ -306,12 +318,30 @@ range, compute its position $\vec p = (R+z)\,\hat u(\varphi_p,\lambda_p)$, then
 $\hat d = (\vec p - \vec r)/|\vec p - \vec r|$, then azimuth and elevation (section 2.1).
 Put the elevation in the pixel's bin and keep the maximum. No peak can fall between rays.
 
+Bin $k$ is centred at azimuth $0.25k$ degrees. A pixel belongs to the nearest
+bin centre. An exact half-bin tie goes toward increasing azimuth, wrapping at
+360°: 0.125° belongs to bin 1, and 359.875° belongs to bin 0. A bin includes
+its lower edge and excludes its upper edge, modulo 360°.
+
 The skyline in a bin is the larger of the two. Far-field pixels come from the 80 m map
 where it has coverage and from the 240 m map beyond it. A near-field ray that runs off the
 edge of the 80 m map continues on the 240 m map.
 
 Each bin stores the elevation, and for its blocker the ground distance, latitude,
 longitude and height. Missing pixels are skipped and counted.
+
+If two blockers give exactly the same computed elevation, the one met first
+in the traversal is kept. Blocker distance and height metadata are therefore
+not unique in a tie, even though the skyline elevation is unchanged.
+
+A bin with no usable terrain samples takes the smooth-sphere dip from
+section 4, with no blocker. This is an assumption about missing terrain.
+It is unused in the committed terrain-tier catalog files checked on
+2026-11-14: all 20 terrain-tier files in the 25-site catalog have blockers in
+every bin, and their metadata report zero missing samples. A9 also rebuilt
+Connecting Ridge's skyline and found no missing samples. Other sites were
+not independently rebuilt for this check, and this does not establish safety
+for an arbitrary custom site.
 
 Between bins, the skyline $H(A)$ is linear interpolation, wrapping at 360°.
 
@@ -329,9 +359,25 @@ A body's centre is at $(A_c, e_c)$ and its angular radius is $\rho$. Cut the dis
 vertical strips at horizontal offsets $x_i \in (-\rho, \rho)$. Strip $i$ has half-height
 $c_i = \sqrt{\rho^2 - x_i^2}$ and sits at azimuth $A_i = A_c + x_i/\cos e_c$.
 
+The offsets are equal-width midpoints:
+$x_i=\rho\left(-1+2(i+\tfrac12)/33\right)$ for $i=0,\ldots,32$.
+Their equal widths cancel in the ratio below.
+
 $$f = \frac{\sum_i \operatorname{clamp}\big(e_c + c_i - H(A_i),\ 0,\ 2c_i\big)}{\sum_i 2c_i}$$
 
 $f$ is the disc fraction: 0 when the body is fully hidden, 1 when fully clear.
+
+Before sampling strips, return 1 if $e_c-\rho\ge\max H$, and 0 if
+$e_c+\rho\le\min H$. These shortcuts handle a realistic skyline at the zenith
+and nadir without dividing by zero. For remaining partial cases the cosine
+denominator is floored at binary64 machine epsilon. The strip geometry is a
+tangent-plane approximation; a partial disc at a singular point against an
+artificial skyline has no physical meaning under it.
+
+The midpoint choice matters. At a flat 0° skyline, radius 0.27° and centre
+elevation −0.135°, it gives 0.195270. Another reasonable set of 33 equally
+spaced interior offsets gives 0.196606, about 0.13 percentage points more.
+This is a sampling comparison, not a bound for arbitrary skylines.
 
 Check: for a flat skyline at height $H$, with $d = (H - e_c)/\rho$ between −1 and 1, the
 exact answer is $f = \big(\arccos d - d\sqrt{1-d^2}\big)/\pi$. At $d = 0$ this is 0.5.
@@ -351,8 +397,21 @@ For each site and each hour on the time grid, sections 3, 5 and 6 give eight val
 | `earth_frac` | Earth disc fraction |
 | `earth_clear` | `earth_el` minus the skyline at `earth_az` |
 
-Everything above this line is computed in Python and stored. Everything below is computed
-in the browser from the series and a mission profile.
+The series is computed in Python and stored. Sections 9 to 11 compute mission
+metrics and scores in the browser from it and a mission profile. The other
+sections also describe Python calculations and drawing coordinates.
+
+Series angles have a 0.01° step and fractions have a 0.0001 step
+([`data-contracts.md`](data-contracts.md)). The encoder rounds to the nearest
+count, with exact half-way ties to the even count. Skyline bin selection uses
+half-up rounding instead (section 5).
+
+An azimuth within half an angle step below 360° is stored as 360°. Readers
+must wrap it modulo 360°. A9 counted 40 such samples in the original 20-site
+catalog: 9 Sun and 31 Earth. On 2026-11-14 the 25-site catalog, including the
+five variants, contains 58: 14 Sun and 44 Earth. Elevation, azimuth and
+clearance are rounded separately, so decoded clearance need not equal decoded
+elevation minus the skyline at decoded azimuth exactly.
 
 `series.py::build_series`
 
@@ -360,7 +419,7 @@ in the browser from the series and a mission profile.
 
 A site's result is for one point. On a sharp ridge the answer changes a great deal over a
 short distance: at the catalog's five sunlit peaks, mean `sun_frac` differs by 14 to 47
-percentage points between map pixels less than 160 m apart
+percentage points among map pixels within 160 m of the listed point
 ([`decisions/0012`](decisions/0012-sunlit-peaks-keep-their-listed-point.md)). So for every
 catalog site in the group `sunlit_peak`, the pipeline also evaluates the centre of every
 80 m map pixel whose centre is within 160 m of the listed point, measured in map metres
@@ -373,7 +432,7 @@ of `sun_frac` over the time grid.
   `<id>_best_lit`. A tie goes to the point nearest the listed one; if the mean and the distance are both
   equal, the smaller row index wins, then the smaller column index. It records which site
   it is a variant of and its distance from the listed point in metres. It is chosen by
-  TrueSouth and is not a published site.
+  TrueSouth and is labelled as TrueSouth's own selection.
 
 The listed point is never moved. The choice uses only our own series. It never uses NASA's
 average-sunlight map, because that map is what our results are checked against
@@ -389,6 +448,9 @@ This is computed in Python and stored, like the series.
 ## 8. Slope
 
 Slope depends on the distance it is measured over. We always report that distance.
+
+Close-up slope is specified below but is not built into this version's
+production pipeline. Its plane-fit helper is tested on synthetic data.
 
 **From a close-up DEM (5 m pixels).** Fit a plane $z = a\,E + b\,N + c$ by least squares to
 every valid pixel within 50 m of the site, with $E, N$ in local metres. The slope over a
@@ -410,6 +472,11 @@ steps as a site moves from one pixel to the next.
 
 A site reports `slope: { deg, baseline_m, source }` as defined in
 [`data-contracts.md`](data-contracts.md). A sphere-tier site reports no slope.
+
+A polar slope is also not assessed if the centre pixel, a required neighbour
+or map coverage is missing. A close-up plane fit needs at least three valid,
+non-collinear samples within the radius; otherwise it is not assessed. Missing
+or underdetermined terrain is never reported as a zero-degree slope.
 
 `slope.py`
 
@@ -437,6 +504,26 @@ Over the window:
 | `longest_blackout_h` | longest unbroken run of blackout hours |
 | `landing_sun_el_deg` | `sun_el` at $i_0$ |
 | `landing_lit` | lit at $i_0$ |
+
+**Numerical evaluation.** Scoring reads the decoded Int16 series. For the mean
+Sun fraction, recover each stored count as $\lfloor 10{,}000f + 0.5\rfloor$,
+sum those integers, then divide once by $10{,}000N$. This recovers the stored
+counts despite binary decoding residue. Synthetic inputs to scoring use the
+same fraction step when forming this mean. Lit and link counts, longest runs,
+window lengths and hour indices are exact integers. Their fractions are an
+integer count divided once by $N$. Other divisions and utilities use binary64.
+The same hourly values therefore give bit-identical metrics at every landing
+index: no fractional running sum is subtracted from another.
+
+For comparisons against a limit, use
+$q(x)=\lfloor 10^{12}x+0.5\rfloor/10^{12}$ on both values. This rounds to
+12 decimal places, with an exact half-way tie toward positive infinity.
+Use this rule for lit and link conditions, vetoes, utility breakpoints and
+the GO threshold in section 10. It is far finer than storage or display
+precision and removes arithmetic residue at a boundary. It is not a physical
+tolerance. Integer counts remain integers. A zero weight is still exactly zero.
+For countdown interpolation, use these same rounded condition values and
+thresholds, so the crossing and the hourly flags describe the same boundary.
 
 **Countdowns** are measured from the scrubber's current time to the next change of the
 same lit or link flag drawn on the timeline. Sunset is when the site stops being lit;
@@ -479,12 +566,23 @@ $$U_{power} = \text{sun\_fraction\_mean} \times g(\text{longest\_dark\_h},\ \tex
 
 $$U_{comms} = \begin{cases} 1 & \text{with a relay} \\ \text{link\_fraction} \times g(\text{longest\_blackout\_h},\ \text{max\_blackout\_h}) & \text{otherwise} \end{cases}$$
 
+Apply section 9's comparison rule at each utility breakpoint. At or below the
+ideal slope the slope utility is exactly 1; otherwise, at or above the maximum it is
+exactly 0. For $g$, a limit equal to zero gives exactly 1; with a positive
+limit, a run at or above it gives exactly 0 and a zero run gives exactly 1.
+Between breakpoints use the formulas above without intermediate rounding.
+
 **Score.** With weights $w$ from the profile, over the criteria that could be assessed:
 
 $$\text{score} = 100 \times \frac{\sum_i w_i U_i}{\sum_i w_i}$$
 
 A site with no slope leaves slope out of both sums and is flagged "slope not assessed".
 So that a score always exists, a profile's power and comms weights must not both be zero.
+
+Evaluate the weighted numerator in this order: power, comms, then slope if it
+is assessed. Evaluate the denominator in the same order. Return $q$ of the
+score above, and compare that score with 70 using section 9's rule. This fixes
+arithmetic residue without making the status depend on displayed rounding.
 
 **Status.**
 
@@ -500,13 +598,20 @@ Vetoes decide whether a mission can work. The score ranks the ones that can. The
 ## 11. The slip sweep
 
 The Slip Planner evaluates section 10 for a landing at 00:00 UTC on every day of the time
-grid, for every selected site. Means use prefix sums. Longest runs are scanned directly.
+grid, for every selected site. Means use prefix sums of the exact integer
+counts in section 9. Across the 52,584-hour grid the largest Sun-fraction sum
+is 525,840,000 counts, well within binary64's exact integer range. Subtract
+integer prefix sums before the single division. A single-window evaluation
+uses the same count and division rules. Longest runs use equivalent window
+and range-maximum methods; their definition is still the unbroken run in section 9.
 It runs in a Web Worker. The reference in `scoring.py` evaluates every landing hour; the
 Slip Planner reads the 00:00 UTC rows.
 
 `web/src/lib/scoring/sweep.worker.ts`
 
 ## 12. Sensitivity grid
+
+The sensitivity grid is specified here but is not built in this version.
 
 "Compute for my dates" evaluates a 9 × 9 grid of points spaced 250 m apart, centred on the
 pin, for one mission window.
@@ -524,9 +629,12 @@ For each grid point:
 The fast skyline can miss narrow far-off peaks, so the grid is labelled an approximation.
 The response also reports the centre point under both methods, so the gap is visible.
 
-`sensitivity.py`
+Planned implementation: `sensitivity.py` (no file exists yet).
 
 ## 13. Local terrain coordinates
+
+The close-up mesh and skyline wall are specified here but are not built in
+this version. The 20 km terrain mesh is built.
 
 The local terrain mesh is a 257 × 257 grid over a 20 km square centred on the site. A
 vertex at local offsets $(E, N)$ is found by walking distance $s = \sqrt{E^2+N^2}$ along
@@ -564,11 +672,15 @@ The System view scene is fixed to the Moon. A Moon-fixed vector $(x, y, z)$ maps
 coordinates $(x,\ z,\ -y)$. Sunlight comes from $\hat u(\varphi_S, \lambda_S)$. Earth sits
 along $\hat u(\varphi_E, \lambda_E)$.
 
-A site's Sun elevation follows from the sub-solar point alone:
+For the scene's lighting, the following drawing approximation takes the Sun's
+direction from the Moon's centre and treats the Sun as infinitely far away.
+Mission results use the topocentric direction in section 3.2.
+The approximate site elevation follows from the sub-solar point alone:
 
 $$\sin e = \sin\varphi\sin\varphi_S + \cos\varphi\cos\varphi_S\cos(\lambda - \lambda_S)$$
 
-The day/night line is where this is zero.
+The drawn day/night line is where this is zero. Terrain and finite-disc
+visibility use sections 3.2, 5 and 6.
 
 `web/src/lib/geo/system.ts`
 
@@ -576,15 +688,49 @@ The day/night line is where this is zero.
 
 - **Resolution.** The 80 m map cannot see boulders, small craters or anything narrower
   than a pixel. Slope from it is a regional figure, not a footpad figure.
-- **Frames.** The LOLA maps use the Moon's mean-Earth frame. Which lunar frame Horizons
-  uses for site coordinates is still to be confirmed. The two common lunar frames differ by
-  under 0.03°, which is below our skyline accuracy.
-- **Skyline and close-up DEMs.** Skylines use only the polar maps. Close-up DEMs are used
-  for slope and display, because mixing products with different height adjustments can
-  create false ridges.
+- **Frames and apparent positions.** The LOLA maps and the checked Horizons
+  responses use the DE421 mean-Earth frame (section 3.1). No extra frame
+  rotation is applied. Apparent-position conventions leave the measured
+  residual documented in section 3.3.
+- **Skyline and close-up DEMs.** Skylines use only the polar maps. The close-up
+  specification reserves those DEMs for slope and display, because mixing
+  products with different height adjustments can create false ridges.
 - **Earth link.** A clear line to Earth is not a radio link budget, and Earth being visible
   does not mean a specific ground station is.
-- **Time step.** Events are sampled hourly and interpolated. A transition is good to a few
-  minutes, not seconds.
+- **Time step.** Events are located between hourly samples. An interval of
+  sunlight or contact that begins and ends between two samples can be missed
+  entirely. For example, Sun fraction rising from 0.4 to 0.6 against a minimum
+  of 0.5, while elevation falls from 2° to 1° against a minimum of 1.25°, gives
+  15 lit minutes between two dark hourly flags. No finer-time comparison has
+  been made, so no general minutes-level timing accuracy is established.
+- **Missing terrain.** An empty skyline bin takes the smooth-sphere dip as
+  an assumption (section 5). The committed terrain-tier catalog files have
+  no empty bins, but only Connecting Ridge was independently rebuilt in A9.
+  Missing slope inputs or an underdetermined plane give no assessed slope
+  (section 8).
+- **Position and selection.** Published nearby ranges and labelled best-lit
+  variants show position sensitivity (section 7.1). Selecting the highest
+  estimate favours positive errors, so a variant's sunlight is an upper
+  reading. A listed point is never silently moved.
+- **Disc sampling.** The 33-strip calculation is a tangent-plane approximation
+  with a chosen quadrature rule. Its limits and a sampling comparison are in
+  section 6; the flat-skyline gate does not bound every possible skyline.
+- **Storage.** Quantisation can change a threshold decision within half a
+  storage step. A tiny positive Earth fraction can round to zero before the
+  any-Earth comparison. Rounded angle components are not an exact vector;
+  azimuth readers must wrap 360° (section 7).
+- **Drawing and teaching.** The highest-Sun rule is a polar estimate, not a
+  strict bound (section 3.4). The centre-based day/night drawing ignores
+  finite-distance parallax and terrain (section 14).
+- **Profile validation.** The editor enforces nonzero power-or-comms weight
+  and an ideal slope below the maximum. Scoring checks slope ordering and
+  rejects a zero sum of assessed weights. The file contract does not yet
+  enforce these cross-field rules; a slope-only profile can pass that contract
+  and fail scoring when no slope is assessed. File-contract validators remain
+  future work. The custom-site request now shares the science code's near-pole
+  refusal.
+- **Availability.** The sensitivity grid, production close-up slopes and
+  meshes, and the drawn skyline wall are specified but not built in this
+  version (sections 8, 12 and 13).
 - **Assumed numbers.** Many mission limits are not published. See
   [`mission-profiles.md`](mission-profiles.md).

@@ -67,6 +67,29 @@ each integration checkpoint.
 - **State:** built, not verified (full checks pending).
 - **Changed:** Status returns the current FIFO position; custom-site errors include stable codes while retaining their messages.
 
+#### 2026-11-14 · S2b · Stable score boundaries and exact window means
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — documented the arithmetic first, implemented
+  matching Python and TypeScript scoring, added seeded translation and boundary
+  tests, regenerated G10, and ran sequential catalog audits and checks.
+- **State:** verified (432 Python tests, 2,344 web tests and the typecheck pass on the merge with main; reviewed by Gemini (approve): 2,240 random and boundary cases gave identical results in Python and TypeScript, down to the bits; 50 offsets of the same window agree; a 5-site audit found no status change; the orchestrator's audit of the whole catalog by landing hour found no status change and 4,598 displayed whole scores corrected upward by one)
+- **Changed:** scoring functions and their tests, the fixture generator and shared
+  cases, a scoring-only fixture series, `docs/science.md` sections 9–11, decision
+  0015 and `docs/reviews/s2b-score-boundary.md`. No screens or contracts changed.
+- **Notes:**
+  - Exact integer prefix counts replace floating prefix subtraction; a stated
+    12-decimal rule handles comparisons and the returned score in both copies.
+  - Audited 25 sites × 5 presets × 2,191 days, once before and once after, each
+    single-process. Zero status changes and zero score changes above 1e-9 for
+    every preset. The largest score difference is 1.1802114841e-11 points.
+  - Worked examples regenerate byte-identically. No derived file changed. The
+    complete per-profile counts and regression evidence are in the report.
+  - Checks: pytest 432 passed, 1 skipped; web 1,926 passed; frozen install,
+    typecheck and build passed, each exit 0. Fixed a new fixture-label collision
+    found by the first Python run, then reran Python and the affected G10 test.
+    Checks ran sequentially, with numerical threads and Vitest workers limited.
+- **Seen at merge (orchestrator):** the fix does change what a user sees in a few places, and for the better. Scores are shown rounded down, and the old sums left some exact whole scores one float step short (99.99999999999999 shown as 99). Over the real catalog (25 sites, 5 presets, every landing hour: 6,486,425 results) 4,598 displayed whole scores go up by one (IM-2 Athena 2,092; Artemis crewed 1,699; Blue Ghost 1 807; none for VIPER or Chandrayaan-3); no status changes. A Slip Planner test that named three such days was updated to expect the exact values.
+
 #### 2026-11-14 · S10b integration · Merge main's placement builder
 - **Who:** Codex implementation agent
 - **AI use:** Codex resolved build-sites and DEVLOG conflicts, preserved main's placement flow, adapted the custom-site wrapper to main's helpers, and added integration tests; human and orchestrator review pending.
@@ -74,6 +97,32 @@ each integration checkpoint.
 - **Changed:** build_site now composes _derive, _record and _stage_site; catalog callers reuse prederived parts and placement metadata, variants still reuse the winning skyline/series. Custom publication retains cancellation, storage hook and internal site.json without touching the index or candidate cache. Placement imports are local to the catalog command. API storage prunes the reserved placement directory before traversal so catalog candidates do not consume the custom quota. Every DEVLOG line from both merge parents was retained.
 - **Checks:** Full Python run 424 passed, 1 real-map skip, exit 0. After the placement-quota interaction fix, affected API/integration checks 106 passed, 1 skipped, exit 0. Explicit real-map test: 1 passed, exit 0, Connecting Ridge custom series.bin/skyline.bin/terrain.bin byte-identical to catalog in 36.617 s (37.90 s test); meta differs only site_id. Catalog verification ran --only chandrayaan3 apollo11 --force in a staging copy and rebuilt Connecting Ridge's listed point with the shared builder, retaining its published nearby range. All 25 staged folders and sites.json match origin/main Git blob hashes; tracked derived files also match before and after. Full 25-site recomputation was not run: placement key 0826b46027c9dc5fdfbb91366e2b4a200804f04c6669ce577f9463b7f19b0254 has no shared cache; --only on a peak would also trigger the cold candidate evaluation. API import 1.110 s with no numpy/scipy/pyproj/rasterio/placement_cache modules loaded. Frozen pnpm install, 1,849 web tests (one worker) and typecheck exit 0. Docker skipped as requested; mandatory API dependency closure excludes rasterio.
 - **Notes:** Site fields and custom contracts are unchanged by the merge; main's validation exclusions for variants remain intact. Dockerfile and dependencies are unchanged, so the requested Docker rebuild exception does not apply.
+
+
+#### 2026-11-14 · Science clarifications · A9 findings and implementation limits
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — clarified the science document against the
+  reviewed code, checked current stored-file counts without rebuilding data,
+  and recorded each A9 finding's status. Both Academy teaching formulas are
+  unchanged. No code, contract, screen or data changed.
+- **State:** verified (432 Python tests and 2,344 web tests pass on the merge with main, including the Academy's card-formula tests; reviewed by Gemini, which checked each passage against the code and recounted the data (58 stored 360-degree azimuths; sub-solar latitude within 1.59 degrees; no empty skyline bins at the 20 terrain sites); one error found and corrected by the orchestrator: the highest stored Sun at Connecting Ridge is 2.10 degrees (2.13 had been computed at longitude 0))
+- **Changed:** `docs/science.md`, the Status table and later-state notes in
+  `docs/reviews/a9-math-review.md`, and the dated outcome in decision 0004.
+- **Notes:**
+  - B1 is fixed by #77; the near-pole part of B8 is fixed by #80. Profile
+    file-contract validators remain future work. A1 and C4 are handled in #93;
+    this branch leaves sections 9–11 unchanged to avoid overlapping those edits.
+  - Documented bin and blocker ties, disc quadrature and singular cases, empty
+    skyline assumptions, missing slope, quantisation, approximation domains,
+    missed sub-hour intervals and the specified-but-unbuilt paths.
+  - Current stored files contain 58 azimuths at 360 degrees: the original
+    40 plus 18 variant samples. All 20 terrain-tier catalog files have blockers
+    in every bin and report zero missing samples. Only Connecting Ridge was
+    independently rebuilt in A9; the other sites were read, not recomputed.
+  - Checks, all sequential: pytest 425 passed, 1 skipped; web 2,017 passed;
+    frozen install, typecheck and build passed. Each direct exit code was 0.
+    Both section 3.4 formula blocks and all of sections 9–11 are unchanged;
+    the Academy card tests pass without editing web code.
 
 #### 2026-11-14 · S10b review fixes · Public-endpoint failure handling
 - **Who:** Codex implementation agent

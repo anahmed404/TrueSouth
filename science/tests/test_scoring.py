@@ -193,3 +193,63 @@ def test_sunset_uses_earliest_crossing_and_includes_current_hour():
     # At the threshold now, declining values cross immediately: 0 h.
     c = countdowns(series([.5,0], [1,0]), profile(), 0)
     assert c.sunset == 0 and c.earthset == 0
+
+
+@pytest.mark.parametrize('fraction', [.7, 7000 * .0001])
+def test_a1_every_identical_one_hour_window_is_exactly_seventy_and_go(fraction):
+    s = series([fraction] * 16, [1] * 16, [1] * 16)
+    p = profile(duration_days=1/24, weights=dict(slope=0, power=1, comms=0))
+    sweep = slip_sweep(s, p, None)
+    for i in range(16):
+        result = evaluate(s, p, i, None)
+        assert result.score == 70 and result.status == 'GO'
+        assert result == sweep[i] == sweep[0]
+
+
+@pytest.mark.parametrize('seed', [7, 83, 2026])
+def test_translated_windows_have_bit_identical_results(seed):
+    rng = np.random.default_rng(seed)
+    n = 37
+    window = series(rng.integers(0, 10001, n) * .0001,
+                    rng.integers(-100, 301, n) * .01,
+                    rng.integers(-200, 501, n) * .01)
+    p = profile(duration_days=n/24, max_dark_h=17, max_blackout_h=11,
+                ops_sun_el_min_deg=1, weights=dict(slope=3, power=7, comms=2))
+    expected = evaluate(window, p, 0, 6)
+    for offset in (0, 1, 15, 1024, 50000):
+        # Long full-Sun prefixes made floating prefix subtraction lose low bits.
+        translated = {k: np.concatenate((np.full(offset, 1. if k == 'sun_frac' else 90.), v))
+                      for k, v in window.items()}
+        result = evaluate(translated, p, offset, 6)
+        assert result == expected
+        assert result.metrics.sun_fraction_mean.hex() == expected.metrics.sun_fraction_mean.hex()
+        assert result.score.hex() == expected.score.hex()
+        if offset in (0, 50000):
+            assert slip_sweep(translated, p, 6)[offset] == expected
+
+
+def test_arithmetic_residue_cannot_flip_veto_or_utility_breakpoints():
+    s = series([.7, 0], [1, 0], [2, 2])
+    p = profile(duration_days=2/24, max_dark_h=1-2e-13, max_blackout_h=1-2e-13,
+                landing_sun_el_min_deg=2+2e-13, landing_sun_el_max_deg=2-2e-13)
+    boundary = evaluate(s, p, 0, 10+2e-13)
+    assert not any(v.triggered for v in boundary.vetoes.values())
+    assert boundary.utilities.slope == boundary.utilities.power == boundary.utilities.comms == 0
+    assert evaluate(s, p, 0, 10+2e-11).vetoes['slope'].triggered
+    ideal = evaluate(series([1, 1]), profile(duration_days=2/24), 0, 5+2e-13)
+    assert ideal.utilities.slope == 1
+    zero = evaluate(series([.7]), profile(duration_days=1/24, max_dark_h=2e-13), 0, 5)
+    assert zero.utilities.power == .7
+    flags = hour_flags(series([.5], [1], [2]), profile(min_sun_fraction=.5+2e-13,
+                       ops_sun_el_min_deg=2+2e-13, antenna_mask_deg=1+2e-13))
+    assert flags[0].tolist() == flags[1].tolist() == [True]
+    c = countdowns(series([.5, 0], [1, 0]), profile(min_sun_fraction=.5+2e-13), 0)
+    assert c.sunset == c.earthset == 0
+
+
+def test_exact_seventy_uses_all_three_weights():
+    p = profile(duration_days=1/24, relay_available=True, slope_ideal_deg=0,
+                weights=dict(slope=1, power=1, comms=1))
+    result = evaluate(series([.6]), p, 0, 5)
+    assert result.utilities.slope == .5 and result.utilities.power == .6
+    assert result.utilities.comms == 1 and result.score == 70 and result.status == 'GO'
