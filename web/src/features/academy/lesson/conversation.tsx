@@ -199,7 +199,7 @@ function KeyHint({ step, primary }: { step: Step; primary: PrimaryAction }) {
       </span>
     );
   }
-  const verb = primary.kind === "check" && primary.label === "Show me" ? "show me" : "check";
+  const verb = primary.kind === "check" && primary.label !== "Check" ? primary.label.toLowerCase() : "check";
   if (step.kind === "choice" || step.kind === "predict") {
     return (
       <span className="ac-keys ac-keys-desk">

@@ -12,7 +12,9 @@ import { filledText } from "../ui/filled";
 import { CorrectMark } from "../ui/marks";
 import { Moondust } from "../ui/moondust";
 import { panelName, PENDING_STEPS } from "../ui/panels";
+import { DragBodyStage, type SceneStatus } from "./drag-body-stage";
 import { CurvedMoonSide, PipScene, SkyRuler, type RulerMark } from "./scenes";
+import { SkylineStage } from "./skyline-stage";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -32,12 +34,18 @@ type StageProps = {
   /** Changes on each correct answer, to play the hop and the moondust. */
   celebrate: number;
   onDraft: (draft: Draft) => void;
+  /** The step's site data failed to load: a drag or sketch step shows its holding form. */
+  sceneFailed: boolean;
+  onSceneStatus: (status: SceneStatus) => void;
+  /** Pip's power, live, for a drag step that follows it. */
+  onLivePower?: (power: number | null) => void;
 };
 
 /** The stage's size on a phone: a scene band, a touch band, or a tall band for a panel. */
 export function stageClass(step: Step): string {
   if (step.kind === "choice" || step.kind === "predict") return "ac-panel ac-stage ac-stage--scene";
   if (step.kind === "tune-slider") return "ac-panel ac-stage";
+  if (step.kind === "drag-body" || step.kind === "draw-skyline") return "ac-panel ac-stage ac-stage--panel";
   return "ac-panel ac-stage";
 }
 
@@ -51,7 +59,7 @@ export function Stage(props: StageProps) {
   );
 }
 
-function StageBody({ step, runner, draft, views, examples, celebrate, onDraft }: StageProps) {
+function StageBody({ step, runner, draft, views, examples, celebrate, onDraft, sceneFailed, onSceneStatus, onLivePower }: StageProps) {
   const answered = isAnswered(runner);
   const dust = celebrate > 0 ? <Moondust key={celebrate} seed={celebrate + 3} style={{ left: "50%", top: "80%" }} /> : null;
 
@@ -124,7 +132,26 @@ function StageBody({ step, runner, draft, views, examples, celebrate, onDraft }:
         </>
       );
     case "drag-body":
+      if (sceneFailed) return <FailedStep step={step} examples={examples} />;
+      return (
+        <>
+          <DragBodyStage
+            step={step}
+            runner={runner}
+            draft={draft}
+            examples={examples}
+            onDraft={onDraft}
+            onStatus={onSceneStatus}
+            onLivePower={onLivePower}
+          />
+          {dust}
+        </>
+      );
     case "draw-skyline":
+      if (sceneFailed) return <FailedStep step={step} examples={examples} />;
+      return (
+        <SkylineStage step={step} runner={runner} draft={draft} examples={examples} onDraft={onDraft} onStatus={onSceneStatus} />
+      );
     case "drop-pin":
       return <PendingStep step={step} examples={examples} />;
   }
@@ -387,6 +414,27 @@ function SliderReadout({ readout, at, examples }: { readout: NumberReadout; at: 
   );
 }
 
+/**
+ * A drag or sketch step whose site data did not load: a plain message, the real answer from
+ * the worked examples, and "Continue", so the lesson is never a dead end. No XP.
+ */
+function FailedStep({ step, examples }: { step: Extract<Step, { kind: "drag-body" | "draw-skyline" }>; examples: WorkedExamples }) {
+  const preview = panelPreview(step);
+  return (
+    <div className="ac-pending" role="alert">
+      <h2>The horizon did not load</h2>
+      <p>This step needs the site's stored skyline and Sun and Earth positions, and they did not arrive.</p>
+      {preview ? (
+        <div className="ac-reveal-card ac-pending-answer">
+          <h3>What you would find</h3>
+          <p>{filledText(preview.reveal, examples)}</p>
+        </div>
+      ) : null}
+      <p className="ac-pending-note">Continue moves on. No XP for this step, and it does not count for your stars.</p>
+    </div>
+  );
+}
+
 /** What the learner will do on a panel step, by kind. */
 function pendingAction(step: Extract<Step, { kind: "drag-body" | "draw-skyline" | "drop-pin" }>): string {
   if (step.kind === "drag-body") return step.body === "sun" ? "Dragging the Sun" : "Dragging Earth";
@@ -394,8 +442,8 @@ function pendingAction(step: Extract<Step, { kind: "drag-body" | "draw-skyline" 
 }
 
 /**
- * A step kind that embeds a Mission Control panel, built in A3. Until then it shows the
- * real answer from the worked examples, and Continue moves on for no XP.
+ * A panel step whose step component is not built yet (`drop-pin`). It shows the real answer
+ * from the worked examples, and Continue moves on for no XP.
  */
 function PendingStep({
   step,

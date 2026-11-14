@@ -176,10 +176,53 @@ describe("tune-slider step states", () => {
   });
 });
 
-describe("panel steps before A3", () => {
-  it("offer a skip instead of Check", () => {
+describe("panel steps", () => {
+  it("a drop-pin step, not wired yet, offers a skip instead of Check", () => {
     const step: Step = { ...base, id: "pin", kind: "drop-pin", map: { view: "polar", siteIds: [], sitesKey: null, aside: null } };
     expect(primaryAction(step, initialRunnerState(), null, false)).toEqual({ kind: "skip", label: "Continue" });
+  });
+
+  const scene = {
+    scenario: { profile: {} as never, siteIds: ["s"], focusedSiteId: "s", landingUtc: "2028-01-01T00:00:00Z", currentUtc: "2028-01-01T00:00:00Z" },
+    skyline: "flat" as const,
+    timeRange: { kind: "utc" as const, fromUtc: "2028-01-01T00:00:00Z", toUtc: "2028-01-02T00:00:00Z" },
+  };
+  const drag: Step = { ...base, id: "drag", kind: "drag-body", body: "sun", panel: "LandersEye", scene, goal: { metric: "sun_el_deg", op: ">", value: 1 } };
+  const sketch: Step = { ...base, id: "sketch", kind: "draw-skyline", scene, window: { kind: "centred", centre: 90, halfWidthDeg: 30 } };
+  const at = (hour: number, value: number): Draft => ({ kind: "drag-body", hour, utc: `2028-01-01T0${hour}:00:00Z`, value, sunFrac: null });
+
+  it("a drag step checks the dragged hour, and not again at the hour it missed", () => {
+    const lesson = lessonWith([drag]);
+    expect(primaryAction(drag, initialRunnerState(), at(1, 0.5), false)).toEqual({ kind: "check", label: "Check", enabled: true });
+    expect(canCheck(drag, initialRunnerState(), null)).toBe(false);
+    const missed = submit(initialRunnerState(), { kind: "drag-body", value: 0.5, utc: "2028-01-01T01:00:00Z" }, lesson);
+    expect(missed.phase).toBe("hint");
+    expect(canCheck(drag, missed, at(1, 0.5))).toBe(false);
+    expect(canCheck(drag, missed, at(2, 1.5))).toBe(true);
+    expect(draftAfterCheck(drag, missed, at(1, 0.5))).toEqual(at(1, 0.5));
+    expect(conversationFor(drag, missed)[1]).toMatchObject({ who: "me", text: "0.50° at 2028-01-01 01:00 UTC", miss: true });
+  });
+
+  it("a drag step's shown answer is marked on the chart", () => {
+    const lesson = lessonWith([drag]);
+    const shown = submit(submit(initialRunnerState(), { kind: "drag-body", value: 0.5, utc: "a" }, lesson), { kind: "drag-body", value: 0.6, utc: "b" }, lesson);
+    expect(resultFor(drag, shown)).toEqual({ tone: "shown", headline: "Marked on the chart", xp: 2 });
+    expect(conversationFor(drag, shown).at(-1)?.text).toBe("Here it is, marked on the chart. Because.");
+  });
+
+  it("a sketch step's button is Done, once a line is drawn", () => {
+    expect(primaryAction(sketch, initialRunnerState(), null, false)).toEqual({ kind: "check", label: "Done", enabled: false });
+    const line: Draft = { kind: "draw-skyline", sketch: [{ azDeg: 60, elDeg: 0 }, { azDeg: 120, elDeg: 1 }], gapDeg: 0.4 };
+    expect(primaryAction(sketch, initialRunnerState(), line, false)).toEqual({ kind: "check", label: "Done", enabled: true });
+  });
+
+  it("either step falls back to Continue, for no XP, when its data did not load", () => {
+    expect(primaryAction(drag, initialRunnerState(), null, false, true)).toEqual({ kind: "skip", label: "Continue" });
+    expect(primaryAction(sketch, initialRunnerState(), null, false, true)).toEqual({ kind: "skip", label: "Continue" });
+    const skipped = reduceRunner(initialRunnerState(), { type: "skip" }, lessonWith([drag]), createValueEvaluator());
+    expect(skipped.xp).toBe(0);
+    expect(skipped.results).toEqual(["skipped"]);
+    expect(skipped.patchEarned).toBe(false);
   });
 });
 

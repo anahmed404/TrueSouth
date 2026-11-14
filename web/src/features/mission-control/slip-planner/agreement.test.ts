@@ -103,12 +103,14 @@ describe("the spot, the strip, the hover and the sites rail agree", () => {
 
 describe("every score a user sees comes from one function", () => {
   // The sweep packs its score as Float32, which can floor to another whole number than the
-  // evaluation: on these IM-2 days the packed score would read one more.
+  // evaluation. Before S2b made window sums exact, three IM-2 days did: the evaluation was
+  // one float step below a whole number (99.99999999999997 read as 99) and the packed score
+  // read one more. With exact sums those evaluations are the whole numbers themselves.
   const im2 = profiles.find((p) => p.id === "im2_athena")!;
-  const known: [string, number, number][] = [
-    ["fixture_sphere", 30, 99],
-    ["fixture_edge", 1476, 34],
-    ["fixture_wide", 1584, 42],
+  const onceResidue: [string, number, number][] = [
+    ["fixture_sphere", 30, 100],
+    ["fixture_edge", 1476, 35],
+    ["fixture_wide", 1584, 43],
   ];
 
   it("IM-2, fixture_sphere: on every 00:00 UTC day the strip, the spot, the hover and the rail agree", () => {
@@ -135,17 +137,35 @@ describe("every score a user sees comes from one function", () => {
     expect(compared).toBeGreaterThan(2000);
   });
 
-  it("where the packed score floors differently, the user sees the evaluation's", () => {
-    for (const [siteId, day, whole] of known) {
-      const entry = entryFor(siteId, im2);
+  it("the days that once carried float residue now read their exact whole score", () => {
+    for (const [siteId, day, whole] of onceResidue) {
       const spot = shown(siteId, day * 24, im2);
       expect(spot.kind).toBe("ready");
       if (spot.kind !== "ready") continue;
+      expect(spot.evaluation.score).toBe(whole);
       expect(scoreText(spot.evaluation.score)).toBe(String(whole));
-      expect(Math.floor(entry.days!.score[day]!)).toBe(whole + 1);
       expect(siteReadout("Site", "when", spot, im2).lines.join(" ")).toContain(`Score ${whole}`);
     }
   });
+
+  it("wherever the packed score floors differently, the user sees the evaluation's", () => {
+    // Search every day of the three sites that once showed it: the packed Float32 may still
+    // round across a whole number. What is shown must be the evaluation's score on each such
+    // day. About 6,500 evaluations, so this test has its own time limit.
+    for (const [siteId] of onceResidue) {
+      const entry = entryFor(siteId, im2);
+      if (!entry.days) continue;
+      for (let day = 0; day < entry.days.dayCount; day += 1) {
+        const spot = shown(siteId, day * 24, im2);
+        if (spot.kind !== "ready") continue;
+        const packed = Math.floor(entry.days.score[day]!);
+        if (packed === Math.floor(spot.evaluation.score)) continue;
+        const text = scoreText(spot.evaluation.score);
+        expect(text).not.toBe(String(packed));
+        expect(siteReadout("Site", "when", spot, im2).lines.join(" ")).toContain(`Score ${text}`);
+      }
+    }
+  }, 60_000);
 
   it("no Slip Planner screen code reads the packed score", () => {
     const dir = path.dirname(fileURLToPath(import.meta.url));

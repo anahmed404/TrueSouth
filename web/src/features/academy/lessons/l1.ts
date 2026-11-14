@@ -49,12 +49,10 @@ export const lesson1 = {
       body: "sun",
       panel: "LandersEye",
       scene: flatMonth,
-      goal: { metric: "sun_el_deg", op: "==", value: "{{example.l1.sun_el_max_deg}}" },
+      // Within half the series' stored step of 0.01°: the hours that read as the highest.
+      goal: { metric: "sun_el_deg", op: "==", value: "{{example.l1.sun_el_max_deg}}", tolerance: 0.005 },
       answerLabel: "{{example.l1.sun_el_max_deg}}°",
-      preview: {
-        says: "Soon you'll drag the Sun through a whole month here, to find its highest moment. For now, here's what you would find.",
-        reveal: highestLuna,
-      },
+      preview: { reveal: highestLuna },
     },
     {
       id: "l1-directions",

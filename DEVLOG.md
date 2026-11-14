@@ -49,6 +49,47 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-14 · S10c review · Consistent queue positions
+- **Who:** Codex implementation agent
+- **AI use:** Codex fixed the POST response contract, added test-client coverage and updated the contract documentation; human review pending.
+- **State:** verified (438 Python tests (1 skipped), 2,344 web tests and the typecheck pass on the merge with main; regenerating the schema and types leaves no diff; reviewed by Cursor (every error path has its code; validation.json differs from main only by the new object, with no existing value changed; the new numbers equal the gate's prose and come from the same computation); one finding fixed: the queue position is a number only while a job is queued, on both answers)
+- **Changed:** POST and GET now return a positive queue position only while queued, and null otherwise.
+
+#### 2026-11-14 · S12c · G2 diagnostics
+- **Who:** Codex implementation agent
+- **AI use:** Codex added structured G2 evidence and ran the real-data validation; human review pending.
+- **State:** verified (438 Python tests (1 skipped), 2,344 web tests and the typecheck pass on the merge with main; regenerating the schema and types leaves no diff; reviewed by Cursor (every error path has its code; validation.json differs from main only by the new object, with no existing value changed; the new numbers equal the gate's prose and come from the same computation); one finding fixed: the queue position is a number only while a job is queued, on both answers)
+- **Measured:** Raw azimuth maximum 0.08235604530386809? at apollo11/sun 2031-10-14T01:00:00Z; 28 site/body hours exceed 0.02?. Full sky maximum 0.006029212608512336? and elevation maximum 0.006006374416962501?. Removing the new diagnostics object leaves the real report structurally identical to origin/main.
+
+#### 2026-11-14 · S10c · Custom-site status and errors
+- **Who:** Codex implementation agent
+- **AI use:** Codex implemented queue positions, error codes, contracts, documentation and regression tests; human review pending.
+- **State:** verified (438 Python tests (1 skipped), 2,344 web tests and the typecheck pass on the merge with main; regenerating the schema and types leaves no diff; reviewed by Cursor (every error path has its code; validation.json differs from main only by the new object, with no existing value changed; the new numbers equal the gate's prose and come from the same computation); one finding fixed: the queue position is a number only while a job is queued, on both answers)
+- **Changed:** Status returns the current FIFO position; custom-site errors include stable codes while retaining their messages.
+
+#### 2026-11-14 · S2b · Stable score boundaries and exact window means
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — documented the arithmetic first, implemented
+  matching Python and TypeScript scoring, added seeded translation and boundary
+  tests, regenerated G10, and ran sequential catalog audits and checks.
+- **State:** verified (432 Python tests, 2,344 web tests and the typecheck pass on the merge with main; reviewed by Gemini (approve): 2,240 random and boundary cases gave identical results in Python and TypeScript, down to the bits; 50 offsets of the same window agree; a 5-site audit found no status change; the orchestrator's audit of the whole catalog by landing hour found no status change and 4,598 displayed whole scores corrected upward by one)
+- **Changed:** scoring functions and their tests, the fixture generator and shared
+  cases, a scoring-only fixture series, `docs/science.md` sections 9–11, decision
+  0015 and `docs/reviews/s2b-score-boundary.md`. No screens or contracts changed.
+- **Notes:**
+  - Exact integer prefix counts replace floating prefix subtraction; a stated
+    12-decimal rule handles comparisons and the returned score in both copies.
+  - Audited 25 sites × 5 presets × 2,191 days, once before and once after, each
+    single-process. Zero status changes and zero score changes above 1e-9 for
+    every preset. The largest score difference is 1.1802114841e-11 points.
+  - Worked examples regenerate byte-identically. No derived file changed. The
+    complete per-profile counts and regression evidence are in the report.
+  - Checks: pytest 432 passed, 1 skipped; web 1,926 passed; frozen install,
+    typecheck and build passed, each exit 0. Fixed a new fixture-label collision
+    found by the first Python run, then reran Python and the affected G10 test.
+    Checks ran sequentially, with numerical threads and Vitest workers limited.
+- **Seen at merge (orchestrator):** the fix does change what a user sees in a few places, and for the better. Scores are shown rounded down, and the old sums left some exact whole scores one float step short (99.99999999999999 shown as 99). Over the real catalog (25 sites, 5 presets, every landing hour: 6,486,425 results) 4,598 displayed whole scores go up by one (IM-2 Athena 2,092; Artemis crewed 1,699; Blue Ghost 1 807; none for VIPER or Chandrayaan-3); no status changes. A Slip Planner test that named three such days was updated to expect the exact values.
+
 #### 2026-11-14 · S10b integration · Merge main's placement builder
 - **Who:** Codex implementation agent
 - **AI use:** Codex resolved build-sites and DEVLOG conflicts, preserved main's placement flow, adapted the custom-site wrapper to main's helpers, and added integration tests; human and orchestrator review pending.
@@ -56,6 +97,32 @@ each integration checkpoint.
 - **Changed:** build_site now composes _derive, _record and _stage_site; catalog callers reuse prederived parts and placement metadata, variants still reuse the winning skyline/series. Custom publication retains cancellation, storage hook and internal site.json without touching the index or candidate cache. Placement imports are local to the catalog command. API storage prunes the reserved placement directory before traversal so catalog candidates do not consume the custom quota. Every DEVLOG line from both merge parents was retained.
 - **Checks:** Full Python run 424 passed, 1 real-map skip, exit 0. After the placement-quota interaction fix, affected API/integration checks 106 passed, 1 skipped, exit 0. Explicit real-map test: 1 passed, exit 0, Connecting Ridge custom series.bin/skyline.bin/terrain.bin byte-identical to catalog in 36.617 s (37.90 s test); meta differs only site_id. Catalog verification ran --only chandrayaan3 apollo11 --force in a staging copy and rebuilt Connecting Ridge's listed point with the shared builder, retaining its published nearby range. All 25 staged folders and sites.json match origin/main Git blob hashes; tracked derived files also match before and after. Full 25-site recomputation was not run: placement key 0826b46027c9dc5fdfbb91366e2b4a200804f04c6669ce577f9463b7f19b0254 has no shared cache; --only on a peak would also trigger the cold candidate evaluation. API import 1.110 s with no numpy/scipy/pyproj/rasterio/placement_cache modules loaded. Frozen pnpm install, 1,849 web tests (one worker) and typecheck exit 0. Docker skipped as requested; mandatory API dependency closure excludes rasterio.
 - **Notes:** Site fields and custom contracts are unchanged by the merge; main's validation exclusions for variants remain intact. Dockerfile and dependencies are unchanged, so the requested Docker rebuild exception does not apply.
+
+
+#### 2026-11-14 · Science clarifications · A9 findings and implementation limits
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — clarified the science document against the
+  reviewed code, checked current stored-file counts without rebuilding data,
+  and recorded each A9 finding's status. Both Academy teaching formulas are
+  unchanged. No code, contract, screen or data changed.
+- **State:** verified (432 Python tests and 2,344 web tests pass on the merge with main, including the Academy's card-formula tests; reviewed by Gemini, which checked each passage against the code and recounted the data (58 stored 360-degree azimuths; sub-solar latitude within 1.59 degrees; no empty skyline bins at the 20 terrain sites); one error found and corrected by the orchestrator: the highest stored Sun at Connecting Ridge is 2.10 degrees (2.13 had been computed at longitude 0))
+- **Changed:** `docs/science.md`, the Status table and later-state notes in
+  `docs/reviews/a9-math-review.md`, and the dated outcome in decision 0004.
+- **Notes:**
+  - B1 is fixed by #77; the near-pole part of B8 is fixed by #80. Profile
+    file-contract validators remain future work. A1 and C4 are handled in #93;
+    this branch leaves sections 9–11 unchanged to avoid overlapping those edits.
+  - Documented bin and blocker ties, disc quadrature and singular cases, empty
+    skyline assumptions, missing slope, quantisation, approximation domains,
+    missed sub-hour intervals and the specified-but-unbuilt paths.
+  - Current stored files contain 58 azimuths at 360 degrees: the original
+    40 plus 18 variant samples. All 20 terrain-tier catalog files have blockers
+    in every bin and report zero missing samples. Only Connecting Ridge was
+    independently rebuilt in A9; the other sites were read, not recomputed.
+  - Checks, all sequential: pytest 425 passed, 1 skipped; web 2,017 passed;
+    frozen install, typecheck and build passed. Each direct exit code was 0.
+    Both section 3.4 formula blocks and all of sections 9–11 are unchanged;
+    the Academy card tests pass without editing web code.
 
 #### 2026-11-14 · S10b review fixes · Public-endpoint failure handling
 - **Who:** Codex implementation agent
@@ -1442,6 +1509,68 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - `|latitude| > 89.999°` throws for the local frame and for walking. The sphere point and the Sun-elevation formula still accept the poles.
 
 ## Academy
+
+#### 2026-11-14 · A3 · drag-body and draw-skyline steps: lessons 1, 2 and 4 complete
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the two step kinds (`drag-body.ts`,
+  `sketch.ts`, `lesson/drag-body-stage.tsx`, `lesson/skyline-stage.tsx`,
+  `lesson/scene-data.ts`), their wiring into the lesson screen, the CSS, the vitest tests
+  and the doc changes. Checked by the agent with the tests (against the real
+  `data/derived/` series, skyline and worked examples, and the fixture), the typecheck,
+  the build and pytest, the Impeccable detector (no findings), and by playing the four
+  steps in a browser at 1440 × 900 by mouse and by keyboard only, and at 390 × 844 with
+  touch emulation, the failed-load fallback (series blocked) and reduced motion. No
+  console errors. A human has not played them. No AI-generated images.
+- **State:** verified (438 Python tests, 2,395 web tests, typecheck and build pass on the merge with main; reviewed by Codex, which decoded the stored series itself and confirmed which hours each drag step accepts; findings fixed with tests: a level-ground chart shows no terrain-based reading, a cancelled drag checks the hour on screen, lesson 2 step 4 needs the Sun above level (20 of 49 hours pass), the power meter follows the drag; played by the builder by mouse, keyboard and touch emulation; not yet played by the team lead)
+  tests, typecheck and build pass; 425 Python tests pass, 1 skipped; reviewed by Codex
+  with changes requested, fixed below; not yet played by the team lead)
+- **Changed:** `web/src/features/academy/` (plus `docs/academy/lessons.md`,
+  `docs/academy/overview.md`, `docs/design/c2/built-lesson-steps-*.png`) and one additive
+  change in `web/src/features/panorama/chart.tsx`: an optional `ground: "skyline" | "level"`
+  prop on `HorizonChart` (default `"skyline"`, Mission Control unchanged), with `Readout`
+  and `LEVEL_NAME` exported for tests. The step composes the chart's own `HorizonChart`, so
+  `LandersEye` is untouched.
+- **Review fixes (Codex, PR #95):**
+  1. Level ground shows nothing that depends on terrain: with `ground="level"` a day dot
+     reads the hour, azimuth and elevation (no disc fraction), the line is "Level ground,
+     0°", and the keyboard hint and announcement say so. `level-ground.test.ts` renders the
+     readout and both lessons' steps at 2028-01-18 00:00 UTC and three other hours.
+  2. The hour on screen is the hour Check judges: the body and the time bar share one drag
+     session (`drag-session.ts`), and any end of a drag (up, cancel, lost capture, window
+     blur, hidden tab) commits the hour on screen.
+  3. Lesson 2 step 4 needs a risen Sun: a value goal may carry an optional second
+     condition, `also` (drag-body only, checked by `validateLesson`). The goal is now
+     `sun_el_deg > 0` and `sun_frac < 0.5`: 20 of the 49 hours pass, 2028-01-04T02:00:00Z to
+     21:00:00Z, the example hour among them; the 9 plain-night hours before are misses
+     whose hint says the Sun must be above level. Luna's line, hint and explanation changed.
+  4. Pip's power meter follows the hour on screen live during a drag, through a small live
+     value read by the meter alone; the static-layer render test still passes.
+  5. The sketch's stroke keeps its line in a ref updated on each move and ends the same way
+     on up, cancel and lost capture; a test checks stroke, up, then Done.
+  6. "Start again" goes once the sketch is revealed, as intended: a sketch step is one
+     attempt (`overview.md`, "Game rules"), and the lesson's words promise no redraw.
+- **Notes:**
+  - The real data agrees with the keys: over the story month the stored maximum Sun
+    elevation reads 0.63° (`l1.sun_el_max_deg`) and Earth's 6.22° (`l4.earth_el_max_deg`),
+    minima −0.25° and −7.53°; lesson 2's 48 hours hold 20 hours with the Sun up and a disc
+    fraction under 0.5, the example hour's 0. `drag-body.test.ts` checks all of this.
+  - The series stores elevations in steps of 0.01°, so an exact `==` goal could never
+    match a decoded float. Lessons 1 and 4 now carry `tolerance: 0.005` (half a step):
+    exactly the hours that read as the month's highest count (test checks every hour).
+  - A `flat` or `smooth` scene draws a level skyline at 0° (a drawing with no blockers;
+    values still come from the series). Only the dragged body is drawn, and it sets the
+    vertical range. `smooth` is drawn level too: the stored smooth-Moon skyline exists only
+    for sphere-tier sites.
+  - The `preview` lines of these steps are now the failed-load fallback (and lesson 2
+    step 3's reveal caption); their "Soon you'll…" lines are gone. `drop-pin` keeps its
+    holding form (`PENDING_STEP_KINDS`).
+  - Lesson 2's scene now looks at `l2.example_utc`, so the sketch draws the Sun there; its
+    unused `readout` (the site name) was removed.
+  - The new render-count test found that the chart's static layer redrew on every hour
+    when the lesson's examples object was handed over again; fixed by keying the chart
+    window on its two hours.
+  - In lesson 2 step 4 the Sun's 48-hour path is short on the 360° strip; the time bar
+    under the chart is the easier way to sweep it.
 
 #### 2026-11-13 · A5 · Lessons 1 to 4 playable, with their cards
 - **Who:** Claude Code agent, for the orchestrator

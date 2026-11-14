@@ -1,5 +1,7 @@
-import { answerText, PANEL_STEP_KINDS, type RunnerState } from "./runner";
-import type { LunaMood, PanelPreview, Step, Submission } from "./types";
+import { formatUtc } from "../../components/format";
+import { formatNumber } from "./format-example";
+import { answerText, PANEL_STEP_KINDS, PENDING_STEP_KINDS, type RunnerState } from "./runner";
+import type { LunaMood, PanelPreview, SketchPoint, Step, Submission } from "./types";
 
 /**
  * What the lesson screen shows for a step, derived from the step and the runner. Pure, so
@@ -9,11 +11,28 @@ import type { LunaMood, PanelPreview, Step, Submission } from "./types";
 /** A step kind whose learner picks one of a list. */
 export type PickKind = "choice" | "predict" | "fill-formula" | "spot-bug";
 
-/** What the learner has set but not yet checked. A date slider carries a UTC instant, not a number. */
+/**
+ * What the learner has set but not yet checked. A date slider carries a UTC instant, not a
+ * number. A dragged body carries the hour it stands at and the goal metric's stored value
+ * there, read from the series by the stage; a sketch carries its points and its gap to the
+ * real skyline, worked out by `sketch.ts`.
+ */
 export type Draft =
   | { kind: PickKind; selected: number }
   | { kind: "tune-slider"; variant: "number"; value: number }
   | { kind: "tune-slider"; variant: "date"; utc: string }
+  | {
+      kind: "drag-body";
+      hour: number;
+      utc: string;
+      /** The goal metric's stored value at `hour`. */
+      value: number;
+      /** The Sun's stored disc fraction at `hour`, for Pip's power meter, or null. */
+      sunFrac: number | null;
+      /** Every goal metric's stored value at `hour`, for a goal with a second condition. */
+      values?: Readonly<Record<string, number>>;
+    }
+  | { kind: "draw-skyline"; sketch: readonly SketchPoint[]; gapDeg: number }
   | null;
 
 export type OptionState = "default" | "selected" | "missed" | "answer" | "dimmed";
@@ -89,6 +108,12 @@ export function canCheck(step: Step, runner: RunnerState, draft: Draft): boolean
     if (draft.selected < 0 || draft.selected >= optionCount(step)) return false;
     return !pickedIndices(runner.attempts).includes(draft.selected);
   }
+  if (draft.kind === "drag-body") {
+    if (!Number.isFinite(draft.value)) return false;
+    // A miss is not checked again at the same hour: the learner moves the body first.
+    return !runner.attempts.some((attempt) => attempt.kind === "drag-body" && attempt.utc === draft.utc);
+  }
+  if (draft.kind === "draw-skyline") return draft.sketch.length >= 2 && Number.isFinite(draft.gapDeg);
   if (step.kind !== "tune-slider" || draft.variant !== step.slider.kind) return false;
   const last = runner.attempts[runner.attempts.length - 1];
   if (!last || last.kind !== "tune-slider") return true;
@@ -98,17 +123,32 @@ export function canCheck(step: Step, runner: RunnerState, draft: Draft): boolean
 }
 
 export type PrimaryAction =
-  | { kind: "check"; label: "Check" | "Show me"; enabled: boolean }
+  | { kind: "check"; label: "Check" | "Show me" | "Done"; enabled: boolean }
   | { kind: "continue"; label: "Continue" | "Finish the lesson" }
-  /** A panel step shown in its "not ready" form: Continue moves on, for no XP. */
+  /** A panel step shown in its holding form: Continue moves on, for no XP. */
   | { kind: "skip"; label: "Continue" };
 
-export function primaryAction(step: Step, runner: RunnerState, draft: Draft, isLastStep: boolean): PrimaryAction {
+/**
+ * True when a step shows its holding form: its panel is not built (`PENDING_STEP_KINDS`), or
+ * it embeds a panel whose site data failed to load (`sceneFailed`).
+ */
+export function isHeld(step: Step, sceneFailed = false): boolean {
+  if (PENDING_STEP_KINDS.includes(step.kind)) return true;
+  return sceneFailed && PANEL_STEP_KINDS.includes(step.kind);
+}
+
+export function primaryAction(
+  step: Step,
+  runner: RunnerState,
+  draft: Draft,
+  isLastStep: boolean,
+  sceneFailed = false,
+): PrimaryAction {
   if (isAnswered(runner)) return { kind: "continue", label: isLastStep ? "Finish the lesson" : "Continue" };
-  if (PANEL_STEP_KINDS.includes(step.kind)) return { kind: "skip", label: "Continue" };
+  if (isHeld(step, sceneFailed)) return { kind: "skip", label: "Continue" };
   return {
     kind: "check",
-    label: step.kind === "predict" ? "Show me" : "Check",
+    label: step.kind === "predict" ? "Show me" : step.kind === "draw-skyline" ? "Done" : "Check",
     enabled: canCheck(step, runner, draft),
   };
 }
@@ -123,7 +163,10 @@ export function initialDraft(step: Step | undefined): Draft {
 /** The draft after a check: a missed pick is cleared, so the learner picks again. */
 export function draftAfterCheck(step: Step, runner: RunnerState, draft: Draft): Draft {
   if (runner.phase === "hint" && draft && "selected" in draft) return null;
-  if (isAnswered(runner) && step.kind !== "tune-slider") return null;
+  // A slider, a dragged body and a sketch stay where the learner left them.
+  if (isAnswered(runner) && step.kind !== "tune-slider" && step.kind !== "drag-body" && step.kind !== "draw-skyline") {
+    return null;
+  }
   return draft;
 }
 
@@ -152,7 +195,7 @@ export function replyText(step: Step, submission: Submission): string {
       if (submission.variant === "date") return submission.utc;
       return step.slider.kind === "number" ? withUnit(submission.value, step.slider.unit) : String(submission.value);
     case "drag-body":
-      return String(submission.value);
+      return dragReply(step, submission);
     case "drop-pin":
       return "siteId" in submission.pin
         ? `Here: ${submission.pin.siteId}.`
@@ -162,14 +205,29 @@ export function replyText(step: Step, submission: Submission): string {
   }
 }
 
+/** "0.63° at 2028-01-01 00:00 UTC", or for a disc share "0.14 of the disc showing at …". */
+function dragReply(step: Step, submission: Extract<Submission, { kind: "drag-body" }>): string {
+  const value = submission.value;
+  const when = submission.utc ? ` at ${formatUtc(submission.utc)}` : "";
+  if (typeof value !== "number") return `${value}${when}`;
+  if (step.kind === "drag-body" && !("comparedTo" in step.goal) && step.goal.metric.endsWith("_frac")) {
+    return `${formatNumber(value, { min: 2, max: 2 })} of the disc showing${when}`;
+  }
+  return `${formatNumber(value, { min: 2, max: 2 })}°${when}`;
+}
+
+/** Luna's lead-in when a drag-body answer is shown: the answer is marked on the chart. */
+export const DRAG_SHOWN = "Here it is, marked on the chart.";
+
 /**
  * The conversation for the current step: Luna's question, each reply, Luna's hint after a
- * miss and her explanation at the end. Every Luna line but the newest is "old".
+ * miss and her explanation at the end. Every Luna line but the newest is "old". A pending
+ * step (its panel not built) opens with its holding line instead of the question.
  */
 export function conversationFor(step: Step, runner: RunnerState): ConversationEntry[] {
   const preview = panelPreview(step);
   const entries: ConversationEntry[] = [
-    preview
+    preview?.says && PENDING_STEP_KINDS.includes(step.kind)
       ? { who: "luna", mood: "happy", text: preview.says, old: false, key: `${step.id}-preview` }
       : { who: "luna", mood: step.luna.mood, text: step.luna.says, old: false, key: `${step.id}-ask` },
   ];
@@ -201,7 +259,7 @@ export function conversationFor(step: Step, runner: RunnerState): ConversationEn
       entries.push({
         who: "luna",
         mood: step.kind === "predict" ? "surprised" : "happy",
-        text: `It's ${answerText(step)}. ${step.explain}`,
+        text: step.kind === "drag-body" ? `${DRAG_SHOWN} ${step.explain}` : `It's ${answerText(step)}. ${step.explain}`,
         old: false,
         key: `${step.id}-shown`,
       });
@@ -246,6 +304,7 @@ export function resultFor(step: Step, runner: RunnerState): ResultView | null {
     }
     return { tone: "correct", headline: "Correct", xp: runner.stepXp };
   }
+  if (step.kind === "drag-body") return { tone: "shown", headline: "Marked on the chart", xp: runner.stepXp };
   return { tone: "shown", headline: runner.shownAnswer ?? answerText(step), xp: runner.stepXp };
 }
 
