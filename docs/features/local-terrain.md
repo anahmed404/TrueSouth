@@ -161,9 +161,9 @@ are in `ground-relief.ts` and tested.
    drawn 300 times larger than life, so its shadow would be a false stripe kilometres long.
 3. **Near-ground texture.** Close up, a fine grain and sparse, very shallow dimples, made up
    in the shader: no craters and no rocks (the earlier made-up craters read as features you
-   could walk to, and made the ground look like a generated model). A dimple is a bowl 0.6
-   to 2.0 m across on the finer band and up to about 2 m on the coarser, 0.02 of its
-   diameter deep, with no rim, scattered by chance in patches. It is a bump on the lighting
+   could walk to, and made the ground look like a generated model). A dimple is a bowl 0.15
+   to 2 m across, 0.02 of its diameter deep (4 cm at most), with no rim, scattered by
+   chance in patches. It is a bump on the lighting
    and a slight change of albedo only; it never moves the ground or the skyline; and each
    size fades out as it shrinks to a few pixels, so it shows only close to the camera.
    Inside a real close-up there is nothing made up at all: no dimples, and no grain unless
