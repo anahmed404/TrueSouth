@@ -3,7 +3,8 @@ import { cx } from "./format";
 /** A mission window's status. Always shown with a glyph and the word, never colour alone. */
 export type Status = "GO" | "CAUTION" | "NO-GO";
 
-const GLYPH: Record<Status, string> = {
+/** The cut glyph of each status, as an SVG path on a 24 px box. The Slip Planner's spots draw it too. */
+export const GLYPH: Record<Status, string> = {
   GO: "M5 12.5l4.5 4.5L19 7.5",
   CAUTION: "M12 5.5v8M12 18.5v.2",
   "NO-GO": "M7 7l10 10M17 7L7 17",

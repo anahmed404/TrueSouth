@@ -30,12 +30,19 @@ Polar map and Local terrain.
   or two sites), fits the free space with room at the sides for labels. Changing the site
   set, or folding a panel, refits the camera in 450 to 600 ms.
 - **Orbit and zoom.** Drag orbits around the sites' centre, from 28° to 88° up. Scroll zooms
-  from 60 km to 2,600 km.
-- **The scene in this view.** Earth, the Sun, the guide lines and the sight-lines are hidden.
-  The Moon's light is a fixed drawing light, not the real Sun (see "Honesty").
+  from 60 km to 2,600 km, along the line to that centre, keeping the aim: not toward the
+  pointer, which would move the aim off the centre the orbit turns about. There is no pan
+  (a right-drag, Shift-drag or two-finger drag turns as a drag does), so the sites never
+  leave the view. A double-click frames the sites again. This is the view's entry in the
+  rig's per-view table (`ORBIT_STYLE.slip = "centre"`, `three/scene/rig.ts`), and its About
+  text says so.
+- **The scene in this view.** Earth, the Sun, the guide lines, the sight-lines and the
+  focused site's close-up ground are hidden. The Moon's light is a fixed drawing light, not
+  the real Sun (see "Honesty").
 - **Leaving.** The light blends back to the real Sun in the first 60 % of the next flight.
 - **Sites outside the view.** A site far from the pole, such as Apollo 11 near the equator, is
-  not in the picture. A note in the free space says so, for example "Apollo 11 NO-GO, near
+  not in the picture. "Far" means a sphere-tier site or one north of 80°S (the polar cap's
+  edge); the camera fit uses only the others. A note in the free space says so, for example "Apollo 11 NO-GO, near
   the equator, far off this view". Clicking it focuses the site, and its strip is in the
   landing-date panel as usual.
 
@@ -81,8 +88,9 @@ it, which is under one pixel
 - **Labels never overlap.** Each label tries right, left, below and above. If none is free,
   it moves out as a callout with a hairline back to its spot. Only when no callout fits does
   a site show its lamp alone, with its name on hover.
-- **The best-lit variant** keeps its own spot. Its label says "Best-lit variant, 149 m from
-  Connecting Ridge" with a dotted "chosen by TrueSouth" tag. The sites rail, its strip row and
+- **The best-lit variant** keeps its own spot. Its label says "Best-lit map pixel, 149 m from
+  Connecting Ridge" (the Polar map's words; the distance is the catalog's `offset_m`) with a
+  dotted "chosen by TrueSouth" tag. The sites rail, its strip row and
   the focused-site panel say the same. The focused-site panel adds "Its sunlight is an upper
   reading".
 
@@ -94,7 +102,7 @@ of one mission window, as the timeline does today. The two never stack: two slid
 different scales, one above the other, read as two clocks that disagree.
 
 ```text
-Landing dates      Mission window 01 Mar → 11 Mar     ● GO full · ◐ CAUTION half · ▁ NO-GO low   3 mo · 18 mo · 6 yr  ⌄
+⌄  Landing date ‹ 01 Mar 2028 00:00 › → 11 Mar · 10 d  Next GO   ● GO full · ◐ CAUTION half · ▁ NO-GO low   3 mo · 18 mo · 6 yr
                      2028 Jan        Feb         Mar         Apr   …
 Any site           ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔   GO on this date
 Connecting Ridge   ▁▁▄▄▄▄▁▁▁▁▁▁▁▁▁▁▄▄▄▄▄▁▁▁▁▁▁▁▁▁▄▄▄▄▁▁▁▁▁▁▁▁▁            next GO 14 Mar
@@ -105,9 +113,12 @@ de Gerlache rim    ▁▁▁▁▄▄▁▁▁▁▁▁▁▁▁▁▁▄▄▁�
 
 The sketch shows the parts, not the final drawing. The header and the grid are as follows.
 
-- **Header.** The title "Landing dates"; the mission window ("Mission window 01 Mar → 11
-  Mar", the same shape as the timeline's header); a one-line key; the zoom control; the fold
-  button. A 2 px progress bar runs along the top while the sweep runs.
+- **Header.** One row: the fold button; the shell's landing-date control
+  (`LandingDateControl`, the same control as at the head of the timeline: the date with its
+  day buttons, a picker that also holds the slips, the mission window's end and length with
+  its tag, and "Next GO"); a one-line key; the zoom control. "Landing dates" is the panel's
+  heading for screen readers, as "Timeline" is in the timeline. A 2 px progress bar runs
+  along the top while the sweep runs. On the phone the control takes its own row.
 - **Grid.** A label column, the strips, and a "next GO" column.
 - **One strip per selected site,** across the six years of the time grid, with one mark per
   landing day. Status shows by height as well as colour:
@@ -121,11 +132,15 @@ The sketch shows the parts, not the final drawing. The header and the grid are a
 - **The key** is the legend. It sits in the panel header, one line, so no other legend is
   needed: "GO full, CAUTION half, NO-GO a low line", with the lamps.
 - **The right-hand column** says "GO on this date", "next GO 22 Mar" or "no GO before
-  2032", for each site. "Next GO" is the first GO on or after the landing date. A site with
-  no later GO says so in words.
+  2032", for each site. It reads the first 00:00 UTC landing at or after the landing: the
+  landing day itself when the landing is at 00:00, else the next day. A site with no later
+  GO says so in words. The control's "Next GO" button looks only after the landing day, so
+  when that day is GO and no later one is, the button reads "No later GO before 2032"
+  beside "GO on this date"; both are true.
 - **The slider** is a Moonlight line, knob and pill across the strips, like the scrubber. It
   sets the landing date. The mission window is a pale band after it, with edges.
-- **The slip buttons** are the app bar's ("Slip +7 d", "Slip +14 d" and the others in
+- **The slip buttons** ("Slip +7 d", "+14 d") are in the landing-date control's date
+  picker, and its day buttons move the date a day at a time (see
   [`mission-control.md`](mission-control.md)). They move the same landing date, so the
   slider, the spots and the strips follow at once.
 - **Zoom.** 3 months, 18 months (the default; 3 months on a phone) or 6 years, the whole time
@@ -155,14 +170,18 @@ Before any slip, none of these are shown.
 - **Whole days.** Each mark on a strip is a landing at 00:00 UTC on that day
   ([`../science.md`](../science.md) §11). The slider, a strip's Enter key and a drag set
   the landing to 00:00 UTC on the chosen day. The slip buttons and the date picker can
-  leave another hour. Then the spots, the sites rail and the focused-site panel show
-  that exact landing, the slider sits on its day, and the panel's header says "Strips
-  show landings at 00:00 UTC".
+  leave another hour. Then the spots, the sites rail, the focused-site panel, the row
+  lamps, the folded row and the slider's words show that exact landing; the slider sits on
+  its day; and "Strips show landings at 00:00 UTC" is shown in the header, the folded row
+  and on the phone, and read with the slider's value. No sentence pins a 00:00 result on a
+  landing at another hour: the strips' hovers name their 00:00 UTC day, and "next GO"
+  starts from the next 00:00 UTC landing.
 
 ## Hover and focus
 
-- **Hover a strip:** a readout with the date, the status, the score and each veto with its
-  measured value, for that site. The words name the status.
+- **Hover a strip:** a readout with the date, the status, the score and each broken veto with
+  its measured value and limit, for that site; when every rule passes it says so. The words
+  name the status.
 - **Hover a spot:** the site's name, status, score and the broken rule, for the landing date.
 - **Focus.** Clicking a spot, a strip row or a site in the sites rail focuses it. The focused
   site gets the outer ring on its spot, and the focused-site panel shows it.
@@ -205,23 +224,39 @@ Before any slip, none of these are shown.
 - The strips are drawn on a Canvas. The spots are SVG over the scene.
 - The sweep reads the Python-computed series and the mission profile. The scene's shading
   plays no part, and neither does the fixed drawing light.
-- The spot, the strip, the hover readout, the sites rail and the focused-site panel all read
-  the same sweep result, so they cannot disagree. The earlier prototype's grid came from a
+- The spot, the strip, the hover readout, the sites rail and the focused-site panel cannot
+  disagree. Every status, rule and score a user reads for a site and a landing hour comes
+  from one function, the sites rail's single-date evaluation (`cachedEvaluation`, through
+  `slip-planner/landing-results.ts`). The sweep draws the strips and finds "next GO"; its
+  statuses equal that evaluation on every 00:00 UTC day (tested), and its packed score is
+  never shown. The earlier prototype's grid came from a
   separate cheap mock and could disagree with its own hover; the real build must not.
 
 ## States
 
-- **Computing.** The previous result stays, with a thin progress bar along the top of the
-  panel. Days not yet worked out pulse grey between 35 % and 80 %. Under "reduce motion" the
-  pulse stops.
+- **Computing.** A thin progress bar runs along the top of the panel. A site whose sweep is
+  still running for the current profile and site list pulses grey (35 % to 80 %; under
+  "reduce motion" the pulse stops), its words say "Still computing this site" and its
+  "next GO" says "computing…". The previous profile's picture is never shown in its place.
+  The spots do not wait for the sweep: they read the same single-date evaluation as the
+  sites rail, so a spot always equals the rail.
+- **"Any site" while computing.** It is GO on a day as soon as any site is known to be GO
+  that day; its hover then says "GO: <site>. <n> more still computing." CAUTION, NO-GO and
+  "no GO before 2032" are stated only once every site is known; until then the mark pulses
+  and the words say how many are computing. Its "next GO" is final only when no earlier day
+  is still being worked out.
+- **A site that could not be computed.** Its strip says "Could not compute this site." with
+  "Retry". "Any site" is worked out from the others, its label says "1 site missing", and
+  its hover names the missing site.
 - **Dates near the end of the time grid** whose mission window does not fit are drawn as "no
   data".
 - **One site.** The strip is taller (18 px) and the camera frames the site with 70 km around
   it.
 - **Many sites.** With seven or eight sites, strips are 12 px tall with a 5 px gap. Spots and
   labels follow the close-sites rules.
-- **No site selected.** The panel and the scene show a prompt to add one, and the Polar map
-  opens, as in [`mission-control.md`](mission-control.md).
+- **No site selected.** The panel and the scene show a prompt to add one, and the panel's
+  "Open the Polar map" opens it, as in [`mission-control.md`](mission-control.md). The view
+  does not switch by itself.
 - **Every date NO-GO.** A strip shows only low lines. Its right-hand column says "no GO
   before 2032". "Any site" shows no GO either. The spot of that site is a NO-GO lamp with an
   empty ring on every date.
@@ -256,23 +291,29 @@ At 390 × 844:
 The Slip Planner does not need WebGL. With no WebGL, or when the first flight is too slow,
 the view uses the flat Polar map with the same spots.
 
-- The map is dimmed. NASA's average sunlight, when the shading is on, is drawn on it with the
-  same label.
+- The map is the Polar map's own (`MapCore`, features/polar-map/) with no pins of its own
+  (the spots are the Slip Planner's, placed through the map's projector) and none of its
+  readouts (no "New site here?", no nudge, no hover readout: its `readouts` prop is off).
+  NASA's average sunlight, when the shading is on, is its "sunlight" overlay, with the same
+  label. Its zoom and drag move the map, and the spots follow.
 - Crater names are hidden, so they do not collide with the labels.
 - The same slider, strips, before-and-after and panels all work, and the bottom panel is
   unchanged: it still shows landing dates.
 - A note says: "3D is off, so your sites are shown on the flat Polar map. The spots, the
   landing dates and the panels work as in 3D."
 
-This replaces the still picture for this view only.
+This replaces the still picture for this view only: the Slip Planner is a flat layer of the
+scene slot (`SLIP_PLANNER_LAYER`, the same mechanism as the Polar map's `POLAR_MAP_LAYER`), so
+the shell counts its view as drawable flat.
 
 ## Done when
 
 - The spot, the strip, the hover text and the sites panel agree for every landing at 00:00
   UTC. A test sweeps every selected fixture site and a spread of dates and compares all
   four.
-- With a landing at another hour, the spot equals the sites rail and the header shows the
-  "Strips show landings at 00:00 UTC" note.
+- With a landing at another hour, the spot equals the sites rail, and the "Strips show
+  landings at 00:00 UTC" note shows open, folded and on the phone, and is read with the
+  slider's value.
 - Eight sites with a 100-day profile recompute in under 200 ms on a mid-range laptop.
 - Results equal the focused-site panel's result for the same site and date.
 - No colour appears on the ground between sites, on any date and with the shading on or off.
