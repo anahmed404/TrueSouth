@@ -341,10 +341,11 @@ address history or storage reservation.
 
 ### Client addresses and reverse proxies
 
-The client address is the socket peer address exposed in the ASGI scope, never an
-X-Forwarded-For value read by the application. Production starts uvicorn with
-`--no-proxy-headers`; use that flag in development and other deployments too. The
-application provides no trusted-proxy configuration. All people behind one reverse
-proxy therefore share that proxy's six-per-hour limit. Changing X-Forwarded-For or
-Forwarded headers cannot reset it. Do not enable uvicorn proxy-header processing for
-this service without separately implementing and reviewing trusted-proxy support.
+The rate limit uses the socket peer address by default. `TRUESOUTH_TRUSTED_PROXIES`
+is an optional comma-separated list of IP addresses or CIDR ranges. Only when the
+socket peer matches that list does the API use the rightmost `X-Forwarded-For`
+entry, provided it is a valid IP address; a missing or malformed entry falls back to
+the peer. An untrusted peer cannot change its limit using forwarded headers.
+Configure only proxies under your control. The production nginx overwrites the header
+with its connection's remote address. Keep uvicorn's `--no-proxy-headers` enabled;
+uvicorn must not rewrite the socket peer before this check.
