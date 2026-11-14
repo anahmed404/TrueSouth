@@ -1612,7 +1612,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   on the stored series from a throwaway script outside the repository to compute every date
   and status the demo script quotes; recounted the AI-use lines. No browser was opened and
   no test suite was run. A human has not read it.
-- **State:** built, not verified (the demo script has not been run in the browser; the
+- **State:** verified (reviewed by Codex (gpt-6.1-terra): the demo was performed on the running build and its numbers recomputed (all agree); five wording errors fixed by the orchestrator; on the tree merged with main 9f12ff4: 458 Python tests (1 skipped), 2,465 web tests, typecheck and build all exit 0. Not rehearsed against a clock; not every sentence of the other five files was independently confirmed)
   numbers in it were computed, not seen on screen)
 - **Changed:** `docs/submission/` (all six files), this entry
 - **Notes:**
