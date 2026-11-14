@@ -59,7 +59,7 @@ export type SceneMode = "3d" | "flat";
  * (DESIGN.md, "The scene").
  */
 export type SceneProps = {
-  /** The camera view to fly to. The windows (Slip Planner, Compare) never move the camera. */
+  /** The camera view to fly to. The window (Compare) never moves the camera. */
   view: CameraViewId;
   /**
    * The scenario: profile, selected sites, focused site, landing date and the current time.
@@ -96,6 +96,34 @@ export type SceneProps = {
   mode: SceneMode;
   /** Optional: a camera flight has landed (see `SceneArrival`). */
   onArrive?: (arrival: SceneArrival) => void;
+  /**
+   * Optional: the scene hands over its projector while it draws in 3D, and null when it stops.
+   * The Slip Planner's spots (docs/features/slip-planner.md, "Spots") use it to sit on their
+   * sites, drawn by the shell over the scene, as the pins are.
+   */
+  onProjector?: (projector: SceneProjector | null) => void;
+  /**
+   * Optional: in the Slip Planner, shade the polar cap by NASA's average sunlight over 18.6
+   * years (slip-planner.md, "Honesty"). Context only: it never decides a result.
+   */
+  slipShading?: boolean;
+};
+
+/** Where a place on the Moon is on screen now, in CSS pixels from the window's top left. */
+export type ScreenPoint = {
+  x: number;
+  y: number;
+  /** False when the point is behind the camera or on the Moon's far side. */
+  visible: boolean;
+};
+
+/**
+ * Projects sites onto the screen with the scene's current camera. `subscribe` calls back
+ * after every drawn frame, so whatever sits on a site can follow the camera without React.
+ */
+export type SceneProjector = {
+  project: (latDeg: number, lonDeg: number) => ScreenPoint;
+  subscribe: (onFrame: () => void) => () => void;
 };
 
 /**
@@ -104,6 +132,10 @@ export type SceneProps = {
  */
 export type FlatLayerProps = Omit<SceneProps, "onStatus" | "ignoreSlow" | "onArrive"> & {
   arrival: SceneArrival | null;
+  /** True when 3D is off only because it was slow, so "Try 3D anyway" can help. */
+  canTryAgain: boolean;
+  /** "Try 3D anyway", as on the still picture. */
+  onTryAgain: () => void;
 };
 
 /**

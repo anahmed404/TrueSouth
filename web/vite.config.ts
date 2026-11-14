@@ -90,18 +90,6 @@ export default defineConfig(({ mode }) => {
         "/api": "http://localhost:8000",
       },
     },
-    build: {
-      rollupOptions: {
-        // Nothing in the app shell imports the sweep yet (the Slip Planner is
-        // still a placeholder). Without this input, Vite tree-shakes the worker
-        // and emits no worker chunk. `new Worker(new URL(...))` in the client
-        // is what the browser loads once a screen imports `useSweep`.
-        input: {
-          index: path.resolve(webRoot, "index.html"),
-          "sweep.worker": path.resolve(webRoot, "src/lib/scoring/sweep.worker.ts"),
-        },
-      },
-    },
     test: {
       environment: "node",
       include: ["src/**/*.test.ts", "dev/**/*.test.ts"],

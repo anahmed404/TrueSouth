@@ -3,7 +3,8 @@ import type { CameraViewId, FreeSpace } from "../../../app/scene";
 import { MOON_RADIUS_M } from "../../../lib/geo";
 import { easeInOutCubic, lerpPose, viewOffset, type Pose, type SiteFrame } from "./camera";
 import { focusPose, hitMoon, lookOf, orbitSystem, panSystem, rayThrough, systemPivot, zoomSystem } from "./navigate";
-import { clamp, smooth } from "./vec";
+import { slipLightBlend, slipOrbit, slipZoom } from "./slip";
+import { clamp, smooth, type V3 } from "./vec";
 
 /** The rig turns about the Moon in any view but Local terrain and Lander's eye. */
 type Mode = CameraViewId;
@@ -28,12 +29,17 @@ export { POLE_LIMIT_Y } from "./navigate";
  * - "free": the System view's free trackball about the pivot, with no pole limit (navigate.ts).
  * - "site": Local terrain's turntable about the site, kept above the ground (6° to 85° up).
  * - "look": Lander's eye looks around from where it stands, with a level horizon.
+ * - "centre": the Slip Planner turns about the selected sites' centre, 28° to 88° up, and
+ *   zooms along the line to that centre, 60 to 2,600 km (slip.ts). It has no pan, and its
+ *   zoom keeps the aim rather than moving toward the pointer, so the sites never leave the
+ *   view: a pan or a pointer zoom would move the aim off the centre the orbit turns about.
  * - "none": the camera stays still (the Polar map stays a north-up map).
  */
-export type OrbitStyle = "free" | "site" | "look" | "none";
+export type OrbitStyle = "free" | "site" | "look" | "centre" | "none";
 export const ORBIT_STYLE: Partial<Record<CameraViewId, OrbitStyle>> = {
   system: "free",
   map: "none",
+  slip: "centre",
   terrain: "site",
   panorama: "look",
 };
@@ -63,6 +69,12 @@ export class Rig {
    * rest, between only during a flight to or from the Polar map.
    */
   draw = 0;
+  /**
+   * The Slip Planner (slip.ts): how much the Moon shows the fixed drawing light instead of
+   * the real Sun, 0 or 1 at rest; and the point its orbit turns about.
+   */
+  slip = 0;
+  slipCentre: { centre: V3; up0: V3 } | null = null;
   private tween: Tween | null = null;
   private offset: Offset | null = null;
   private offsetTween: { from: Offset; to: Offset; t0: number; ms: number } | null = null;
@@ -129,14 +141,18 @@ export class Rig {
     this.mode = view;
     const fromDraw = this.draw;
     const toDraw = view === "map" ? 1 : 0;
+    const fromSlip = this.slip;
+    const intoSlip = view === "slip";
     const onT = (t: number) => {
       this.draw = toDraw >= fromDraw ? fromDraw + (toDraw - fromDraw) * smooth(0.55, 1, t) : fromDraw * (1 - smooth(0, 0.45, t));
+      this.slip = slipLightBlend(fromSlip, intoSlip, t);
     };
     this.flyTo(
       to,
       ms,
       () => {
         this.draw = toDraw;
+        this.slip = intoSlip ? 1 : 0;
         onArrive?.(view);
       },
       onT,
@@ -245,6 +261,10 @@ export class Rig {
       orbitSystem(c, dx, dy, this.viewportHeight, this.focus);
       return;
     }
+    if (style === "centre") {
+      this.slipMove((pos) => slipOrbit(pos, this.slipCentre!.centre, this.slipCentre!.up0, dx, dy));
+      return;
+    }
     // The two ground views turn about the site, within their limits.
     if (style !== "site" && style !== "look") return;
     const site = this.site;
@@ -316,6 +336,11 @@ export class Rig {
       zoomSystem(c, factor, this.trueScale ? 900 : 40, ndc, toward);
       return;
     }
+    if (this.style === "centre") {
+      // Along the line to the sites' centre, keeping the camera's aim (not toward `ndc`).
+      if (this.slipCentre) c.position.set(...slipZoom([c.position.x, c.position.y, c.position.z], this.slipCentre.centre, factor));
+      return;
+    }
     if (this.mode === "terrain" && this.site) {
       const ground = new THREE.Vector3(...this.site.ground);
       const rel = c.position.clone().sub(ground);
@@ -327,6 +352,17 @@ export class Rig {
       c.fov = clamp(c.fov * factor, 8, 75);
       c.updateProjectionMatrix();
     }
+  }
+
+  /** The Slip Planner's drag: about the sites' centre (slip.ts), looking at it. */
+  private slipMove(step: (pos: V3) => { pos: V3; up: V3 }): void {
+    const centre = this.slipCentre;
+    if (!centre) return;
+    const c = this.camera;
+    const next = step([c.position.x, c.position.y, c.position.z]);
+    c.position.set(...next.pos);
+    c.up.set(...next.up);
+    c.lookAt(...centre.centre);
   }
 
   /**
