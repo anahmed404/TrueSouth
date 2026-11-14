@@ -25,7 +25,9 @@ import {
   primaryAction,
   resultFor,
   type Draft,
+  type PrimaryAction,
 } from "./step-view";
+import { progressMarks, reviewRunner, reviewTarget } from "./review";
 import { useAcademyStore } from "./store";
 import { createLiveValue } from "./live-value";
 import type { Lesson, Submission } from "./types";
@@ -43,6 +45,9 @@ function submissionFrom(draft: Draft): Submission | null {
   }
   return { kind: draft.kind, selected: draft.selected };
 }
+
+const ignoreDraft = () => undefined;
+const ignoreStatus = () => undefined;
 
 /** True when a key press belongs to a control that handles Enter itself. */
 function ownsEnter(target: EventTarget | null): boolean {
@@ -75,6 +80,12 @@ export function LessonScreen({
   // drag does not re-render the lesson screen. Cleared on each new step.
   const livePower = useMemo(() => createLiveValue<number | null>(null), []);
   useEffect(() => livePower.set(null), [runner.stepIndex, livePower]);
+  // A finished step opened again from the progress marks, read-only (review.ts), or null.
+  // A request for a step not yet reached is ignored by `reviewTarget`.
+  const [viewing, setViewing] = useState<number | null>(null);
+  // The learner's last draft on each finished step (where the body was, the sketch), so a
+  // review can draw it. Kept for this lesson only, like the rest of its progress.
+  const pastDrafts = useRef(new Map<number, Draft>());
   // Whether the current step's site data failed to load, by step id, so a new step starts clean.
   const [failedStep, setFailedStep] = useState<string | null>(null);
   const recorded = useRef(false);
@@ -114,6 +125,8 @@ export function LessonScreen({
     (action: RunnerAction) => {
       const next = reduceRunner(runner, action, lesson, goalEvaluator, examples);
       if (next === runner) return;
+      if (action.type !== "submit") pastDrafts.current.set(runner.stepIndex, draft);
+      setViewing(null);
       setRunner(next);
       const nextStep = lesson.steps[next.stepIndex];
       if (action.type === "submit" && step) {
@@ -132,23 +145,39 @@ export function LessonScreen({
     [runner, lesson, goalEvaluator, examples, step, draft],
   );
 
+  const reviewing = reviewTarget(runner, viewing);
+  const openStep = useCallback(
+    (index: number) => {
+      // The current step's mark returns to it; any other is reviewed if it is finished.
+      setViewing(index === runner.stepIndex ? null : reviewTarget(runner, index));
+      setTab("luna");
+      requestAnimationFrame(() => stepRef.current?.focus());
+    },
+    [runner],
+  );
+  const backToCurrent = useCallback(() => openStep(runner.stepIndex), [openStep, runner.stepIndex]);
+
   const onPrimary = useCallback(() => {
     if (!step || !primary) return;
+    if (reviewing !== null) {
+      backToCurrent();
+      return;
+    }
     if (primary.kind === "continue") dispatch({ type: "continue" });
     else if (primary.kind === "skip") dispatch({ type: "skip" });
-    else if (primary.enabled) {
+    else if (primary.kind === "check" && primary.enabled) {
       const submission = submissionFrom(draft);
       if (submission) dispatch({ type: "submit", submission });
     }
-  }, [step, primary, draft, dispatch]);
+  }, [step, primary, draft, dispatch, reviewing, backToCurrent]);
 
   const onPick = useCallback(
     (index: number) => {
-      if (!step || !isPickKind(step.kind) || isAnswered(runner)) return;
+      if (!step || !isPickKind(step.kind) || isAnswered(runner) || reviewing !== null) return;
       if (views[index]?.state === "missed") return;
       setDraft({ kind: step.kind, selected: index });
     },
-    [step, runner, views],
+    [step, runner, views, reviewing],
   );
 
   // Keyboard: number keys pick, Backspace empties a formula slot, Enter checks or continues.
@@ -157,6 +186,14 @@ export function LessonScreen({
       if (leaveTo !== null || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
       // The "Under the hood" tab hides the step, so no shortcut may answer it from there.
       if (!step || tab !== "luna") return;
+      if (reviewing !== null) {
+        // A reviewed step is read-only: Enter or Escape goes back; nothing else answers it.
+        if (event.key === "Escape" || (event.key === "Enter" && !ownsEnter(event.target))) {
+          event.preventDefault();
+          backToCurrent();
+        }
+        return;
+      }
       if (event.key === "Enter") {
         if (ownsEnter(event.target)) return;
         event.preventDefault();
@@ -174,7 +211,7 @@ export function LessonScreen({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [step, tab, runner, onPrimary, onPick, leaveTo]);
+  }, [step, tab, runner, onPrimary, onPick, leaveTo, reviewing, backToCurrent]);
 
   const requestLeave = (to: string) => {
     if (needsLeaveCheck(runner)) setLeaveTo(to);
@@ -196,7 +233,15 @@ export function LessonScreen({
     );
   }
 
-  const result = resultFor(step, runner);
+  // What is on screen: the current step, or a finished one opened for review (read-only).
+  const reviewed = reviewing !== null ? reviewRunner(runner, reviewing) : null;
+  const shownStep = (reviewed ? lesson.steps[reviewed.stepIndex] : undefined) ?? step;
+  const shownRunner = reviewed ?? runner;
+  const shownDraft = reviewed ? (pastDrafts.current.get(reviewed.stepIndex) ?? null) : draft;
+  const shownViews = reviewed ? optionViews(shownStep, shownRunner, shownDraft) : views;
+  const shownPrimary: PrimaryAction = reviewed ? { kind: "back", label: `Back to step ${runner.stepIndex + 1}` } : primary;
+  const result = resultFor(shownStep, shownRunner);
+  const marks = progressMarks(runner, lesson.steps.length, reviewing);
 
   return (
     <main className="ac-screen ac-screen--fixed">
@@ -204,7 +249,9 @@ export function LessonScreen({
         title={lesson.title}
         stepIndex={runner.stepIndex}
         stepCount={lesson.steps.length}
-        answered={isAnswered(runner)}
+        marks={marks}
+        reviewing={reviewing}
+        onMark={openStep}
         pip={pipAt(lesson.steps, runner.stepIndex)}
         livePower={livePower}
         onClose={() => requestLeave("/academy")}
@@ -213,23 +260,34 @@ export function LessonScreen({
           requestLeave("/mission");
         }}
       />
-      <div className="ac-split" ref={stepRef} tabIndex={-1} aria-label={`Step ${runner.stepIndex + 1} of ${lesson.steps.length}`}>
+      <div
+        className="ac-split"
+        ref={stepRef}
+        tabIndex={-1}
+        aria-label={
+          reviewed
+            ? `Reviewing step ${reviewed.stepIndex + 1} of ${lesson.steps.length}, read-only`
+            : `Step ${runner.stepIndex + 1} of ${lesson.steps.length}`
+        }
+        data-reviewing={reviewed ? true : undefined}
+      >
         <Stage
-          step={step}
-          runner={runner}
-          draft={draft}
-          views={views}
+          key={reviewed ? `review-${reviewed.stepIndex}` : "current"}
+          step={shownStep}
+          runner={shownRunner}
+          draft={shownDraft}
+          views={shownViews}
           examples={examples}
-          celebrate={celebrate}
-          onDraft={onStageDraft}
-          sceneFailed={sceneFailed}
-          onSceneStatus={onSceneStatus}
-          onLivePower={livePower.set}
+          celebrate={reviewed ? 0 : celebrate}
+          onDraft={reviewed ? ignoreDraft : onStageDraft}
+          sceneFailed={reviewed ? false : sceneFailed}
+          onSceneStatus={reviewed ? ignoreStatus : onSceneStatus}
+          onLivePower={reviewed ? undefined : livePower.set}
         />
         <Conversation
-          step={step}
-          runner={runner}
-          views={views}
+          step={shownStep}
+          runner={shownRunner}
+          views={shownViews}
           examples={examples}
           examplesPending={examplesPending}
           card={CARDS[lesson.card]}
@@ -237,7 +295,7 @@ export function LessonScreen({
           tab={tab}
           onTab={setTab}
           onPick={onPick}
-          primary={primary}
+          primary={shownPrimary}
           onPrimary={onPrimary}
           result={result}
           primaryRef={primaryRef}
