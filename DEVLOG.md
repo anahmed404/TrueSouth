@@ -1489,7 +1489,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   build, and by eye in Chrome with hardware WebGL (RTX 2060) at 1440 × 900 and 1024 × 768
   against `main` (1c3b3b6) run side by side, with the True-scale toggle sampled frame by
   frame; a human has not reviewed it
-- **State:** built, not verified
+- **State:** verified (reviewed by Codex (gpt-6.1-terra): request changes (segments entering the Moon, a gap at the limb at True scale), both fixed by the author with a per-segment test over all 52,584 hours in both arrangements, not re-reviewed; the True-scale fade simulated with the real rig at both sizes with no frame of Earth outside the free space; the Slip Planner's first-drag snap fixed in the same branch; on the tree merged with main a37446e: 471 Python tests (1 skipped), 2,845 web tests with 3 expected to fail on the fixture, typecheck and build all exit 0. The team approved the look from captures)
 - **Changed:** `web/src/features/three/scene/orbits.ts` and `orbits.test.ts` (new),
   `world.ts` (construct, place and fade the lines; Earth's glide fade), `proportions.ts`
   (screen-disc helpers; a comment on the distance curve's joins), `scene-root.tsx` (one line:
