@@ -18,14 +18,16 @@ screenshots are in `docs/design/c2/space-*.png`.
 3. **Find dates.** The Slip Planner shows every landing date for every chosen site.
 4. **Inspect one site and date.** The scene and its camera views, a timeline and
    countdowns.
-5. **Compare and share.** Up to four sites side by side; copy a link; export.
+5. **Compare and share.** The selected sites (up to eight) side by side; copy a link; export.
 
 A new visitor lands on the System view with a working default: profile `im2_athena`, four
 polar sites, landing date 2028-03-01. Nothing is empty on first load. The Slip Planner is
 one click away on the view bar.
 
-Out of scope for the deadline: clicking the map to create a custom site, and "compute for
-my dates". Their specs stay in [`polar-map.md`](polar-map.md); step 2 works from the catalog.
+Step 2 also takes typed coordinates: "Your own coordinates" in the add-site picker
+computes a custom site on the server ([`polar-map.md`](polar-map.md), "Custom sites").
+Out of scope for the deadline: "compute for my dates"; its spec stays in
+[`polar-map.md`](polar-map.md).
 
 ## Layout
 
@@ -237,32 +239,44 @@ Mission Control may ask for a wider screen, but the layout holds at 390 px wide.
 Each row shows the site's name, its status chip and the one fact that matters (the broken
 rule's value, or the score). A sphere-tier site adds "Terrain not modelled".
 
-Three kinds of catalog site add a line, because the position or the meaning of the point
+Some sites say what their point is, because the position or the meaning of the point
 needs saying
 ([`../decisions/0012`](../decisions/0012-sunlit-peaks-keep-their-listed-point.md),
-[`../site-catalog.md`](../site-catalog.md)):
+[`../site-catalog.md`](../site-catalog.md)). The wording lives in
+`web/src/app/mission/site-labels.ts`, so the rail, the focused-site panel and Compare say
+the same thing. To keep the rail quiet, only the variant's line is in the rail; the rest
+is in the focused-site panel.
 
-- **The five sunlit-peak sites** show the **nearby range**: the lowest and highest six-year
-  average sunlight within 160 m of the listed point, beside the site's own number. Proposed
-  wording: "Sunlight 60 %, 40 to 87 % within 160 m". Reason: the range is a six-year mean
-  over the time grid, so the label must not read like the mission-window metric.
 - **A best-lit variant** (`<id>_best_lit`) appears in the "Add site" list directly under the
-  site it belongs to. Its row and its panel carry the label **chosen by TrueSouth**, in the
-  place of a source, and its distance from the listed point (for example "149 m from
-  Connecting Ridge"). It is never tagged sourced. Its sunlight is labelled an **upper
-  reading**, because picking the best of our own estimates favours points where the
-  estimate runs high. The explanation text is in `web/src/lib/explain.ts`.
-- **The six Artemis candidate entries** (Haworth, Malapert Massif, Mons Mouton, Nobile Rim 1,
-  Nobile Rim 2, de Gerlache Rim 2) show a short tag, "map centre". They are the centres of
-  NASA's close-up maps, not chosen landing points. Proposed wording for the tag's text:
-  "Centre of NASA's close-up map, not a chosen landing point". Reason: the catalog says
-  "representative point, not an official centre", and the panels must not suggest NASA
-  picked it.
+  site it belongs to. Its row and its panel carry the dotted tag **chosen by TrueSouth**, in
+  the place of a source, and the line "Best-lit map pixel, 149 m from Connecting Ridge"
+  (`offset_m` rounded to the metre). It is never tagged sourced.
+- **A custom site** carries the filled tag **Your site** beside its name.
+- While a custom site computes, its row shows its state instead of a status
+  ([`polar-map.md`](polar-map.md), "Custom sites").
 
 ## Focused-site panel
 
 The panel keeps the approved order: the status; the broken rule; the passing rules; a
 closed metrics disclosure; links.
+
+What the point is, under the name and coordinates:
+
+- **A best-lit variant:** "chosen by TrueSouth", "Best-lit map pixel, 149 m from Connecting
+  Ridge", "Its sunlight is an upper reading: the brightest of the map pixels within 160 m."
+  (the radius from the data), and a link that shows or adds the listed site.
+- **An Artemis candidate entry** (group `artemis`): "This is the centre of a candidate
+  region on NASA's map, not a chosen landing point."
+- **A custom site:** "Your site", computed by TrueSouth at a typed point, not a sourced
+  mission site. Until it is ready, the panel shows its state and its one action.
+- **A sunlit peak with `nearby_sun`:** in "The ground", "Sunlight nearby: Within 160 m: 39 %
+  to 87 %, six-year average", rounded outward (low end down, high end up) so the range
+  never looks narrower than it is, with the `nearby_range` explanation and a link that
+  shows or adds its best-lit point. A variant does not repeat it: the range is around the
+  listed point.
+
+The bullets below are the earlier spec; where they differ, the lines above are what is
+built.
 
 - **Header.** The site's name, coordinates, terrain tier and, for an Artemis candidate entry,
   the line "Centre of NASA's close-up map, not a chosen landing point".
@@ -300,8 +314,9 @@ teaches it. The same text is used in the Academy.
 | Loading a site | Skeleton rows; other sites stay usable |
 | Textures loading | The Moon is drawn plain grey with the same lighting; panels are usable |
 | No WebGL, or a slow first flight | The still picture, with "Try 3D anyway" |
-| Custom site computing | "Computing terrain for your site…" with queue position (out of scope for the deadline) |
-| API offline | Custom sites and sensitivity grids disabled, with a one-line reason; all else works (out of scope for the deadline) |
+| Custom site computing | "Computing terrain for your site…" with its queue position and the time so far; other sites stay usable |
+| Custom site from a link, unknown to the server | "Not computed on this server yet" with "Compute this site"; no job starts without a click |
+| API offline | The coordinates form shows "Custom sites are not available on this server." and is disabled; a custom site from a link says the server is not answering; all else works |
 | No sites selected | A prompt to add one, with the Polar map open |
 
 ## Done when
