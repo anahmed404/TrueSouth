@@ -55,6 +55,7 @@ import { scaleBar } from "./takeover";
 import {
   DEFAULT_HALF_WIDTH_M,
   clampView,
+  fitRectOf,
   fitView,
   latLonToScreen,
   reliefLevel,
@@ -90,6 +91,11 @@ export type MapCoreProps = {
    * the nudge readout offer a button that calls it; without it there is no button.
    */
   onRequestSite?: (latDeg: number, lonDeg: number) => void;
+  /**
+   * Optional: a strip at the foot of `frame`, in CSS pixels, that the map fits above (Mission
+   * Control passes the scene's controls strip, so the flat map opens at the globe's scale).
+   */
+  fitFootPx?: number;
   /**
    * Optional: the sites to place, in place of the whole catalog (for example only the selected
    * sites). Selection and focus still come from the scenario.
@@ -222,7 +228,9 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
     () => props.frame ?? { x: 0, y: 0, width: box.width, height: box.height },
     [props.frame?.x, props.frame?.y, props.frame?.width, props.frame?.height, box.width, box.height],
   );
-  const fit = useMemo(() => fitView({ rect: frame, boxHeight: box.height }, halfWidthM), [frame, box.height, halfWidthM]);
+  // The map fits, and centres, above the strip its controls sit in (when one is given).
+  const fitRect = useMemo(() => fitRectOf(frame, props.fitFootPx ?? 0), [frame, props.fitFootPx]);
+  const fit = useMemo(() => fitView({ rect: fitRect, boxHeight: box.height }, halfWidthM), [fitRect, box.height, halfWidthM]);
   const viewRef = useRef<MapView>(props.openAt ?? fit);
   const [view, setView] = useState<MapView>(viewRef.current);
   const userMoved = useRef(false);
@@ -422,12 +430,12 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
       const inside = at.x > frame.x + 24 && at.x < frame.x + frame.width - 24 && at.y > frame.y + 24 && at.y < frame.y + frame.height - 24;
       if (inside && v.k >= minK) return;
       const k = Math.max(v.k, minK);
-      const centre = { x: frame.x + frame.width / 2, y: frame.y + frame.height / 2 };
+      const centre = { x: fitRect.x + fitRect.width / 2, y: fitRect.y + fitRect.height / 2 };
       // Put the point at the centre, at scale k: the pole moves with the zoom about the point.
       const f = k / v.k;
       animateTo({ k, x: centre.x - (at.x - v.x) * f, y: centre.y - (at.y - v.y) * f });
     },
-    [frame, animateTo],
+    [frame, fitRect, animateTo],
   );
 
   // A newly focused site that is off screen slides into view.
@@ -637,7 +645,7 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
   const zoomBy = useCallback(
     (factor: number) => {
       userMoved.current = true;
-      const centre = { x: frame.x + frame.width / 2, y: frame.y + frame.height / 2 };
+      const centre = { x: fitRect.x + fitRect.width / 2, y: fitRect.y + fitRect.height / 2 };
       animateTo(zoomTowards(viewRef.current, factor, centre, zoomExtent(fit)));
     },
     [animateTo, frame, fit],
@@ -702,7 +710,7 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
     } else if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       if (readoutRef.current?.kind === "point" || readoutRef.current?.kind === "nudge") return;
-      const centre = { x: frame.x + frame.width / 2, y: frame.y + frame.height / 2 };
+      const centre = { x: fitRect.x + fitRect.width / 2, y: fitRect.y + fitRect.height / 2 };
       setReadout({ kind: "point", at: screenToLatLon(centre.x, centre.y, viewRef.current) });
     } else if ((event.key === "n" || event.key === "N") && focusedSite && onContext(focusedSite)) {
       event.preventDefault();

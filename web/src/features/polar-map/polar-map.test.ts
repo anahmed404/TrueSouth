@@ -28,6 +28,8 @@ import {
   takeoverView,
 } from "./takeover";
 import {
+  CONTROLS_FOOT_PX,
+  fitRectOf,
   fitView,
   latLonToScreen,
   metresPerPixel,
@@ -152,6 +154,22 @@ function globeToScreen(latDeg: number, lonDeg: number, s: FreeSpace): { x: numbe
 }
 
 describe("the takeover from the globe", () => {
+  it("fits above the same controls strip the scene keeps, so it opens at the globe's scale", () => {
+    const source = readRepo("web/src/features/three/scene/scene-root.tsx").toString("utf8");
+    const match = /const CONTROLS_FOOT = (\d+);/.exec(source);
+    expect(match).not.toBeNull();
+    expect(Number(match?.[1])).toBe(CONTROLS_FOOT_PX);
+    // The 1440 × 900 shell after #83: the free space the shell measures, less the strip.
+    const rect = { x: 288, y: 124, width: 792, height: 528 };
+    const sceneSpace = space(1440, 900, { ...rect, height: rect.height - CONTROLS_FOOT_PX });
+    const fromScene = arrivalView({ view: "map", pole: polarScale(polarPose(sceneSpace), sceneSpace) });
+    const fit = fitView({ rect: fitRectOf(rect, CONTROLS_FOOT_PX), boxHeight: 900 });
+    expect(fromScene).not.toBeNull();
+    expect(fit.k / (fromScene?.k ?? 1)).toBeCloseTo(1, 9);
+    expect(fit.x).toBeCloseTo(fromScene?.x ?? 0, 6);
+    expect(fit.y).toBeCloseTo(fromScene?.y ?? 0, 6);
+  });
+
   it("keeps every pin within 1 % of the map's width at 80°S across the swap", () => {
     for (const [w, h, rect] of [
       [1440, 900, { x: 288, y: 200, width: 864, height: 420 }],

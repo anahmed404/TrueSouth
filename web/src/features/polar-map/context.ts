@@ -117,7 +117,21 @@ export type ContextLayer = { canvas: HTMLCanvasElement; level: MapImage };
 
 const SLICE_MS = 8;
 
-const nextSlice = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+/**
+ * Yields to the browser between slices. A message port is not clamped to 4 ms the way a
+ * nested `setTimeout(0)` is, so the build does not idle between slices.
+ */
+function nextSlice(): Promise<void> {
+  if (typeof MessageChannel === "undefined") return new Promise((resolve) => setTimeout(resolve, 0));
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => {
+      channel.port1.close();
+      resolve();
+    };
+    channel.port2.postMessage(null);
+  });
+}
 
 function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -176,6 +190,29 @@ async function buildContext(signal: { cancelled: boolean }): Promise<ContextLaye
 let cached: ContextLayer[] | null = null;
 let building: { promise: Promise<ContextLayer[]>; signal: { cancelled: boolean } } | null = null;
 
+/** Starts the build if it is neither done nor running, and returns it. */
+function startBuild(): Promise<ContextLayer[]> {
+  if (building) return building.promise;
+  const signal = { cancelled: false };
+  const promise = buildContext(signal).then((layers) => {
+    if (!signal.cancelled) cached = layers;
+    return layers;
+  });
+  building = { promise, signal };
+  promise.catch(() => {
+    if (building?.promise === promise) building = null;
+  });
+  return promise;
+}
+
+/**
+ * Starts building the context early, for example when the Polar map is picked and the camera
+ * is still flying there, so it is ready by the time the flat map takes over.
+ */
+export function prefetchContext(): void {
+  if (!cached) void startBuild().catch(() => undefined);
+}
+
 /** Lets the context images go (when the view is left). A build in progress stops. */
 export function releaseContext(): void {
   if (building) building.signal.cancelled = true;
@@ -201,19 +238,9 @@ export function useMoonContext(build: boolean): ContextState {
     }
     if (!build) return;
     let live = true;
-    if (!building) {
-      const signal = { cancelled: false };
-      const promise = buildContext(signal).then((layers) => {
-        if (!signal.cancelled) cached = layers;
-        return layers;
-      });
-      building = { promise, signal };
-      promise.catch(() => {
-        if (building?.promise === promise) building = null;
-      });
-    }
+    const promise = startBuild();
     setState({ status: "building", layers: null });
-    building.promise.then(
+    promise.then(
       (layers) => live && setState({ status: "ready", layers }),
       (error: unknown) => live && !(error instanceof Error && error.message === "cancelled") && setState({ status: "error", layers: null }),
     );
