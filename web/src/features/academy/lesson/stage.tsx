@@ -6,13 +6,14 @@ import { resolveDegrees, type WorkedExamples } from "../placeholders";
 import { numberReadoutAt } from "../readout";
 import type { RunnerState } from "../runner";
 import { isAnswered, panelPreview, withUnit, type Draft, type OptionView } from "../step-view";
-import type { NumberReadout, PanelId, RevealSpec, Step } from "../types";
+import type { NumberReadout, RevealSpec, Step } from "../types";
 import { AnswerOption, OptionGroup, optionTabStop } from "../ui/answer-option";
 import { filledText } from "../ui/filled";
 import { CorrectMark } from "../ui/marks";
 import { Moondust } from "../ui/moondust";
 import { panelName, PENDING_STEPS } from "../ui/panels";
 import { DragBodyStage, type SceneStatus } from "./drag-body-stage";
+import { PanelView } from "./panels/panel-view";
 import { CurvedMoonSide, PipScene, SkyRuler, type RulerMark } from "./scenes";
 import { SkylineStage } from "./skyline-stage";
 
@@ -41,8 +42,12 @@ type StageProps = {
   onLivePower?: (power: number | null) => void;
 };
 
-/** The stage's size on a phone: a scene band, a touch band, or a tall band for a panel. */
-export function stageClass(step: Step): string {
+/**
+ * The stage's size on a phone: a scene band, a touch band, or a tall band for a panel. A
+ * prediction whose answer plays out on a Mission Control panel gives the stage to that panel.
+ */
+export function stageClass(step: Step, answered = false): string {
+  if (step.kind === "predict" && answered && step.reveal.kind === "panel") return "ac-panel ac-stage ac-stage--panel ac-stage--reveal";
   if (step.kind === "choice" || step.kind === "predict") return "ac-panel ac-stage ac-stage--scene";
   if (step.kind === "tune-slider") return "ac-panel ac-stage";
   if (step.kind === "drag-body" || step.kind === "draw-skyline") return "ac-panel ac-stage ac-stage--panel";
@@ -53,7 +58,7 @@ export function stageClass(step: Step): string {
 export function Stage(props: StageProps) {
   const { step } = props;
   return (
-    <section className={stageClass(step)} aria-label="Stage">
+    <section className={stageClass(step, isAnswered(props.runner))} aria-label="Stage">
       <StageBody {...props} />
     </section>
   );
@@ -66,6 +71,10 @@ function StageBody({ step, runner, draft, views, examples, celebrate, onDraft, s
   switch (step.kind) {
     case "choice":
     case "predict": {
+      // The answer plays out on the real panel, at the lesson's site and moment.
+      if (step.kind === "predict" && answered && step.reveal.kind === "panel") {
+        return <PanelReveal reveal={step.reveal} examples={examples} />;
+      }
       const drawing = step.kind === "predict" && answered && step.reveal.kind === "illustration" ? step.reveal : null;
       const scene = drawing ? (
         <CurvedMoonSide label={filledText(drawing.caption, examples)} />
@@ -203,9 +212,7 @@ function Reveal({ reveal, examples }: { reveal: RevealSpec; examples: WorkedExam
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: reduced ? 0.15 : 0.8, ease: EASE }}
     >
-      {reveal.kind === "panel" ? (
-        <PanelBox panel={reveal.panel} caption={filledText(reveal.caption, examples)} />
-      ) : (
+      {reveal.kind === "panel" ? null : (
         <div className="ac-reveal-card" role="status">
           <h3>What happened</h3>
           <p>{filledText(reveal.kind === "text" ? reveal.text : reveal.caption, examples)}</p>
@@ -215,14 +222,18 @@ function Reveal({ reveal, examples }: { reveal: RevealSpec; examples: WorkedExam
   );
 }
 
-/** A Mission Control panel in its 360px box. The panels are not built yet, so it says so. */
-export function PanelBox({ panel, caption }: { panel: PanelId; caption?: string }) {
+/** A prediction's answer on a Mission Control panel: the real panel, faded in once. */
+function PanelReveal({ reveal, examples }: { reveal: Extract<RevealSpec, { kind: "panel" }>; examples: WorkedExamples }) {
+  const reduced = useLunaReducedMotion();
   return (
-    <div className="ac-mcbox">
-      <div className="ac-mcbox-h">{panelName(panel)}</div>
-      <div className="ac-mcbox-body">The {panelName(panel)} will play this here once the lesson can show it.</div>
-      {caption ? <div className="ac-mcbox-f">{caption}</div> : null}
-    </div>
+    <motion.div
+      className="ac-reveal-panel"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: reduced ? 0 : 0.4, ease: EASE }}
+    >
+      <PanelView panel={reveal.panel} scene={reveal.scene} when={reveal.when} examples={examples} caption={filledText(reveal.caption, examples)} />
+    </motion.div>
   );
 }
 

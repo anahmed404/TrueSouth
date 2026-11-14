@@ -512,3 +512,8 @@
 .pano-foot .why-ok {
   padding: 0 var(--s2) 0 var(--s1);
 }
+
+/* A picture-only chart (an Academy lesson's reveal): nothing to operate, so no crosshair. */
+.pano-chart[data-static] {
+  cursor: default;
+}
