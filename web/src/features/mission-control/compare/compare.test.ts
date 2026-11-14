@@ -432,7 +432,7 @@ describe("custom sites (made up here; the sites package, #92, adds them to useSi
   });
 });
 
-describe("the window's header (MC9b): the title, the landing date, the exports, the close button", () => {
+describe("the window's header (MC9b, MC9c): the title, the mode switch, the landing date, the exports, the close button", () => {
   it("shows those and nothing else; the description and the summary are for assistive technology", async () => {
     const landingUtc = hourIndexToUtc(grid, 4700);
     const store = createScenarioStore(catalog, `?profile=im2_athena&sites=${SITE_IDS.slice(0, 4).join(",")}&land=${landingUtc}&t=0&view=compare`);
@@ -455,9 +455,9 @@ describe("the window's header (MC9b): the title, the landing date, the exports, 
     );
     const head = byClass(dom, "floating-window-head")[0] as FakeNode;
     // What a sighted user reads in the header, in order.
-    expect(flat(seen(head))).toBe(flat(`Compare ${formatUtc(landingUtc)} Export CSV Export JSON`));
+    expect(flat(seen(head))).toBe(flat(`Compare Sites Sites and dates ${formatUtc(landingUtc)} Export CSV Export JSON`));
     expect(seen(head)).toContain("2026-07-15 20:00 UTC");
-    expect(byTag(head, "BUTTON").map((b) => String(propsOf(b)["aria-label"] ?? seen(b)))).toEqual(["Export CSV", "Export JSON", "Close Compare"]);
+    expect(byTag(head, "BUTTON").map((b) => String(propsOf(b)["aria-label"] ?? seen(b)))).toEqual(["Sites", "Sites and dates", "Export CSV", "Export JSON", "Close Compare"]);
 
     // The description: the dialog's accessible description, visually hidden.
     const dialog = byTag(dom, "SECTION").find((n) => propsOf(n).role === "dialog") as FakeNode;

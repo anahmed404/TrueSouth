@@ -17,6 +17,7 @@ import { windowLength } from "../../../lib/scoring";
 import { CAVEAT, DATA_SOURCE, fileDate, fileProfile, gridRange, toCsv, utcSeconds, type CsvValue } from "../../../lib/export";
 import { hourIndexToUtc, utcToHourIndex } from "../../../lib/time";
 import { PROFILE_FIELDS, type ProfileField, type ViewId } from "../../../state/scenario";
+import type { DatesPicks } from "./dates";
 import { brokenRuleText, metricNumber, statusCells, type ColumnView, type MetricRow } from "./model";
 
 export type ExportScenario = {
@@ -72,14 +73,23 @@ function profileLabel(scenario: ExportScenario): string {
   return `${profile.name} (${profile.id}), based on ${scenario.basePresetId}, changed: ${scenario.changedFields.join(", ")}`;
 }
 
-function headerComments(title: string, scenario: ExportScenario, made: Date): string[] {
-  const window = missionWindow(scenario.grid, scenario.landingUtc, scenario.profile.duration_days);
+function headerComments(title: string, scenario: ExportScenario, made: Date, dates: DatesPicks | null = null): string[] {
   const grid = gridRange(scenario.grid);
+  const windowLine = (label: string, landingUtc: string) => {
+    const window = missionWindow(scenario.grid, landingUtc, scenario.profile.duration_days);
+    return `${label}: ${window.start_utc} to ${window.end_utc} (${window.hours} h)`;
+  };
+  const landing = dates
+    ? [
+        `Landing dates: date 1 ${dates.date1}, date 2 ${dates.date2} (the scenario's landing date is ${scenario.landingUtc})`,
+        windowLine("Mission window, date 1", dates.date1),
+        windowLine("Mission window, date 2", dates.date2),
+      ]
+    : [`Landing date: ${scenario.landingUtc}`, windowLine("Mission window", scenario.landingUtc)];
   return [
     title,
     `Profile: ${profileLabel(scenario)}`,
-    `Landing date: ${scenario.landingUtc}`,
-    `Mission window: ${window.start_utc} to ${window.end_utc} (${window.hours} h)`,
+    ...landing,
     `Made: ${utcSeconds(made)}`,
     `Time grid: ${grid.start_utc} to ${grid.end_utc}, every ${grid.step_s} s`,
     `Source: ${DATA_SOURCE}`,
@@ -126,15 +136,19 @@ function columnNotes(column: ColumnView, rows: readonly MetricRow[], index: numb
   return notes.join("; ").replace(/ /g, " ");
 }
 
-/** The table's rows as CSV rows: the printed numbers, as numbers. */
-export function compareCsvRows(columns: readonly ColumnView[], rows: readonly MetricRow[]): CsvValue[][] {
+/**
+ * The table's rows as CSV rows: the printed numbers, as numbers. `statusBest` is "Sites and
+ * dates"' best column, written as "column" in `best_in` (the Sites table marks the score).
+ */
+export function compareCsvRows(columns: readonly ColumnView[], rows: readonly MetricRow[], statusBest: readonly boolean[] | null = null): CsvValue[][] {
   const statuses = statusCells(columns);
   const row = (id: MetricRow["id"]) => rows.find((r) => r.id === id) as MetricRow;
   return columns.map((column, index) => {
     const status = statuses[index] ?? null;
     const m = (term: string) => metricNumber(column.metrics?.[term]);
     const site = column.site;
-    const best = [status?.best ? "score" : null, ...rows.map((r) => (r.cells[index]?.best ? r.id : null))].filter(Boolean).join(" ");
+    const head = statusBest ? (statusBest[index] ? "column" : null) : status?.best ? "score" : null;
+    const best = [head, ...rows.map((r) => (r.cells[index]?.best ? r.id : null))].filter(Boolean).join(" ");
     const landingLit = column.metrics?.landing_lit?.value;
     return [
       column.siteId,
@@ -174,8 +188,42 @@ export function compareCsv(columns: readonly ColumnView[], rows: readonly Metric
   );
 }
 
+/** "Sites and dates": the CSV's columns, with each row's landing date after the site. */
+export const DATES_CSV_HEADER = ["site_id", "site_name", "landing_utc", ...COMPARE_CSV_HEADER.slice(2)] as const;
+
+/** "Sites and dates" as CSV: one row per site and landing date, A then B, date 1 then 2. */
+export function datesCsv(
+  columns: readonly ColumnView[],
+  rows: readonly MetricRow[],
+  best: readonly boolean[],
+  scenario: ExportScenario,
+  picks: DatesPicks,
+  made: Date,
+): string {
+  const body = compareCsvRows(columns, rows, best).map((row, index) => [
+    ...row.slice(0, 2),
+    columns[index]?.landingUtc ?? null,
+    ...row.slice(2),
+  ]);
+  return toCsv(
+    headerComments(
+      "TrueSouth comparison of two sites at two landing dates: one row per site and landing date. Values are as printed on screen (rounded); the JSON export holds full precision",
+      scenario,
+      made,
+      picks,
+    ),
+    DATES_CSV_HEADER,
+    body,
+  );
+}
+
 /** The scenario and every selected site's result, at full precision. */
-export function scenarioJson(columns: readonly ColumnView[], scenario: ExportScenario, made: Date): string {
+export function scenarioJson(
+  columns: readonly ColumnView[],
+  scenario: ExportScenario,
+  made: Date,
+  dates: { picks: DatesPicks; best: readonly boolean[] } | null = null,
+): string {
   const statuses = statusCells(columns);
   const document = {
     format: "truesouth-scenario",
@@ -196,6 +244,18 @@ export function scenarioJson(columns: readonly ColumnView[], scenario: ExportSce
       view: scenario.view,
       mission_window: missionWindow(scenario.grid, scenario.landingUtc, scenario.profile.duration_days),
     },
+    ...(dates
+      ? {
+          compare: {
+            mode: "sites_and_dates",
+            site_a: dates.picks.siteA,
+            site_b: dates.picks.siteB,
+            date_1_utc: dates.picks.date1,
+            date_2_utc: dates.picks.date2,
+            best_rule: "GO beats CAUTION beats NO-GO, then the higher printed score; ties all best; none when every column is NO-GO",
+          },
+        }
+      : {}),
     limits: PROFILE_FIELDS.map((field) => ({
       field,
       label: fieldDef(field).label,
@@ -209,6 +269,13 @@ export function scenarioJson(columns: readonly ColumnView[], scenario: ExportSce
       return {
         site_id: column.siteId,
         site_name: column.name,
+        ...(dates && column.landingUtc
+          ? {
+              landing_utc: column.landingUtc,
+              mission_window: missionWindow(scenario.grid, column.landingUtc, scenario.profile.duration_days),
+              best_column: dates.best[index] ?? false,
+            }
+          : {}),
         lat_deg: site?.lat_deg ?? null,
         lon_east_deg: site?.lon_deg ?? null,
         terrain_tier: site?.terrain_tier ?? null,
@@ -249,4 +316,9 @@ export function compareFileName(scenario: Pick<ExportScenario, "profile" | "land
 
 export function scenarioFileName(scenario: Pick<ExportScenario, "profile" | "landingUtc">): string {
   return `truesouth_scenario_${fileProfile(scenario.profile)}_${fileDate(scenario.landingUtc)}.json`;
+}
+
+/** "Sites and dates" file names: the profile and both landing dates. */
+export function datesFileName(scenario: Pick<ExportScenario, "profile">, picks: DatesPicks, extension: "csv" | "json"): string {
+  return `truesouth_compare_dates_${fileProfile(scenario.profile)}_${fileDate(picks.date1)}_${fileDate(picks.date2)}.${extension}`;
 }
