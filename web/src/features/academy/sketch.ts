@@ -141,6 +141,17 @@ export function sketchOffsets(sketch: Sketch, widthDeg: number): SketchPoint[] {
   return points;
 }
 
+/** A sketch again from its submitted points (true azimuths): each point back in its column. */
+export function sketchFromPoints(points: readonly SketchPoint[], fromDeg: number, widthDeg: number, columns: number): Sketch {
+  const sketch: (number | null)[] = Array.from({ length: columns }, () => null);
+  for (const point of points) {
+    const offset = clockwiseWidthDeg(fromDeg, point.azDeg);
+    if (offset > widthDeg + 1e-9) continue;
+    sketch[columnAt(offset, columns, widthDeg)] = point.elDeg;
+  }
+  return sketch;
+}
+
 /** The same points with true azimuths, wrapped into [0, 360), for the submission. */
 export function sketchAzimuths(sketch: Sketch, fromDeg: number, widthDeg: number): SketchPoint[] {
   return sketchOffsets(sketch, widthDeg).map((point) => ({ azDeg: wrapAzimuth(fromDeg + point.azDeg), elDeg: point.elDeg }));

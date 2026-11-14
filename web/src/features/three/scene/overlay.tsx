@@ -103,6 +103,9 @@ function PinStatusWord({ siteId, profile, landingUtc }: { siteId: string; profil
   return <>{result.data ? `, ${result.data.status}` : ", no result"}</>;
 }
 
+/** Below this on-screen radius (px) the System view's labels step around the Moon (see the layout loop). */
+const SMALL_MOON_PX = 60;
+
 export function Overlay(props: OverlayProps) {
   const { bus, view, freeSpace, focusedId, focusedSite, sight, trueScale } = props;
   const pinRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -110,8 +113,8 @@ export function Overlay(props: OverlayProps) {
   const moreRef = useRef<HTMLSpanElement>(null);
   const sightRefs = { sun: useRef<HTMLDivElement>(null), earth: useRef<HTMLDivElement>(null) };
   const bodyRefs = { sun: useRef<HTMLDivElement>(null), earth: useRef<HTMLDivElement>(null) };
-  const markerRef = useRef<HTMLDivElement>(null);
-  const arrowRef = useRef<SVGSVGElement>(null);
+  const markerRefs = { sun: useRef<HTMLDivElement>(null), earth: useRef<HTMLDivElement>(null) };
+  const arrowRefs = { sun: useRef<SVGSVGElement>(null), earth: useRef<SVGSVGElement>(null) };
   const landerRef = useRef<HTMLDivElement>(null);
   const footRef = useRef<HTMLDivElement>(null);
 
@@ -165,6 +168,13 @@ export function Overlay(props: OverlayProps) {
         place(el, lx, ly);
       };
       const focal = H / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+      // A small Moon in the System view (under SMALL_MOON_PX, as at 1024 × 768): the site's name
+      // plate starts past the Moon's limb, and the Moon's disc counts as taken, so the labels
+      // step around it instead of covering it.
+      const moonAt = project(new THREE.Vector3(), camera, W, H);
+      const camDistance = cam.length();
+      const moonPx = camDistance > 1 ? focal / Math.sqrt(camDistance * camDistance - 1) : Infinity;
+      const smallMoon = p.view === "system" && anchors.near < 0.5 && moonAt.front && moonPx < SMALL_MOON_PX;
 
       // Pins: the System view and the Polar map only. On the far side of the Moon, hidden.
       const pinsOn = !small && (p.view === "system" || p.view === "map");
@@ -195,9 +205,11 @@ export function Overlay(props: OverlayProps) {
             moreRef.current.hidden = !more;
           }
           placed.push({ x: focusedPin.x - 10, y: focusedPin.y - 10, w: 20, h: 20 });
-          settle(nameRef.current, focusedPin.x + 16, focusedPin.y - 12);
+          const nameX = smallMoon ? Math.max(focusedPin.x + 16, moonAt.x + moonPx + 8) : focusedPin.x + 16;
+          settle(nameRef.current, nameX, focusedPin.y - 12);
         }
       }
+      if (smallMoon) placed.push({ x: moonAt.x - moonPx, y: moonAt.y - moonPx, w: 2 * moonPx, h: 2 * moonPx });
 
       // Sight-line labels at the far end of each line.
       for (const key of ["sun", "earth"] as const) {
@@ -217,7 +229,9 @@ export function Overlay(props: OverlayProps) {
         const el = bodyRefs[key].current;
         const centre = key === "earth" ? anchors.earth : anchors.sun;
         const radius = key === "earth" ? anchors.earthRadius : anchors.sunRadius;
-        const on = !small && anchors.bodies && Boolean(centre) && (p.view === "system" || p.view === "panorama");
+        // Earth between the camera and the Moon is not drawn; its edge arrow carries the name.
+        const hiddenInFront = key === "earth" && anchors.earthInFront;
+        const on = !small && anchors.bodies && Boolean(centre) && !hiddenInFront && (p.view === "system" || p.view === "panorama");
         if (!on || !centre || !el) {
           show(el, false);
           continue;
@@ -228,19 +242,25 @@ export function Overlay(props: OverlayProps) {
         const visible = s.front && s.x > fs.x && s.x < fs.x + fs.width && s.y > fs.y && s.y < fs.y + fs.height;
         show(el, visible);
         if (visible) settle(el, s.x - el.offsetWidth / 2, s.y + r + 8);
+        // Earth's disc counts as taken, so the Sun's label and edge arrow step around it.
+        if (visible && key === "earth" && p.view === "system") placed.push({ x: s.x - r, y: s.y - r, w: 2 * r, h: 2 * r });
       }
 
-      // The Sun's edge marker, in the System view, when the Sun is off screen (or only a
-      // direction, at true scale).
-      const marker = markerRef.current;
-      if (marker) {
+      // Edge markers, in the System view, for the Sun and Earth when off screen (the Sun also
+      // when it is only a direction, at true scale). Earth faded in front of the Moon is on
+      // screen, so it has no marker.
+      for (const key of ["sun", "earth"] as const) {
+        const marker = markerRefs[key].current;
+        if (!marker) continue;
         let on = false;
         if (!small && anchors.bodies && p.view === "system") {
-          const sunPoint = anchors.sun ?? cam.clone().add(anchors.sunDirection.clone().multiplyScalar(1_000));
-          const s = project(sunPoint, camera, W, H);
+          const point = key === "sun" ? (anchors.sun ?? cam.clone().add(anchors.sunDirection.clone().multiplyScalar(1_000))) : anchors.earth;
+          const s = project(point, camera, W, H);
           const inside = s.front && s.x > fs.x && s.x < fs.x + fs.width && s.y > fs.y && s.y < fs.y + fs.height;
-          const asDirection = !anchors.sun;
-          if (!inside || asDirection) {
+          const asDirection = key === "sun" && !anchors.sun;
+          // Earth not drawn because it stands in front of the Moon: marked at the edge too.
+          const inFront = key === "earth" && anchors.earthInFront;
+          if (!inside || asDirection || inFront) {
             on = true;
             const cx = fs.x + fs.width / 2;
             const cy = fs.y + fs.height / 2;
@@ -250,14 +270,17 @@ export function Overlay(props: OverlayProps) {
               dx = -dx;
               dy = -dy;
             }
+            // Straight in line with the Moon (looking from Earth): point down.
+            if (Math.abs(dx) + Math.abs(dy) < 1) dy = 1;
             let mx = s.x;
             let my = s.y;
-            if (!inside) {
+            if (!inside || inFront) {
               const k = Math.min((fs.width / 2 - 40) / Math.max(Math.abs(dx), 1e-6), (fs.height / 2 - 24) / Math.max(Math.abs(dy), 1e-6));
               mx = cx + dx * k;
               my = cy + dy * k;
             }
-            if (arrowRef.current) arrowRef.current.style.transform = `rotate(${Math.atan2(dy, dx)}rad)`;
+            const arrow = arrowRefs[key].current;
+            if (arrow) arrow.style.transform = `rotate(${Math.atan2(dy, dx)}rad)`;
             settle(marker, mx - marker.offsetWidth / 2, my - marker.offsetHeight / 2);
           }
         }
@@ -368,10 +391,17 @@ export function Overlay(props: OverlayProps) {
           {view === "panorama" && sight ? bodyLabel("sun", sight.sunEl, sight.sunFrac, sight.sunClear) : "Sun"}
         </span>
       </div>
-      <div ref={markerRef} className="plate scene-label scene-label-row scene-marker" aria-hidden="true">
+      <div ref={markerRefs.sun} className="plate scene-label scene-label-row scene-marker" aria-hidden="true">
         <BodyIcon body="sun" size={14} />
         <span className="scene-label-main">{trueScale && props.sunDistKm !== null ? `Sun, ${formatDistance(props.sunDistKm)} away` : "Sun"}</span>
-        <svg ref={arrowRef} className="scene-marker-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+        <svg ref={arrowRefs.sun} className="scene-marker-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path d="M3 8h9M9 4.5 12.5 8 9 11.5" />
+        </svg>
+      </div>
+      <div ref={markerRefs.earth} className="plate scene-label scene-label-row scene-marker" aria-hidden="true">
+        <BodyIcon body="earth" size={14} />
+        <span className="scene-label-main">Earth</span>
+        <svg ref={arrowRefs.earth} className="scene-marker-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
           <path d="M3 8h9M9 4.5 12.5 8 9 11.5" />
         </svg>
       </div>

@@ -4,8 +4,9 @@ Every link the submission will contain, and what must be true before sending it.
 column is for the team to fill: open each link in a **private (incognito) window, signed
 out**, and tick it only if the right page loads.
 
-State checked at **2026-11-14, `origin/main` at 69bb26e**. The only open pull request then
-was #101 (the production deploy files). It is not merged, so there is no live site yet.
+State checked at **2026-11-14, `origin/main` at 69bb26e**. The production deploy files
+(#101) are merged on `main` (9f12ff4), but the deploy has not been run on a server, so there
+is no live site yet.
 
 ## Open items for the team lead
 
@@ -14,7 +15,7 @@ These need a decision or an action from the team lead. This file does not settle
 | # | Open item | Why it matters | Status |
 | :--- | :--- | :--- | :--- |
 | 1 | **Repository access.** The repository is private and has no licence file. Judges need a public link or a zip. Decide which, or both. If it goes public, first look for anything that should not be public (personal details, keys), and choose a licence (for example MIT for the code). NASA's data and images keep their own terms. | A private link will not open for judges. Without a licence, others may not reuse the code. | [ ] Open |
-| 2 | **Live demo link.** Production deploy (nginx reverse proxy, HTTPS) is being prepared in #101; it is not merged or live. Add the link only once it opens in a private window. Also decide whether that server has NASA's prepared terrain maps (custom coordinates on) or is catalog-only (the "Enter coordinates" form says "Not available on this server"). | The demo script and the submission form both need it. | [ ] Open |
+| 2 | **Live demo link.** The production deploy files (nginx reverse proxy, HTTPS; #101) are merged, but the deploy has not been run on a server, so there is no live site. Add the link only once it opens in a private window. Also decide whether that server has NASA's prepared terrain maps (custom coordinates on) or is catalog-only (the "Enter coordinates" form says "Not available on this server"). | The demo script and the submission form both need it. | [ ] Open |
 | 3 | **Backup video.** Not recorded. The demo script lists no voice-over or music tool; if the video has an AI voice or music, name the tool in [`ai-use.md`](ai-use.md). | The presenter needs a fallback, and the form may ask for a video link. | [ ] Open |
 | 4 | **Apply `README-proposed.md` to the real `README.md`?** The real README still says "No application code exists yet." | Judges read the README first. | [ ] Open |
 | 5 | **Why the data covers six years.** The repository does not record the reason. | A judge may ask; the demo script marks it. | [ ] Open |

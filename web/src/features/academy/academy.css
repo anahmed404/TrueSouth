@@ -444,22 +444,68 @@
   flex: 1;
   max-width: 320px;
   min-width: 80px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.ac-prog i {
+.ac-prog li {
+  flex: 1;
+  display: flex;
+}
+
+/*
+ * One mark per step. A finished step's mark is a button that looks exactly like the mark:
+ * the bar stays 8px, and only the hit area around it is 28px tall, inside the 64px bar.
+ */
+.ac-prog-mark {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: var(--r-sm);
+  font: inherit;
+}
+
+button.ac-prog-mark {
+  cursor: pointer;
+}
+
+.ac-prog-mark i {
   flex: 1;
   height: 8px;
   border-radius: var(--r-pill);
   background: var(--hover);
-  transition: background-color var(--dur-panel) var(--ease-ac);
+  transition:
+    background-color var(--dur-panel) var(--ease-ac),
+    height var(--dur-fast) var(--ease-ac);
 }
 
-.ac-prog i[data-done="true"] {
+.ac-prog-mark[data-state="done"] i {
   background: var(--accent);
 }
 
-.ac-prog i[data-now="true"] {
+.ac-prog-mark[data-state="current"] i {
   background: var(--ink-3);
+}
+
+/* A finished step's mark answers the pointer: the bar thickens a little, nothing glows. */
+button.ac-prog-mark:hover i {
+  height: 12px;
+}
+
+button.ac-prog-mark[data-state="current"]:hover i {
+  background: var(--ink-2);
+}
+
+/* The step on screen while reviewing: its bar is taller, so the row still says where you are. */
+.ac-prog-mark[data-shown="true"][data-state="done"] i {
+  height: 12px;
+  background: var(--ink);
 }
 
 .ac-stepn {
@@ -2213,6 +2259,7 @@
 
 /* Reduced motion: nothing moves; state still changes at once. */
 @media (prefers-reduced-motion: reduce) {
+  .ac-prog-mark i,
   .ac-say,
   .ac-opt,
   .ac-prog i,

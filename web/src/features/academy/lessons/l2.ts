@@ -24,7 +24,7 @@ const terrain = lesson2Scene("terrain", null);
 const sunDrag = lesson2Scene("terrain", hoursAround("{{example.l2.example_utc}}", 24));
 
 const moved =
-  "I moved us to {{example.l2.site_name}}, where a ridge in the Sun's direction stands above Pip. From a high ridge like Connecting Ridge, distant ground mostly lies below Pip's eyes.";
+  "Here a ridge in the Sun's direction stands above Pip's eyes, so it hides the Sun. Back on high Connecting Ridge, distant ground mostly lies below Pip's eyes.";
 
 export const lesson2 = {
   id: "l2_skyline",
@@ -39,7 +39,7 @@ export const lesson2 = {
       id: "l2-shadow",
       luna: {
         mood: "thinking",
-        says: "From {{example.l2.site_name}}, the Sun is {{example.l2.sun_el_deg}}° up. In the Sun's direction, a ridge {{example.l2.ridge_dist_km}} km away stands {{example.l2.ridge_rise_m}} m above Pip. Sunlight or shadow?",
+        says: "Let's move Pip to {{example.l2.site_name}}, near my south pole. There the Sun is {{example.l2.sun_el_deg}}° up, and in its direction a ridge {{example.l2.ridge_dist_km}} km away stands {{example.l2.ridge_rise_m}} m above Pip. Sunlight or shadow?",
       },
       hint: "Compare two angles: how high the Sun is, and how tall the ridge looks from Pip.",
       explain: moved,
@@ -57,7 +57,7 @@ export const lesson2 = {
     },
     {
       id: "l2-angle",
-      luna: { mood: "thinking", says: "How tall a ridge looks: angle = atan( ? ÷ distance )" },
+      luna: { mood: "thinking", says: "How tall a ridge looks is an angle. A calculator's atan button turns a ratio of two lengths into that angle: angle = atan( ? ÷ distance )" },
       hint: "Start from Pip's eyes. What matters is how far the ridge rises from there.",
       explain: "Its height above you. What counts is how far the ridge rises above Pip's eyes, not above some far-off reference.",
       kind: "fill-formula",
@@ -67,7 +67,7 @@ export const lesson2 = {
     },
     {
       id: "l2-sketch",
-      luna: { mood: "thinking", says: "Sketch the skyline you think Pip sees from {{example.l2.site_name}}, towards the Sun." },
+      luna: { mood: "thinking", says: "The skyline is the outline of the ground against the sky. Sketch the one you think Pip sees from {{example.l2.site_name}}, towards the Sun." },
       hint: "Start with the ridge from the first step, then guess where the ground falls away on each side.",
       explain: "Every sketch counts. The closer yours is to the real skyline, the more XP it earns.",
       kind: "draw-skyline",
@@ -82,7 +82,7 @@ export const lesson2 = {
       id: "l2-disc",
       luna: {
         mood: "thinking",
-        says: "The Sun is a disc, not a dot. Find a moment when the Sun is up, but the ridge hides more than half of it.",
+        says: "The Sun is a disc, not a dot: the share of it above the skyline is its disc fraction. Find a moment when the Sun is up, but the ridge hides more than half of it.",
       },
       hint: "The Sun must be above level, higher than 0°. Look for a moment when it is up but its centre sits just below the ridge.",
       explain: "The Sun is up, but the ridge hides more than half of its disc. Pip's power falls with the share that shows, not all at once.",

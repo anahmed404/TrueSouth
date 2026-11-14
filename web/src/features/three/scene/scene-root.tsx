@@ -7,10 +7,7 @@ import { useApron, useManifest, useSceneMeta, useSeries, useSite, useSites, useS
 import type { DecodedApron, DecodedSeries, DecodedSystem, DecodedTerrain } from "../../../data";
 import {
   LOCAL_TERRAIN_HALF_M,
-  SQUEEZED_DISTANCE,
-  SQUEEZED_SUN_RADIUS,
   bodyDirections,
-  earthPlacement,
   localDirectionToScene,
   siteFrameScene,
   siteGroundScene,
@@ -19,6 +16,7 @@ import {
   type SystemHour,
 } from "../../../lib/geo";
 import { useHourFlags, type HourFlags } from "../../../lib/scoring";
+import { drawnEarth, drawnSun } from "./proportions";
 import { utcToHourIndex } from "../../../lib/time";
 import {
   DIP_MS,
@@ -46,7 +44,7 @@ import { SLIP_REFIT_MS, inSlipView, slipPose, type SlipSite } from "./slip";
 import { PointerTracker, type Command as PointerCommand } from "./pointers";
 import { FrameMeter, MOON_SEGMENTS_FULL, QualityGovernor, drawDpr, moonSegments, qualityStages } from "./perf";
 import { Stars, starExposure } from "./stars";
-import { mul, type V3 } from "./vec";
+import type { V3 } from "./vec";
 import { World, type WorldInputs, type WorldSite } from "./world";
 import { GL_SWITCHES } from "./gl-switches";
 import "./scene.css";
@@ -411,7 +409,7 @@ function Scene3D(props: SceneProps) {
     const bodies = hour !== null;
     const h = hour ?? NO_HOUR;
     const { sun, earth } = bodyDirections(h);
-    const placement = bodies ? earthPlacement(h, trueScale) : { centre: [0, 0, 0] as const, radius: 0 };
+    const placement = bodies ? drawnEarth(h, trueScale) : { centre: [0, 0, 0] as const, radius: 0 };
     return {
       bodies,
       sunDir: sun,
@@ -804,7 +802,7 @@ function Director(props: DirectorProps) {
       const i = p.inputs;
       const subjects = {
         earth: { centre: i.earthCentre, radius: i.earthRadius },
-        sun: i.trueScale || !i.bodies ? null : { dir: i.sunDir, centre: mul(i.sunDir, SQUEEZED_DISTANCE), radius: SQUEEZED_SUN_RADIUS },
+        sun: i.trueScale || !i.bodies ? null : { dir: i.sunDir, ...drawnSun(i.sunDir, i.sunDistKm) },
       };
       const site = i.site;
       if (view === "map") return polarPose(space);
@@ -1088,6 +1086,8 @@ function Director(props: DirectorProps) {
     }
     const moving = rig.update(now);
     world.draw = rig.draw;
+    world.scaleBlend = rig.scaleBlend;
+    world.reduceMotion = latest.current.reduceMotion;
     world.slip = rig.slip;
     world.slipShading = latest.current.slipShading && latest.current.view === "slip";
     // three updates the camera's matrices during render; the overlay projects before that.
