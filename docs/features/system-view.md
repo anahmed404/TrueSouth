@@ -216,10 +216,21 @@ re-encoded. Sizes are from the prototype; they are budgets for the real files.
     cap close in.
   - The System view zooms out to 420 Moon radii (900 at true scale), just far enough to see
     all three bodies.
-- **One rule for every drag, "grab the globe":** the surface under the pointer moves with
-  the pointer (drag right and the surface moves right), on both axes, in the System view,
-  Local terrain and Lander's eye. In a tilted view the ground nearest the viewer is the
-  part that follows.
+- **One rule for every drag: the picture follows the pointer** ("grab the globe"). Whatever
+  is under the pointer moves the way the pointer moves, on both axes, in every view: drag
+  right and it moves right, drag up and it moves up. In a view that orbits a point (the Slip
+  Planner, Local terrain) the part that follows is the ground nearest the viewer; in
+  Lander's eye (a look-around) it is the scene ahead. One exception, from the team's
+  testing: in Lander's eye a vertical drag looks the way of the drag (drag up, look up).
+  `drag-directions.test.ts` checks every view and input.
+
+  | Input | What the picture does |
+  | :--- | :--- |
+  | Left-button drag, one-finger drag | Follows the pointer (turns the view; in the Polar map, slides the map) |
+  | Middle-button drag | The same as the left button |
+  | Right-button drag, Shift + drag, two-finger drag | System view: slides, following the pointer. Views with no slide (Slip Planner, Local terrain, Lander's eye) turn as a left drag does; a two-finger drag there does nothing |
+  | Wheel, pinch | Zooms; no direction |
+  | Arrow keys | Move the camera the arrow's way, so the picture moves the other way, as on a map (a 24 px drag the other way); Shift and an arrow slides in the System view |
 - **Turn, freely:** drag with one finger or the left button. The Moon turns in any
   direction, over either pole and all the way round, as often as you like (the team lead's
   request, 2026-11-14). A horizontal drag turns the camera about its own up axis, a vertical

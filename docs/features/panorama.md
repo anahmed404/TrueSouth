@@ -17,8 +17,12 @@ Layout and the view bar: [`mission-control.md`](mission-control.md). Prototype:
 - **Entering.** Picking "Lander's eye" on the view bar, or the "Lander's eye" button in
   Local terrain, drops the camera to 2 m above the site, with a 26° lens, centred on Earth
   by default. From any other view the camera flies there in one move of 1.3 to 1.5 s.
-- **Looking around.** Drag to look around. The control row centres the view on Earth, on the
-  Sun or on north.
+- **Looking around.** Drag to look around. Sideways the picture follows the pointer, as in
+  every view (system-view.md, "Camera"): dragging right turns the view left so the scene
+  moves right. Up and down the view follows the drag instead: dragging up looks up (the
+  team's testing, 2026-11-14: the other way felt inverted from 2 m up). An arrow key looks the arrow's
+  way (the left arrow looks left, the up arrow looks up). The control row centres the view
+  on Earth, on the Sun or on north.
 - **Leaving.** Picking another view flies the camera there. The view's address in the
   shareable link is `view=panorama`.
 - **Reduced motion.** Every move is a 120 ms dip through Night and a cut.
@@ -98,7 +102,8 @@ is `LandersEye`; it takes `PanelProps` and also works alone in the Academy's les
 - **Hover the skyline:** azimuth, skyline elevation, distance to the blocker, the
   blocker's height, and the nearest named feature.
 - **Hover a path tick:** the date and that hour's elevation and disc fraction.
-- **Drag horizontally** to rotate the view. **Scroll** to zoom the vertical scale.
+- **Drag horizontally** to rotate the view: the chart follows the pointer (drag right and the
+  skyline moves right). **Scroll** to zoom the vertical scale.
 - **Click a blocker** to mark it. The mark is not shared with Local terrain yet: a later
   package wires `marker` and `onMarkerChange` through the shell, and then Local terrain
   shows the same marker.

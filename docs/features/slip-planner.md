@@ -29,7 +29,10 @@ Polar map and Local terrain.
   It picks the distance at which every site, with 16 km of ground around it (70 km for one
   or two sites), fits the free space with room at the sides for labels. Changing the site
   set, or folding a panel, refits the camera in 450 to 600 ms.
-- **Orbit and zoom.** Drag orbits around the sites' centre, from 28° to 88° up. Scroll zooms
+- **Orbit and zoom.** Drag orbits around the sites' centre, from 28° to 88° up. The picture
+  follows the pointer, as in every view (system-view.md, "Camera"): dragging right turns the
+  scene so the ground nearest the viewer moves right, dragging down moves it down; an arrow
+  key moves the camera the arrow's way. (Until 2026-11-14 the horizontal turn was reversed.) Scroll zooms
   from 60 km to 2,600 km, along the line to that centre, keeping the aim: not toward the
   pointer, which would move the aim off the centre the orbit turns about. There is no pan
   (a right-drag, Shift-drag or two-finger drag turns as a drag does), so the sites never
