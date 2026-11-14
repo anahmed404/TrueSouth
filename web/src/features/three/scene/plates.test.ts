@@ -62,7 +62,7 @@ describe("what the scene draws for each load state", () => {
   it("a failed apron keeps the patch and says the wider terrain is missing", () => {
     const content = sceneContent(input({ view: "terrain", apron: "error" }));
     expect(content.ground).toBe("terrain");
-    expect(content.plates.map((p) => p.id)).toEqual(["apron-error", "decoration"]);
+    expect(content.plates.map((p) => p.id)).toEqual(["ground-source", "apron-error", "decoration"]);
   });
 
   it("a site with no apron by design (a custom site): no error, one quiet line about its surroundings", () => {

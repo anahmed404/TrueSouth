@@ -61,6 +61,15 @@ const entries = {
   custom_site: {
     text: "A site you create by clicking the polar map or typing a latitude and east longitude. TrueSouth works it out on request, so it takes a moment to appear.",
   },
+  closeup_ground: {
+    text: "The shape of the ground nearest the lander comes from NASA's close-up DEM of this site, with squares 5 metres across.",
+  },
+  terrain_ground_core80: {
+    text: "The shape of the ground here comes from NASA's DEM, with squares 80 metres across.",
+  },
+  terrain_ground_wide240: {
+    text: "The shape of the ground here comes from NASA's DEM, with squares 240 metres across.",
+  },
   custom_site_surroundings: {
     text: "Around a custom site, the ground beyond the nearest few kilometres is drawn from a coarse height map of the whole Moon, so it shows only large hills and craters.",
   },

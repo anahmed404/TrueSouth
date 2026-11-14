@@ -1479,6 +1479,85 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## 3D and Map
 
+#### 2026-11-14 · T5a · Real close-up ground under the lander; the invented texture toned down
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote `closeup-ground.ts` (level, hand-over,
+  fit), the shared-edge join of the patch to the close-up in `ground.ts`, the close-up's
+  height texture and texture rule in `ground-material.ts`, the ground-source plate
+  (`plates.ts`, `explain.ts`), when the close-up loads (`closeup-loading.ts`),
+  `closeup-ground.test.ts`, `closeup-loading.test.ts` and the spec text — checked by the
+  agent with the vitest suite, typecheck, build, a temporary test over the real
+  `closeup.bin` of three sites, and by eye in Chrome (RTX 2060) at 1440 × 900 and
+  1024 × 768 against `main` run side by side; reviewed by Codex (gpt-6.1-terra), whose
+  must-fix items are addressed below; a human has not reviewed it
+- **State:** verified (reviewed by Codex (gpt-6.1-terra): registration recomputed on five real sites (the right way round, centre coincident, RMS 0.9 to 2.6 m against the patch), the join covered at every detail level, three mutations caught; its three must-fix items (a NaN close-up accepted, a false plate sentence, the file fetched outside the ground views) and one more fixed by the author with tests, not re-reviewed; on the tree merged with main a358ea2: 471 Python tests (1 skipped), 2,901 web tests with 3 expected to fail on the fixture, typecheck and build all exit 0. The team lead chose the real look for Lander's eye from captures)
+  tests, typecheck and build all exit 0; pytest not run, no Python changed)
+- **Changed:** `web/src/features/three/scene/closeup-ground.ts` (new), `ground.ts`,
+  `ground-material.ts`, `ground-relief.ts`, `plates.ts`, `scene-root.tsx`, `world.ts` (local:
+  the ground build only), `closeup-loading.ts` (new), `closeup-ground.test.ts` (new),
+  `closeup-loading.test.ts` (new), `plates.test.ts`,
+  `web/src/lib/explain.ts`, `docs/features/local-terrain.md`, `panorama.md`,
+  `docs/design/c2/built-closeup-ground-*.png`, this entry
+- **Notes:**
+  - **What shows:** at the 16 sites with a close-up, Local terrain and Lander's eye draw
+    NASA's 5 m map over the 2 km around the lander, inside the 20 km patch, always (no
+    toggle). Its own relief is untouched except the outer 200 m, which hands over to the
+    patch's drawn surface; the patch joins its rim with shared-edge strips at every detail
+    level. On the real files the centre offset is 0.000 m, the raw rim differs by up to
+    5.1 m (Connecting Ridge), 5.6 m (Shackleton rim) and 4.6 m (Malapert), and the drawn gap
+    is 0.0001 m at steps 1, 2 and 4. The lander stands on the drawn ground; the eye is 2 m
+    up. At the 9 sites without one, and at custom sites, the ground is as before.
+  - **The plate:** one line on where the shape of the ground comes from: the close-up DEM
+    (5 m) when it is drawn, else the tier's DEM (80 m or 240 m), also while it loads, if it
+    fails or if it is rejected; custom sites keep their own line. It no longer says that
+    nothing finer is shown (the grain and dimples are finer): the decoration line beside it
+    already says the fine ground texture is drawn for understanding only.
+  - **Whole or not at all:** a close-up with any non-finite east, north or height, or the
+    wrong number of points, is rejected whole; the patch is drawn alone and the plate gives
+    the patch's sentence (tested: all NaN, one NaN, infinities, wrong length).
+  - **When it loads:** only in Local terrain and Lander's eye, requested when the flight
+    into either starts (the view changes then); never in the System view, the Polar map or
+    the Slip Planner. Released 10 s after leaving the two ground views (`CLOSEUP_GRACE_MS`;
+    moving between them keeps it). Tested with a spy on the fetch behind a real data store.
+    The decoded file stays in the data store's cache (the data layer's, not changed here),
+    so coming back does not fetch it again.
+  - **Its edge:** no dimples inside the close-up up to its very edge; they fade back in over
+    the next 200 m outside it.
+  - **Shadow field across the join:** left as it is, with the reason in
+    `closeup-ground.ts`: as the close-up's rim lies on the patch, the field differs from the
+    drawn strips no more than anywhere on the patch (0.04 m at step 1, 0.4 m at step 2,
+    2 m at step 4, against 0.04, 0.4 and 1.5 m 3 km away); filling the patch's hole with the
+    close-up's heights was tried and made it worse (12 m).
+  - **Texture:** no made-up craters or rocks anywhere. Outside a close-up: a fine grain and
+    sparse dimples 0.15 to 0.7 m across, about 1 cm deep, their shadow at 40 %. Inside: no
+    dimples; the fine grain on, because without it the near ground in Lander's eye is a
+    smooth plastic plane (`?ground-closeup-grain=off` shows it;
+    `built-closeup-ground-grain-off-on.png`). The grain's slope is stated
+    (`GRAIN_SLOPE` 0.012, typically under a degree): at the poles the Sun is a few degrees
+    up, and a steeper grain turns into black spots. Found on the way: that address switch
+    was never read (the app tidies the address before the scene loads); it now reads the
+    address the page was opened with.
+  - **Cost, Connecting Ridge (real), against main:** vertices 92,994 → 160,067; GPU buffers
+    6.94 → 12.23 MB; float height textures about 489 → 841 KB with their mip levels (368 →
+    632 KB at the base level); file 1.06 MB per site (7 ms from the local
+    server); ground build on a site switch 66–142 → 100–174 ms; frame at 1440 × 900, rest
+    10–14 ms both, while moving 1.0–3.8 ms (stage 1) and 0.33–0.44 ms (stage 3) both, within
+    run-to-run noise.
+  - **By eye:** Local terrain close now shows real small craters and the ridge's own
+    roughness where it showed smooth blobs; no seam at the close-up's rim at any site, lit or
+    low Sun, at rest or moving. Lander's eye no longer shows made-up rimmed craters, but it
+    does not yet look like real ground: the 5 m map has nothing under about 15 m, so the
+    first tens of metres are a gentle plane with grain, and in the default heading (toward
+    Earth) the near ground is often away from the Sun and dark.
+  - **Lander's eye, options (not shipped):** `built-closeup-ground-eye-options-*.png`, for
+    Connecting Ridge, Shackleton rim and Malapert at a lit hour: (a) as it opens, facing
+    Earth; (b) turned by hand to the Sun-lit middle distance, horizon in the lower third,
+    26° lens; (c) the same with a 40° lens. (b) reads best at Shackleton and Malapert; the
+    lit side is not the same angle from the Sun at every site (about 60° at Connecting Ridge
+    and Shackleton, down-sun at Malapert).
+  - Seen, not from this package: a hairline dark line along Connecting Ridge's crest for
+    several kilometres in Local terrain (on main too).
+
 #### 2026-11-14 · System view orbits · Faint orbit lines for the Moon and Earth
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — wrote `orbits.ts` (the two circles and the line
