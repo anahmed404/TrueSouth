@@ -1812,7 +1812,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   at the start, mid-lesson and at the end, reviewing a choice, a drag and the sketch, and
   returning. Every simplified sentence was checked against `docs/science.md` §3.4 and the
   CONTEXT.md and `explain.ts` terms. No AI-generated images. A human has not played it.
-- **State:** built, not verified
+- **State:** verified (reviewed by Codex (gpt-6.1-terra): request changes, six items, all fixed by the author (the read-only rule is now tested through the real lesson screen and the injected-XP mutation fails; two prompts reworded); on the tree merged with main f0081ad: 458 Python tests (1 skipped), 2,649 web tests, typecheck and build all exit 0. Not yet played by a person)
 - **Changed:** `web/src/features/academy/` (`review.ts`, `runner.ts`, `step-view.ts`,
   `lesson-screen.tsx`, `lesson/top-bar.tsx`, `lesson/conversation.tsx`,
   `lesson/skyline-stage.tsx`, `lesson/scenes.tsx`, `sketch.ts`, `academy.css`,
