@@ -6,12 +6,15 @@ import { MOOD_USE, MOODS, type Mood } from "./moods";
 import type { CelebrationKind } from "./motion-plan";
 
 /*
-  A demo page for design review: every mood at 48 px and 160 px, mood switching,
+  A demo page for design review: every mood at 160, 64, 40 and 28 px, mood switching,
   LunaSays in a 360 px box, and the celebrations. Not wired into any route; mount it
   temporarily to look at it. Placeholder styling, theme tokens only.
 */
 
 type MotionChoice = "system" | "reduce" | "full";
+
+/** The small sizes Luna is checked at, beside the 160 px drawing. */
+const SMALL_SIZES = [64, 40, 28] as const;
 
 const BUTTON =
   "rounded border border-border bg-surface-2 px-3 py-2 text-sm text-text hover:bg-surface-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-pressed:bg-surface-3 aria-pressed:border-text-muted";
@@ -62,7 +65,7 @@ export function LunaGallery() {
         </fieldset>
       </header>
 
-      <Section title="All eight moods at 160 px and 48 px">
+      <Section title="All eight moods at 160, 64, 40 and 28 px">
         <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-4 p-0">
           {MOODS.map((mood) => (
             <li
@@ -70,12 +73,14 @@ export function LunaGallery() {
               className="flex flex-col items-center gap-3 rounded-lg border border-border bg-surface-1 p-4"
             >
               <Luna mood={mood} size={160} reduceMotion={reduceMotion} />
-              <div className="flex items-center gap-3">
-                <Luna mood={mood} size={48} reduceMotion={reduceMotion} />
-                <div>
-                  <p className="m-0 font-mono text-base">{mood}</p>
-                  <p className="m-0 text-xs text-text-muted">{MOOD_USE[mood]}</p>
-                </div>
+              <div className="flex items-end gap-3">
+                {SMALL_SIZES.map((size) => (
+                  <Luna key={size} mood={mood} size={size} reduceMotion={reduceMotion} />
+                ))}
+              </div>
+              <div className="text-center">
+                <p className="m-0 font-mono text-base">{mood}</p>
+                <p className="m-0 text-xs text-text-muted">{MOOD_USE[mood]}</p>
               </div>
             </li>
           ))}
