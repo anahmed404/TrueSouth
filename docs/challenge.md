@@ -32,16 +32,16 @@ Every objective on the page is offered as "you may consider". State is as of 202
 
 | Objective | In TrueSouth | State |
 | :--- | :--- | :--- |
-| A curated list of notable sites: Apollo, CLPS targets, other commercial missions, other countries' programmes | The site catalog: 20 sites in four groups ([`site-catalog.md`](site-catalog.md)) | Built |
-| Custom lunar coordinates | A typed latitude and east longitude ("Your own coordinates" in the add-site picker), computed on the server from the real terrain in about a minute, or on a smooth Moon north of 60°S in seconds; the site then works like a catalog site and stays in the shared link ([`features/polar-map.md`](features/polar-map.md), "Custom sites") | Built; the server is PR #80 |
-| Side-by-side or sequential comparison of sites | The sites rail, and the Compare window ([`features/compare.md`](features/compare.md)) | Rail built; Compare not built |
-| Landing dates and times; how conditions change across lunar days and seasons | The landing date and slip controls; six years of landing dates per site; the Slip Planner ([`features/slip-planner.md`](features/slip-planner.md)) | Controls and data built; the Slip Planner: design picked; not built |
-| Sun and Earth positions relative to the horizon at a site and date | The per-hour series ([`science.md`](science.md) §3 to §7); the Lander's eye ([`features/panorama.md`](features/panorama.md)) | Data built; Lander's eye not built |
+| A curated list of notable sites: Apollo, CLPS targets, other commercial missions, other countries' programmes | The site catalog: 20 sites in four groups ([`site-catalog.md`](site-catalog.md)) | Built (20 catalog sites plus 5 generated best-lit variants, #77) |
+| Custom lunar coordinates | A typed latitude and east longitude ("Your own coordinates" in the add-site picker), computed on the server from the real terrain in about a minute, or on a smooth Moon north of 60°S in seconds; the site then works like a catalog site and stays in the shared link ([`features/polar-map.md`](features/polar-map.md), "Custom sites") | Built (server #80, web form and map #92; catalog-only Docker answers 501) |
+| Side-by-side or sequential comparison of sites | The sites rail, and the Compare window ([`features/compare.md`](features/compare.md)) | Built (sites rail and Compare floating window #90; per-column strips deferred) |
+| Landing dates and times; how conditions change across lunar days and seasons | The landing date and slip controls; six years of landing dates per site; the Slip Planner ([`features/slip-planner.md`](features/slip-planner.md)) | Built (controls, 6-year sweep worker, and Slip Planner view #87) |
+| Sun and Earth positions relative to the horizon at a site and date | The per-hour series ([`science.md`](science.md) §3 to §7); the Lander's eye ([`features/panorama.md`](features/panorama.md)) | Built (series, Lander's eye camera #75, and collapsible horizon chart #78, #86; close-up 5 m mesh not built) |
 | Time remaining before sunset or Earthset | The countdown cards ([`features/site-detail.md`](features/site-detail.md)) | Built |
 | Solar elevation angle, duration of sunlight, Earth visibility windows | The countdown cards, the timeline, the mission-window metrics and the verdict ([`science.md`](science.md) §9 and §10) | Built |
-| 2D maps, 3D surface views or other representations | The Polar map; the 3D scene of the Sun, Earth and Moon; Local terrain ([`decisions/0013`](decisions/0013-space-first-mission-control.md)) | In progress |
-| Animations or timelines over a lunar day or several days | The timeline, the scrubber and play; the scene follows the time | Timeline built; scene in progress |
-| Serving planners, educators and the public | Mission Control for planners; the Academy for learners ([`academy/overview.md`](academy/overview.md)); plain explanations on every term | Mission Control panels and Academy screens built; the real lessons not written |
+| 2D maps, 3D surface views or other representations | The Polar map; the 3D scene of the Sun, Earth and Moon; Local terrain ([`decisions/0013`](decisions/0013-space-first-mission-control.md)) | Built (System view #75/#88, Polar map #89, Local terrain relief & shadows #91; T4 blocker ring and T5 terrain overlays not built) |
+| Animations or timelines over a lunar day or several days | The timeline, the scrubber and play; the scene follows the time | Built |
+| Serving planners, educators and the public | Mission Control for planners; the Academy for learners ([`academy/overview.md`](academy/overview.md)); plain explanations on every term | Built for Mission Control, Validation (#79), and Academy lessons 1–4 (#81, #74, #76); 4 panel steps show a preview until PR #95 merges; lessons 5–8 out of scope |
 
 ## Considerations the page lists
 
