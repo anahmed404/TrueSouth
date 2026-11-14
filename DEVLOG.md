@@ -1460,7 +1460,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   vitest suite (two mutations, the Slip Planner's sign and Lander's eye's vertical sign, each
   fail the table), typecheck, build, and by eye in Chrome (RTX 2060) at 1440 × 900 with real
   mouse drags (left and middle button) and touch emulation; a human has not reviewed it
-- **State:** built, not verified
+- **State:** verified (reviewed by Cursor (grok-4.7): directions recomputed per view and input, every caller of Rig.orbit traced, three mutations caught; its one must-fix (an older test still pinning the old Lander's eye vertical) fixed by the orchestrator; on the tree merged with main 1c3b3b6: 471 Python tests (1 skipped), 2,754 web tests, typecheck and build all exit 0. Follow-up: the Slip Planner's first drag snaps about 85 px (slipMove aims at the centre, the pose aims above it))
 - **Changed:** `web/src/features/three/scene/rig.ts` (one sign), `drag-directions.test.ts`
   (new), `docs/features/system-view.md` (the contract table), `slip-planner.md`,
   `local-terrain.md`, `panorama.md`, this entry
