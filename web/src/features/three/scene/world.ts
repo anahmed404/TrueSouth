@@ -1,10 +1,11 @@
 import * as THREE from "three";
 import type { CameraViewId } from "../../../app/scene";
 import type { DecodedApron, DecodedTerrain } from "../../../data";
-import { sceneImageUrl } from "../../../data";
+import { isCustomSiteId, sceneImageUrl } from "../../../data";
 import { EARTH_RADIUS_KM, MOON_RADIUS_M, SQUEEZED_DISTANCE, SQUEEZED_SUN_RADIUS, SUN_RADIUS_KM, type ApronGrid } from "../../../lib/geo";
 import { altitudeOf, type SiteFrame } from "./camera";
 import { apronGeometry, apronUpGrid, patchGeometry, patchOutline, patchUpGrid, smoothGroundGeometry, type GroundSite } from "./ground";
+import { CONTINUATION_GRID, continuationApron, loadGlobalHeights, type GlobalHeights } from "./custom-apron";
 import { GroundLook } from "./ground-material";
 import { aimLander, createLander, LANDER_HEIGHT_M, partAxis, type Lander } from "./lander";
 import { earthMaterial, landerMaterial, moonMaterial, solidTexture, sunMaterial } from "./materials";
@@ -400,7 +401,16 @@ export class World {
     apron: { data: DecodedApron; grid: ApronGrid } | null,
     smooth = false,
   ): void {
-    const key = site ? `${site.id}|${terrain ? "t" : ""}|${apron ? "a" : ""}|${smooth ? "s" : ""}` : null;
+    this.lastGround = [site, terrain, apron, smooth];
+    // A custom site never has an apron (the API makes none): build one from the patch and
+    // the global height map (custom-apron.ts), once that map's pixels are in.
+    const continuation = Boolean(site && terrain && !apron && !smooth && !site.sphere && isCustomSiteId(site.id));
+    if (continuation && !this.globalHeights) this.requestGlobalHeights();
+    const built = continuation && this.globalHeights && site && terrain
+      ? { data: continuationApron(terrain.data, terrain.size, terrain.windowKm, site, this.globalHeights), grid: CONTINUATION_GRID }
+      : null;
+    if (built) apron = built;
+    const key = site ? `${site.id}|${terrain ? "t" : ""}|${apron ? (built ? "c" : "a") : ""}|${smooth ? "s" : ""}|${site.groundHeightM}` : null;
     if (key === this.groundFor) return;
     this.clearGround();
     if (!site) {
@@ -446,6 +456,21 @@ export class World {
     this.ground.position.set(...site.frame.ground);
     this.groundLook.setFrame(site.frame);
     this.invalidate();
+  }
+
+  private globalHeights: GlobalHeights | null = null;
+  private heightsRequested = false;
+  private lastGround: Parameters<World["setGround"]> | null = null;
+
+  private requestGlobalHeights(): void {
+    if (this.heightsRequested) return;
+    this.heightsRequested = true;
+    void loadGlobalHeights().then((heights) => {
+      if (!heights || this.disposed) return;
+      this.globalHeights = heights;
+      // Rebuild the focused custom site's ground with its apron.
+      if (this.lastGround) this.setGround(...this.lastGround);
+    });
   }
 
   get hasGround(): boolean {

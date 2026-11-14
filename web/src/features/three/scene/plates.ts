@@ -1,5 +1,6 @@
 import type { CameraViewId } from "../../../app/scene";
 import type { HourFlags } from "../../../lib/scoring";
+import { explanations } from "../../../lib/explain";
 import { sightState } from "./sight";
 
 /**
@@ -86,6 +87,11 @@ export function sceneContent(input: PlateInput): SceneContent {
       plates.push({ id: "terrain-loading", text: `Loading the ground around ${site.name}…`, status: true });
     } else {
       ground = "terrain";
+      if (input.apron === "none") {
+        // No apron by design (a custom site): not an error. Its surroundings are drawn from
+        // the coarse global height map (custom-apron.ts), and the plate says so, quietly.
+        plates.push({ id: "surroundings", text: explanations.custom_site_surroundings!.text });
+      }
       if (input.apron === "error") {
         plates.push({
           id: "apron-error",
@@ -190,4 +196,20 @@ export function visiblePlates(
     }
   }
   return { top, foot };
+}
+
+/**
+ * The focused site's apron state for the plates, from its load and the scene's metadata.
+ * The data layer answers "not available" both when no apron is listed for the site and when a
+ * listed file is missing; only the metadata tells them apart. Not listed (a custom site, or a
+ * sphere-tier site) is "none", by design; listed but not available is a real "error".
+ */
+export function apronLoadState(
+  status: "loading" | "ready" | "error",
+  data: unknown,
+  listed: boolean,
+): LoadState | "none" {
+  if (status !== "ready") return status;
+  if (data === "not available") return listed ? "error" : "none";
+  return "ready";
 }
