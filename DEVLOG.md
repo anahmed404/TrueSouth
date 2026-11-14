@@ -1468,6 +1468,9 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   inverted, and the agent had left it as it was. A vertical drag there now looks the way of
   the drag (drag up, look up); arrow keys are unchanged (`rig.ts`, a `fromKey` argument
   passed from `scene-root.tsx`; the table test states the exception and checks the arrows)
+- **Taken back, 2026-11-14:** the team tried that change and asked for it to be reverted.
+  Lander's eye follows the pointer on both axes again, as the agent had left it (dragging up
+  moves the horizon up); the `fromKey` argument and the test's exception are removed
 - **Notes:**
   - **The contract** (from the System view as on `main`): whatever is under the pointer moves
     the way the pointer moves, on both axes; for an orbit, the ground nearest the viewer; for
