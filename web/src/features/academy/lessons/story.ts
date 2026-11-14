@@ -71,8 +71,10 @@ const storyLanding = "{{example.story.landing_utc}}";
 
 export const storyScenario: Scenario = {
   profile: pipProfile,
-  siteIds: ["connecting_ridge"],
-  focusedSiteId: "connecting_ridge",
+  // The story site is a worked-example key, like every other story value, so the fixture's
+  // own site plays in development (`VITE_DATA=fixtures`); on the real data it is Connecting Ridge.
+  siteIds: ["{{example.story.site_id}}"],
+  focusedSiteId: "{{example.story.site_id}}",
   landingUtc: storyLanding,
   currentUtc: storyLanding,
 };

@@ -78,6 +78,13 @@ export type ChartProps = {
    * no blocker) and names the line "Level ground, 0°".
    */
   ground?: ChartGround;
+  /**
+   * False draws the chart as a picture only, for an Academy lesson's reveal: no cursor, no
+   * marking, turning or zooming, no wheel or key handling (the page scrolls and the lesson
+   * keeps its keys), no tab stop and no instructions; `label` is its text alternative.
+   * Defaults to true: Mission Control's chart is unchanged.
+   */
+  interactive?: boolean;
 };
 
 export type ChartGround = "skyline" | "level";
@@ -585,13 +592,15 @@ export function HorizonChart(props: ChartProps) {
   }, [series, hour, radii]);
 
   // Scroll zooms the vertical scale. A native listener, so the page does not scroll too.
-  const live = useRef({ scales, onZoom });
-  live.current = { scales, onZoom };
+  // A picture-only chart leaves the wheel to the page.
+  const interactive = props.interactive !== false;
+  const live = useRef({ scales, onZoom, interactive });
+  live.current = { scales, onZoom, interactive };
   useEffect(() => {
     const node = hostRef.current;
     if (!node) return;
     const onWheel = (event: WheelEvent) => {
-      if (event.deltaY === 0) return;
+      if (!live.current.interactive || event.deltaY === 0) return;
       event.preventDefault();
       const box = node.getBoundingClientRect();
       const anchor = live.current.scales.y.invert(event.clientY - box.top);
@@ -726,6 +735,22 @@ export function HorizonChart(props: ChartProps) {
     cursor?.kind === "sky" && marker && skyline
       ? skylineReading(skyline, cursor.azDeg, []).azDeg === wrapAzimuth(marker.azDeg)
       : false;
+
+  if (!interactive) {
+    // The same drawing, as a picture: one text alternative, nothing to operate.
+    return (
+      <div ref={hostRef} className="pano-chart" data-static="" style={{ height: frame.height + 2 }} role="img" aria-label={props.label}>
+        <svg width={frame.width} height={frame.height} viewBox={`0 0 ${frame.width} ${frame.height}`} aria-hidden="true" focusable="false">
+          <StaticLayer scales={scales} drawing={drawing} clipPlot={clipPlot} clipSky={clipSky} />
+          {marker ? <MarkerLayer scales={scales} skyline={skyline} azDeg={marker.azDeg} /> : null}
+          <g clipPath={`url(#${clipPlot})`}>
+            {radii ? <DiscLayer scales={scales} bodies={bodies} radii={radii} clipSky={clipSky} hasSky={drawing.skyD !== null} /> : null}
+          </g>
+          {radii ? <LocatorLayer scales={scales} bodies={bodies} radii={radii} /> : null}
+        </svg>
+      </div>
+    );
+  }
 
   return (
     <>

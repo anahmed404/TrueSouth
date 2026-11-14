@@ -6,9 +6,10 @@ import { Luna, useLunaReducedMotion } from "../../components/luna";
 import { LESSONS, PATCH_SHELF } from "./catalog";
 import { isWritten } from "./lessons";
 import type { WorkedExamples } from "./placeholders";
+import { PanelView } from "./lesson/panels/panel-view";
+import type { Lesson, PanelId, RevealWhen, SceneSpec, Step } from "./types";
 import { completeScreenData, type RunnerState } from "./runner";
 import { useAcademyStore } from "./store";
-import type { Lesson } from "./types";
 import { filledText } from "./ui/filled";
 import { STAR_PATH } from "./ui/marks";
 import { Moondust } from "./ui/moondust";
@@ -63,6 +64,24 @@ function CountUp({ value }: { value: number }) {
     return () => controls.stop();
   }, [value, reduced, count]);
   return <motion.span aria-hidden="true">{shown}</motion.span>;
+}
+
+/**
+ * Where the lesson-complete screen shows a panel the lesson unlocked: the scene and moment
+ * of the lesson's own step on that panel (a prediction's reveal, or a drag), or else the
+ * story scene at the story landing.
+ */
+export function panelScene(lesson: Lesson, panel: PanelId): { scene: SceneSpec | null; when: RevealWhen | null } {
+  const steps: readonly Step[] = lesson.steps;
+  for (const step of steps) {
+    if (step.kind === "predict" && step.reveal.kind === "panel" && step.reveal.panel === panel) {
+      return { scene: step.reveal.scene, when: step.reveal.when };
+    }
+  }
+  for (const step of steps) {
+    if (step.kind === "drag-body" && step.panel === panel) return { scene: step.scene, when: null };
+  }
+  return { scene: null, when: null };
 }
 
 export function CompleteScreen({ lesson, runner, examples }: { lesson: Lesson; runner: RunnerState; examples: WorkedExamples }) {
@@ -145,7 +164,12 @@ export function CompleteScreen({ lesson, runner, examples }: { lesson: Lesson; r
           </div>
 
           <section className="ac-built" aria-labelledby="ac-built-title">
-            <div className="ac-built-art">The {panel} panel appears here once Mission Control builds it.</div>
+            <div className="ac-built-art">
+              {unlocked.map((id) => {
+                const where = panelScene(lesson, id);
+                return <PanelView key={id} panel={id} scene={where.scene} when={where.when} examples={examples} />;
+              })}
+            </div>
             <div>
               <h2 id="ac-built-title">You built the {panel}</h2>
               {explanation ? <p>{explanation}</p> : null}

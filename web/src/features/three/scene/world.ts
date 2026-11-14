@@ -3,7 +3,9 @@ import type { CameraViewId } from "../../../app/scene";
 import type { DecodedApron, DecodedTerrain } from "../../../data";
 import { isCustomSiteId, sceneImageUrl } from "../../../data";
 import { EARTH_RADIUS_KM, MOON_RADIUS_M, SUN_RADIUS_KM, type ApronGrid } from "../../../lib/geo";
-import { DRAWN_SUN_RADIUS, bodyInFront, earthDuringScale, sunDuringScale } from "./proportions";
+import { DRAWN_SUN_RADIUS, bodyInFront, discLeaving, earthDuringScale, screenDisc, sunDuringScale, type ScreenDisc } from "./proportions";
+import { OrbitLines } from "./orbits";
+import type { FreeSpace } from "../../../app/scene";
 import { altitudeOf, type SiteFrame } from "./camera";
 import { apronGeometry, apronUpGrid, globeSegments, patchOutline, patchRim, patchUpGrid, smoothGroundGeometry, type GroundSite } from "./ground";
 import { patchWithCloseup } from "./closeup-ground";
@@ -142,6 +144,13 @@ export class World {
   scaleBlend = 0;
   /** With reduced motion, a body in front of the Moon disappears at once instead of fading. */
   reduceMotion = false;
+  /** The free space (scene-root.tsx): Earth fades while the True-scale glide carries it outside. */
+  freeSpace: FreeSpace | null = null;
+  /** The System view's faint orbit lines (orbits.ts). */
+  readonly orbits: OrbitLines;
+  private readonly orbitFade = { hidden: false, alpha: 1, at: 0 };
+  /** Earth's disc on screen at the last frame of the True-scale glide, to see where it is heading. */
+  private earthOnScreen: { disc: ScreenDisc | null; at: number } | null = null;
   private readonly earthFade = { hidden: false, alpha: 1, at: 0 };
   private readonly sunFade = { hidden: false, alpha: 1, at: 0 };
 
@@ -222,6 +231,10 @@ export class World {
     this.terminator.computeLineDistances();
     this.guides.add(axis, equator, this.terminator);
     this.root.add(this.guides);
+
+    // The faint orbit lines of the System view (orbits.ts): drawn first, behind everything.
+    this.orbits = this.own(new OrbitLines(new THREE.Color(css("--terrain-rim", "#a8a8af")), new THREE.Color(css("--space", "#0b0b0c"))));
+    this.root.add(this.orbits.group);
 
     // Sight-lines: colour and dash come from the series, set in `update`.
     this.colours = { go: new THREE.Color(css("--status-go", "#45c98b")), nogo: new THREE.Color(css("--status-nogo", "#f0646d")) };
@@ -627,7 +640,24 @@ export class World {
     // it fades out and the overlay marks it at the edge instead.
     const camAt = camera.position.toArray() as V3;
     const earthBody = { centre: this.earthMesh.position.toArray() as V3, radius: earthRadius };
-    const earthHide = inputs.bodies && near < 0.5 && bodyInFront(camAt, earthBody, inView(camera as THREE.PerspectiveCamera, earthBody), this.earthFade.hidden);
+    const inFront = inputs.bodies && near < 0.5 && bodyInFront(camAt, earthBody, inView(camera as THREE.PerspectiveCamera, earthBody), this.earthFade.hidden);
+    // While the True-scale glide carries Earth, it fades whenever its disc leaves the free space,
+    // so it never shows over the timeline or a panel's edge.
+    // It fades early enough (looking twice FADE_MS ahead at its speed on screen) to be gone
+    // before it crosses the edge.
+    const gliding = this.scaleBlend > 0 && this.scaleBlend < 1 && near < 0.5 && inputs.bodies && this.freeSpace !== null;
+    let leaving = false;
+    if (gliding) {
+      const now = performance.now();
+      const disc = screenDisc(camera as THREE.PerspectiveCamera, earthBody, this.freeSpace!.viewport);
+      const last = this.earthOnScreen;
+      // Twice the fade time ahead: the flight's ease is still speeding up when Earth leaves.
+      leaving = discLeaving(last ? last.disc : null, disc, last ? now - last.at : 0, this.freeSpace!, 2 * FADE_MS);
+      this.earthOnScreen = { disc, at: now };
+    } else {
+      this.earthOnScreen = null;
+    }
+    const earthHide = inFront || leaving;
     anchors.earthInFront = earthHide;
     const earthAlpha = this.stepFade(this.earthFade, earthHide);
     this.earth.uniforms.uAlpha.value = earthAlpha;
@@ -648,6 +678,15 @@ export class World {
     this.sunMesh.visible = inputs.bodies && !(!sunPlaced.visible && near < 0.5) && sunAlpha > 0.001;
     anchors.sun = this.sunMesh.visible && !sunHide ? this.sunMesh.position.clone() : null;
     anchors.sunRadius = sunRadius;
+
+    // The orbit lines: the System view only, fading with the flight to any other view and as the
+    // camera nears the ground; Earth's orbit only in the schematic arrangement (at true scale the
+    // Sun is only a direction).
+    const orbitAlpha = this.stepFade(this.orbitFade, !(inputs.bodies && inputs.view === "system")) * (1 - near);
+    this.orbits.setOpacity(orbitAlpha);
+    if (orbitAlpha > 0.001) {
+      this.orbits.update(earthPlaced.centre, earthPlaced.radius, this.scaleBlend === 0 ? sunPlaced.centre : null, DRAWN_SUN_RADIUS);
+    }
 
     // Guides fade as the camera nears the ground, and stay off over the Polar map.
     const far = 1 - smooth(0.5, 0.15, alt);
