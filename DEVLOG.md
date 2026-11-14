@@ -1732,6 +1732,42 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Academy
 
+#### 2026-11-14 · A3b · Revisit answered steps; questions get their context
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the review of finished steps
+  (`review.ts`, the runner's per-step `history`, the progress marks in `lesson/top-bar.tsx`,
+  the read-only view in `lesson-screen.tsx`), the context audit of lessons 1 to 4 and the
+  new wording (in `docs/academy/lessons.md` first, then the lesson files), and the vitest
+  tests. Checked by the agent with the tests and typecheck, and in a browser at
+  1440 × 900 and 390 × 844 (touch emulation, and keyboard only): each lesson's progress row
+  at the start, mid-lesson and at the end, reviewing a choice, a drag and the sketch, and
+  returning. Every simplified sentence was checked against `docs/science.md` §3.4 and the
+  CONTEXT.md and `explain.ts` terms. No AI-generated images. A human has not played it.
+- **State:** built, not verified
+- **Changed:** `web/src/features/academy/` (`review.ts`, `runner.ts`, `step-view.ts`,
+  `lesson-screen.tsx`, `lesson/top-bar.tsx`, `lesson/conversation.tsx`,
+  `lesson/skyline-stage.tsx`, `lesson/scenes.tsx`, `sketch.ts`, `academy.css`,
+  `lessons/l1.ts`–`l4.ts`, tests), `docs/academy/lessons.md`,
+  `docs/design/c2/built-academy-revisit-*.png`, `built-academy-context-*.png`.
+  `explain.ts` unchanged: its texts for the terms used were right.
+- **Notes:**
+  - A finished step's progress mark is a button ("Step 2 of 5, completed. Review"). The
+    step opens read-only: answers, hint, feedback, result and XP, the drag's checked hour,
+    the sketch under the real skyline, and the lesson's card under "Under the hood". One
+    way back: "Back to step N", Esc, Enter, or the current step's mark. Steps not yet
+    reached are never controls; `reviewTarget` ignores any request for them. Nothing is
+    rescored. The current step's unsaved answer (a picked option, the dragged hour, a
+    sketch) waits on return.
+  - Kept for the session in the runner's state: `history`, one record per finished step
+    (attempts, ending, XP, feedback). The lesson screen keeps each finished step's last
+    draft. No new persistence: mid-lesson progress was in memory and a reload restarts the
+    lesson, as before; the lesson's position is not in the URL.
+  - Context: twelve questions now set up their terms first (month and midday, Luna and
+    Pip, elevation, Connecting Ridge, compass directions, how far south, the move to the
+    lesson 2 site, atan, skyline, disc fraction, R, talking to Earth, antenna mask and link
+    time, NO-GO). No number, answer or formula changed. Lesson 1 step 1's stage is now
+    Pip under the sky ruler, so "how high" is an angle before it is asked.
+
 #### 2026-11-14 · A11b · Submission materials brought up to date
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-sonnet-5-5 — rewrote the six files in `docs/submission/`
