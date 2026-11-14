@@ -78,7 +78,7 @@ The Slip Planner shows each site's status and score across six years of landing 
 
 *The Academy* teaches the same physics in four lessons, guided by Luna, to land a fictional lander called Pip. Each lesson has an "Under the hood" card with the real formula and numbers from the pipeline.
 
-**Steps to implement.** Contracts and fixtures first. Then the pipeline, the scoring, the views and the lessons, in milestones M0 to M4 (see Workflow Strategy). Planned next: close-up ground from NASA's 5 m maps. Not yet built: Academy lessons 5 to 8, final art for Luna, official Artemis region outlines and a sensitivity grid.
+**Steps to implement.** Contracts and fixtures first. Then the pipeline, the scoring, the views and the lessons, in milestones M0 to M4 (see Workflow Strategy). Next steps: more Academy lessons, and the official Artemis region outlines on the Polar map.
 
 **Against the challenge's objectives.**
 
@@ -131,8 +131,8 @@ All four members test the running app and choose between design variants at chec
 
 - M0 Foundations: complete.
 - M1 Thin slice and M2 Mission Control on catalog data: complete.
-- M3 Everything for the deadline: done within scope. Custom coordinates, Docker, the validation page and Academy lessons 1 to 4 are in. The deploy files are written but not yet run on a server.
-- M4 Tuned and submitted: in progress. The submission texts are current. The live demo, repository access and the video are open.
+- M3 Everything for the deadline: complete. Custom coordinates, Docker, the validation page, Academy lessons 1 to 4 and close-up ground from NASA's 5 m maps are in.
+- M4 Tuned and submitted: the fixes from the team's testing are in, and the submission is being prepared.
 
 ## Resources
 
@@ -155,7 +155,7 @@ All four members test the running app and choose between design variants at chec
 | LOLA 80 m and 240 m south-polar terrain (PGDA product 90) | Skylines, slope, the 3D ground | https://pgda.gsfc.nasa.gov/products/90 |
 | LOLA 80 m slope map (PGDA product 90) | Validation of our slope | https://pgda.gsfc.nasa.gov/products/90 |
 | LOLA average sunlight and Earth visibility, 60 m and 120 m (PGDA product 69) | Polar map overlays; validation | https://pgda.gsfc.nasa.gov/products/69 |
-| LOLA 5 m close-up maps (PGDA product 78) | Representative points for six Artemis candidate regions | https://pgda.gsfc.nasa.gov/products/78 |
+| LOLA 5 m close-up maps (PGDA product 78) | Representative points for six Artemis candidate regions; close-up ground drawn at 16 sites | https://pgda.gsfc.nasa.gov/products/78 |
 | NASA SVS 4720, CGI Moon Kit | The Moon's colour and height maps in the scene | https://svs.gsfc.nasa.gov/4720 |
 | Blue Marble Next Generation (NASA Earth Observatory) | The Earth picture in the scene | https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography-bathymetry/march/world.topo.bathy.200403.3x5400x2700.jpg |
 | Yale Bright Star Catalogue (NASA/ADC, via HEASARC) | The 8,404 stars in the System view | https://heasarc.gsfc.nasa.gov/W3Browse/star-catalog/bsc5p.html |
@@ -176,7 +176,7 @@ Also: site coordinates from published studies (references 2, 5 and 6), and the m
 8. NASA (2024, October 28). NASA provides update on Artemis III Moon landing regions. Release 24-136. https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/
 9. NASA JPL Solar System Dynamics Group. Horizons System. https://ssd.jpl.nasa.gov/horizons/
 
-**AI tools used.** Claude Code (Claude Fable 5.2, Opus 5.5 and Sonnet 5.5), Codex (gpt-6.1-sol and gpt-6.1-terra), Cursor (grok-4.7 and grok-4.6) and Antigravity (gemini-4-argon, gemini-4-hydrogen and gemini-3.8-flash). The `impeccable` design skill was used inside Claude Code. The only AI-made images are placeholder drawings of Luna, two start-screen drawings and one lesson diagram, all inline SVG made by Claude Code. NASA images and data are never AI-generated; NASA's images are only resized, cropped or re-encoded. Full details are in our AI-use disclosure.
+**AI tools used.** Claude Code (Claude Fable 5.2, Opus 5.5 and Sonnet 5.5), Codex (gpt-6.1-sol and gpt-6.1-terra), Cursor (grok-4.7 and grok-4.6) and Antigravity (gemini-4-argon, gemini-4-hydrogen and gemini-3.8-flash). The `impeccable` design skill was used inside Claude Code. The only AI-made images are the drawings of Luna, two start-screen drawings and one lesson diagram, all inline SVG made by Claude Code. NASA images and data are never AI-generated; NASA's images are only resized, cropped or re-encoded. Full details are in our AI-use disclosure.
 
 ## Team
 
