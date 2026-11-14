@@ -2,7 +2,9 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import type { FreeSpace } from "../../../app/scene";
 import { decodeSystem } from "../../../data/decode/index.ts";
+import { fromDirectionPose, type Pose } from "./camera";
 import { parseManifest } from "../../../data/parse.ts";
 import { EARTH_RADIUS_KM, MOON_RADIUS_KM, SUN_RADIUS_KM, bodyDirections, type BodyPlacement, type SystemHour } from "../../../lib/geo";
 import {
@@ -10,14 +12,14 @@ import {
   DISTANCE_SCALE,
   DRAWN_EARTH_RADIUS,
   DRAWN_SUN_RADIUS,
-  SIZE_EXPONENT,
+  EARTH_FARTHEST_KM,
   SYSTEM_MAX_ALTITUDE,
   drawnDistance,
   drawnEarth,
   drawnRadius,
   drawnSun,
+  bodyInFront,
   earthDuringScale,
-  earthOpacity,
   sunDuringScale,
 } from "./proportions";
 
@@ -58,33 +60,29 @@ const extremes = (() => {
   return { perigee: by("earthDistKm", -1), apogee: by("earthDistKm", 1), sunNear: by("sunDistKm", -1), sunFar: by("sunDistKm", 1) };
 })();
 
-describe("the mapping: drawn size and distance are powers below 1 of the true value relative to the Moon", () => {
-  it("names its constants: size exponent 0.25, distance exponent 0.3, distance scale 1.35", () => {
-    expect(SIZE_EXPONENT).toBe(0.25);
+describe("the mapping: drawn sizes through named radii, drawn distances a power below 1", () => {
+  it("names its constants: Earth 1.2 and the Sun 3.5 Moon radii, distance exponent 0.3, distance scale 0.8", () => {
+    expect(DRAWN_EARTH_RADIUS).toBe(1.2);
+    expect(DRAWN_SUN_RADIUS).toBe(3.5);
     expect(DISTANCE_EXPONENT).toBe(0.3);
-    expect(DISTANCE_SCALE).toBe(1.35);
+    expect(DISTANCE_SCALE).toBe(0.8);
+    expect(EARTH_FARTHEST_KM).toBe(407_000);
   });
 
-  it("draws every size as the fourth root of its ratio to the Moon, to 1e-12 relative", () => {
-    for (let km = 1; km < 1e7; km *= 1.37) {
-      const expected = Math.pow(km / MOON_RADIUS_KM, 0.25);
-      expect(Math.abs(drawnRadius(km) - expected) / expected).toBeLessThan(1e-12);
-    }
+  it("draws the Moon 1, Earth 1.2 and the Sun 3.5, on a straight log-log line between them, to 1e-12", () => {
+    expect(drawnRadius(MOON_RADIUS_KM)).toBeCloseTo(1, 12);
+    expect(drawnRadius(EARTH_RADIUS_KM)).toBeCloseTo(1.2, 12);
+    expect(drawnRadius(SUN_RADIUS_KM)).toBeCloseTo(3.5, 12);
+    // Half way (geometrically) between two bodies, the drawn radius is half way (geometrically) too.
+    expect(drawnRadius(Math.sqrt(MOON_RADIUS_KM * EARTH_RADIUS_KM))).toBeCloseTo(Math.sqrt(1.2), 12);
+    expect(drawnRadius(Math.sqrt(EARTH_RADIUS_KM * SUN_RADIUS_KM))).toBeCloseTo(Math.sqrt(1.2 * 3.5), 12);
   });
 
-  it("draws every distance as 1.35 times its ratio to the Moon's radius to the power 0.3, to 1e-12 relative", () => {
+  it("draws every distance as 0.8 times its ratio to the Moon's radius to the power 0.3, to 1e-12 relative", () => {
     for (let km = 1; km < 1e10; km *= 1.37) {
-      const expected = 1.35 * Math.pow(km / MOON_RADIUS_KM, 0.3);
+      const expected = 0.8 * Math.pow(km / MOON_RADIUS_KM, 0.3);
       expect(Math.abs(drawnDistance(km) - expected) / expected).toBeLessThan(1e-12);
     }
-  });
-
-  it("gives Moon 1, Earth 1.38420 and the Sun 4.47333 Moon radii (an exponent of 1/3 would give 1.54 and 7.37)", () => {
-    expect(drawnRadius(MOON_RADIUS_KM)).toBe(1);
-    expect(DRAWN_EARTH_RADIUS).toBeCloseTo(1.3842, 4);
-    expect(DRAWN_SUN_RADIUS).toBeCloseTo(4.47333, 5);
-    expect(DRAWN_EARTH_RADIUS).toBe(drawnRadius(EARTH_RADIUS_KM));
-    expect(DRAWN_SUN_RADIUS).toBe(drawnRadius(SUN_RADIUS_KM));
   });
 
   it("is monotonic: a larger body is drawn larger, a further body further", () => {
@@ -121,11 +119,19 @@ describe("on the real series (data/derived/system.bin)", () => {
     expect(extremes.sunFar.sunDistKm).toBeGreaterThan(152_000_000);
   });
 
-  it("at the extremes: Earth 6.66 to 6.94 Moon radii out, the Sun 40.5 to 41.1", () => {
-    expect(drawnDistance(extremes.perigee.earthDistKm)).toBeGreaterThan(6.66);
-    expect(drawnDistance(extremes.apogee.earthDistKm)).toBeLessThan(6.94);
-    expect(drawnDistance(extremes.sunNear.sunDistKm)).toBeGreaterThan(40.5);
-    expect(drawnDistance(extremes.sunFar.sunDistKm)).toBeLessThan(41.1);
+  it("at the extremes: Earth 3.95 to 4.12 Moon radii out (2.5 before), the Sun 24.0 to 24.4", () => {
+    expect(drawnDistance(extremes.perigee.earthDistKm)).toBeGreaterThan(3.95);
+    expect(drawnDistance(extremes.apogee.earthDistKm)).toBeLessThan(4.12);
+    expect(drawnDistance(extremes.sunNear.sunDistKm)).toBeGreaterThan(24.0);
+    expect(drawnDistance(extremes.sunFar.sunDistKm)).toBeLessThan(24.4);
+  });
+
+  it("stays inside what the opening view allows for: Earth never beyond EARTH_FARTHEST_KM, libration within ±7° by ±8.5°", () => {
+    for (const h of hours) {
+      expect(h.earthDistKm).toBeLessThanOrEqual(EARTH_FARTHEST_KM);
+      expect(Math.abs(h.subearthLatDeg)).toBeLessThan(7);
+      expect(Math.abs(((h.subearthLonDeg + 540) % 360) - 180)).toBeLessThan(8.5);
+    }
   });
 
   it("keeps the order Moon < Earth < Sun in size, and Earth < Sun in distance, at every hour", () => {
@@ -148,7 +154,7 @@ describe("on the real series (data/derived/system.bin)", () => {
     expect(high).toBeLessThan(6.2);
   });
 
-  it("keeps clear gaps between the surfaces at every hour: Moon to Earth over 4.2, Moon to Sun over 35, Earth to Sun over 27", () => {
+  it("keeps clear gaps between the surfaces at every hour: Moon to Earth over 1.7, Moon to Sun over 18, Earth to Sun over 14", () => {
     let moonEarth = Infinity;
     let moonSun = Infinity;
     let earthSun = Infinity;
@@ -159,9 +165,9 @@ describe("on the real series (data/derived/system.bin)", () => {
       moonSun = Math.min(moonSun, between(MOON.centre, sun.centre) - 1 - sun.radius);
       earthSun = Math.min(earthSun, between(earth.centre, sun.centre) - earth.radius - sun.radius);
     }
-    expect(moonEarth).toBeGreaterThan(4.2);
-    expect(moonSun).toBeGreaterThan(35);
-    expect(earthSun).toBeGreaterThan(27);
+    expect(moonEarth).toBeGreaterThan(1.7);
+    expect(moonSun).toBeGreaterThan(18);
+    expect(earthSun).toBeGreaterThan(14);
   });
 
   it("keeps every direction exactly as the series gives it", () => {
@@ -306,26 +312,111 @@ describe("the zoom-out limit", () => {
   });
 });
 
-describe("Earth fades while it stands in front of the Moon", () => {
-  const earth: BodyPlacement = { centre: [6.8, 0, 0], radius: DRAWN_EARTH_RADIUS };
+describe("a body between the camera and the Moon is not drawn", () => {
+  const earth: BodyPlacement = { centre: [4, 0, 0], radius: DRAWN_EARTH_RADIUS };
 
-  it("is fully drawn beside the Moon or behind it", () => {
-    expect(earthOpacity([0, -12, 0], earth)).toBe(1);
-    expect(earthOpacity([-9, 0, 0], earth)).toBe(1);
-  });
-
-  it("is a faint ghost when it covers the Moon (From Earth), and hidden from inside it", () => {
-    expect(earthOpacity([9.3, 0, 0], earth)).toBeLessThan(0.2);
-    expect(earthOpacity([6.9, 0.2, 0], earth)).toBe(0);
-  });
-
-  it("fades smoothly as the camera swings round, never jumping", () => {
-    let previous = earthOpacity([9.3, 0, 0], earth);
-    for (let a = 0; a <= Math.PI; a += 0.002) {
-      const now = earthOpacity([9.3 * Math.cos(a), 9.3 * Math.sin(a), 0], earth);
-      expect(Math.abs(now - previous)).toBeLessThan(0.05);
-      previous = now;
+  it("is drawn beside the Moon (the opening, up to 7° of libration either way) and behind it", () => {
+    for (const lat of [-7, 0, 7]) {
+      const r = (lat * Math.PI) / 180;
+      const e: BodyPlacement = { centre: [4 * Math.cos(r), 4 * Math.sin(r), 0], radius: DRAWN_EARTH_RADIUS };
+      expect(bodyInFront([0, -23, 0], e)).toBe(false);
+      expect(bodyInFront([0, -16, 0], e)).toBe(false);
     }
-    expect(previous).toBe(1);
+    expect(bodyInFront([-10, 0, 0], earth)).toBe(false);
+  });
+
+  it("is not drawn when it stands in front of the Moon (From Earth), when the camera is inside it, or just beside the line of sight", () => {
+    expect(bodyInFront([10.3, 0, 0], earth)).toBe(true);
+    expect(bodyInFront([4.1, 0.2, 0], earth)).toBe(true);
+    expect(bodyInFront([10.3 * Math.cos(0.4), 10.3 * Math.sin(0.4), 0], earth)).toBe(true);
+  });
+
+  it("holds for the Sun too, by the same geometry", () => {
+    const sun = drawnSun([1, 0, 0], 149_600_000);
+    expect(bodyInFront([10.3, 0, 0], sun)).toBe(false); // the Sun behind the camera
+    expect(bodyInFront([40, 0, 0], sun)).toBe(true); // a camera beyond the Sun, looking back through it
+  });
+});
+
+describe("From Earth and From the Sun keep the Moon as the subject at every hour (real series)", () => {
+  const layouts: FreeSpace[] = [
+    { x: 288, y: 131, width: 793, height: 424, viewport: { width: 1440, height: 900 }, windowOpen: false },
+    { x: 80, y: 131, width: 1280, height: 424, viewport: { width: 1440, height: 900 }, windowOpen: false },
+    { x: 288, y: 131, width: 376, height: 244, viewport: { width: 1024, height: 768 }, windowOpen: false },
+    { x: 80, y: 131, width: 864, height: 244, viewport: { width: 1024, height: 768 }, windowOpen: false },
+  ];
+  /** A sphere's screen disc from a pose (principal point at the free space's centre), or null when behind the camera. */
+  function screenDisc(pose: Pose, centre: V, radius: number, fs: FreeSpace) {
+    const f = unit(pose.look);
+    const u0 = pose.up;
+    const k = u0[0] * f[0] + u0[1] * f[1] + u0[2] * f[2];
+    const up = unit([u0[0] - k * f[0], u0[1] - k * f[1], u0[2] - k * f[2]]);
+    const right: V = [f[1] * up[2] - f[2] * up[1], f[2] * up[0] - f[0] * up[2], f[0] * up[1] - f[1] * up[0]];
+    const rel: V = [centre[0] - pose.pos[0], centre[1] - pose.pos[1], centre[2] - pose.pos[2]];
+    const depth = rel[0] * f[0] + rel[1] * f[1] + rel[2] * f[2];
+    if (depth <= radius) return null;
+    const focal = fs.viewport.height / 2 / Math.tan((pose.fov * Math.PI) / 360);
+    const cx = fs.x + fs.width / 2;
+    const cy = fs.y + fs.height / 2;
+    const dist = length(rel);
+    return {
+      x: cx + ((rel[0] * right[0] + rel[1] * right[1] + rel[2] * right[2]) / depth) * focal,
+      y: cy - ((rel[0] * up[0] + rel[1] * up[1] + rel[2] * up[2]) / depth) * focal,
+      r: (Math.tan(Math.asin(Math.min(1, radius / dist))) * focal * dist) / depth,
+    };
+  }
+  const reachesInto = (d: { x: number; y: number; r: number }, fs: FreeSpace) => {
+    const nx = Math.max(fs.x, Math.min(d.x, fs.x + fs.width));
+    const ny = Math.max(fs.y, Math.min(d.y, fs.y + fs.height));
+    return Math.hypot(d.x - nx, d.y - ny) < d.r;
+  };
+
+  it("at the hour the review found (2030-12-10 00:00Z), Earth in front of the Moon is not drawn", () => {
+    const h = hours[43_296]!;
+    const { sun } = bodyDirections(h);
+    for (const fs of layouts) {
+      const pose = fromDirectionPose(sun, fs);
+      expect(bodyInFront(pose.pos, drawnEarth(h, false))).toBe(true);
+    }
+  });
+
+  it("no drawn body covers the Moon, and any opaque disc reaching into the free space is at most 1.5 times the Moon (every third hour, four layouts)", () => {
+    let hidden = 0;
+    let beside = 0;
+    for (let i = 0; i < hours.length; i += 3) {
+      const h = hours[i]!;
+      const { sun, earth } = bodyDirections(h);
+      const bodies = [drawnEarth(h, false), sunOf(h)];
+      for (const fs of layouts) {
+        for (const dir of [sun, earth]) {
+          const pose = fromDirectionPose(dir, fs);
+          const moon = screenDisc(pose, [0, 0, 0], 1, fs)!;
+          for (const [k, body] of bodies.entries()) {
+            if (bodyInFront(pose.pos, body)) {
+              if (k === 0) hidden += 1;
+              continue;
+            }
+            // The opaque disc (the Sun's faint glow, out to 1.8 radii, can reach the edge of a wide free space from far off screen).
+            const d = screenDisc(pose, body.centre, body.radius, fs);
+            if (!d) continue;
+            // Nothing nearer than the Moon covers it (a body behind it, as in an eclipse, is covered by it instead).
+            const nearer = between(body.centre, pose.pos) < length(pose.pos);
+            if (nearer) expect(Math.hypot(d.x - moon.x, d.y - moon.y)).toBeGreaterThan(d.r + moon.r);
+            if (reachesInto(d, fs)) {
+              if (k === 0) beside += 1;
+              // Nearer to the camera than the Moon: at most the opening's 1.5 times on screen.
+              if (nearer) expect(d.r / moon.r).toBeLessThanOrEqual(1.5);
+              // Behind the Moon (the Sun near new moon in From Earth): at most 1.5 times the Moon's
+              // angular size, as in the opening (measured as angles, so the lens's stretch at the
+              // edge of a wide view does not count).
+              else expect(Math.asin(body.radius / between(body.centre, pose.pos)) / Math.asin(1 / length(pose.pos))).toBeLessThanOrEqual(1.5);
+            }
+          }
+        }
+      }
+    }
+    // Both cases occur: Earth hidden in front of the Moon, and Earth shown beside it.
+    expect(hidden).toBeGreaterThan(1_000);
+    expect(beside).toBeGreaterThan(0);
   });
 });

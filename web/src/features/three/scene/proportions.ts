@@ -12,38 +12,44 @@ import {
  * How big and how far the System view draws Earth and the Sun by default, when "True scale"
  * is off (docs/features/system-view.md, "Scale"). Scene units are Moon radii.
  *
- * A schematic, not a model: the Moon is the subject, and Earth and the Sun read as far away
- * (the team lead, 2026-11-14). The true values (docs/science.md §1, and the series):
+ * A schematic, not a model: the Moon is the subject, with Earth beside it, a little larger
+ * and clearly further out, and the Sun far beyond (the team lead, 2026-11-14). The true
+ * values (docs/science.md §1, and the series):
  * - radii: Moon 1,737.4 km; Earth 6,378.137 km (3.67 Moons); Sun 695,700 km (400 Moons,
  *   109 Earths);
  * - distances from the Moon: Earth about 384,400 km (221 Moon radii; 356,000 to 407,000 km
  *   over a month); the Sun about 149.6 million km (86,100 Moon radii, 389 times Earth's).
  *
- * Each is a power below 1 of the true value relative to the Moon, so the order can never
- * invert: a larger body is always drawn larger, a further body always further. Directions
- * are not touched: they come from `system.bin` (computed in Python).
+ * Both mappings increase with the true value, so the order can never invert: a larger body
+ * is always drawn larger, a further body always further. Directions are not touched: they
+ * come from `system.bin` (computed in Python).
  *
  * To retune, change one constant:
- * - SIZE_EXPONENT: 0.25 draws Earth 1.38 and the Sun 4.47 Moon radii across: just larger
- *   than the Moon, and clearly the largest. Lower makes both smaller ("Earth a bit smaller").
+ * - DRAWN_EARTH_RADIUS: 1.2 Moon radii (true 3.67). "Earth a bit smaller" lowers it; it must
+ *   stay above 1.
+ * - DRAWN_SUN_RADIUS: 3.5 Moon radii (true 400): clearly the largest, three Earths, yet seen
+ *   behind the Moon from "From Earth" (around new moon) never more than 1.5 times the Moon.
  * - DISTANCE_EXPONENT: 0.3 draws the Sun 6 times further than Earth (389^0.3). Higher
  *   spreads the two distances apart.
- * - DISTANCE_SCALE: 1.35 puts Earth about 6.8 Moon radii out (6.67 at perigee to 6.94 at
- *   apogee), just outside the opening frame in every layout, the widest included (camera.ts,
- *   homePose; three zoom steps show its edge on a laptop), and the Sun about 41. Smaller
- *   brings both in ("a bit closer"), but below about 1.3 a sliver of Earth can show at a
- *   corner of the opening frame.
+ * - DISTANCE_SCALE: 0.8 puts Earth about 4 Moon radii out (3.95 at perigee to 4.11 at
+ *   apogee; it was 2.5 before), which lets the opening view show it whole beside a Moon of
+ *   about 72 px at 1440 × 900 (camera.ts, homePose), and the Sun about 24, always outside
+ *   the opening view. Larger moves both out ("a bit further") and shrinks the opening Moon.
  */
-export const SIZE_EXPONENT = 0.25;
+export const DRAWN_EARTH_RADIUS = 1.2;
+export const DRAWN_SUN_RADIUS = 3.5;
 export const DISTANCE_EXPONENT = 0.3;
-export const DISTANCE_SCALE = 1.35;
+export const DISTANCE_SCALE = 0.8;
+
+/** Earth's greatest distance from the Moon in the series (apogee), in km: the opening view leaves room for it. */
+export const EARTH_FARTHEST_KM = 407_000;
 
 /**
  * How far the System view can zoom out, in Moon radii above the surface: just far enough to
  * see the Moon, Earth and the Sun's disc and edge together in a 1024 × 768 window with the
  * panels open. At true scale, 900, far enough for Earth at its real distance.
  */
-export const SYSTEM_MAX_ALTITUDE = 580;
+export const SYSTEM_MAX_ALTITUDE = 380;
 export const TRUE_SCALE_MAX_ALTITUDE = 900;
 
 /**
@@ -54,18 +60,28 @@ function usable(km: number): number {
   return Number.isFinite(km) && km > 0 ? km : 0;
 }
 
-/** The drawn radius, in Moon radii, of a body `radiusKm` across its radius. The Moon is 1. */
+/**
+ * The drawn radius, in Moon radii, of a body `radiusKm` across its radius: a straight line
+ * on log-log axes through the Moon (1), Earth (DRAWN_EARTH_RADIUS) and the Sun
+ * (DRAWN_SUN_RADIUS), extended past both ends with the end slopes. Both slopes are positive,
+ * so it always increases. Zero (or a bad value) gives zero.
+ */
 export function drawnRadius(radiusKm: number): number {
-  return Math.pow(usable(radiusKm) / MOON_RADIUS_KM, SIZE_EXPONENT);
+  const km = usable(radiusKm);
+  if (km === 0) return 0;
+  const x = Math.log(km / MOON_RADIUS_KM);
+  const xEarth = Math.log(EARTH_RADIUS_KM / MOON_RADIUS_KM);
+  const xSun = Math.log(SUN_RADIUS_KM / MOON_RADIUS_KM);
+  const yEarth = Math.log(DRAWN_EARTH_RADIUS);
+  const ySun = Math.log(DRAWN_SUN_RADIUS);
+  const y = x <= xEarth ? (yEarth / xEarth) * x : yEarth + ((ySun - yEarth) / (xSun - xEarth)) * (x - xEarth);
+  return Math.exp(y);
 }
 
 /** The drawn distance from the Moon's centre, in Moon radii, of a body `distanceKm` away. */
 export function drawnDistance(distanceKm: number): number {
   return DISTANCE_SCALE * Math.pow(usable(distanceKm) / MOON_RADIUS_KM, DISTANCE_EXPONENT);
 }
-
-export const DRAWN_EARTH_RADIUS = drawnRadius(EARTH_RADIUS_KM);
-export const DRAWN_SUN_RADIUS = drawnRadius(SUN_RADIUS_KM);
 
 function along(dir: readonly [number, number, number], length: number): [number, number, number] {
   return [dir[0] * length, dir[1] * length, dir[2] * length];
@@ -114,28 +130,28 @@ export function sunDuringScale(sunDir: readonly [number, number, number], sunDis
 }
 
 /**
- * How opaque to draw Earth, 0 to 1, from the camera at `camera`: Earth fades to a faint ghost
- * while it stands in front of the Moon's disc (so "From Earth" shows the Moon, not the back of
- * Earth), and is hidden while the camera is inside it. Decoration only.
+ * A body this far or more from side-on, seen from the Moon's centre, counts as in front of the
+ * Moon (bodyInFront). In the opening view Earth is always within 7° of side-on (libration), so
+ * it is never hidden there.
  */
-export function earthOpacity(camera: readonly [number, number, number], earth: BodyPlacement): number {
-  const [cx, cy, cz] = camera;
-  const ex = earth.centre[0] - cx;
-  const ey = earth.centre[1] - cy;
-  const ez = earth.centre[2] - cz;
-  const toEarth = Math.hypot(ex, ey, ez);
-  const toMoon = Math.hypot(cx, cy, cz);
-  if (toEarth <= earth.radius) return 0;
-  if (toMoon <= 1 || toEarth >= toMoon) return 1;
-  const earthAngle = Math.asin(Math.min(1, earth.radius / toEarth));
-  const moonAngle = Math.asin(Math.min(1, 1 / toMoon));
-  const cos = (-(ex * cx + ey * cy + ez * cz)) / (toEarth * toMoon);
-  const apart = Math.acos(Math.max(-1, Math.min(1, cos)));
-  // 1 where Earth's disc covers the Moon's centre, 0 once the two discs are clear of each other.
-  const t = Math.max(0, Math.min(1, (apart - earthAngle * 0.5) / Math.max(1e-9, earthAngle + moonAngle - earthAngle * 0.5)));
-  const cover = 1 - t * t * (3 - 2 * t);
-  return 1 - GHOST * cover;
-}
+export const IN_FRONT_ANGLE_DEG = 10;
 
-/** How much of Earth fades away at most while it covers the Moon: 0.85 leaves a faint 15 % ghost. */
-const GHOST = 0.85;
+/**
+ * True when a body stands between the camera and the Moon, so drawing it would cover or
+ * crowd the subject: its centre lies on the camera's side of the Moon, more than
+ * IN_FRONT_ANGLE_DEG away from side-on, and nearer to the camera than the Moon's centre is
+ * (or the camera is inside it). The scene then does not draw it, and marks it with an edge
+ * arrow and its label instead (overlay.tsx). Geometry only, whatever the preset; it holds for
+ * the Sun as for Earth. Decoration: it changes no result.
+ */
+export function bodyInFront(camera: readonly [number, number, number], body: BodyPlacement): boolean {
+  const [cx, cy, cz] = camera;
+  const [bx, by, bz] = body.centre;
+  const toBody = Math.hypot(bx - cx, by - cy, bz - cz);
+  if (toBody <= body.radius) return true;
+  const toMoon = Math.hypot(cx, cy, cz);
+  const bodyFromMoon = Math.hypot(bx, by, bz);
+  if (toMoon < 1e-9 || bodyFromMoon < 1e-9) return false;
+  const facing = (bx * cx + by * cy + bz * cz) / (bodyFromMoon * toMoon);
+  return facing > Math.sin((IN_FRONT_ANGLE_DEG * Math.PI) / 180) && toBody < toMoon;
+}

@@ -217,7 +217,9 @@ export function Overlay(props: OverlayProps) {
         const el = bodyRefs[key].current;
         const centre = key === "earth" ? anchors.earth : anchors.sun;
         const radius = key === "earth" ? anchors.earthRadius : anchors.sunRadius;
-        const on = !small && anchors.bodies && Boolean(centre) && (p.view === "system" || p.view === "panorama");
+        // Earth between the camera and the Moon is not drawn; its edge arrow carries the name.
+        const hiddenInFront = key === "earth" && anchors.earthInFront;
+        const on = !small && anchors.bodies && Boolean(centre) && !hiddenInFront && (p.view === "system" || p.view === "panorama");
         if (!on || !centre || !el) {
           show(el, false);
           continue;
@@ -228,6 +230,8 @@ export function Overlay(props: OverlayProps) {
         const visible = s.front && s.x > fs.x && s.x < fs.x + fs.width && s.y > fs.y && s.y < fs.y + fs.height;
         show(el, visible);
         if (visible) settle(el, s.x - el.offsetWidth / 2, s.y + r + 8);
+        // Earth's disc counts as taken, so the Sun's label and edge arrow step around it.
+        if (visible && key === "earth" && p.view === "system") placed.push({ x: s.x - r, y: s.y - r, w: 2 * r, h: 2 * r });
       }
 
       // Edge markers, in the System view, for the Sun and Earth when off screen (the Sun also
@@ -242,7 +246,9 @@ export function Overlay(props: OverlayProps) {
           const s = project(point, camera, W, H);
           const inside = s.front && s.x > fs.x && s.x < fs.x + fs.width && s.y > fs.y && s.y < fs.y + fs.height;
           const asDirection = key === "sun" && !anchors.sun;
-          if (!inside || asDirection) {
+          // Earth not drawn because it stands in front of the Moon: marked at the edge too.
+          const inFront = key === "earth" && anchors.earthInFront;
+          if (!inside || asDirection || inFront) {
             on = true;
             const cx = fs.x + fs.width / 2;
             const cy = fs.y + fs.height / 2;
@@ -252,9 +258,11 @@ export function Overlay(props: OverlayProps) {
               dx = -dx;
               dy = -dy;
             }
+            // Straight in line with the Moon (looking from Earth): point down.
+            if (Math.abs(dx) + Math.abs(dy) < 1) dy = 1;
             let mx = s.x;
             let my = s.y;
-            if (!inside) {
+            if (!inside || inFront) {
               const k = Math.min((fs.width / 2 - 40) / Math.max(Math.abs(dx), 1e-6), (fs.height / 2 - 24) / Math.max(Math.abs(dy), 1e-6));
               mx = cx + dx * k;
               my = cy + dy * k;

@@ -19,8 +19,6 @@ type Tween = {
   onDone?: () => void;
   /** A locked flight ignores drags, scrolls and keys; only another flight replaces it. */
   locked: boolean;
-  /** Where `scaleBlend` starts and ends over this flight. */
-  scale: { from: number; to: number };
 };
 
 type Offset = { x: number; y: number; width: number; height: number };
@@ -72,6 +70,12 @@ export class Rig {
    * and the Sun from it (proportions.ts, earthDuringScale and sunDuringScale).
    */
   scaleBlend = 0;
+  /**
+   * The glide of `scaleBlend`, on the same clock and curve as the flight that started it but
+   * not stopped with it: a drag that stops the flight lets Earth finish its glide instead of
+   * snapping.
+   */
+  private scaleGlide: { from: number; to: number; t0: number; ms: number } | null = null;
 
   get trueScale(): boolean {
     return this.trueScaleOn;
@@ -132,17 +136,19 @@ export class Rig {
     options: { locked?: boolean; now?: number } = {},
   ): void {
     this.userMoved = false;
-    const scale = { from: this.scaleBlend, to: this.trueScaleOn ? 1 : 0 };
+    const target = this.trueScaleOn ? 1 : 0;
     if (ms <= 0) {
       this.tween = null;
-      this.scaleBlend = scale.to;
+      this.scaleBlend = target;
+      this.scaleGlide = null;
       this.apply(to);
       onT?.(1);
       onDone?.();
       return;
     }
     const t0 = options.now ?? performance.now();
-    this.tween = { from: this.pose(), to, t0, ms, onT, onDone, locked: options.locked ?? false, scale };
+    this.tween = { from: this.pose(), to, t0, ms, onT, onDone, locked: options.locked ?? false };
+    this.scaleGlide = this.scaleBlend === target ? null : { from: this.scaleBlend, to: target, t0, ms };
   }
 
   /**
@@ -211,8 +217,16 @@ export class Rig {
   /** Advances a flight and the offset slide. Returns true while something still moves. */
   update(now: number): boolean {
     let active = false;
-    // With no flight under way (a drag stopped it, or none was started), the arrangement is the setting.
-    if (!this.tween) this.scaleBlend = this.trueScaleOn ? 1 : 0;
+    // The arrangement glides with the flight that started it; with no glide under way it is the setting.
+    const glide = this.scaleGlide;
+    if (glide) {
+      const t = clamp((now - glide.t0) / glide.ms, 0, 1);
+      this.scaleBlend = glide.from + (glide.to - glide.from) * easeInOutCubic(t);
+      if (t >= 1 || glide.to !== (this.trueScaleOn ? 1 : 0)) this.scaleGlide = null;
+      else active = true;
+    } else {
+      this.scaleBlend = this.trueScaleOn ? 1 : 0;
+    }
     if (this.offsetTween) {
       const t = clamp((now - this.offsetTween.t0) / this.offsetTween.ms, 0, 1);
       const e = 1 - (1 - t) ** 3;
@@ -232,7 +246,6 @@ export class Rig {
       const t = clamp((now - tween.t0) / tween.ms, 0, 1);
       const eased = easeInOutCubic(t);
       this.apply(lerpPose(tween.from, tween.to, eased));
-      this.scaleBlend = tween.scale.from + (tween.scale.to - tween.scale.from) * eased;
       tween.onT?.(eased);
       if (t >= 1) {
         this.tween = null;

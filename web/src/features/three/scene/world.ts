@@ -3,7 +3,7 @@ import type { CameraViewId } from "../../../app/scene";
 import type { DecodedApron, DecodedTerrain } from "../../../data";
 import { sceneImageUrl } from "../../../data";
 import { EARTH_RADIUS_KM, MOON_RADIUS_M, SUN_RADIUS_KM, type ApronGrid } from "../../../lib/geo";
-import { DRAWN_SUN_RADIUS, earthDuringScale, earthOpacity, sunDuringScale } from "./proportions";
+import { DRAWN_SUN_RADIUS, bodyInFront, earthDuringScale, sunDuringScale } from "./proportions";
 import { altitudeOf, type SiteFrame } from "./camera";
 import { apronGeometry, apronUpGrid, patchGeometry, patchOutline, patchUpGrid, smoothGroundGeometry, type GroundSite } from "./ground";
 import { GroundLook } from "./ground-material";
@@ -67,6 +67,8 @@ export type Anchors = {
   sunRadius: number;
   earth: THREE.Vector3;
   earthRadius: number;
+  /** True when Earth stands between the camera and the Moon and is not drawn (proportions.ts, bodyInFront). */
+  earthInFront: boolean;
   site: THREE.Vector3 | null;
   sightEnds: { sun: THREE.Vector3; earth: THREE.Vector3 } | null;
   lander: THREE.Vector3 | null;
@@ -526,6 +528,7 @@ export class World {
       sunRadius: 0,
       earth: new THREE.Vector3(),
       earthRadius: 0,
+      earthInFront: false,
       site: siteGround,
       sightEnds: null,
       lander: null,
@@ -552,10 +555,11 @@ export class World {
     this.earthMesh.rotation.set(0, (inputs.hourIndex / 23.934) * Math.PI * 2, 0);
     anchors.earth.copy(this.earthMesh.position);
     anchors.earthRadius = earthRadius;
-    // A faint ghost while Earth stands in front of the Moon (proportions.ts); hidden from inside.
-    const earthAlpha = earthOpacity(camera.position.toArray() as V3, { centre: this.earthMesh.position.toArray() as V3, radius: earthRadius });
-    this.earth.uniforms.uAlpha.value = earthAlpha;
-    if (earthAlpha <= 0.001) this.earthMesh.visible = false;
+    // Far out, a body between the camera and the Moon is not drawn (proportions.ts, bodyInFront);
+    // the overlay marks it at the edge instead.
+    const camAt = camera.position.toArray() as V3;
+    anchors.earthInFront = inputs.bodies && near < 0.5 && bodyInFront(camAt, { centre: this.earthMesh.position.toArray() as V3, radius: earthRadius });
+    if (anchors.earthInFront) this.earthMesh.visible = false;
 
     const sunPlaced = sunDuringScale(inputs.sunDir, inputs.sunDistKm, this.scaleBlend);
     const sunFar = new THREE.Vector3(...sunPlaced.centre);
@@ -565,7 +569,8 @@ export class World {
     this.sunMesh.scale.setScalar(sunRadius * this.sun.uniforms.uExt.value);
     this.sunMesh.quaternion.copy(camera.quaternion);
     // At true scale the Sun is only a direction, marked at the screen's edge.
-    this.sunMesh.visible = inputs.bodies && !(!sunPlaced.visible && near < 0.5);
+    const sunInFront = near < 0.5 && bodyInFront(camAt, { centre: this.sunMesh.position.toArray() as V3, radius: sunRadius });
+    this.sunMesh.visible = inputs.bodies && !(!sunPlaced.visible && near < 0.5) && !sunInFront;
     anchors.sun = this.sunMesh.visible ? this.sunMesh.position.clone() : null;
     anchors.sunRadius = sunRadius;
 
