@@ -453,9 +453,28 @@ class DataSource(Contract):
     used_for: str = Field(description='What TrueSouth uses it for, in a plain phrase.')
 
 
+class G2Location(Contract):
+    """Location and time of a G2 maximum."""
+    site_id: str = Field(description='Site identifier.')
+    body: Literal['sun', 'earth'] = Field(description='Compared body.')
+    utc: UTC = Field(description='UTC hour of the maximum.')
+
+
+class G2Diagnostics(Contract):
+    """G2 evidence separate from the gate's measured value."""
+    raw_azimuth_max_deg: float | None = Field(default=None, description='Largest raw compass azimuth difference in degrees.')
+    raw_azimuth_location: G2Location | None = Field(default=None, description='Location of the raw azimuth maximum.')
+    raw_azimuth_hours_over_limit: int | None = Field(default=None, ge=0, description='Site and body hours above the G2 limit.')
+    sky_max_deg: float | None = Field(default=None, description='Largest full direction separation on the sky in degrees.')
+    sky_location: G2Location | None = Field(default=None, description='Location of the sky separation maximum.')
+    elevation_max_deg: float | None = Field(default=None, description='Largest elevation difference in degrees.')
+    elevation_location: G2Location | None = Field(default=None, description='Location of the elevation maximum.')
+
+
 class Validation(Contract):
     """Hard gates and reported comparisons: everything the validation page shows."""
 
+    g2_diagnostics: G2Diagnostics | None = Field(default=None, description='G2 diagnostic maxima and their locations, when measured.')
     generated_utc: UTC = Field(description='When the validation was last run, in UTC.')
     gates: list[Gate] = Field(description='Hard gate results.')
     comparisons: list[Comparison] = Field(description='Reported comparisons.')
@@ -600,6 +619,7 @@ class ValidationField(Contract):
 
 class APIValidationError(Contract):
     """HTTP 422 body, without client values or internal validator details."""
+    code: Literal['invalid_request'] = Field(description='Stable error code.')
     message: str = Field(description='Plain request validation summary.')
     fields: list[ValidationField] = Field(description='Safe field identifiers and validation advice.')
 
@@ -609,7 +629,7 @@ class CustomSiteQueued(Contract):
 
     site_id: SiteId = Field(description='Custom id c_<lat>_<lon>, coordinates rounded to four decimal places.')
     status: Literal['queued', 'running', 'ready', 'failed'] = Field(description='Job status.')
-    position_in_queue: int = Field(description='Position in queue.')
+    position_in_queue: int | None = Field(ge=1, description='Queue position, or null when not queued.')
 
 
 class ErrorDetail(Contract):
@@ -625,11 +645,19 @@ class ErrorResponse(Contract):
     error: ErrorDetail = Field(description='Error code and message.')
 
 
+class CustomSiteErrorResponse(Contract):
+    """Custom-site HTTP error body."""
+
+    code: Literal['too_large', 'invalid_request', 'rate_limited', 'queue_full', 'maps_missing', 'ephemeris_missing', 'address_limit', 'shutting_down', 'storage_full', 'not_ready', 'not_found'] = Field(description='Stable error code.')
+    message: str = Field(description='Plain-language error message.')
+
+
 class CustomSiteStatus(Contract):
     """Custom site job status."""
 
     site_id: SiteId = Field(description='Custom id c_<lat>_<lon>, with four decimal places.')
     status: Literal['queued', 'running', 'ready', 'failed'] = Field(description='Job status.')
+    position_in_queue: int | None = Field(default=None, ge=1, description='Queue position, or null when not queued.')
     site: Site | None = Field(description='Completed site, or null.')
     error: ErrorDetail | None = Field(description='Error code and message, or null.')
 

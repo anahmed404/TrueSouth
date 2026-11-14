@@ -187,7 +187,7 @@ FastAPI, one process. Formats are in [`data-contracts.md`](data-contracts.md).
 | :--- | :--- |
 | `GET /api/health` | Reports which prepared maps and derived files are present. |
 | `POST /api/sites/custom` | Starts (or finds) the job for a custom site. Returns its id and status. |
-| `GET /api/sites/custom/{id}` | Job status: `queued`, `running`, `ready` or `failed`. |
+| `GET /api/sites/custom/{id}` | Job status: `queued`, `running`, `ready` or `failed`, with FIFO queue position while queued and null otherwise. |
 | `GET /api/custom/{id}/…` | The custom site's files, in the same formats as a catalog site. |
 | `POST /api/sensitivity` | Computes a sensitivity grid. |
 

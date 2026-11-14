@@ -5,6 +5,7 @@ section 7 series columns; no terrain or ephemeris calculations happen here.
 """
 
 from dataclasses import dataclass
+from math import floor
 from typing import Mapping
 
 import numpy as np
@@ -74,12 +75,19 @@ def _validate_profile(profile: MissionProfile) -> None:
         raise ValueError('slope_ideal_deg must be less than max_slope_deg')
 
 
+def _q(value):
+    """Canonical comparison value, half-up at 12 places (science.md §9)."""
+    if np.isscalar(value):
+        return floor(float(value) * 1e12 + .5) / 1e12
+    return np.floor(np.asarray(value) * 1e12 + .5) / 1e12
+
+
 def hour_flags(series: Mapping[str, NDArray], profile: MissionProfile) -> tuple[NDArray, NDArray]:
     """Calculate per-hour lit and link flags (docs/science.md §9)."""
-    lit = np.asarray(series['sun_frac']) >= profile.min_sun_fraction
+    lit = _q(series['sun_frac']) >= _q(profile.min_sun_fraction)
     if profile.ops_sun_el_min_deg is not None:
-        lit = lit & (np.asarray(series['sun_el']) >= profile.ops_sun_el_min_deg)
-    link = np.ones_like(lit, dtype=bool) if profile.relay_available else np.asarray(series['earth_clear']) >= profile.antenna_mask_deg
+        lit = lit & (_q(series['sun_el']) >= _q(profile.ops_sun_el_min_deg))
+    link = np.ones_like(lit, dtype=bool) if profile.relay_available else _q(series['earth_clear']) >= _q(profile.antenna_mask_deg)
     return lit, link
 
 
@@ -98,26 +106,38 @@ def _longest_windows(flags: NDArray, n: int) -> NDArray:
 
 
 def _means(values: NDArray, n: int) -> NDArray:
-    """Compute window means using prefix sums (docs/science.md §11)."""
-    sums = np.concatenate(([0.0], np.cumsum(values, dtype=np.float64)))
-    return (sums[n:] - sums[:-n]) / n
+    """Subtract exact integer prefix counts, then divide once (science.md §§9, 11)."""
+    values = np.asarray(values)
+    units = 1 if values.dtype == np.bool_ else 10000
+    counts = np.floor(values * units + .5).astype(np.int64)
+    sums = np.concatenate((np.array([0], dtype=np.int64), np.cumsum(counts, dtype=np.int64)))
+    return (sums[n:] - sums[:-n]) / (n * units)
 
 
 def _evaluation(metrics: Metrics, profile: MissionProfile, slope_deg: float | None) -> Evaluation:
     """Apply vetoes, utilities, score and status (docs/science.md §10)."""
     p = profile
     vetoes = {
-        'slope': Veto(slope_deg is not None and slope_deg > p.max_slope_deg, slope_deg, p.max_slope_deg),
-        'darkness': Veto(metrics.longest_dark_h > p.max_dark_h, metrics.longest_dark_h, p.max_dark_h),
-        'blackout': Veto(not p.relay_available and metrics.longest_blackout_h > p.max_blackout_h, metrics.longest_blackout_h, p.max_blackout_h),
+        'slope': Veto(slope_deg is not None and _q(slope_deg) > _q(p.max_slope_deg), slope_deg, p.max_slope_deg),
+        'darkness': Veto(_q(metrics.longest_dark_h) > _q(p.max_dark_h), metrics.longest_dark_h, p.max_dark_h),
+        'blackout': Veto(not p.relay_available and _q(metrics.longest_blackout_h) > _q(p.max_blackout_h), metrics.longest_blackout_h, p.max_blackout_h),
         'landing_dark': Veto(not metrics.landing_lit, metrics.landing_lit, True),
-        'landing_sun_low': Veto(p.landing_sun_el_min_deg is not None and metrics.landing_sun_el_deg < p.landing_sun_el_min_deg, metrics.landing_sun_el_deg, p.landing_sun_el_min_deg),
-        'landing_sun_high': Veto(p.landing_sun_el_max_deg is not None and metrics.landing_sun_el_deg > p.landing_sun_el_max_deg, metrics.landing_sun_el_deg, p.landing_sun_el_max_deg),
+        'landing_sun_low': Veto(p.landing_sun_el_min_deg is not None and _q(metrics.landing_sun_el_deg) < _q(p.landing_sun_el_min_deg), metrics.landing_sun_el_deg, p.landing_sun_el_min_deg),
+        'landing_sun_high': Veto(p.landing_sun_el_max_deg is not None and _q(metrics.landing_sun_el_deg) > _q(p.landing_sun_el_max_deg), metrics.landing_sun_el_deg, p.landing_sun_el_max_deg),
     }
     def g(x: float, m: float) -> float:
         """Compute g for power and comms (docs/science.md §10)."""
-        return max(0.0, 1 - x / m) if m > 0 else 1.0
-    slope = None if slope_deg is None else float(np.clip((p.max_slope_deg - slope_deg) / (p.max_slope_deg - p.slope_ideal_deg), 0, 1))
+        if _q(m) <= 0 or _q(x) <= 0:
+            return 1.0
+        return 0.0 if _q(x) >= _q(m) else max(0.0, 1 - x / m)
+    if slope_deg is None:
+        slope = None
+    elif _q(slope_deg) <= _q(p.slope_ideal_deg):
+        slope = 1.0
+    elif _q(slope_deg) >= _q(p.max_slope_deg):
+        slope = 0.0
+    else:
+        slope = float(np.clip((p.max_slope_deg - slope_deg) / (p.max_slope_deg - p.slope_ideal_deg), 0, 1))
     power = metrics.sun_fraction_mean * g(metrics.longest_dark_h, p.max_dark_h)
     comms = 1.0 if p.relay_available else metrics.link_fraction * g(metrics.longest_blackout_h, p.max_blackout_h)
     weights = p.weights
@@ -128,7 +148,7 @@ def _evaluation(metrics: Metrics, profile: MissionProfile, slope_deg: float | No
         denominator += weights.slope
     if denominator == 0:
         raise ValueError('score is undefined when assessed weights sum to zero')
-    score = 100 * numerator / denominator
+    score = _q(100 * numerator / denominator)
     status = 'NO-GO' if any(v.triggered for v in vetoes.values()) else 'GO' if score >= GO_SCORE_THRESHOLD else 'CAUTION'
     return Evaluation(metrics, vetoes, Utilities(slope, power, comms), score, status, slope is None)
 
@@ -195,7 +215,7 @@ def countdowns(series: Mapping[str, NDArray], profile: MissionProfile, current_h
         i = current_hour + offset
         times = []
         for values, threshold in conditions:
-            left, right = float(values[i]), float(values[i + 1])
+            left, right, threshold = _q(values[i]), _q(values[i + 1]), _q(threshold)
             changed = (left < threshold <= right) if rising else (left >= threshold > right)
             if changed:
                 times.append((threshold - left) / (right - left))

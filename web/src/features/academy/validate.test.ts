@@ -104,6 +104,32 @@ describe("validateLesson", () => {
     expect(validateLesson(lessonWith([sky]), lessonCheck()).join("\n")).toMatch(/narrower than 10/);
   });
 
+  it("accepts a drag goal's second condition on a stored metric, and rejects one that cannot be checked", () => {
+    const drag: Step = {
+      ...choice,
+      id: "drag",
+      kind: "drag-body",
+      body: "sun",
+      panel: "LandersEye",
+      scene,
+      goal: { metric: "sun_frac", op: "<", value: 0.5, also: { metric: "sun_el_deg", op: ">", value: 0 } },
+    };
+    const check = lessonCheck();
+    expect(validateLesson(lessonWith([drag]), check)).toEqual([]);
+    const unknown: Step = { ...drag, id: "unknown", goal: { metric: "sun_frac", op: "<", value: 0.5, also: { metric: "moon_phase", op: ">", value: 0 } } };
+    expect(validateLesson(lessonWith([unknown]), check).join(" | ")).toMatch(/second goal condition on a metric the series does not store: moon_phase/);
+    const text: Step = { ...drag, id: "text", goal: { metric: "sun_frac", op: "<", value: 0.5, also: { metric: "sun_el_deg", op: ">", value: "up" } } };
+    expect(validateLesson(lessonWith([text]), check).join(" | ")).toMatch(/not a finite number/);
+    const slider: Step = {
+      ...choice,
+      id: "slider",
+      kind: "tune-slider",
+      slider: { kind: "number", min: 0, max: 8, step: 0.5, unit: "°" },
+      goal: { metric: "margin", op: "==", value: 1, also: { metric: "sun_el_deg", op: ">", value: 0 } },
+    };
+    expect(validateLesson(lessonWith([slider]), check).join(" | ")).toMatch(/only a drag-body step can check/);
+  });
+
   it("rejects a slider goal off the range or off a step, and a negative tolerance", () => {
     const offRange: Step = {
       ...choice,

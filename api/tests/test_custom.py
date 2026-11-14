@@ -148,7 +148,7 @@ def test_no_maps_sphere_and_validation(synthetic):
     with TestClient(create_app(derived=derived, prepared=missing, cache=cache)) as client:
         polar = client.post('/api/sites/custom', json=dict(lat_deg=-89, lon_deg=0))
         assert polar.status_code == 503
-        assert polar.json() == {'message': 'Custom sites need the terrain maps, which are not installed on this server.'}
+        assert polar.json() == {'code': 'maps_missing', 'message': 'Custom sites need the terrain maps, which are not installed on this server.'}
         assert client.get('/api/health').json()['custom_sites'] == 'not_available'
         sphere = client.post('/api/sites/custom', json=dict(lat_deg=0, lon_deg=-360))
         assert sphere.json()['status'] == 'ready'
@@ -191,6 +191,7 @@ def test_http_rate_limit_retry_after(synthetic):
         response = client.post('/api/sites/custom', json=dict(lat_deg=0, lon_deg=6))
         assert response.status_code == 429
         assert response.headers['retry-after'] == '3600'
+        assert response.json()['code'] == 'rate_limited'
         assert isinstance(response.json()['message'], str)
 
 
@@ -246,3 +247,121 @@ def test_running_calculation_does_not_block_terrain_admission(synthetic):
     thread.join()
     assert admitted
     assert result == ['core80']
+
+
+def test_status_queue_positions_advance(tmp_path):
+    class Controlled(Fake):
+        def __init__(self):
+            self.entered = [Event() for _ in range(4)]
+            self.release = [Event() for _ in range(4)]
+        def __call__(self, body, tier):
+            i = int(body.lon_deg)
+            self.entered[i].set()
+            assert self.release[i].wait(10)
+            if i == 2:
+                raise ValueError('failed')
+            return entry(body)
+    fake = Controlled()
+    jobs = Jobs(tmp_path, fake)
+    try:
+        ids = [jobs.submit(request(lon=0), '0')['site_id']]
+        assert fake.entered[0].wait(5)
+        ids.extend(jobs.submit(request(lon=i), str(i))['site_id'] for i in range(1, 4))
+        assert jobs.status(ids[0])['position_in_queue'] is None
+        assert [jobs.status(i)['position_in_queue'] for i in ids[1:]] == [1, 2, 3]
+        fake.release[0].set()
+        assert fake.entered[1].wait(5)
+        assert jobs.status(ids[0])['position_in_queue'] is None
+        assert jobs.status(ids[1])['position_in_queue'] is None
+        assert [jobs.status(i)['position_in_queue'] for i in ids[2:]] == [1, 2]
+        fake.release[1].set()
+        assert fake.entered[2].wait(5)
+        fake.release[2].set()
+        assert fake.entered[3].wait(5)
+        assert jobs.status(ids[2])['status'] == 'failed'
+        assert jobs.status(ids[2])['position_in_queue'] is None
+        assert jobs.status('unknown') is None
+    finally:
+        for event in fake.release: event.set()
+        jobs.close()
+
+
+def test_post_and_get_positions_for_running_retry_and_cached_site(tmp_path):
+    class Controlled:
+        def __init__(self):
+            self.entered = Event()
+            self.release = Event()
+            self.attempts = 0
+        def tier(self, body):
+            return 'sphere' if body.lat_deg == 0 else 'core80'
+        def __call__(self, body, tier):
+            if body.lon_deg == 1:
+                self.entered.set()
+                assert self.release.wait(30)
+            if body.lon_deg == 2:
+                self.attempts += 1
+                if self.attempts == 1:
+                    raise ValueError('synthetic failure')
+            site = entry(body)
+            folder = tmp_path / site.id
+            folder.mkdir(exist_ok=True)
+            (folder / 'site.json').write_text(site.model_dump_json(), encoding='utf-8')
+            for name in ('meta.json', 'series.bin', 'skyline.bin'):
+                (folder / name).write_bytes(b'fixture')
+            return site
+    computer = Controlled()
+    jobs = Jobs(tmp_path, computer)
+    try:
+        with TestClient(create_app(cache=tmp_path, jobs=jobs)) as client:
+            def post(lat, lon):
+                response = client.post('/api/sites/custom', json={'lat_deg': lat, 'lon_deg': lon})
+                assert response.status_code == 200
+                return response.json()
+            def get(identity):
+                response = client.get('/api/sites/custom/'+identity)
+                assert response.status_code == 200
+                return response.json()
+            def agree(submitted, expected_status, expected_position):
+                status = get(submitted['site_id'])
+                assert (submitted['status'], submitted['position_in_queue']) == (expected_status, expected_position)
+                assert (status['status'], status['position_in_queue']) == (expected_status, expected_position)
+
+            sphere = post(0, 5)
+            agree(sphere, 'ready', None)
+            assert jobs.cached(sphere['site_id']) is not None
+            agree(post(0, 5), 'ready', None)
+            failed = post(-89.2, 2)
+            wait_state(jobs, failed['site_id'], 'failed')
+            assert get(failed['site_id'])['position_in_queue'] is None
+            blocker = post(-89.2, 1)
+            assert computer.entered.wait(5)
+            agree(post(-89.2, 1), 'running', None)
+            retry = post(-89.2, 2)
+            agree(retry, 'queued', 1)
+            agree(post(-89.2, 2), 'queued', 1)
+            computer.release.set()
+            wait_state(jobs, retry['site_id'], 'ready')
+            agree(post(-89.2, 2), 'ready', None)
+    finally:
+        computer.release.set()
+        jobs.close()
+
+
+def test_sphere_failure_post_and_get_both_have_null_position(tmp_path):
+    class FailedSphere:
+        def tier(self, body): return 'sphere'
+        def __call__(self, body, tier): raise ValueError('synthetic failure')
+    jobs = Jobs(tmp_path, FailedSphere())
+    with TestClient(create_app(cache=tmp_path, jobs=jobs)) as client:
+        submitted = client.post('/api/sites/custom', json={'lat_deg':0, 'lon_deg':5}).json()
+        status = client.get('/api/sites/custom/'+submitted['site_id']).json()
+        assert submitted['status'] == status['status'] == 'failed'
+        assert submitted['position_in_queue'] is status['position_in_queue'] is None
+
+
+def test_submit_position_contract_rejects_zero():
+    from truesouth.contracts import CustomSiteQueued
+    data = {'site_id':'c_0.0000_5.0000', 'status':'ready', 'position_in_queue':None}
+    assert CustomSiteQueued.model_validate(data).position_in_queue is None
+    with pytest.raises(ValidationError):
+        CustomSiteQueued.model_validate({**data, 'position_in_queue':0})

@@ -2237,3 +2237,433 @@
   outline-offset: 2px;
   border-radius: var(--r-md);
 }
+
+/* ── Lesson: drag-body and draw-skyline (work package A3) ─────────────────── */
+
+/* A step that embeds the horizon: the stage keeps its height and lays the chart out from the top. */
+.ac-stage--panel {
+  justify-content: flex-start;
+  overflow-y: auto;
+}
+
+.ac-drag,
+.ac-sketch {
+  width: 100%;
+  max-width: 760px;
+  margin-block: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ac-drag-title {
+  margin: 0;
+  font-size: var(--t-lg);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.ac-drag-chart,
+.ac-sketch-frame {
+  position: relative;
+  width: 100%;
+}
+
+/* The loading frame: an empty plot with a plain horizon line. */
+.ac-drag-empty {
+  height: 200px;
+  border-radius: var(--r-md);
+  background: var(--plot);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  position: relative;
+  color: var(--ink-3);
+  font-size: var(--t-lg);
+}
+
+.ac-drag-empty-line {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 62%;
+  border-top: 1px solid var(--terrain-rim);
+  opacity: 0.5;
+}
+
+/* The body to drag: a moonlight ring around its disc, 44px to grab. */
+.ac-drag-handle {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  cursor: grab;
+  touch-action: none;
+  z-index: 2;
+}
+
+.ac-drag-handle::after {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+}
+
+.ac-drag-handle:active {
+  cursor: grabbing;
+}
+
+.ac-drag-handle:focus-visible {
+  outline: none;
+}
+
+.ac-drag-handle:focus-visible::after {
+  inset: 5px;
+  border-width: 3px;
+}
+
+.ac-drag-handle[data-locked] {
+  cursor: default;
+}
+
+.ac-drag-handle[data-locked]::after {
+  border-color: var(--ink-3);
+}
+
+/* The answer's hour on the chart: a dashed ring, read without colour. */
+.ac-drag-answer {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border-radius: 50%;
+  border: 2px dashed var(--ink);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ac-drag-note {
+  margin: 0;
+  font-size: var(--t-md);
+  color: var(--ink-3);
+}
+
+/* The hours as a bar: the knob is the body's hour. */
+.ac-drag-time {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ac-drag-bar {
+  position: relative;
+  height: 32px;
+  margin: 0 14px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.ac-drag-bar[data-locked] {
+  cursor: default;
+}
+
+.ac-drag-bar-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 13px;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--hover);
+}
+
+.ac-drag-bar-knob,
+.ac-drag-bar-answer {
+  position: absolute;
+  top: 16px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.ac-drag-bar-knob {
+  width: 22px;
+  height: 22px;
+  background: var(--accent);
+}
+
+.ac-drag-bar-answer {
+  width: 16px;
+  height: 16px;
+  border: 2px dashed var(--ink);
+}
+
+.ac-drag-bar-ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--t-sm);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The readout: the hour, the body's elevation and, for a disc goal, its disc fraction. */
+.ac-drag-read {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+}
+
+.ac-drag-read div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ac-drag-read dt {
+  font-size: var(--t-md);
+  color: var(--ink-3);
+}
+
+.ac-drag-read dd {
+  margin: 0;
+  font-size: var(--t-xl);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* What was found, under the readout once the step is answered. */
+.ac-drag-found {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  padding: 12px 16px;
+}
+
+.ac-drag-found p {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--t-lg);
+  color: var(--ink-2);
+}
+
+.ac-drag-found-when {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.ac-drag-found-line {
+  color: var(--ink-2);
+}
+
+.ac-drag-found-ring {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  border-radius: 50%;
+  border: 2px dashed var(--ink);
+}
+
+/* draw-skyline: the empty frame, the sketch and, after Done, the real skyline. */
+.ac-sketch-frame svg {
+  display: block;
+  border-radius: var(--r-md);
+}
+
+.ac-sketch-plot {
+  fill: var(--plot);
+}
+
+.ac-sketch-grid {
+  stroke: var(--grid);
+}
+
+.ac-sketch-zero {
+  stroke: var(--ink-2);
+  stroke-opacity: 0.55;
+  stroke-dasharray: 1 3;
+}
+
+.ac-sketch-axis {
+  fill: var(--ink-3);
+  font-size: var(--t-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.ac-sketch-sun ellipse {
+  fill: var(--sun-core);
+}
+
+/* A disc too small to see at this stretch gets the chart's dashed locator ring. */
+.ac-sketch-sun circle {
+  fill: none;
+  stroke: var(--sun);
+  stroke-width: 1.25;
+  stroke-dasharray: 2 2.5;
+}
+
+.ac-sketch-sun-label {
+  fill: var(--sun);
+  font-size: var(--t-sm);
+}
+
+.ac-sketch-ground {
+  fill: var(--terrain);
+}
+
+.ac-sketch-rim {
+  fill: none;
+  stroke: var(--terrain-rim);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.ac-sketch-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-dasharray: 7 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ac-sketch-key {
+  fill: var(--ink-2);
+  font-size: var(--t-sm);
+}
+
+/* The real skyline wipes in from the left once. Reduced motion: it simply appears. */
+.ac-sketch-real {
+  animation: ac-sketch-wipe 700ms var(--ease-ac) both;
+}
+
+@keyframes ac-sketch-wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* The drawing surface: a pen over the plot. A touch draws here; it never scrolls the page. */
+.ac-sketch-surface {
+  position: absolute;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.ac-sketch-surface[data-locked] {
+  cursor: default;
+}
+
+/* The keyboard's points: out of the pointer's way, shown on focus. */
+.ac-sketch-handles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ac-sketch-handle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--ink-3);
+  background: var(--plot);
+  opacity: 0;
+}
+
+.ac-sketch-handles:focus-within .ac-sketch-handle {
+  opacity: 1;
+}
+
+.ac-sketch-handle[data-drawn] {
+  border-color: var(--accent);
+}
+
+.ac-sketch-handle:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.ac-sketch-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ac-sketch-tools .ac-keys {
+  margin: 0;
+}
+
+.ac-sketch-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+  font-size: var(--t-lg);
+  color: var(--ink-2);
+}
+
+.ac-sketch-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ac-sketch-caption {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--t-ac);
+  color: var(--ink);
+}
+
+.ac-only-phone {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .ac-only-phone {
+    display: inline;
+  }
+
+  .ac-stage.ac-stage--panel {
+    height: auto;
+    max-height: none;
+    padding: 12px 16px 28px;
+    overflow: visible;
+  }
+
+  .ac-drag,
+  .ac-sketch {
+    max-width: 360px;
+    margin: 0 auto;
+    gap: 10px;
+  }
+
+  .ac-drag-read dd {
+    font-size: var(--t-lg);
+  }
+
+  .ac-sketch-tools .ac-btn {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ac-sketch-real {
+    animation: none;
+  }
+}

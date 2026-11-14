@@ -5,7 +5,7 @@ import { createValueEvaluator } from "../evaluator";
 import { formatNumber } from "../format-example";
 import { exampleText, fillPlaceholders, type WorkedExamples } from "../placeholders";
 import { numberReadoutAt } from "../readout";
-import { answerText, initialRunnerState, PANEL_STEP_KINDS, reduceRunner, type RunnerState } from "../runner";
+import { answerText, initialRunnerState, PANEL_STEP_KINDS, PENDING_STEP_KINDS, reduceRunner, type RunnerState } from "../runner";
 import { conversationFor, primaryAction } from "../step-view";
 import type { Lesson, PanelId, Step, Submission } from "../types";
 import { panelName } from "../ui/panels";
@@ -117,7 +117,8 @@ function stepWords(step: Step): string[] {
   if (step.kind === "predict" && step.reveal.kind === "text") words.push(step.reveal.text);
   if (step.kind === "spot-bug" && step.title) words.push(step.title);
   if ((step.kind === "drag-body" || step.kind === "draw-skyline" || step.kind === "drop-pin") && step.preview) {
-    words.push(step.preview.says, step.preview.reveal);
+    if (step.preview.says) words.push(step.preview.says);
+    words.push(step.preview.reveal);
   }
   return words;
 }
@@ -327,6 +328,19 @@ function pickRight(step: Step): Submission | null {
       if (step.slider.kind !== "number") return null;
       if (step.id === "l3-distance") return { kind: "tune-slider", variant: "number", value: 20 };
       return { kind: "tune-slider", variant: "number", value: num("l4.mask_for_15pct_deg") };
+    case "drag-body":
+      // The stored value at a right hour; drag-body.test.ts reads these hours from the series.
+      if (step.id === "l1-highest") return { kind: "drag-body", value: num("l1.sun_el_max_deg"), utc: "right" };
+      if (step.id === "l4-highest") return { kind: "drag-body", value: num("l4.earth_el_max_deg"), utc: "right" };
+      // Lesson 2 step 4 also needs the Sun above level: the example hour's Sun is l2.sun_el_deg up.
+      return {
+        kind: "drag-body",
+        value: num("l2.sun_frac"),
+        values: { sun_frac: num("l2.sun_frac"), sun_el_deg: num("l2.sun_el_deg") },
+        utc: "right",
+      };
+    case "draw-skyline":
+      return { kind: "draw-skyline", sketch: [], gapDeg: 0 };
     default:
       return null;
   }
@@ -347,6 +361,9 @@ function pickWrong(step: Step, nth: number): Submission | null {
     }
     case "tune-slider":
       return { kind: "tune-slider", variant: "number", value: nth };
+    case "drag-body":
+      // 1 is a fully clear disc, and no lesson's highest body is within 0.005° of 1 or 1.5.
+      return { kind: "drag-body", value: 1 + nth * 0.5, utc: `wrong-${nth}` };
     default:
       return null;
   }
@@ -358,7 +375,7 @@ function play(lesson: Lesson, examples: WorkedExamples, choose: (step: Step, sta
   for (let guard = 0; guard < 40 && state.phase !== "complete"; guard += 1) {
     const step = lesson.steps[state.stepIndex];
     if (!step) break;
-    if (PANEL_STEP_KINDS.includes(step.kind)) {
+    if (PENDING_STEP_KINDS.includes(step.kind)) {
       expect(primaryAction(step, state, null, false)).toEqual({ kind: "skip", label: "Continue" });
       state = reduceRunner(state, { type: "skip" }, lesson, evaluator, examples);
       continue;
@@ -375,7 +392,7 @@ function play(lesson: Lesson, examples: WorkedExamples, choose: (step: Step, sta
 describe("playing lessons 1 to 4 on the real data", () => {
   it.each(lessons.map((lesson) => [lesson.id, lesson] as const))("%s: right first time everywhere earns 3 stars and the patch", (_, lesson) => {
     const done = play(lesson, real, (step) => [pickRight(step)].filter((item): item is Submission => item !== null));
-    const scored = lesson.steps.filter((step) => !PANEL_STEP_KINDS.includes(step.kind)).length;
+    const scored = lesson.steps.filter((step) => !PENDING_STEP_KINDS.includes(step.kind)).length;
     expect(done.phase).toBe("complete");
     expect(done.results.filter((result) => result === "first")).toHaveLength(scored);
     expect(done.xp).toBe(10 * scored);
@@ -383,17 +400,37 @@ describe("playing lessons 1 to 4 on the real data", () => {
     expect(done.patchEarned).toBe(true);
   });
 
-  it.each(lessons.map((lesson) => [lesson.id, lesson] as const))("%s: a skipped panel step earns no XP and is not counted for the stars", (_, lesson) => {
+  it.each(lessons.map((lesson) => [lesson.id, lesson] as const))("%s: every step is playable; none is held", (_, lesson) => {
     const done = play(lesson, real, (step) => [pickRight(step)].filter((item): item is Submission => item !== null));
-    const skipped = done.results.filter((result) => result === "skipped").length;
+    expect(done.results.filter((result) => result === "skipped")).toHaveLength(0);
+    expect(done.xp).toBe(10 * lesson.steps.length);
+  });
+
+  it.each(lessons.map((lesson) => [lesson.id, lesson] as const))("%s: a panel step passed through its failed-load fallback earns no XP and is not counted for the stars", (_, lesson) => {
+    const evaluator = createValueEvaluator();
+    let state = initialRunnerState();
+    for (let guard = 0; guard < 40 && state.phase !== "complete"; guard += 1) {
+      const step = lesson.steps[state.stepIndex];
+      if (!step) break;
+      if (PANEL_STEP_KINDS.includes(step.kind)) {
+        expect(primaryAction(step, state, null, false, true)).toEqual({ kind: "skip", label: "Continue" });
+        state = reduceRunner(state, { type: "skip" }, lesson, evaluator, real);
+        continue;
+      }
+      const submission = pickRight(step);
+      if (submission) state = reduceRunner(state, { type: "submit", submission }, lesson, evaluator, real);
+      state = reduceRunner(state, { type: "continue" }, lesson, evaluator, real);
+    }
+    const skipped = state.results.filter((result) => result === "skipped").length;
     expect(skipped).toBe(lesson.steps.filter((step) => PANEL_STEP_KINDS.includes(step.kind)).length);
-    expect(done.xp).toBe(10 * (lesson.steps.length - skipped));
+    expect(state.xp).toBe(10 * (lesson.steps.length - skipped));
+    expect(state.stars).toBe(3);
   });
 
   it.each(lessons.map((lesson) => [lesson.id, lesson] as const))("%s: a miss gets a hint, a second miss shows the answer, never a scolding", (_, lesson) => {
     const evaluator = createValueEvaluator();
     for (const [index, step] of lesson.steps.entries()) {
-      if (PANEL_STEP_KINDS.includes(step.kind)) continue;
+      if (PENDING_STEP_KINDS.includes(step.kind) || step.kind === "draw-skyline") continue;
       const at: RunnerState = { ...initialRunnerState(), stepIndex: index };
       const first = pickWrong(step, 0);
       if (!first) continue;
@@ -417,11 +454,11 @@ describe("playing lessons 1 to 4 on the real data", () => {
     }
   });
 
-  it("a panel step says what the learner will do and shows the real answer, not the question it cannot ask", () => {
+  it("a drag step asks its own question, and keeps the real answer for when its data does not load", () => {
     const step = lesson1.steps[1];
     if (step?.kind !== "drag-body") throw new Error("lesson 1 step 2 drags the Sun");
     const first = conversationFor(step, initialRunnerState())[0];
-    expect(first?.text).toBe(step.preview?.says);
+    expect(first?.text).toBe(step.luna.says);
     expect(fillPlaceholders(step.preview?.reveal ?? "", real).text).toBe(
       "This month the Sun climbs only to 0.63°, and sinks to −0.25°. It skims my horizon.",
     );
@@ -512,7 +549,8 @@ function visibleStrings(lesson: Lesson): { where: string; text: string }[] {
     }
     if (step.kind === "drag-body") (step.readout ?? []).forEach((line) => out.push({ where: at("readout"), text: line }));
     if (step.kind === "drag-body" || step.kind === "draw-skyline" || step.kind === "drop-pin") {
-      if (step.preview) out.push({ where: at("preview"), text: step.preview.says }, { where: at("preview reveal"), text: step.preview.reveal });
+      if (step.preview?.says) out.push({ where: at("preview"), text: step.preview.says });
+      if (step.preview) out.push({ where: at("preview reveal"), text: step.preview.reveal });
     }
     if (step.kind === "tune-slider") {
       if (step.slider.label) out.push({ where: at("slider label"), text: step.slider.label });
