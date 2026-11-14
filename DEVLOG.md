@@ -1767,6 +1767,17 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     lesson 2 site, atan, skyline, disc fraction, R, talking to Earth, antenna mask and link
     time, NO-GO). No number, answer or formula changed. Lesson 1 step 1's stage is now
     Pip under the sky ruler, so "how high" is an angle before it is asked.
+  - Review fixes (Codex, PR #108): review mode is now tested through the real lesson
+    screen (`review-screen.test.ts`, on a fake DOM that dispatches events): option buttons,
+    number keys, Space, Backspace, the primary button, Enter, Esc, the marks, the drag's
+    keys, body and time bar; XP (from the leave dialog) and saved progress unchanged, and
+    the finished lesson saves exactly 50 XP and 3 stars. An XP award injected into the
+    review button's handler fails it. The sketch's handlers in review are tested too
+    (`skyline-review.test.ts`). Lesson 2 step 2 no longer names atan's numerator; lesson 4
+    step 5 gives NO-GO to a landing, not a site; Esc leaves review from either tab; a
+    one-point sketch survives a review; the step-1 review captures were retaken after the
+    caption and ruler-label fixes (every step type checked in review at 1440 × 900 and
+    390 × 844: no label in the ground or outside the stage, no clipped caption).
 
 #### 2026-11-14 · A11b · Submission materials brought up to date
 - **Who:** Claude Code agent, for the orchestrator
