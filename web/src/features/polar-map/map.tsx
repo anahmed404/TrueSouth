@@ -1006,7 +1006,9 @@ export function detailLabelOn(readouts: boolean | undefined, detailLabel: boolea
 export function computeTierLine(latDeg: number): string {
   const tier = tierHint(latDeg);
   if (tier === "core80") return "TrueSouth computes it from NASA's 80 m terrain map.";
-  if (tier === "wide240") return "Outside the detailed map: TrueSouth computes it from NASA's 240 m terrain map.";
+  // The 240 m tier is set by latitude, and the detailed square's corners reach 75.9°S: a point
+  // can be on this tier and still inside the square. Whether it is outside is the lookup's to say.
+  if (tier === "wide240") return "TrueSouth computes it from NASA's 240 m terrain map.";
   return "Outside our terrain maps: TrueSouth computes it on a smooth Moon, with no mountains.";
 }
 

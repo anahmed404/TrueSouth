@@ -161,6 +161,12 @@ describe("outside the detailed square", () => {
     expect(computeTierLine(20)).toContain("smooth Moon");
   });
 
+  it("does not call a 240 m point outside the detailed map: the square's corners reach 75.9°S", () => {
+    // 79.2°S, 45°E is 232 km from the pole along each axis, inside the ±304 km square.
+    expect(computeTierLine(-79.2)).not.toMatch(/outside/i);
+    expect(computeTierLine(-59.9)).toMatch(/^Outside our terrain maps/);
+  });
+
   it("shows the square's label with readouts on, hides it with them off, unless a caller says", () => {
     expect(detailLabelOn(undefined, undefined)).toBe(true);
     expect(detailLabelOn(false, undefined)).toBe(false); // the Slip Planner's spots

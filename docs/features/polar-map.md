@@ -99,7 +99,7 @@ map is flat, and the globe lives in the [System view](system-view.md).
 ## Interaction
 
 - **Pan and zoom** with `d3-zoom`: drag to pan; scroll, or the + and − buttons, to zoom. The
-  sharper 8K relief image loads once zoomed in. As built: zoom runs from 70 % of the opening
+  sharper 8K relief image loads once zoomed in. As built: zoom runs from 40 % of the opening
   fit in to 25 m a pixel (the 8K image's pixel is 74 m); the 8K image loads once a 4K pixel
   would cover more than one device pixel, and is let go after 20 s zoomed back out and when
   the view is left (with the overlay images). Pan stops while a third of the map's width (or
