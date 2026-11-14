@@ -125,7 +125,8 @@ about 390 times further. Earth is 3.67 times the Moon across and the Sun 109 tim
     the true values beside them.
   - No two bodies ever touch. A sight-line from any site on the Moon, drawn along its true
     direction, points into the drawn Sun's disc, and passes within one Moon radius of the
-    drawn Earth's centre (just beside its smaller disc for sites far from the line to Earth).
+    drawn Earth's centre (at the edge of its disc, which is one Moon radius, for sites far from
+    the line to Earth).
   - Earth is lit from the series' Moon-to-Sun direction, not from the drawn Earth toward the
     drawn Sun (up to about 8.9° apart in the schematic). From Earth and from the Moon the
     Sun's direction agrees to within about 0.15°, so Earth shows its true phase.

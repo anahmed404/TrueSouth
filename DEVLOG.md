@@ -1497,10 +1497,12 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   updated their header comments, the pinned vitest tests and the spec — checked by the agent
   with the vitest suite, typecheck, build, and by eye in a Playwright browser at 1440 × 900
   and 1280 × 720 (camera read from the dev scene hook); a human has not reviewed it
-- **State:** built, not verified
+- **State:** verified (reviewed twice by Cursor Grok 4.7 with no blockers, the notes applied; on the tree merged with main 5a1239c: 472 Python tests (1 skipped), 2,916 web tests, typecheck and build all exit 0)
 - **Changed:** `web/src/features/three/scene/proportions.ts`, `camera.ts` (`across` 2.1 →
   2.3 and its comment), `proportions.test.ts`, `scene-logic.test.ts`, `orbits.test.ts` (a
-  stale input only), `docs/features/system-view.md`, this entry
+  stale input only), `web/src/features/academy/lesson/panels/panel-view.tsx` and a comment in
+  `panel-data.ts` (the Academy's folder, by the orchestrator, see the note below),
+  `docs/features/system-view.md`, this entry
 - **Notes:**
   - **Asked (the team lead, 2026-11-14):** Earth further, then "the moon a bit smaller and
     the earth a bit bigger and increase distance a little more", with Earth never taking the
@@ -1544,11 +1546,12 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - **Orbit lines, by eye at 1440 × 900:** the Moon's orbit is centred on Earth through the
     Moon, so Earth's larger disc never covers it; Earth's orbit runs through Earth's disc and
     stops at its edge, as before.
-  - **Academy's month diagram** (uses `drawnDistance` and `DRAWN_EARTH_RADIUS`; no Academy
-    file changed): Earth's outer edge now reaches about 122.6 px from the centre of the
-    260 px view (130 px half), so it still fits, but it passes the Sun's ring at 112 px.
-    Around new moon Earth's disc covers the Sun's dot there. Before (0.5 / 0.83) the edge was
-    at about 108 px. Left for the Academy track to decide.
+  - **Academy's month diagram** (uses `drawnDistance` and `DRAWN_EARTH_RADIUS`): at 22 px
+    per Moon radius Earth's outer edge would have reached about 122.6 px from the centre of
+    the 260 px view, past the Sun's ring at 112 px, so around new moon Earth's disc would
+    have covered the Sun's dot. The orchestrator set `MOON_PX` to 18 in `panel-view.tsx`:
+    the edge is now at about 100.3 px, inside the ring (the Sun's dot spans 105 to 119 px).
+    Checked by the reviewer from the geometry; not looked at in a browser.
 #### 2026-11-14 · T9 · A Labels toggle hides the name tags on the scene
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — wrote `labels.ts` (the session-only store and the

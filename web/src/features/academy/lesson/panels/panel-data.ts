@@ -27,8 +27,8 @@ export function horizonMoment(series: ChartSeries, hour: number): HorizonMoment 
  * One hour of the System view's drawing, seen from below the Moon's south pole (Pip's pole at
  * the centre, 0° longitude up, east to the right). Positions are in Moon radii.
  * - The Sun's direction is its sub-solar point's (`system.bin`); it is drawn at the frame's
- *   edge, because at the System view's schematic distance it is about ten times farther than
- *   Earth (`proportions.ts`).
+ *   edge, because at the System view's schematic distance it is six to seven times farther
+ *   than Earth (`proportions.ts`).
  * - Earth is drawn at the System view's schematic distance for its stored distance.
  */
 export type SystemFrame = {
