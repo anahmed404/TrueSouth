@@ -319,7 +319,9 @@ function SiteHeader({ column, focused, onFocusSite }: { column: ColumnView; focu
       {column.chosenBy ? (
         <span className="cmp-meta">
           <NoteTag label={CHOSEN_TAG} text={CHOSEN_TIP} dotted />
-          <span className="cmp-meta-line">{column.chosenBy}</span>
+          <span className="cmp-meta-line" title={column.chosenBy}>
+            {column.chosenBy}
+          </span>
         </span>
       ) : null}
     </th>

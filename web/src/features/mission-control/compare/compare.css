@@ -196,8 +196,14 @@
   line-height: 1.4;
 }
 
+/* The variant's line: two lines at most in a narrow column, so one site cannot make the
+   whole header row tall; the full line is in its title. */
 .cmp-meta-line {
-  display: block;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .cmp-note {
@@ -413,8 +419,29 @@
     min-height: 44px;
   }
 
-  /* On a phone the exports wrap under the title and the date, full width. */
+  /*
+    On a phone the header is two rows: the title, the date and the close button, then the
+    exports, full width. The header slot lets its items join the header's own row.
+  */
+  .floating-window-head:has(.cmp-date) {
+    flex-wrap: wrap;
+    row-gap: var(--s2);
+  }
+
+  .floating-window-slot:has(.cmp-date) {
+    display: contents;
+  }
+
+  .floating-window-head .cmp-date {
+    flex: 1;
+  }
+
+  .floating-window-head .floating-window-close {
+    order: 1;
+  }
+
   .cmp-actions {
+    order: 2;
     width: 100%;
     margin-left: 0;
   }
