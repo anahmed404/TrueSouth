@@ -105,11 +105,11 @@ TrueSouth models the surface stay only. It is a planning aid, not flight certifi
 
 ## Role of Team Members
 
-All four members test the running app and choose between design variants at checkpoints. Coding agents wrote and reviewed the code under the team's direction; large parts have had no line-by-line human review.
+All four members test the running app and choose between design variants at checkpoints. Coding agents wrote and reviewed the code under the team's direction.
 
-**Abdallah Mostafa: team lead; architecture and delivery.** Owns the design and final decisions: science computed once in Python, stored as compact series, scored in the browser; the data contracts; the build process, with review and tests before each merge; integration; the production deployment. It keeps the parts fitting.
+**Abdallah Mostafa: team lead; architecture and delivery.** Owns the architecture (science computed once in Python, scored in the browser) and final decisions; the datasets (LOLA terrain, Horizons positions, NASA's validation maps, Moon and Earth imagery) and their preparation into the compact per-site files the browser loads; the data contracts and the server API, including on-demand custom coordinates with a queue and limits; integration; the production deployment. It joins the parts.
 
-**Omar Khaled: lunar science and validation.** Owns the numbers: NASA's LOLA terrain and JPL Horizons positions, skylines to 300 km, the six-year hourly record of Sun and Earth, custom coordinates, and the validation gates against NASA's products, with differences published. Every answer rests on it.
+**Omar Khaled: lunar science and validation.** Owns the science on that data: skylines to 300 km, the six-year hourly Sun and Earth record (elevation, clearance, disc fraction), slope, each terrain tier's correctness (the code custom coordinates run), and the validation gates against NASA's products, with differences published. Every answer rests on it.
 
 **Tawfic Kobtan: Mission Control and the scoring engine.** Owns the planner's answer: mission profiles tagged sourced or assumed; scoring that gives GO, CAUTION or NO-GO with the deciding rule, identical in Python and the browser; the timeline, Slip Planner, "Next GO" and Compare. A planner acts on it.
 
