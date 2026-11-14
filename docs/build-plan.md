@@ -210,7 +210,7 @@ M4   S14                            MC11                                  A10, A
 | Whether gate G2 can be met at 0.02° | S4; fallback in [`decisions/0004`](decisions/0004-one-global-ephemeris.md) |
 | Preset values that give the Academy story both GO and NO-GO dates | S14 |
 | Status threshold (score 70) | S14 |
-| Quickmap and Moon Trek link formats | MC9 |
+| Quickmap and Moon Trek link formats | MC9: confirmed, see [`features/share-export.md`](features/share-export.md) |
 | The still-picture threshold (a median frame over 55 ms in the first flight is a guess) | T6, measured on built-in graphics |
 | Where the "why is it dark" card sits outside Lander's eye (a proposal) | MC5 |
 | The names and encodings of the scene image files | S16, before it is built |

@@ -49,6 +49,29 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-14 · S2b · Stable score boundaries and exact window means
+- **Who:** Codex agent, for the orchestrator
+- **AI use:** Codex, gpt-6.1-sol — documented the arithmetic first, implemented
+  matching Python and TypeScript scoring, added seeded translation and boundary
+  tests, regenerated G10, and ran sequential catalog audits and checks.
+- **State:** verified (432 Python tests, 2,344 web tests and the typecheck pass on the merge with main; reviewed by Gemini (approve): 2,240 random and boundary cases gave identical results in Python and TypeScript, down to the bits; 50 offsets of the same window agree; a 5-site audit found no status change; the orchestrator's audit of the whole catalog by landing hour found no status change and 4,598 displayed whole scores corrected upward by one)
+- **Changed:** scoring functions and their tests, the fixture generator and shared
+  cases, a scoring-only fixture series, `docs/science.md` sections 9–11, decision
+  0015 and `docs/reviews/s2b-score-boundary.md`. No screens or contracts changed.
+- **Notes:**
+  - Exact integer prefix counts replace floating prefix subtraction; a stated
+    12-decimal rule handles comparisons and the returned score in both copies.
+  - Audited 25 sites × 5 presets × 2,191 days, once before and once after, each
+    single-process. Zero status changes and zero score changes above 1e-9 for
+    every preset. The largest score difference is 1.1802114841e-11 points.
+  - Worked examples regenerate byte-identically. No derived file changed. The
+    complete per-profile counts and regression evidence are in the report.
+  - Checks: pytest 432 passed, 1 skipped; web 1,926 passed; frozen install,
+    typecheck and build passed, each exit 0. Fixed a new fixture-label collision
+    found by the first Python run, then reran Python and the affected G10 test.
+    Checks ran sequentially, with numerical threads and Vitest workers limited.
+- **Seen at merge (orchestrator):** the fix does change what a user sees in a few places, and for the better. Scores are shown rounded down, and the old sums left some exact whole scores one float step short (99.99999999999999 shown as 99). Over the real catalog (25 sites, 5 presets, every landing hour: 6,486,425 results) 4,598 displayed whole scores go up by one (IM-2 Athena 2,092; Artemis crewed 1,699; Blue Ghost 1 807; none for VIPER or Chandrayaan-3); no status changes. A Slip Planner test that named three such days was updated to expect the exact values.
+
 #### 2026-11-14 · S10b integration · Merge main's placement builder
 - **Who:** Codex implementation agent
 - **AI use:** Codex resolved build-sites and DEVLOG conflicts, preserved main's placement flow, adapted the custom-site wrapper to main's helpers, and added integration tests; human and orchestrator review pending.
@@ -607,6 +630,202 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-13 · MC7 · The Slip Planner, a camera view on the Moon
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (design already
+  picked; critique pass run) — moved the Slip Planner from the windows to the camera views;
+  wrote its camera pose, orbit and zoom limits and fixed drawing light, the spots with the
+  close-sites rules, the off-view notes, the landing-date panel (Canvas strips, "Any site",
+  "next GO", slider, keys, hover readouts, zoom, fold), the before-and-after state, the 3D-off
+  ground, the average-sunlight shading and vitest tests — checked by the agent with
+  typecheck, the vitest suite (including the spot = strip = hover = sites rail agreement test
+  on every fixture site), the build, and by eye in headless Chrome on the machine's GPU on
+  the real data at 1440 × 900, 1024 × 768 and 390 × 844; a human has not reviewed it yet
+- **State:** verified (2,317 web tests, typecheck and build (the sweep worker emitted once) pass on the merge with main (the orchestrator's run), and 425 Python tests on the same tree (the builder's run); reviewed by Cursor, which compared the sweep with the ordinary evaluation for every fixture site, two profiles and more than 60 landing days, and checked dates in two other time zones; seven findings fixed with tests (Any site while sites compute; a landing not at 00:00 UTC; spots equal the sites rail during a profile change; a failed sweep; the shading label); it absorbed the scene polish, the flat Polar map (its 3D-off view now uses the real map) and the ground's look; seen by the builder on hardware WebGL; not yet tried by the team lead)
+- **Changed:** `web/src/features/mission-control/slip-planner/` (new), `web/src/lib/scoring/`
+  (`slip-days.ts` new; `next-go.ts`, `next-go.test.ts` and `index.ts` byte-for-byte as in
+  #83), `web/src/features/three/scene/` (`slip.ts`
+  and its test new; small additions to `rig.ts`, `world.ts`, `materials.ts`,
+  `scene-root.tsx`), `web/src/app/scene.ts` (optional `onProjector`, `slipShading`),
+  `web/src/app/mission/` (`views.ts`, `scene-slot.tsx`, `scene-status.ts`, `view-bar.tsx`
+  comment, three tests), `web/src/app/mission-screen.tsx`, `web/src/components/StatusLamp.tsx`
+  (exports `GLYPH`), `web/src/app/mission/landing-control.ts` and its two tests (the
+  no-GO wording), `web/src/features/three/scene/world.ts` (a comment for the ground look),
+  `web/src/app/mission/scene-slot.tsx` and its new test, `web/src/app/scene.ts`
+  (`FlatLayerProps`), `web/src/features/polar-map/map.tsx` (the `readouts` prop),
+  `web/src/lib/explain.ts` (the Slip Planner's controls hint),
+  `web/vite.config.ts` (the worker build input is gone), `docs/features/site-detail.md`,
+  `docs/features/slip-planner.md`, `docs/design/c2/built-slip-*.png`, this entry
+- **Notes:**
+  - Every status, score and veto is the sweep's (`useSweeps`), packed per 00:00 UTC day by
+    `lib/scoring/slip-days.ts` from `evaluationAt`. No new scoring code. "next GO" is #83's
+    shared `nextGoDay` (`lib/scoring/next-go.ts`, copied unchanged so that merge is a
+    no-op), read over the packed day table by `slip-planner/next-go-words.ts`.
+  - The landing date is read and written only through the scenario store. The panel header
+    has an empty `data-slot="landing-date-control"` for `LandingDateControl`.
+  - 3D off: the scene still reports no flat views; the shell's still picture is skipped for
+    this view only and the Slip Planner draws a dimmed polar relief under the same spots,
+    with the spec's note. T7's flat Polar map should take that place: it needs to accept
+    sites to place (or expose the same `SceneProjector` as the 3D scene), hide crater
+    names in this view, and draw the average-sunlight layer when asked.
+  - A view opened from a link refits when its first (locked) flight lands, since the sites
+    and the free space can arrive during it.
+  - The build emits the sweep worker once (`dist/assets/sweep.worker-*.js`).
+  - Checks on 2026-11-14 after merging `origin/main` (#78, #79, #82): `pnpm --dir web test`
+    (1,811 passed), `typecheck`, `build` and `uv run pytest -q` (322 passed), each exit 0.
+    Eight sites with VIPER's 100-day profile recompute (sweep and day table, in turn, on
+    the full 2,191-day grid) in 113 to 188 ms on a Ryzen 7 3700X. By eye in headless Chrome:
+    no site, every date NO-GO, a 06:00 landing (the "00:00 UTC" note), the 1.4 s flight
+    (0.12 s with reduced motion, nothing pulsing), every control named, no horizontal scroll,
+    and 44 px touch targets on the phone.
+  - On the phone the strip rows are 12 px tall: the spec makes the whole strip area one
+    touch target, so they leave the tab order and the slider knob is the keyboard path.
+  - Review round 1 (Cursor, request changes; 2026-11-14), all fixed on this branch:
+    - One source: every status, rule and score a user reads for a site and a landing hour
+      comes from the rail's `cachedEvaluation` (`slip-planner/landing-results.ts`). A spot
+      therefore equals the rail even while a new profile's sweep runs; the strips never show
+      the previous profile's sweep; the packed Float32 score is never shown (IM-2 days where
+      it floors one higher: sphere 30, edge 1476, wide 1584; every day of one site tested).
+    - "Any site" is GO as soon as a known site is GO; CAUTION, NO-GO and "no GO before…"
+      wait for every site; the hover, `aria-valuetext` and "next GO" follow the same rule.
+    - A landing not at 00:00 UTC: the header, folded row, slider words and row lamps read
+      the real landing; strips, hovers and "next GO" are 00:00 UTC and say so; the note
+      shows open (over the row names), folded and on the phone.
+    - A failed sweep is its own state, with Retry; "Any site" works from the others.
+    - The shading keeps a (short) label when the free space has no room for the controls.
+    - `panel-mount.test.ts` mounts the panel and the spots with the real hooks: no new sweep
+      and no redraw while the date moves in range; spot = rail before a new sweep answers;
+      the 06:00 note in three layouts; a failed sweep and Retry.
+  - After #83: the header mounts `LandingDateControl` (the panel's own mission-window line
+    is gone). The button's no-GO line now reads "No later GO before 2032"
+    (`app/mission/landing-control.ts`, its two tests, `site-detail.md`), so it never
+    contradicts "GO on this date" beside it.
+  - Checked by eye with the real data in headless Chrome (one browser, closed between runs):
+    1440, 1024 with eight sites including two best-lit variants (no label or spot overlap;
+    the variants keep their names on hover), the phone and the folded row at 06:00; the
+    computing state after a profile change was read from the page (the progress bar,
+    "computing…", "Still computing 4 of 4 sites.", spots equal to the rail), not
+    photographed: a slowed browser could not take the picture in time.
+  - After #88: the Slip Planner is an entry of the rig's per-view table
+    (`ORBIT_STYLE.slip = "centre"`): orbit about the sites' centre 28° to 88° up; zoom along
+    the line to that centre, 60 to 2,600 km, keeping the aim (not toward the pointer); no
+    pan, so the sites never leave the view; a double-click frames them again; its About text
+    has its own controls hint. Checked with hardware WebGL (ANGLE, RTX 2060): the flight in
+    lands on the fixed light, drag and zoom work, and leaving to each of the four other
+    views brings back the real Sun (uSun equals the Sun's direction) and coming back the
+    fixed light; the System view still turns freely over the pole; stars stay above the
+    limb, dimmed, never over the ground.
+  - After #89: one flat-layer mechanism. The Slip Planner is a flat layer of the scene slot
+    (`SLIP_PLANNER_LAYER`, beside `POLAR_MAP_LAYER`); the slot takes one layer or a list and
+    gives each `canTryAgain` and `onTryAgain` (two additive `FlatLayerProps` fields); the
+    slot's render-prop child and the `scene-status.ts` exception are gone. With 3D off the
+    view mounts the Polar map's `MapCore` (no pins of its own, no crater names, its
+    "sunlight" overlay following the shading switch, its projector placing the spots); the
+    dimmed-relief stand-in and `flat.ts` are gone. One additive prop in
+    `features/polar-map/map.tsx`: `readouts` (false: no point readout on click or Enter, no
+    nudge on N, no hover readout). Our foot plates sit above the map's control plate, whose
+    legend carries the "not for your date" label. Variant labels use the map's words
+    ("Best-lit map pixel, 149 m from …", from `offset_m`). Checked by eye: `view=map` opens
+    the flat map; `view=slip` with 3D off shows the map, the placed spots, the panel and the
+    note; Polar map and Slip Planner in both orders, in 3D and with 3D off, leave exactly one
+    layer mounted; a click on the map in the Slip Planner opens no readout.
+  - After #91 (the ground look): the ground's light (`uLight`) is the Moon's own `uSun`
+    uniform, which this view blends to its fixed light, so the site's ground is lit by the
+    fixed vector at `slip = 1` and gets the real Sun back with the Moon on leaving (tested on
+    the World's uniforms). Its fade is now multiplied by `1 − slip` instead of being cut when
+    the view changes, so it fades out as the fixed light blends in and none is drawn at
+    `slip = 1` (no drawn shadow there). Checked by eye with hardware WebGL, Local terrain to
+    Slip Planner and back. #91's decoration plate shows in Local terrain only, not here.
+  - Fixed while checking: the #89 change cleared the foot plates' `top` in 3D, which left the
+    shading switch above the window and hid every spot label; a mount test now guards it.
+
+#### 2026-11-14 · MC-sites · Custom coordinates, best-lit variant labels and the nearby range
+- **Who:** Claude Code agent (Opus 5.5), for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the custom-site client, job store,
+  the coordinates form, the rail's computing rows, the focused-site panel's notes, their
+  tests and these doc changes — checked with vitest (client against every documented
+  status and error with a mocked `fetch`; store; form; row states; labels with made-up
+  and real 25-site data), typecheck, and by eye in the browser at 1440 × 900, 1024 × 768
+  and 390 × 844, against the PR #80 server running on the real prepared maps
+- **State:** verified (425 Python tests, 2,241 web tests, typecheck and build pass on the merge with main; reviewed by Codex (all five variant labels and ranges match the data; no custom file is requested before a job is ready; three mutations caught); six findings fixed with tests (a compute request is sent only on a button press, with the counts recorded; an answer about another place is refused; ready sites and names are validated; removal frees polling and data; polling backs off and announces once per change; invalid ids in links are dropped); run end to end by the builder against the merged server on the real terrain, including Compute this site on the Polar map; not yet tried by the team lead)
+- **Changed:** `web/src/data/custom-sites.ts`, `web/src/state/custom-sites.ts`,
+  `web/src/data/hooks.ts` (`useSites` merges ready custom sites; `useCatalogSites`),
+  `web/src/state/data.ts` (a custom site's files wait for its job), `web/src/app/mission/`
+  (`sites-rail.tsx`, `focused-site-panel.tsx`, `site-status.ts`, new `custom-site-*.ts(x)`,
+  `site-labels.ts`, `sites.css`), `web/src/components/Popover.tsx` (`placement="auto"`),
+  docs, screenshots `docs/design/c2/built-sites-*.png`
+- **Notes:**
+  - Real run: −88.5, 45 queued about 25 s while the server loaded its maps, then ran about
+    50 s; −87.75, 200.5 took about 40 s; 2.5, 334.75 was a smooth-Moon site in under 5 s.
+    Status, timeline, countdowns, the "why is it dark" card, the scene's pin, Local terrain
+    (own `terrain.bin`, no apron) and Lander's eye all read them.
+  - The Polar map's "Compute this site": the shell passes `useRequestCustomSite()` from
+    `custom-site-actions.ts` as `onRequestSite`.
+  - Shared wording for Compare: `web/src/app/mission/site-labels.ts` (`CHOSEN_TAG`,
+    `variantLine`, `upperReadingLine`, `nearbyRangeText`, `ARTEMIS_NOTE`).
+  - Not mine, seen while testing: Local terrain says the apron "could not be loaded" for a
+    custom site, which never has one; the timeline shows "Loading the hourly data…" while a
+    focused custom site is not computed yet.
+  - Review fixes (Codex review of #92): a POST only on a button press (polling, links,
+    remounts, focus and reconnecting are GET; counted in tests); answers must name the id
+    the server's rules make for the coordinates sent (`web/src/data/custom-site-id.ts`
+    ports `site_id` and its Python rounding); ready sites validated field by field; names
+    cleaned of control and bidirectional characters, 60 characters, shown isolated;
+    remove, failure and Stop waiting release polling, waiters, files and scores; request
+    timeouts, back-off, no polling while hidden, `Retry-After` kept to 1 s to 1 h; one
+    shared clock and one announcement per change of state; non-canonical ids in links are
+    left out with one notice.
+  - The Polar map's "Compute this site" is wired (`useRequestCustomSite()` in
+    `mission-screen.tsx`); the map gets no callback until `/api/health` says custom sites
+    work, checked once when the Polar map view first opens. A ready custom pin carries
+    "Your site" (one line in `features/polar-map/draw.ts`).
+  - Not doable on the web side without the scene: Local terrain's apron message for a
+    custom site (`useApron` has no "none" state the scene reads).
+
+#### 2026-11-14 · MC9 · The Compare window, share, CSV and JSON export, confirmed NASA links
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (building the
+  approved C2 window, no redesign) — wrote the Compare model and table, the CSV and scenario
+  JSON exports, the Share button with its hand-copy fallback, the NASA link builders, 47
+  vitest tests and the spec edits; a background research agent read the QuickMap and Moon
+  Trek bundles for their link parameters — checked by the agent with typecheck, the vitest
+  suite, the build and `uv run pytest`; by opening both NASA links for Apollo 11 and
+  Connecting Ridge and reading each tool's own coordinate readout; and by eye at 1440 × 900,
+  1024 × 768 and 390 × 844 with four, eight, one and best-lit sites, keyboard only, real
+  downloads read back with Python's csv module, and a copied link opened in a fresh browser
+  context. Reviewed by Gemini (request changes, two defects; substance confirmed on real
+  data); the agent then fixed all eight review items: the Share fallback moved into the
+  shell's popover, CSV formula injection, the variant's "not ranked" sentence, the shared
+  site wording and rounding, rendered-panel tests, the summary and Sun-at-landing edges, the
+  CSV's precision note, and custom sites. A human has not reviewed it yet
+- **State:** verified (2,091 web tests, typecheck and build pass on the merge with main (the orchestrator's run), and 425 Python tests (the builder's run); reviewed by Gemini, which checked every cell against the focused-site panel and a direct evaluation on real data, parsed both exports and checked the NASA links' projection; eight findings fixed with tests (the Share fallback is no longer covered and Escape closes only it; CSV text cells that begin like a formula are neutralised; the best-lit point's missing mark is explained; ranges round outward); not yet tried by the team lead)
+- **Changed:** `web/src/features/mission-control/compare/` (model, table, exports, tests),
+  `web/src/features/mission-control/share/` (new: Share button, link, NASA links, tests),
+  `web/src/lib/export/` (new: CSV writer and reader, with the formula guard),
+  `web/src/components/Popover.tsx` (an optional handle to open it from code),
+  `web/src/app/mission/top-bar.tsx`
+  (Share moved out to its own component; merged with #83, so the app bar holds the brand,
+  the mode switch, the profile and Share), `web/src/lib/explain.ts` (Compare's text),
+  `docs/features/compare.md`, `docs/features/share-export.md`,
+  `docs/features/mission-control.md`, `docs/build-plan.md`,
+  `docs/design/c2/built-compare-*.png`, this entry
+- **Notes:**
+  - Each column is built from the focused-site panel's own functions (`useSiteStatus`,
+    `describeEvaluation`, `describeMetrics`, `scoreText`); a test checks every cell
+    against the panel for five presets and three dates on the fixture.
+  - Spec changes: up to eight sites (the rail's limit), not four; the summary and the
+    export buttons sit in the window's body; the Timeline, Skyline and Nearby dates rows
+    are deferred. The Timeline CSV, the Slip Planner CSV and the PNG export are not built.
+  - Share copies a link built from the store, because the address bar can lag a scrub by
+    up to 250 ms.
+  - NASA links: QuickMap moved to `quickmap.lroc.im-ldi.com`; both tools open in their
+    south-pole projection south of 80° S. The formats are in `share-export.md`. The links
+    are in the Compare table only; adding them to the focused-site panel is a follow-up.
+  - A scrub does not re-render the table (a render-count test).
+  - The variant and nearby-range words are copied into `compare/site-wording.ts` from the
+    sites package's `site-labels.ts` (#92); import them from there once #92 is on main.
+  - Every CSV string cell that would run as a formula gets a leading `'`; numbers never do.
+
 #### 2026-11-14 · MC shell feedback · No view sentence; the landing date joins the timeline; "Next GO"
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (a rearrangement
@@ -933,6 +1152,83 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - Measured: 4 vitest tests pass; production bundle 259 kB (82 kB gzipped).
 
 ## 3D and Map
+
+#### 2026-11-14 · T3 · The ground's look in Local terrain and Lander's eye
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (question
+  round skipped, as briefed) — wrote the ground's material (`ground-material.ts`), its pure
+  parts and quality levels (`ground-relief.ts`, `ground-quality.ts`) with vitest tests, the
+  height grids and the local-position attribute in `ground.ts`, the decoration plate, and
+  the docs; captured the before and after screenshots and the frame-time measurements in a
+  headless Chrome with hardware WebGL (RTX 2060, ANGLE D3D11) and with SwiftShader; no
+  AI-generated imagery; a human has not reviewed it yet
+- **State:** verified (2,142 web tests, 425 Python tests, typecheck and build pass on the merge with main; reviewed by Codex (every shader result ends in pixels, with no path to a label or a decision; the fragment-to-map projection matched at three points; two mutations caught); findings fixed: the decoration plate can no longer vanish while the drawing stays (the ground falls back to plain when the plate cannot fit), the plate's link to the series is tested, the near-ground craters follow a realistic size mix, the ground follows the scene's quality stages; seen by the builder on hardware WebGL; not yet seen by the team lead)
+  is not measured, and orbiting by hand was not possible in the headless browser: the views
+  were checked at the camera's arrival poses and while stepping the timeline hour by hour)
+- **Changed:** `web/src/features/three/scene/ground-material.ts`, `ground-relief.ts`,
+  `ground-quality.ts` and their tests (new); `ground.ts` (an `aL` attribute, `patchUpGrid`,
+  `apronUpGrid`) and its test; `world.ts` (the ground uses `GroundLook`: the constructor,
+  `setGround`, `clearGround`, `setInputs` and one line in `layout`; `world.groundLook` is
+  public for the quality stages); `plates.ts` and its test (the decoration plate);
+  `overlay.tsx` (plates may sit at the foot); `scene.css` (the two-line plate, and stacked
+  plates centred once); `scene-root.tsx` (passes the series' Sun answer to the plates: one
+  line and a dependency); `docs/features/local-terrain.md` ("What is drawn", the plate,
+  Performance); `docs/features/panorama.md` (one sentence);
+  `docs/decisions/0015-drawn-ground-shadows.md`; `docs/design/c2/built-ground-*.png`; this
+  entry. `materials.ts` is untouched: its old `groundMaterial` is no longer used and can be
+  deleted by whoever merges second.
+- **Notes:**
+  - Why it looked low quality (before shots): the ground was lit per vertex normal, so the
+    300 km terrain had one light value every 1.9 km and the patch every 78 m, with no cast
+    shadows at all; a milky fill (`alb * 0.19`) and the soft roll-off washed out contrast;
+    the near ground at 2 m was the smooth 80 m ramp; the albedo was the Moon's 4K colour map,
+    about 2.7 km a pixel.
+  - Now: relief at 160 m (core) or 320 m (cap) in every pixel out to the horizon, cast
+    shadows with a Sun-disc edge, illustrative regolith close up, lunar photometry. Each
+    effect is full, reduced or off; costs are in local-terrain.md, "Performance" (all full
+    about 1.8 ms a frame on the RTX 2060 at 1440 × 900; zero frames at rest).
+  - Drawn shadows can differ from the series at the lander (Connecting Ridge, 2028-03-06
+    18:00 UTC: series dark, drawing shows a sunlit patch beside Pip). The plate gives the
+    series' answer and says the series is right. The browser never judges the drawing.
+  - First build hung Chrome for minutes: ANGLE's D3D compiler unrolled the 64-step march and
+    the crater loops. The loop counts are uniforms now; compiling takes well under a second.
+  - Found and fixed: `shell.css` makes every `.scene-plate` absolute with
+    `translateX(-50%)`, so plates in the top stack were centred twice (shifted left by half
+    their width) and stacked plates would overlap.
+  - Seen, not changed: at a sphere-tier site (Apollo 11) Lander's eye looks up at Earth or
+    the Sun, which are 20° to 60° up there, so almost no ground is in view; the frame was
+    nearly black in the headless browser.
+  - What a later pipeline package should ship so the drawing can match the series more
+    often and show more relief: (1) a wider, finer apron, 1,201 × 1,201 points over 300 km
+    (250 m), 2.9 MB as uint16, or 601 × 601 (500 m), 0.7 MB; (2) a 60 km mid patch at 80 m,
+    751 × 751, 1.1 MB as uint16 heights, between the patch and the apron; (3) slope maps at the map's own 80 m
+    for the ±76 km core, 1,900 × 1,900 lossless WebP, a few MB; (4) close-up DEMs (5 m,
+    2 km) for the Lander's eye near ground, already in the contracts as `closeup.bin`; (5) an
+    albedo map of the cap in the same projection (the LROC colour map is 2.7 km a pixel at
+    the pole).
+  - Review fixes (Codex review of #91), 2026-11-14:
+    - The disclosure is on screen wherever the drawing is: the decoration plate is exempt
+      from the overlay's hiding, shortens to "Shadows and ground texture are illustrative."
+      in a tight space or beside an open window, and where not even that fits the ground is
+      drawn without shadows and texture (`decorationDisclosure`, `visiblePlates`,
+      `GroundLook.setDisclosed`). Checked by eye: Compare open (no room: plain ground, no
+      plate; closed again: full), 1024 × 640, a 390 × 844 phone, Lander's eye with the chart
+      folded and open (the plate sits above the view's controls, clear of the chart's row).
+    - The plate's series answer is `seriesSunAnswer`, tested on fixture_ridge at a lit, a
+      dark and a partly hidden hour; a constant "lit" fails two tests, and a test pins the
+      one line in `scene-root.tsx` that passes it.
+    - Texture: craters like real small lunar ones (mostly old and shallow, a few fresh),
+      clustered with no grid, rim shadows at half strength, fewer rocks.
+    - Weak GPU: the ground follows #88's quality governor (`setMotion(moving, stage)`), with
+      coarser meshes by draw range; `prepareGround` uploads the ground before the first
+      flight. Numbers in local-terrain.md, "Performance".
+    - Custom sites (no apron listed) draw the patch alone with no error plate.
+    - One shared draw hook (no per-draw allocation); the loop bounds' comment says why they
+      are uniforms. A WebGL 1-only browser: the scene's own probe (`scene-root.tsx`,
+      `probeWebgl`) asks for WebGL 2 and reports "no-webgl"; the shell's probe
+      (`app/mission/scene-slot.tsx`) accepts WebGL 1 and would mount the scene, which then
+      reports "no-webgl" itself. Not changed here.
+    - Decision renamed 0015 (#88 added 0014).
 
 #### 2026-11-14 · T7 · The flat Polar map
 - **Who:** Claude Code agent, for the orchestrator

@@ -6,6 +6,7 @@ import type { Manifest, MissionProfile } from "../contracts/generated.ts";
 import { windowLength } from "../lib/scoring/scoring.ts";
 import { hourIndexToUtc, utcToHourIndex } from "../lib/time/index.ts";
 import {
+  INVALID_PLACE_NOTICE,
   CHANGED_BY_YOU,
   DEFAULT_LANDING_UTC,
   MAX_WEIGHT,
@@ -361,6 +362,21 @@ describe("shareable scenario link", () => {
     expect(read.currentUtc).toBe("2028-03-15T12:00:00Z");
     expect(read.view).toBe("panorama");
     expect(read.notices).toEqual(['Ignored unknown site "mons_mouton".']);
+  });
+
+  it("leaves out custom ids that are not a valid place, with one notice, and keeps valid ones", () => {
+    const read = readScenarioQuery(
+      "?sites=fixture_ridge,c_999.0000_999.0000,c_-88.5000_45.0000,c_-0.0000_10.0000,c_-90.0000_10.0000,c_10.0000_360.0000,c_-89.2000_130.5000",
+      catalog,
+    );
+    expect(read.siteIds).toEqual(["fixture_ridge", "c_-88.5000_45.0000", "c_-89.2000_130.5000"]);
+    expect(read.notices).toEqual([INVALID_PLACE_NOTICE]);
+    // The link written back keeps the valid ids, and an old valid link reads the same.
+    const store = createScenarioStore(catalog, "?sites=fixture_ridge,c_999.0000_999.0000,c_-88.5000_45.0000");
+    expect(store.getState().siteIds).toEqual(["fixture_ridge", "c_-88.5000_45.0000"]);
+    const again = readScenarioQuery(`?${writeScenarioQuery(store.getState())}`, catalog);
+    expect(again.siteIds).toEqual(["fixture_ridge", "c_-88.5000_45.0000"]);
+    expect(again.notices).toEqual([]);
   });
 
   it("ignores each bad parameter and loads the rest", () => {

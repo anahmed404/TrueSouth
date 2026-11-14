@@ -3,15 +3,14 @@ import type { ExplainTerm } from "../../lib/explain";
 import { DEFAULT_VIEW, type ViewId } from "../../state/scenario";
 import type { PanelProps } from "../panel";
 import Compare from "../../features/mission-control/compare";
-import SlipPlanner from "../../features/mission-control/slip-planner";
 
 export type { ViewId };
 
 /** A place in the scene. Picking one moves the camera (CONTEXT.md, "Camera view"). */
-export type CameraViewId = Extract<ViewId, "system" | "map" | "terrain" | "panorama">;
+export type CameraViewId = Extract<ViewId, "system" | "map" | "slip" | "terrain" | "panorama">;
 
 /** A table that opens over the scene without moving the camera (CONTEXT.md, "Floating window"). */
-export type WindowViewId = Extract<ViewId, "slip" | "compare">;
+export type WindowViewId = Extract<ViewId, "compare">;
 
 type ViewBase = {
   /** The glossary name, exactly as in CONTEXT.md. */
@@ -25,27 +24,30 @@ export type CameraViewDefinition = ViewBase & { id: CameraViewId; kind: "camera"
 export type WindowViewDefinition = ViewBase & {
   id: WindowViewId;
   kind: "window";
-  /** What the window shows. The Slip Planner and Compare placeholders until MC7 and MC9. */
+  /** What the window shows. The Compare placeholder until MC9. */
   Panel: ComponentType<PanelProps>;
 };
 
 export type ViewDefinition = CameraViewDefinition | WindowViewDefinition;
 
-/** The four camera views, in the view bar's order. */
+/**
+ * The five camera views, in the view bar's order. The Slip Planner is a place, the south pole
+ * with your sites on it, between the Polar map and Local terrain (docs/features/slip-planner.md).
+ */
 export const CAMERA_VIEWS: readonly CameraViewDefinition[] = [
   { id: "system", kind: "camera", name: "System view", term: "system_view" },
   { id: "map", kind: "camera", name: "Polar map", term: "polar_map" },
+  { id: "slip", kind: "camera", name: "Slip Planner", term: "slip_planner" },
   { id: "terrain", kind: "camera", name: "Local terrain", term: "local_terrain" },
   { id: "panorama", kind: "camera", name: "Lander's eye", term: "landers_eye" },
 ];
 
-/** The two floating windows, after the view bar's divider. */
+/** The one floating window, after the view bar's divider. */
 export const WINDOW_VIEWS: readonly WindowViewDefinition[] = [
-  { id: "slip", kind: "window", name: "Slip Planner", term: "slip_planner", Panel: SlipPlanner },
   { id: "compare", kind: "window", name: "Compare", term: "compare", Panel: Compare },
 ];
 
-/** All six, in the view bar's order: the camera views, then the windows. */
+/** All six, in the view bar's order: the camera views, then the window. */
 export const VIEWS: readonly ViewDefinition[] = [...CAMERA_VIEWS, ...WINDOW_VIEWS];
 
 /** The camera view a new visitor lands on, and the one under a window opened from a link. */
@@ -73,11 +75,12 @@ export function windowView(id: WindowViewId): WindowViewDefinition {
  * The scenario keeps one `view`, the link's `view` parameter. The rule that maps the two:
  *
  * - With no window open, `view` is the camera view.
- * - With a window open, `view` is the window (`slip` or `compare`). The camera view under it
- *   is not in the link: it stays what it was in this page, and a link or a reload opens the
- *   window over the System view.
+ * - With a window open, `view` is the window (`compare`). The camera view under it is not in
+ *   the link: it stays what it was in this page, and a link or a reload opens the window over
+ *   the System view.
  *
- * So old links keep working and the link needs no new parameter
+ * So old links keep working and the link needs no new parameter: `view=slip`, which once
+ * opened the Slip Planner's window, now opens its camera view
  * (docs/features/mission-control.md, "The view bar").
  */
 export type ViewState = { camera: CameraViewId; window: WindowViewId | null };
@@ -101,7 +104,7 @@ export function linkView(state: ViewState): ViewId {
  * The scenario's next `view` when the user picks an entry in the view bar.
  *
  * - A camera view moves the camera there and closes any open window.
- * - A window opens over the current camera view, and replaces the other window.
+ * - A window opens over the current camera view.
  * - The window that is already open closes again.
  */
 export function pickView(state: ViewState, picked: ViewId): ViewId {

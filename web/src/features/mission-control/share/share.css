@@ -1,0 +1,47 @@
+/*
+  The Share control's fallback, shown only when the browser blocks the clipboard
+  (docs/features/share-export.md). It is a shell popover (components/Popover), so it sits
+  in the top layer with the popover's surface, border and shadow. Tokens only.
+*/
+
+.share-fallback-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--s3);
+}
+
+.share-fallback-label {
+  color: var(--ink-2);
+  font-size: var(--t-sm);
+}
+
+.share-fallback-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+}
+
+.share-fallback-field {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--raised);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--t-sm);
+}
+
+.share-fallback-field:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+@media (max-width: 760px) {
+  .share-fallback-field {
+    height: 44px;
+  }
+}

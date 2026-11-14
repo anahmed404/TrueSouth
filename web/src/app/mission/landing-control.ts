@@ -55,7 +55,7 @@ export function gridEndYear(grid: TimeGrid): number {
 }
 
 export function noGoText(grid: TimeGrid): string {
-  return `No GO date before ${gridEndYear(grid)}`;
+  return `No later GO before ${gridEndYear(grid)}`;
 }
 
 export function movedText(toUtc: string, siteName: string): string {

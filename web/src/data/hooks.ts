@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useStore } from "zustand";
 import type {
   ArtemisRegions,
@@ -17,6 +17,7 @@ import type { DecodedApron } from "./decode/apron.ts";
 import type { DecodedSeries, DecodedSkyline, DecodedSystem, DecodedTerrain } from "./decode/layouts.ts";
 import { loadApron, loadSceneMeta } from "./load.ts";
 import { isCustomSiteId } from "./paths.ts";
+import { customSitesStore } from "../state/custom-sites.ts";
 import {
   closeupKey,
   dataStore,
@@ -65,7 +66,30 @@ export function useManifest(): HookResult<Manifest> {
   return useResource("manifest");
 }
 
+/**
+ * Every site that can be looked up by id: the catalog from `sites.json`, then the custom
+ * sites whose jobs are ready (their entries come from the server's status answer). Use this
+ * wherever a site is found by id. To list what can be added from the catalog, use
+ * `useCatalogSites`.
+ */
 export function useSites(): HookResult<Sites> {
+  const catalog = useCatalogSites();
+  const custom = useStore(customSitesStore, (state) => state.readySites);
+  // The merged list keeps its identity while neither part changes.
+  const merged = useMemo(() => (catalog.status === "ready" ? mergeSites(catalog.data, custom) : null), [catalog.status, catalog.data, custom]);
+  return merged ? { status: "ready", data: merged, error: null } : catalog;
+}
+
+/** The catalog, then the ready custom sites it does not list. Null when there are none to add. */
+export function mergeSites(catalog: Sites, custom: readonly Site[]): Sites | null {
+  if (custom.length === 0) return null;
+  const listed = new Set(catalog.map((site) => site.id));
+  const extra = custom.filter((site) => !listed.has(site.id));
+  return extra.length === 0 ? null : [...catalog, ...extra];
+}
+
+/** `sites.json` only: the catalog. */
+export function useCatalogSites(): HookResult<Sites> {
   return useResource("sites");
 }
 
