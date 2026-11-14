@@ -42,12 +42,19 @@ each integration checkpoint.
 | Milestone | State |
 | :--- | :--- |
 | M0 Foundations | complete, 2026-11-13: S0 to S2, MC0 to MC2, T0, A0 and A1 verified; 151 Python and 1,058 web tests pass; the app loads all five fixture sites |
-| M1 Thin slice | done in substance: the panels and the timeline run on real data for all 20 catalog sites (S3 to S9, MC3 to MC5 verified); validation against NASA is published (S12) |
-| M2 Mission Control complete on catalog data | in progress: the space-first shell (MC4c) is in review and the 3D scene (T1, T2) is being built; the Polar map, Local terrain, Lander's eye, Slip Planner and Compare follow it |
-| M3 Everything | not started |
-| M4 Tuned and submitted | not started |
+| M1 Thin slice | complete: the panels and the timeline run on real data for all 20 catalog sites and the 5 best-lit variants (S3 to S9, MC3 to MC5 verified); validation against NASA is published (S12) |
+| M2 Mission Control complete on catalog data | complete, 2026-11-14: the space-first shell, the 3D scene, the Polar map, Local terrain, Lander's eye, the Slip Planner and Compare are verified and merged |
+| M3 Everything | done within the deadline's scope, 2026-11-14: custom coordinates (S10, S10b, S10c), Docker (S13) and the deploy files (S13b, not yet run on a server), the validation page (A8), the math review (A9), Academy lessons 1 to 4 (A5, A3). Out of scope: the sensitivity grid (S11), "compute for my dates" (T8), lessons 5 to 8 (A6) |
+| M4 Tuned and submitted | in progress, 2026-11-14: the submission texts are current (A11b); fixes from the team lead's testing continue; the deploy, the public repository or zip, and the video are open. The live record is [`docs/orchestration/status.md`](docs/orchestration/status.md) |
 
 ## Science
+
+#### 2026-11-14 · S13b · production deploy files
+- **Who:** Codex implementation agent
+- **AI use:** Codex built the deployment files, trusted-proxy handling, tests and runbook; automated checks run locally, human review pending.
+- **State:** verified (reviewed by Cursor (grok-4.7): request changes, eight findings, all fixed by the author with evidence and read by the orchestrator; on the tree merged with main 69bb26e: 458 Python tests (1 skipped), 2,465 web tests, typecheck and build all exit 0. Not yet run on a real server: certificate issue and renewal, the visitor address on Ubuntu, and a terrain job's memory are unverified)
+- **Changed:** production Compose, deploy scripts and nginx configuration, API and tests, architecture, deployment runbook and decision 0017.
+- **Notes:** Merged main and addressed PR review: strict trusted-proxy CIDRs, mapped addresses and client logging; host refusal, nginx health, fixed app address and proxy-verified updates; JavaScript gzip and runbook fixes. Ran Compose config, isolated bootstrap/TLS, host, health, container recreation, gzip/weak ETag and failure-path checks, `sh -n`, ShellCheck, pytest (458 passed, one skipped), frozen pnpm install, web tests (2465 passed), typecheck and build. Docker Desktop logged the bridge gateway; real Ubuntu visitor addressing and peak terrain-job memory remain unverified. No real certificate or deployment was attempted. Local `system.bin` was 1,262,016 bytes; gzip was 1,030,332 bytes.
 
 #### 2026-11-14 · S10c review · Consistent queue positions
 - **Who:** Codex implementation agent
@@ -1643,6 +1650,34 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - `|latitude| > 89.999°` throws for the local frame and for walking. The sphere point and the Sun-elevation formula still accept the poles.
 
 ## Academy
+
+#### 2026-11-14 · A11b · Submission materials brought up to date
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-sonnet-5-5 — rewrote the six files in `docs/submission/`
+  against `origin/main` at 69bb26e: read the code, the specs, `DEVLOG.md`, `docs/validation.md`
+  and `data/derived/validation.json`; ran the Python scoring reference (`truesouth.scoring`)
+  on the stored series from a throwaway script outside the repository to compute every date
+  and status the demo script quotes; recounted the AI-use lines. No browser was opened and
+  no test suite was run. A human has not read it.
+- **State:** verified (reviewed by Codex (gpt-6.1-terra): the demo was performed on the running build and its numbers recomputed (all agree); five wording errors fixed by the orchestrator; on the tree merged with main 9f12ff4: 458 Python tests (1 skipped), 2,465 web tests, typecheck and build all exit 0. Not rehearsed against a clock; not every sentence of the other five files was independently confirmed)
+  numbers in it were computed, not seen on screen)
+- **Changed:** `docs/submission/` (all six files), this entry
+- **Notes:**
+  - Removed or corrected: custom sites in a catalog-only build answer 503 (and the form says
+    "Not available on this server"), not 501; Apollo 11 on 2028-01-03 has the Sun 4.6° up, not
+    high (the demo now looks five days later); Local terrain's lander is larger than life, not
+    "scaled"; Compare's summary sentence is no longer drawn; the Sun reaches 2.10° at
+    Connecting Ridge, so the texts say "about two degrees"; the shared fixture for G10 now has
+    76 cases, not 58; #93 to #96 are merged, not in review.
+  - Open items for the team lead are listed in `docs/submission/links-checklist.md`: the
+    repository (private, no licence), the live link (#101 not merged), the backup video,
+    whether to apply `README-proposed.md`, and why the data covers six years.
+  - Found outside this package and not changed: `docs/challenge.md` still marks Compare, the
+    Slip Planner and the Lander's eye "not built"; `docs/challenge.md` and `docs/validation.md`
+    give the largest Sun and Earth difference as 0.0060° where the validation page rounds up
+    to 0.0061°; `docs/orchestration/status.md` still names Docker project `truesouth-s13`
+    and `docs/architecture.md` names `truesouth-s10b`, while `compose.yaml` sets `name:
+    truesouth`.
 
 #### 2026-11-14 · A3 · drag-body and draw-skyline steps: lessons 1, 2 and 4 complete
 - **Who:** Claude Code agent, for the orchestrator
