@@ -162,10 +162,10 @@
     row, centred in the gap between the brand and the profile: the same 44 px height, top
     and card as its neighbours, so the scene gets the row below. Narrower, it keeps its row.
   */
+  /* Never narrower than the view bar it holds: the profile card gives way instead. */
   .shell-top-spacer {
     display: flex;
     justify-content: center;
-    min-width: 0;
   }
 
   .shell-top .view-bar {
@@ -173,6 +173,33 @@
     height: 44px;
     margin-top: 0;
     pointer-events: auto;
+  }
+
+  /*
+    The profile card is the row's one flexible piece. As the row narrows it sheds, in order:
+    the "Mission profile" label (below 1,440 px, below), then the profile's name, which
+    truncates with an ellipsis (the full name is the button's title and accessible name).
+    The duration and its sourced or assumed tag always stay. Nothing wraps or overlaps.
+  */
+  .mc[data-top="appbar"] .shell-top .field-profile {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .mc[data-top="appbar"] .shell-top .field-profile > :not(.field-trigger),
+  .mc[data-top="appbar"] .shell-top .field-label,
+  .mc[data-top="appbar"] .shell-top .field-icon {
+    flex: none;
+  }
+
+  .mc[data-top="appbar"] .shell-top .field-trigger {
+    flex: 0 1 auto;
+  }
+
+  /* TOP_ROW_PARTS.nameMin in shell-layout.ts: a truncated name keeps a few letters. */
+  .mc[data-top="appbar"] .shell-top .field-value-clip {
+    min-width: 48px;
+    white-space: nowrap;
   }
 
   /*
@@ -200,6 +227,11 @@
 
     .mc[data-top="appbar"] .view-bar-item {
       padding-left: 8px;
+    }
+
+    /* The current tab's underline starts where its text now starts. */
+    .mc[data-top="appbar"] .view-bar-item[aria-current="true"]::after {
+      left: 8px;
     }
   }
 

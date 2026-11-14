@@ -13,6 +13,7 @@ import {
   VIEW_BAR_IN_TOP_ROW_MIN,
   viewBarFitsBetween,
   viewBarInTopRow,
+  topRowMinWidth,
   shortcutPanel,
   toggleShellPanel,
   type ShellLayout,
@@ -151,6 +152,13 @@ describe("viewBarInTopRow (M14)", () => {
     expect(viewBarInTopRow(1440, false)).toBe(true);
     expect(viewBarInTopRow(VIEW_BAR_IN_TOP_ROW_MIN, false)).toBe(true);
     expect(VIEW_BAR_IN_TOP_ROW_MIN).toBe(1280);
+  });
+
+  it.each([1280, 1366, 1439, 1440, 1920])("fits at %i px with the longest profile name truncated, nothing overlapping", (width) => {
+    // The name ("Custom, based on Artemis crewed landing") truncates to TOP_ROW_PARTS.nameMin
+    // at worst; every other piece keeps its width.
+    expect(viewBarInTopRow(width, false)).toBe(true);
+    expect(topRowMinWidth(width)).toBeLessThanOrEqual(width);
   });
 
   it("keeps its own row below 1,280 px, and on a phone", () => {

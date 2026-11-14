@@ -283,7 +283,7 @@ view and fills the whole window. Every panel floats above it:
 | :--- | :--- |
 | Scene | the whole window |
 | App bar: three floating blocks (brand and mode, profile, share), 12px from the top | 44px tall |
-| View bar: in the app bar's row from 1,280px wide, centred between the brand and the profile; under the app bar when narrower (nothing is drawn under it but a notice about the link) | 44px tall |
+| View bar: in the app bar's row from 1,280px wide, centred between the brand and the profile (from 1,280 to 1,439px the row is compacted: no "Mission profile" label, Share as its icon, tabs 4px narrower; the profile name truncates with an ellipsis, the duration and its tag stay); under the app bar when narrower (nothing is drawn under it but a notice about the link) | 44px tall |
 | Sites rail | 256px open, 48px collapsed |
 | Focused-site panel | 328px open, 48px collapsed |
 | Timeline strip, along the bottom, its header starting with the landing date | 196px open, 52px folded |

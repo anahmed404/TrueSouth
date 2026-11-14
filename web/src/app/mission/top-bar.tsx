@@ -59,7 +59,7 @@ function ProfilePicker() {
         width={440}
         align="end"
         trigger={(props) => (
-          <button {...props} type="button" className="field-trigger" aria-label={`Mission profile: ${title}. Change`}>
+          <button {...props} type="button" className="field-trigger" title={title} aria-label={`Mission profile: ${title}. Change`}>
             <span className="field-label">Mission profile</span>
             <span className="field-value field-value-clip">{title}</span>
             <ChevronDown className="field-icon" size={14} strokeWidth={1.8} aria-hidden="true" />

@@ -148,6 +148,41 @@ export function viewBarInTopRow(viewportWidth: number, phone: boolean): boolean 
   return !phone && viewportWidth >= VIEW_BAR_IN_TOP_ROW_MIN;
 }
 
+/**
+ * The app bar's row with the view bar in it, at its narrowest: the pieces' widths in px,
+ * measured in the app (Chrome, the C2 type) and kept in step with shell.css. Only the
+ * profile card shrinks: its chrome (trigger padding, chevron, duration, the sourced or
+ * assumed tag) stays, and the name truncates down to `nameMin`. Compact is 1,280 to
+ * 1,439 px: no "Mission profile" label, Share as its icon, tabs 4 px narrower.
+ */
+export const TOP_ROW_PARTS = {
+  padding: 32,
+  gaps: 3 * 8,
+  brand: 346,
+  viewBar: 605,
+  viewBarCompact: 581,
+  share: 92,
+  shareCompact: 44,
+  profileChrome: 253,
+  profileChromeCompact: 166,
+  nameMin: 48,
+} as const;
+
+/** The row's narrowest total at a window width: the fit rule the view bar's place rests on. */
+export function topRowMinWidth(viewportWidth: number): number {
+  const p = TOP_ROW_PARTS;
+  const compact = viewportWidth < 1440;
+  return (
+    p.padding +
+    p.gaps +
+    p.brand +
+    (compact ? p.viewBarCompact : p.viewBar) +
+    (compact ? p.shareCompact : p.share) +
+    (compact ? p.profileChromeCompact : p.profileChrome) +
+    p.nameMin
+  );
+}
+
 export type ShortcutEvent = {
   key: string;
   ctrlKey: boolean;

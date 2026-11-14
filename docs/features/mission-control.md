@@ -94,9 +94,13 @@ The window entry carries a small window icon and `aria-expanded`.
 centred in the gap between the brand-and-mode block and the profile, with the same 44 px
 height, top and card as its neighbours, so the scene gets the row below. From 1,440 px it fits
 as it is. From 1,280 px to 1,439 px the row is compacted: the profile card drops its
-"Mission profile" label (its name, duration and tag stay; the button's accessible name keeps
-the label), Share shows its icon only, and each tab gives up 4 px of padding. No view is
-dropped or renamed. Narrower than 1,280 px, the view bar keeps its own row under the app bar,
+"Mission profile" label (the button's accessible name keeps it), Share shows its icon only,
+and each tab (and the current tab's underline) gives up 4 px. No view is dropped or renamed.
+The profile card is the row's one flexible piece: as room runs out, its name truncates with
+an ellipsis (the full name is the button's title and accessible name), down to 48 px; the
+duration and its sourced or assumed tag always stay. The view bar keeps its width; nothing
+wraps or overlaps, for every preset and a custom profile ("Custom, based on Artemis crewed
+landing"), from 1,280 px up (`topRowMinWidth` in `shell-layout.ts`). Narrower than 1,280 px, the view bar keeps its own row under the app bar,
 as before; the phone is unchanged. In the app bar's row the tab order is brand and mode, the
 views, the profile, Share.
 
