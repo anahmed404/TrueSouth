@@ -203,6 +203,15 @@ points) is drawn inside the 20 km patch, in Local terrain and Lander's eye. It i
 only: nothing reads it back; the series, the skyline, the slope and every number on screen
 still come from the 80 m map, as before. Only the focused site's close-up is loaded.
 
+- **When it loads.** Only in Local terrain and Lander's eye. The camera view changes when
+  its flight starts, so the file is requested as the flight into either view begins and is
+  usually in by the time it lands; the System view, the Polar map and the Slip Planner
+  never request it. A site without a close-up requests nothing.
+- **Whole or not at all.** A close-up is drawn only if every one of its points has a finite
+  east, north and height, and it has size × size points. The data pipeline writes no
+  missing point, so one NaN or infinity means a bad file: it is rejected whole, the patch
+  is drawn alone, and the plate gives the patch's sentence.
+
 - **Level.** Its heights are moved by one constant so that its centre point sits where the
   patch's surface is at the site. The two maps can disagree there by a few metres; the
   lander then stands on the drawn ground and Lander's eye stays 2 m above it.
@@ -210,16 +219,28 @@ still come from the 80 m map, as before. Only the focused site's close-up is loa
   at its rim it lies on the patch. The patch leaves a hole for it and joins its rim with
   the same shared-edge strips as the terrain around the patch, at every detail level the
   quality governor can show: the drawn surfaces meet within 0.25 m.
-- **Shading and shadows.** Its own normals; the shadow march reads its heights first.
-- **Release.** Its geometry and height texture go with the rest of the ground when the
-  site or the view changes.
-- **What the plate says.** One line on what the ground is drawn from, chosen by this rule:
-  with the close-up drawn, "The ground nearest the lander is drawn from NASA's close-up
-  DEM of this site, with squares 5 metres across. Lit or dark, link and status still come
-  from the series."; otherwise the terrain tier's line ("… NASA's DEM with squares 80
-  metres across, so nothing smaller than that is shown.", or 240 metres for the wide240
-  tier), which is also what shows while a close-up loads or if it fails. Custom sites and
-  the smooth Moon keep their own sentences (see "States"). Text in `explain.ts`.
+- **Shading and shadows.** Its own normals; the shadow march reads its heights first, and
+  the patch's own 80 m heights outside it, across the joining strips too. As the close-up's
+  rim lies on the patch's surface, that field differs from the drawn strips no more than
+  anywhere else on the patch (at most 0.04 m at full detail; 0.4 m and 2 m at the coarser
+  meshes drawn while moving, which the field never follows).
+- **Texture at its edge.** No dimples inside it, up to its very edge; outside it they fade
+  back in over the next 200 m, over the patch's 80 m ground.
+- **Release.** Its geometry and height texture go when the site changes, and 10 s after the
+  view leaves Local terrain and Lander's eye (`CLOSEUP_GRACE_MS`, `closeup-loading.ts`): a
+  quick look at another view keeps it, moving between the two ground views keeps it. The
+  patch is then built again without its hole, once (about 100 ms). The decoded file stays
+  in the data store's cache, so coming back does not fetch it again.
+- **What the plate says.** One line on what the shape of the ground comes from, chosen by
+  this rule: with the close-up drawn, "The shape of the ground nearest the lander comes
+  from NASA's close-up DEM of this site, with squares 5 metres across."; otherwise the
+  terrain tier's line ("The shape of the ground here comes from NASA's DEM, with squares
+  80 metres across.", or 240 metres for the wide240 tier), which is also what shows while
+  a close-up loads, if it fails, or if it is rejected. It says nothing about detail finer
+  than the map: the decoration plate, shown with it wherever the ground is drawn, already
+  says that the shading, shadows and fine ground texture are drawn for understanding only.
+  Custom sites and the smooth Moon keep their own sentences (see "States"). Text in
+  `explain.ts`.
 
 ## Performance
 

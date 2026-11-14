@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { MOON_RADIUS_M } from "../../../lib/geo";
 import type { SiteFrame } from "./camera";
+import { CLOSEUP_BLEND_KM } from "./closeup-ground";
 import type { GroundLod, GroundLodStep } from "./ground";
 import { GROUND_QUALITY, SHADOW_STEPS, groundDefines, groundQualityFromQuery, sameQuality, type GroundLevel, type GroundQuality } from "./ground-quality";
 import {
@@ -289,8 +290,9 @@ void main() {
     float foot = max(length(dFdx(pm)), length(dFdy(pm)));
     float mu0 = dot(n, uLight);
     vec2 sd = length(sL.xy) > 1e-5 ? normalize(sL.xy) : vec2(0., 1.);
-    // Inside a real close-up no invented features (fading out over its last 50 m).
-    float inClose = uClose.w * (1. - smoothstep(uClose.x - .05, uClose.x, max(abs(vL.x), abs(vL.y))));
+    // Inside a real close-up no invented features, up to its very edge; they fade back in over
+    // the next CLOSEUP_BLEND_KM outside it (closeup-ground.ts, closeupInventedWeight).
+    float inClose = uClose.w * (1. - smoothstep(uClose.x, uClose.x + ${f(CLOSEUP_BLEND_KM, 3)}, max(abs(vL.x), abs(vL.y))));
     vec4 gr = grain(pm, foot, sd, mu0 / sqrt(max(1. - mu0 * mu0, 1e-6)), inClose);
     n = normalize(n - gr.x * E - gr.y * N);
     alb *= 1. + gr.z;

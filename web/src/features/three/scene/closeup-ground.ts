@@ -65,8 +65,39 @@ export function closeupBlendWeight(eastKm: number, northKm: number, halfKm: numb
 }
 
 /**
+ * Whether a close-up is whole: `size` × `size` points, each with a finite east, north and up.
+ * The data pipeline writes no missing point, so a single NaN or infinity means a bad file, and
+ * the close-up is rejected whole: the scene draws the patch alone and the plate gives the
+ * patch's sentence. Its slope column is not drawn and not checked.
+ */
+export function closeupComplete(closeup: MeshData): boolean {
+  const { data, size } = closeup;
+  const count = size * size;
+  if (!(size >= 2) || data.east_km.length !== count || data.north_km.length !== count || data.up_km.length !== count) return false;
+  for (let k = 0; k < count; k += 1) {
+    if (!Number.isFinite(data.east_km[k]) || !Number.isFinite(data.north_km[k]) || !Number.isFinite(data.up_km[k])) return false;
+  }
+  return true;
+}
+
+/** Whether the close-up is drawn: whole (closeupComplete) and fitting the patch (closeupFits). */
+export function closeupDrawable(patch: MeshData, closeup: MeshData): boolean {
+  return closeupFits(patch, closeup) && closeupComplete(closeup);
+}
+
+/**
+ * How much of the made-up texture (the dimples, and the grain when it is switched off inside
+ * the close-up) is drawn at a point `edgeKm` from the site, max(|east|, |north|): none inside
+ * the close-up's square, up to its very edge, then fading in over the next `CLOSEUP_BLEND_KM`
+ * outside it, over the patch's 80 m ground. The shader's twin is in ground-material.ts.
+ */
+export function closeupInventedWeight(edgeKm: number, halfKm: number): number {
+  return smoothstep(halfKm, halfKm + CLOSEUP_BLEND_KM, edgeKm);
+}
+
+/**
  * The close-up as drawn: its own positions, its heights levelled to the site's ground point and
- * handed over to the patch's surface at its edge. A missing close-up height takes the patch's.
+ * handed over to the patch's surface at its edge. Only for a whole close-up (closeupComplete).
  */
 export function drawnCloseup(closeup: MeshData, patch: MeshData): DecodedTerrain {
   const { data, size, windowKm } = closeup;
@@ -77,20 +108,16 @@ export function drawnCloseup(closeup: MeshData, patch: MeshData): DecodedTerrain
   const north = new Float32Array(count);
   const up = new Float32Array(count);
   const centre = ((size - 1) / 2) * size + (size - 1) / 2;
-  const centreUp = data.up_km[centre];
-  const offset = finite(centreUp) ? centreUp - patchSurfaceUpKm(patch, 0, 0) : 0;
+  const offset = data.up_km[centre]! - patchSurfaceUpKm(patch, 0, 0);
   for (let r = 0; r < size; r += 1) {
     for (let c = 0; c < size; c += 1) {
       const k = r * size + c;
       const gridEast = -half + c * step;
       const gridNorth = half - r * step;
-      const e = data.east_km[k];
-      const n = data.north_km[k];
-      east[k] = finite(e) ? e : gridEast;
-      north[k] = finite(n) ? n : gridNorth;
+      east[k] = data.east_km[k]!;
+      north[k] = data.north_km[k]!;
       const surface = patchSurfaceUpKm(patch, gridEast, gridNorth);
-      const own = data.up_km[k];
-      const levelled = finite(own) ? own - offset : surface;
+      const levelled = data.up_km[k]! - offset;
       const w = closeupBlendWeight(gridEast, gridNorth, half);
       up[k] = levelled * (1 - w) + surface * w;
     }
@@ -110,19 +137,37 @@ export function closeupLevelOffsetM(closeup: MeshData, patch: MeshData): number 
  * detail level (ground.ts, joinedGridGeometry). The same answer World gets from building it.
  */
 export function closeupFits(patch: { size: number; windowKm: number }, closeup: { size: number; windowKm: number }): boolean {
-  if (!(closeup.windowKm < patch.windowKm) || patch.size % 2 !== 1) return false;
-  if ((closeup.size - 1) % 4 !== 0 || (patch.size - 1) % 4 !== 0) return false;
+  return closeupRing(patch, closeup) !== null;
+}
+
+/**
+ * The patch's hole for the close-up: the ring of patch points, `k` points from the centre,
+ * that the joining strips meet (the first one outside the close-up on every detail level).
+ * Null when the close-up does not fit.
+ */
+function closeupRing(patch: { size: number; windowKm: number }, closeup: { size: number; windowKm: number }): number | null {
+  if (!(closeup.windowKm < patch.windowKm) || patch.size % 2 !== 1) return null;
+  if ((closeup.size - 1) % 4 !== 0 || (patch.size - 1) % 4 !== 0) return null;
   const centre = (patch.size - 1) / 2;
   const stepKm = patch.windowKm / (patch.size - 1);
   let k = 1;
   while (k * stepKm <= closeup.windowKm / 2 + 1e-6 || (centre - k) % 4 !== 0) k += 1;
-  return k <= centre;
+  return k <= centre ? k : null;
 }
 
 /**
  * The patch and, where the site has one that fits, its close-up: the patch with a hole and
  * joining strips, the close-up as drawn, and the close-up's heights for the shadow march.
- * Without a close-up (none, failed, or not fitting) the patch alone, as before.
+ *
+ * The march reads those heights inside the close-up's square and the patch's own 80 m heights
+ * outside it, including across the joining strips. Because the close-up's rim lies on the
+ * patch's surface (the hand-over), that field differs from the drawn strips no more than it
+ * does anywhere else on the patch: measured on 257 × 257 grids, at most 0.04 m at step 1,
+ * 0.4 m at step 2 and 2 m at step 4 next to the join, against 0.04, 0.4 and 1.5 m 3 km away.
+ * The larger numbers are the coarser drawing while moving, which the field does not follow
+ * anywhere (that would take a height texture per level). Filling the patch's hole with the
+ * close-up's heights was tried and made the field worse (12 m), so it is not done.
+ * Without a close-up (none, failed, incomplete or not fitting) the patch alone, as before.
  */
 export function patchWithCloseup(
   terrain: MeshData & { closeup?: MeshData | null },
@@ -130,7 +175,7 @@ export function patchWithCloseup(
 ): { patch: THREE.BufferGeometry; closeup: THREE.BufferGeometry | null; closeHeights: HeightGridSpec | null } {
   const plain = () => ({ patch: patchGeometry(terrain.data, terrain.size, terrain.windowKm, site), closeup: null, closeHeights: null });
   const close = terrain.closeup;
-  if (!close || !closeupFits(terrain, close)) return plain();
+  if (!close || !closeupDrawable(terrain, close)) return plain();
   const drawn = drawnCloseup(close, terrain);
   const closeup = patchGeometry(drawn, close.size, close.windowKm, site);
   const patch = patchGeometry(terrain.data, terrain.size, terrain.windowKm, site, patchRim(drawn, close.size, close.windowKm, closeup));
@@ -144,6 +189,16 @@ export function patchWithCloseup(
     closeup,
     closeHeights: { heights: patchUpGrid(drawn, close.size), columns: close.size, rows: close.size, halfKm: close.windowKm / 2 },
   };
+}
+
+/**
+ * The close-up's state for the plate (plates.ts, groundSourcePlate): "ready" only when it is
+ * drawn. A file that loaded but is rejected (incomplete, or not fitting) is "none", so the
+ * plate says what is drawn: the patch's sentence.
+ */
+export function closeupPlateState(status: "loading" | "ready" | "error", drawn: boolean): "loading" | "ready" | "error" | "none" {
+  if (status !== "ready") return status;
+  return drawn ? "ready" : "none";
 }
 
 export type HeightGridSpec = { heights: Float32Array; columns: number; rows: number; halfKm: number };

@@ -10,8 +10,12 @@ import { siteFrameScene, siteGroundScene } from "../../../lib/geo";
 import {
   CLOSEUP_BLEND_KM,
   closeupBlendWeight,
+  closeupComplete,
+  closeupDrawable,
   closeupFits,
+  closeupInventedWeight,
   closeupLevelOffsetM,
+  closeupPlateState,
   drawnCloseup,
   patchSurfaceUpKm,
   patchWithCloseup,
@@ -130,7 +134,57 @@ describe("which close-ups are drawn", () => {
   });
 });
 
-describe("the drawn join between the close-up and the patch, at every level the scene can show (0.25 m)", () => {
+describe("a close-up is drawn whole or not at all", () => {
+  const site: GroundSite = { latDeg: -85.3, lonDeg: 31.2, groundHeightM: 0 };
+  /** A copy of the fixture's close-up with one change. */
+  const broken = (change: (d: { east_km: Float32Array; north_km: Float32Array; up_km: Float32Array }) => void): MeshData => {
+    const d = fixtureClose.data;
+    const columns = { east_km: Float32Array.from(d.east_km), north_km: Float32Array.from(d.north_km), up_km: Float32Array.from(d.up_km) };
+    change(columns);
+    return { ...fixtureClose, data: { ...columns, slope_deg: Float32Array.from(d.slope_deg) } };
+  };
+  const cases: [string, MeshData][] = [
+    ["every height NaN", broken((d) => d.up_km.fill(Number.NaN))],
+    ["one height NaN", broken((d) => (d.up_km[400] = Number.NaN))],
+    ["one height infinite", broken((d) => (d.up_km[17] = Number.POSITIVE_INFINITY))],
+    ["one east NaN", broken((d) => (d.east_km[5] = Number.NaN))],
+    ["one north minus infinity", broken((d) => (d.north_km[900] = Number.NEGATIVE_INFINITY))],
+    ["the wrong number of points", broken((d) => (d.up_km = d.up_km.subarray(0, 33 * 33 - 1)))],
+  ];
+
+  it("the fixture's own close-up is whole", () => {
+    expect(closeupComplete(fixtureClose)).toBe(true);
+    expect(closeupDrawable(fixturePatch, fixtureClose)).toBe(true);
+  });
+
+  for (const [name, close] of cases) {
+    it(`${name}: rejected whole, the patch drawn alone, and the plate gives the patch's sentence`, () => {
+      expect(closeupComplete(close)).toBe(false);
+      expect(closeupDrawable(fixturePatch, close)).toBe(false);
+      const parts = patchWithCloseup({ ...fixturePatch, closeup: close }, site);
+      expect(parts.closeup).toBeNull();
+      expect(parts.closeHeights).toBeNull();
+      expect(parts.patch.userData.joined).toBeUndefined();
+      parts.patch.dispose();
+      // The file loaded, but nothing of it is drawn: the plate says what is drawn.
+      const state = closeupPlateState("ready", false);
+      expect(state).toBe("none");
+      expect(groundSourcePlate("core80", state).text).toBe(explanations.terrain_ground_core80!.text);
+    });
+  }
+
+  it("a wrong file length is already refused by the decoder", () => {
+    expect(() => decodeTerrain(new ArrayBuffer(16 * 33 * 33 - 4), 33, "closeup.bin")).toThrow();
+  });
+
+  it("the plate's state: loading and failed pass through; ready only when drawn", () => {
+    expect(closeupPlateState("loading", false)).toBe("loading");
+    expect(closeupPlateState("error", false)).toBe("error");
+    expect(closeupPlateState("ready", true)).toBe("ready");
+  });
+});
+
+describe("the drawn join between the close-up and the patch, at every level the scene can show (within 0.25 m, sampled 0.1 mm either side of the rim)", () => {
   for (const step of GROUND_LOD_STEPS) {
     it(`step ${step}: the fixture's close-up`, () => {
       const result = joinGapM(fixturePatch, fixtureClose, step);
@@ -214,6 +268,15 @@ describe("the invented texture", () => {
     expect(look.uniforms.uCloseGrain.value).toBe(1);
   });
 
+  it("no dimples anywhere inside the close-up, up to its edge; they fade back in over the next 200 m outside it", () => {
+    expect(closeupInventedWeight(0, 1)).toBe(0);
+    expect(closeupInventedWeight(0.975, 1)).toBe(0);
+    expect(closeupInventedWeight(1, 1)).toBe(0);
+    expect(closeupInventedWeight(1.1, 1)).toBeCloseTo(0.5, 9);
+    expect(closeupInventedWeight(1 + CLOSEUP_BLEND_KM, 1)).toBe(1);
+    expect(shader).toContain("float inClose = uClose.w * (1. - smoothstep(uClose.x, uClose.x + 0.200, max(abs(vL.x), abs(vL.y))));");
+  });
+
   it("the grain stays under about a degree of slope: at the poles the Sun is only a few degrees up", () => {
     expect(GRAIN_SLOPE).toBeLessThanOrEqual(0.015);
     expect(shader).toContain("#define GRAIN_SLOPE");
@@ -265,13 +328,31 @@ describe("the line that says what the ground is drawn from", () => {
   });
   const source = (change: Partial<PlateInput>) => sceneContent(input(change)).plates.filter((p) => p.id === "ground-source" || p.id.startsWith("surroundings") || p.id === "sphere");
 
-  it("with the close-up drawn: NASA's 5 m map, and the status still from the series", () => {
+  it("with the close-up drawn: the shape comes from NASA's 5 m close-up DEM", () => {
     expect(source({ closeup: "ready" })).toEqual([{ id: "ground-source", text: explanations.closeup_ground!.text }]);
-    expect(explanations.closeup_ground!.text).toMatch(/5 metres/);
-    expect(explanations.closeup_ground!.text).toMatch(/still come from the series/);
+    expect(explanations.closeup_ground!.text).toBe(
+      "The shape of the ground nearest the lander comes from NASA's close-up DEM of this site, with squares 5 metres across.",
+    );
   });
 
-  it("without one on a terrain tier: the 80 m (or 240 m) map, so nothing smaller is shown", () => {
+  it("says only where the shape comes from, never that nothing finer is drawn: the decoration line beside it says the fine texture is drawn", () => {
+    for (const key of ["closeup_ground", "terrain_ground_core80", "terrain_ground_wide240"]) {
+      const text = explanations[key]!.text;
+      expect(text).toMatch(/^The shape of the ground /);
+      expect(text).not.toMatch(/nothing smaller|not shown|texture|grain|series/);
+    }
+    // Wherever the line shows, the decoration line shows too, and names the texture as drawn.
+    for (const view of ["terrain", "panorama"] as const) {
+      for (const closeup of ["ready", "none"] as const) {
+        const plates = sceneContent(input({ view, closeup })).plates;
+        expect(plates.map((p) => p.id)).toContain("ground-source");
+        const decoration = plates.find((p) => p.id === "decoration")!;
+        expect(`${decoration.text} ${decoration.note ?? ""}`).toMatch(/fine ground texture are drawn for understanding only/);
+      }
+    }
+  });
+
+  it("without one on a terrain tier: the shape from the 80 m (or 240 m) DEM", () => {
     expect(source({ closeup: "none" })).toEqual([{ id: "ground-source", text: explanations.terrain_ground_core80!.text }]);
     expect(source({ closeup: "none", site: { name: "Chandrayaan-3", sphere: false, tier: "wide240" } })).toEqual([
       { id: "ground-source", text: explanations.terrain_ground_wide240!.text },

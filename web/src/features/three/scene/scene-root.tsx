@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, 
 import * as THREE from "three";
 import type { CameraViewId, FreeSpace, SceneProjector, SceneProps } from "../../../app/scene";
 import type { Site } from "../../../contracts/generated";
-import { useApron, useCloseup, useManifest, useSceneMeta, useSeries, useSite, useSites, useSystem, useTerrain } from "../../../data";
+import { useApron, useManifest, useSceneMeta, useSeries, useSite, useSites, useSystem, useTerrain } from "../../../data";
 import type { DecodedApron, DecodedSeries, DecodedSystem, DecodedTerrain } from "../../../data";
 import {
   LOCAL_TERRAIN_HALF_M,
@@ -35,7 +35,8 @@ import {
   type SiteFrame,
 } from "./camera";
 import { Overlay, type OverlayBus, type Preset, type LookToward } from "./overlay";
-import { closeupFits } from "./closeup-ground";
+import { closeupDrawable, closeupPlateState } from "./closeup-ground";
+import { useCloseupWanted, useGroundCloseup } from "./closeup-loading";
 import { useSurroundings } from "./custom-apron";
 import { apronLoadState, decorationDisclosure, sceneContent, seriesSunAnswer, type LoadState } from "./plates";
 import { southPolePose } from "./navigate";
@@ -144,17 +145,21 @@ function loadState(status: "loading" | "ready" | "error"): LoadState {
 function FocusedSiteData({
   siteId,
   profile,
+  closeupWanted,
   onData,
 }: {
   siteId: string;
   profile: SceneProps["scenario"]["profile"];
+  /** Local terrain or Lander's eye, or just left (closeup-loading.ts): only then is the close-up fetched and drawn. */
+  closeupWanted: boolean;
   onData: (data: FocusData) => void;
 }) {
   const series = useSeries(siteId);
   const flags = useHourFlags(siteId, profile);
   const terrain = useTerrain(siteId);
-  // NASA's 5 m close-up of the site, where it has one: only the focused site's (closeup-ground.ts).
-  const closeup = useCloseup(siteId);
+  // NASA's 5 m close-up of the site, where it has one: only the focused site's, and only in
+  // the ground views (closeup-ground.ts, closeup-loading.ts).
+  const closeup = useGroundCloseup(siteId, closeupWanted);
   const site = useSite(siteId);
   const apron = useApron(siteId);
   const sceneMeta = useSceneMeta();
@@ -170,7 +175,7 @@ function FocusedSiteData({
         ? { data: closeup.data, size: Math.round(Math.sqrt(closeup.data.up_km.length)), windowKm: closeupWindowKm }
         : null;
     const patch = { data: terrain.data, size, windowKm: windowKm ?? 20 };
-    return { ...patch, closeup: close && closeupFits(patch, close) ? close : null };
+    return { ...patch, closeup: close && closeupDrawable(patch, close) ? close : null };
   }, [terrain.status, terrain.data, site.status, windowKm, closeup.status, closeup.data, closeupWindowKm]);
   const apronValue = apron.status === "loading" ? "loading" : apron.status === "ready" && apron.data !== "not available" ? apron.data : null;
   const seriesValue = series.status === "ready" ? series.data : null;
@@ -183,9 +188,8 @@ function FocusedSiteData({
   // and "none" when it lists none: a custom site has a patch but never an apron, by design.
   const apronListed = sceneMeta.status === "ready" ? sceneMeta.data.aprons.some((a) => a.site_id === siteId) : true;
   const apronState = apronLoadState(apron.status, apron.data, apronListed);
-  // "ready" only when the close-up is drawn: loaded and fitting the patch.
-  const closeupState: LoadState | "none" =
-    closeup.status !== "ready" ? closeup.status : terrainValue && terrainValue !== "loading" && terrainValue.closeup ? "ready" : "none";
+  // "ready" only when the close-up is drawn: loaded, whole and fitting the patch.
+  const closeupState: LoadState | "none" = closeupPlateState(closeup.status, Boolean(terrainValue && terrainValue !== "loading" && terrainValue.closeup));
   useEffect(() => {
     onData({
       siteId,
@@ -399,6 +403,8 @@ function Scene3D(props: SceneProps) {
           ? "ready"
           : "error"
         : "loading";
+  // The close-up is fetched and drawn only in Local terrain and Lander's eye (closeup-loading.ts).
+  const closeupWanted = useCloseupWanted(view);
   // A custom site's surroundings come from the global height map; retried on each visit (custom-apron.ts).
   const surroundings = useSurroundings((view === "terrain" || view === "panorama") && focusReady?.states.apron === "none");
   const content = useMemo(
@@ -611,7 +617,7 @@ function Scene3D(props: SceneProps) {
         if (event.button === 1 && !(event.target as HTMLElement).closest("button, a, input, .scene-plate-interactive")) event.preventDefault();
       }}
     >
-      {focusedId ? <FocusedSiteData key={focusedId} siteId={focusedId} profile={scenario.profile} onData={onData} /> : null}
+      {focusedId ? <FocusedSiteData key={focusedId} siteId={focusedId} profile={scenario.profile} closeupWanted={closeupWanted} onData={onData} /> : null}
       <Canvas
         className="scene-canvas"
         // The four GL switches (gl-switches.ts) are off unless the address asks for them.
