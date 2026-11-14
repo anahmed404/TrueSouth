@@ -28,7 +28,7 @@ export type OverlayBus = {
   overlay: ((anchors: Anchors, camera: THREE.PerspectiveCamera, size: { width: number; height: number }) => void) | null;
   controls: {
     beginDrag: () => void;
-    orbit: (dx: number, dy: number) => void;
+    orbit: (dx: number, dy: number, fromKey?: boolean) => void;
     /** Slides the view; false in a view with no pan. */
     pan: (dx: number, dy: number) => boolean;
     /** `ndc`: the pointer in normalised device coordinates, kept fixed on screen. */

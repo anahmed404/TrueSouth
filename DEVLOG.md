@@ -1452,6 +1452,44 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## 3D and Map
 
+#### 2026-11-14 · Drag directions · The picture follows the pointer in every view
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — measured every view's drag direction on the real
+  rig and in Chrome, fixed the Slip Planner's horizontal turn in `rig.ts`, wrote the
+  table-driven `drag-directions.test.ts` and the spec text — checked by the agent with the
+  vitest suite (two mutations, the Slip Planner's sign and Lander's eye's vertical sign, each
+  fail the table), typecheck, build, and by eye in Chrome (RTX 2060) at 1440 × 900 with real
+  mouse drags (left and middle button) and touch emulation; a human has not reviewed it
+- **State:** verified (reviewed by Cursor (grok-4.7): directions recomputed per view and input, every caller of Rig.orbit traced, three mutations caught; its one must-fix (an older test still pinning the old Lander's eye vertical) fixed by the orchestrator; on the tree merged with main 1c3b3b6: 471 Python tests (1 skipped), 2,754 web tests, typecheck and build all exit 0. Follow-up: the Slip Planner's first drag snaps about 85 px (slipMove aims at the centre, the pose aims above it))
+- **Changed:** `web/src/features/three/scene/rig.ts` (one sign), `drag-directions.test.ts`
+  (new), `docs/features/system-view.md` (the contract table), `slip-planner.md`,
+  `local-terrain.md`, `panorama.md`, this entry
+- **Added by the orchestrator:** the tester reported Lander's eye's vertical drag as
+  inverted, and the agent had left it as it was. A vertical drag there now looks the way of
+  the drag (drag up, look up); arrow keys are unchanged (`rig.ts`, a `fromKey` argument
+  passed from `scene-root.tsx`; the table test states the exception and checks the arrows)
+- **Notes:**
+  - **The contract** (from the System view as on `main`): whatever is under the pointer moves
+    the way the pointer moves, on both axes; for an orbit, the ground nearest the viewer; for
+    Lander's eye, the scene ahead. Middle button = left button; right button, Shift and two
+    fingers slide in the System view and turn elsewhere (two fingers do nothing there); the
+    wheel zooms; an arrow key moves the camera the arrow's way (the picture the other way).
+  - **Measured before the fix** (screen motion of the grabbed point for a 60 px right or 40 px
+    down drag, left/middle/touch alike): System view +47 / +28 px; Follow site +56 / +36;
+    Slip Planner **−57** / +29 (horizontal reversed); Local terrain +33 / +2; Lander's eye
+    +106 / +47; the Polar map's flat map +80 / +50 for an 80 / 50 px drag (d3-zoom). After:
+    Slip Planner +57 / +29, the rest unchanged.
+  - **The fix:** the Slip Planner turned the camera's azimuth the other way from Local terrain
+    (`slip.ts` moves it by −dx); the rig now passes −dx. Speeds, limits and zoom unchanged.
+  - **Lander's eye:** already follows the pointer on both axes, by the rig's maths and with
+    real mouse and touch drags (dragging up moves the horizon up, so the view looks down; the
+    tester called the horizontal, which follows the same rule, good). Left as it is, as
+    recommended; if the tester means "drag up to look up", that is the opposite rule on one
+    axis only and is a one-sign change in `rig.ts` (the `el` line in the look-around).
+  - Seen but not changed (outside this package): the first drag after flying into the Slip
+    Planner snaps the camera's aim onto the sites' centre (about 90 px vertical) before it
+    turns; it was there before the fix too.
+
 #### 2026-11-14 · System view · Earth a little smaller and farther, so the Moon leads
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — retuned the constants in

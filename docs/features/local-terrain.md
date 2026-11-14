@@ -81,6 +81,9 @@ thresholds are mock values; the real thresholds come from the profile.
 ## Controls
 
 - **Orbit and zoom:** drag to orbit, scroll to zoom. The camera cannot go below the ground.
+  The picture follows the pointer, as in every view (system-view.md, "Camera"): dragging
+  right turns the scene so the ground nearest the viewer moves right, dragging down moves it
+  down; an arrow key moves the camera the arrow's way.
 - **Vertical exaggeration:** ×1 (default), ×2, ×5. The label always shows the factor: "true
   to scale" at ×1, "shadows not to scale" above it.
 - **Close-up:** for sites with a close-up DEM, a toggle swaps to the 2 km mesh built from
