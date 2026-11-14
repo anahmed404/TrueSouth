@@ -2728,6 +2728,7 @@ button.ac-prog-mark[data-state="current"]:hover i {
 .ac-mcbox {
   width: min(100%, 560px);
   margin: 0;
+  text-align: left;
 }
 
 .ac-mcbox-h {
@@ -2779,7 +2780,7 @@ button.ac-prog-mark[data-state="current"]:hover i {
   align-items: center;
 }
 
-.ac-system svg {
+.ac-system > svg {
   width: 220px;
   height: 220px;
   flex: none;
@@ -2934,9 +2935,9 @@ button.ac-prog-mark[data-state="current"]:hover i {
     align-items: stretch;
   }
 
-  .ac-system svg {
+  .ac-system > svg {
     width: 100%;
-    max-width: 240px;
+    max-width: 170px;
     height: auto;
     aspect-ratio: 1;
     align-self: center;

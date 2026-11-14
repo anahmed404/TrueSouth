@@ -156,6 +156,19 @@ function useMonth(examples: WorkedExamples, aroundUtc: string, grid: SceneData["
 
 // ── Lander's eye (and Local terrain's skyline) ────────────────────────────────
 
+/** The stored skyline's elevations within `halfWidthDeg` of an azimuth: the bins a reveal is about. */
+export function skylineNear(elDeg: ArrayLike<number>, centreDeg: number, halfWidthDeg: number): Float32Array {
+  const bins = elDeg.length;
+  const out: number[] = [];
+  for (let bin = 0; bin < bins; bin += 1) {
+    const az = (bin * 360) / bins;
+    const off = Math.abs(((az - centreDeg + 540) % 360) - 180);
+    const value = elDeg[bin];
+    if (off <= halfWidthDeg && value !== undefined && Number.isFinite(value)) out.push(value);
+  }
+  return Float32Array.from(out);
+}
+
 function HorizonPanel({ title, siteId, utc, bodies, caption }: { title: string; siteId: string; utc: string; bodies: boolean; caption?: string | undefined }) {
   const load = useSceneData(siteId);
   if (load.status === "error") return <Frame title={title} caption={caption}>{failed(title, load.name)}</Frame>;
@@ -180,18 +193,22 @@ function HorizonPicture({ title, data, utc, bodies, caption }: { title: string; 
   );
   const moment = hour === null ? { sun: null, earth: null } : horizonMoment(data.series, hour);
   const centreDeg = bodies ? (moment.sun?.azDeg ?? 0) : 0;
+  // The step is about the Sun and the ground in front of it: the height scale comes from the
+  // Sun's day and the skyline within 45° of it, so a one-degree ridge reads as one. Earth is
+  // drawn when it falls inside; the sentence under the chart says where it is either way.
+  const near = useMemo(() => (bodies ? skylineNear(data.skyline.el_deg, centreDeg, 45) : data.skyline.el_deg), [bodies, data.skyline.el_deg, centreDeg]);
   const range = useMemo(
     () =>
       autoRange({
-        skylineEl: data.skyline.el_deg,
+        skylineEl: near,
         sunEl: bodies ? data.series.sun_el : null,
-        earthEl: bodies ? data.series.earth_el : null,
+        earthEl: null,
         from: span?.from ?? 0,
         to: span?.to ?? 0,
         sunRadiusDeg: radii.sun,
         earthRadiusDeg: radii.earth,
       }),
-    [data, bodies, span, radii],
+    [data, bodies, span, radii, near],
   );
   const frame = useMemo(() => chartFrame(width - 2), [width]);
   const scales = useMemo(() => chartScales(frame, centreDeg, range), [frame, centreDeg, range]);
@@ -349,7 +366,7 @@ function SystemPicture({
           <text x={C} y={14} textAnchor="middle" className="ac-system-tick">
             0°
           </text>
-          <text x={VIEW - 4} y={C + 4} textAnchor="end" className="ac-system-tick">
+          <text x={VIEW - 2} y={C + 16} textAnchor="end" className="ac-system-tick">
             90° E
           </text>
           <path d={sunPath} className="ac-system-sun-trace" />
@@ -436,7 +453,8 @@ function BandsPicture({ title, data, lit, range, caption }: { title: string; dat
   const earthPct = (100 * bands.earthUpHours) / bands.hours;
   const first = hourIndexToUtc(data.grid, range.fromIndex).slice(0, 10);
   const last = hourIndexToUtc(data.grid, range.toIndex).slice(0, 10);
-  const alt = `${title} for ${data.name} over ${bands.hours} hours from ${first} to ${last}: Earth is in Pip's sky for ${bands.earthUpHours} of them, ${formatNumber(earthPct, 1)}%; the Sun lights Pip by the mission's rule for ${bands.litHours}.`;
+  // A percentage is written as the lesson's text writes one: whole numbers (format-example.ts).
+  const alt = `${title} for ${data.name} over ${bands.hours} hours from ${first} to ${last}: Earth is in Pip's sky for ${bands.earthUpHours} of them, about ${formatNumber(earthPct, 0)}%; the Sun lights Pip by the mission's rule for ${bands.litHours}.`;
   return (
     <Frame title={title} meta={`${data.name} · one month`} caption={caption}>
       <div ref={hostRef} className="ac-bands">
@@ -464,7 +482,7 @@ function BandsPicture({ title, data, lit, range, caption }: { title: string; dat
           </text>
         </svg>
         <p className="ac-mcbox-read" aria-hidden="true">
-          Earth in Pip's sky {bands.earthUpHours} of {bands.hours} hours ({formatNumber(earthPct, 1)}%). Sun band: hours lit by the mission's rule, as tall as the share of the disc that shows.
+          Earth in Pip's sky {bands.earthUpHours} of {bands.hours} hours, about {formatNumber(earthPct, 0)}%. Sun band: hours lit by the mission's rule, as tall as the share of the disc that shows.
         </p>
       </div>
     </Frame>
