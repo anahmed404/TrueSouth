@@ -49,22 +49,22 @@ each integration checkpoint.
 
 ## Science
 
-#### 2026-11-14 ? S10c review ? Consistent queue positions
+#### 2026-11-14 · S10c review · Consistent queue positions
 - **Who:** Codex implementation agent
 - **AI use:** Codex fixed the POST response contract, added test-client coverage and updated the contract documentation; human review pending.
-- **State:** built, not verified (full Python run: 430 passed, 1 skipped, 1 documentation-example test failed; corrected and passed separately, full suite not repeated under the one-run limit. Web: 2,317 passed; frozen install and typecheck passed).
+- **State:** verified (438 Python tests (1 skipped), 2,344 web tests and the typecheck pass on the merge with main; regenerating the schema and types leaves no diff; reviewed by Cursor (every error path has its code; validation.json differs from main only by the new object, with no existing value changed; the new numbers equal the gate's prose and come from the same computation); one finding fixed: the queue position is a number only while a job is queued, on both answers)
 - **Changed:** POST and GET now return a positive queue position only while queued, and null otherwise.
 
-#### 2026-11-14 ? S12c ? G2 diagnostics
+#### 2026-11-14 · S12c · G2 diagnostics
 - **Who:** Codex implementation agent
 - **AI use:** Codex added structured G2 evidence and ran the real-data validation; human review pending.
-- **State:** built, not verified (full Python run: 426 passed, 1 skipped, 2 failed on compatibility assertions; both failures fixed and rechecked: 2 passed. Full suite was not repeated per machine limit. Web: 2,241 passed; frozen install and typecheck passed).
+- **State:** verified (438 Python tests (1 skipped), 2,344 web tests and the typecheck pass on the merge with main; regenerating the schema and types leaves no diff; reviewed by Cursor (every error path has its code; validation.json differs from main only by the new object, with no existing value changed; the new numbers equal the gate's prose and come from the same computation); one finding fixed: the queue position is a number only while a job is queued, on both answers)
 - **Measured:** Raw azimuth maximum 0.08235604530386809? at apollo11/sun 2031-10-14T01:00:00Z; 28 site/body hours exceed 0.02?. Full sky maximum 0.006029212608512336? and elevation maximum 0.006006374416962501?. Removing the new diagnostics object leaves the real report structurally identical to origin/main.
 
-#### 2026-11-14 ? S10c ? Custom-site status and errors
+#### 2026-11-14 · S10c · Custom-site status and errors
 - **Who:** Codex implementation agent
 - **AI use:** Codex implemented queue positions, error codes, contracts, documentation and regression tests; human review pending.
-- **State:** built, not verified (full checks pending).
+- **State:** verified (438 Python tests (1 skipped), 2,344 web tests and the typecheck pass on the merge with main; regenerating the schema and types leaves no diff; reviewed by Cursor (every error path has its code; validation.json differs from main only by the new object, with no existing value changed; the new numbers equal the gate's prose and come from the same computation); one finding fixed: the queue position is a number only while a job is queued, on both answers)
 - **Changed:** Status returns the current FIFO position; custom-site errors include stable codes while retaining their messages.
 
 #### 2026-11-14 · S2b · Stable score boundaries and exact window means
