@@ -200,14 +200,31 @@ export function subscribeGlobalHeights(listener: () => void): () => void {
  * Starts reading the map unless it is in or on its way. After a failure a new request tries
  * again (a failure is never kept for the session).
  */
-export function requestGlobalHeights(platform?: HeightsPlatform): void {
+export function requestGlobalHeights(platform?: HeightsPlatform, timeoutMs = HEIGHTS_TIMEOUT_MS): void {
   if (heightsState.status === "loading" || heightsState.status === "ready") return;
+  const attempt = (heightsAttempt += 1);
   setHeightsState({ status: "loading", heights: null });
+  // A fetch or decode that never settles fails after `timeoutMs`, so the plate never says
+  // "Loading…" for ever and the next visit tries again. A late answer from an attempt that
+  // already timed out is ignored.
+  const timer = setTimeout(() => {
+    if (attempt === heightsAttempt && heightsState.status === "loading") setHeightsState({ status: "failed", heights: null });
+  }, timeoutMs);
   readGlobalHeights(platform).then(
-    (heights) => setHeightsState({ status: "ready", heights }),
-    () => setHeightsState({ status: "failed", heights: null }),
+    (heights) => {
+      clearTimeout(timer);
+      if (attempt === heightsAttempt && heightsState.status === "loading") setHeightsState({ status: "ready", heights });
+    },
+    () => {
+      clearTimeout(timer);
+      if (attempt === heightsAttempt && heightsState.status === "loading") setHeightsState({ status: "failed", heights: null });
+    },
   );
 }
+
+/** How long reading the global height map may take before it counts as failed. */
+export const HEIGHTS_TIMEOUT_MS = 20_000;
+let heightsAttempt = 0;
 
 /** For tests: forget the map. */
 export function resetGlobalHeightsForTests(): void {

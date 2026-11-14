@@ -4,7 +4,7 @@ import type { DecodedApron, DecodedTerrain } from "../../../data";
 import { isCustomSiteId, sceneImageUrl } from "../../../data";
 import { EARTH_RADIUS_KM, MOON_RADIUS_M, SQUEEZED_DISTANCE, SQUEEZED_SUN_RADIUS, SUN_RADIUS_KM, type ApronGrid } from "../../../lib/geo";
 import { altitudeOf, type SiteFrame } from "./camera";
-import { apronGeometry, apronUpGrid, patchGeometry, patchOutline, patchRim, patchUpGrid, smoothGroundGeometry, type GroundSite } from "./ground";
+import { apronGeometry, apronUpGrid, globeSegments, patchGeometry, patchOutline, patchRim, patchUpGrid, smoothGroundGeometry, type GroundSite } from "./ground";
 import { CONTINUATION_GRID, continuationApron, globalHeightsState, requestGlobalHeights, subscribeGlobalHeights } from "./custom-apron";
 import { GroundLook } from "./ground-material";
 import { aimLander, createLander, LANDER_HEIGHT_M, partAxis, type Lander } from "./lander";
@@ -55,7 +55,8 @@ export type WorldInputs = {
 /** Pip is drawn this many times larger than life in Local terrain, and a plate says so. */
 export const LANDER_SCALE = 300;
 /** The globe hides its pixels under the apron, within 140 km of the site, once the ground is in. */
-// The ground covers the band beyond this too; its edge sits below the globe there (ground.ts, APRON_EDGE_DROP_M).
+// The ground covers the band beyond this too; its edge sits below the globe there while the globe
+// keeps its finest mesh (ground.ts, APRON_EDGE_DROP_M and globeSegments).
 const HIDE_RADIUS = 140_000 / MOON_RADIUS_M;
 
 export type Anchors = {
@@ -701,7 +702,9 @@ export class World {
    * Shading is per pixel from the normalised position, so this moves only the silhouette, by
    * under a quarter of a pixel at the size the Director asks for it. 384 is the full mesh.
    */
-  setMoonSegments(segments: number): void {
+  setMoonSegments(requested: number): void {
+    // While ground is drawn, the finest mesh: coarser ones would rise above the ground's edge (ground.ts).
+    const segments = globeSegments(requested, this.ground.visible);
     if (segments === this.moonSegmentsNow) return;
     if (this.moonLods.size === 0) this.moonLods.set(this.moonSegmentsNow, this.moonMesh.geometry);
     let geometry = this.moonLods.get(segments);

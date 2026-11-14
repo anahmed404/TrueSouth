@@ -4,6 +4,7 @@ import {
   apronCellLocalKm,
   apronCellOffsetM,
   localKmToSceneOffset,
+  MOON_RADIUS_M,
   sceneToMoonFixed,
   siteGroundScene,
   type ApronGrid,
@@ -179,12 +180,27 @@ function apronDrawnHeightM(apron: DecodedApron, grid: ApronGrid, row: number, co
  * site (world.ts, HIDE_RADIUS), while the apron (and a sphere-tier site's smooth ground) runs
  * to 150 km on each axis and 212 km at its corners, so both surfaces cover that band. The
  * apron eases from 80 % to 98 % of its half-width to `APRON_EDGE_DROP_M`, below the reference
- * sphere and below the globe's own triangles, which lie up to `GLOBE_SAG_M` (116.3 m) inside the sphere
- * (384 × 192 segments). The globe is then in front by tens of metres, far more than the depth
- * buffer's step there (about 1 m), so the two never fight. Drawing only.
+ * sphere. A globe mesh of n × n/2 segments lies up to `globeSagM(n)` inside the sphere: 116.3 m
+ * for the finest (384), but 262 m to 4.2 km for the coarser ones the quality governor picks
+ * while moving (perf.ts, MOON_SEGMENTS). So while any ground is drawn the globe keeps its
+ * finest mesh (`globeSegments`, applied in World.setMoonSegments), and the ground's edge is
+ * then below every globe triangle by more than 30 m, far more than the depth buffer's step
+ * there (about 1 m): the two never fight, at rest or moving, at any quality stage.
  */
 export const APRON_EDGE_DROP_M = -150;
-export const GLOBE_SAG_M = 117;
+
+/** The globe's finest mesh, n × n/2 segments (perf.ts, MOON_SEGMENTS_FULL). */
+export const GLOBE_FULL_SEGMENTS = 384;
+
+/** How far inside the sphere a globe mesh of n × n/2 segments lies at most, in metres (its cells' diagonals). */
+export function globeSagM(segments: number): number {
+  return MOON_RADIUS_M * (1 - Math.cos((Math.SQRT2 * Math.PI) / segments));
+}
+
+/** The globe's mesh: the finest whenever ground is drawn, otherwise what the governor asks for. */
+export function globeSegments(requested: number, groundShown: boolean): number {
+  return groundShown ? GLOBE_FULL_SEGMENTS : requested;
+}
 
 /** 0 inside 80 % of the half-width, 1 from 98 %, smooth between. */
 export function apronEdgeEase(edge: number): number {

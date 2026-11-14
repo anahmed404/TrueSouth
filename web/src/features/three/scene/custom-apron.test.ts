@@ -218,6 +218,25 @@ describe("reading the global height map: loading, ready, failed, and a retry", (
     });
   }
 
+  it("a read that never settles fails after the timeout, then a new request can succeed; the stale answer is ignored", async () => {
+    let settleLate: (() => void) | null = null;
+    const hanging: HeightsPlatform = {
+      ...good,
+      fetch: () => new Promise((resolve) => (settleLate = () => resolve({ ok: true, blob: async () => new Blob() }))),
+    };
+    requestGlobalHeights(hanging, 20);
+    expect(globalHeightsState().status).toBe("loading");
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(globalHeightsState().status).toBe("failed");
+    requestGlobalHeights(good);
+    await settle();
+    expect(globalHeightsState().status).toBe("ready");
+    // The first attempt answering now changes nothing.
+    settleLate!();
+    await settle();
+    expect(globalHeightsState().status).toBe("ready");
+  });
+
   it("tells its listeners each change, and is not read twice once in", async () => {
     const seen: string[] = [];
     const stop = subscribeGlobalHeights(() => seen.push(globalHeightsState().status));
