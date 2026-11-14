@@ -1490,6 +1490,39 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## 3D and Map
 
+#### 2026-11-14 · T11 · Local terrain's notes fold into one short line; Labels in Local terrain
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the fold (`plates.ts` `decorationShort`,
+  `foldedDecoration`, `visiblePlates`; `fold.ts`; `FoldedPlate` in `overlay.tsx`; CSS in
+  `scene.css`), the Labels button in Local terrain's row, the spec changes and the tests
+  (`fold.test.ts`, `plates.test.ts`) — checked by the agent with vitest, typecheck, build, and
+  by eye in Chrome at 1440 × 900 and 1280 × 720; a human has not reviewed it
+- **State:** built, not verified
+- **Changed:** `web/src/features/three/scene/plates.ts`, `fold.ts` and `fold.test.ts` (new),
+  `overlay.tsx`, `scene.css`, `plates.test.ts`, `docs/features/local-terrain.md` ("Shadows are
+  decoration"), `docs/features/system-view.md` (Labels bullet), this entry
+- **Notes:**
+  - The team lead: "in 'local terrain' these texts are cluttering my view". The ground-source
+    plate at the top and the two-line decoration plate at the foot are now one short line at
+    the foot: "Lit · drawing only", "Dark · drawing only", or "Drawing only" without the
+    series, with an info mark. It is a button with `aria-expanded`: mouse hover, keyboard
+    focus, or a click or tap opens the full text above it (the ground's source, the series'
+    sentence with its numbers, the decoration sentence, exactly as before); Escape or a second
+    click closes it. A tap opens it rather than opening and closing (focus opens only when
+    keyboard-visible). Screen readers reach the full text by focusing the button, which opens it.
+  - Always shown: it is a plate, not a `.scene-label`, so the Labels toggle never hides it
+    (tested on the markup). A tight space or open window still shows the one-line
+    "Shadows and ground texture are illustrative." as before; other plates (loading, errors,
+    a custom site's surroundings) keep their place at the top.
+  - Lander's eye uses the same plates, so it folds too, to "Drawing only" (its horizon bar
+    gives the series' answer); it gets no Labels button.
+  - Labels now also sits in Local terrain's own control row, at the foot; same store, so the
+    choice carries between views. The Polar map is named in the Labels bullet (its focused
+    site's name tag hides too).
+  - By eye at 1440 × 900 and 1280 × 720 in Local terrain: collapsed with labels on (the two
+    sight-line notes and "Lander not to scale" show, plus the short line), collapsed with
+    labels off (only the short line and the Labels button), expanded (all three sentences).
+
 #### 2026-11-14 · T9 · A Labels toggle hides the name tags on the scene
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — wrote `labels.ts` (the session-only store and the
