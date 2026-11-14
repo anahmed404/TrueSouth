@@ -328,8 +328,10 @@ function DatePicker({
       width={320}
       trigger={(props) => (
         <button {...props} type="button" className="cmp-pick cmp-pick-date" aria-label={`Date ${which}: ${formatUtc(utc)}. Change`}>
-          <span className="cmp-pick-text tabular">
-            {formatUtc(utc, { withZone: false })} <small>UTC</small>
+          {/* The day, then the hour under it: the whole date fits a narrow column. */}
+          <span className="cmp-pick-when tabular">
+            <span>{utc.slice(0, 10)}</span>
+            <small>{utc.slice(11, 16)} UTC</small>
           </span>
           <ChevronDown className="cmp-pick-icon" size={14} strokeWidth={1.8} aria-hidden="true" />
         </button>
