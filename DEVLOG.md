@@ -1104,6 +1104,58 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## 3D and Map
 
+#### 2026-11-14 · T7b · The Moon around the Polar map's detailed square
+- **Who:** implementation agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — built the context reprojection, border,
+  outside-map readouts, tests and the first visual pass with the impeccable skill;
+  Codex, gpt-6.1-sol — resumed the interrupted work, finished label placement and readout
+  wrapping, added free-space label tests, ran the checks, updated the spec and captured the
+  final opening views and flat Slip Planner. No AI-generated imagery; human review pending.
+- **State:** built, not verified
+- **Changed:** `web/src/features/polar-map/`; `docs/features/polar-map.md`; eight
+  `docs/design/c2/built-polar-map-context-*.png` screenshots; this entry.
+- **Notes:**
+  - Uses the scene's existing NASA `scene/moon_4k.webp`, redrawn in the browser with the
+    shared projection helpers. A 1,024 px outer canvas reaches the equator; a 2,048 px inner
+    canvas reaches 960 km from the pole (about 59°S along its sides). The quieter grey
+    context is a picture, never a terrain or visibility result. No pipeline, contract,
+    scene, Mission Control or dependency changes.
+  - The earlier timing probe measured about 1.5 s to build on this machine, with completion
+    competing with the flight under load. Work yields between roughly 8 ms slices and
+    starts when the view is picked. The two RGBA canvases total 20 MiB (calculated, not a
+    measured heap peak); the decoded source and temporary pixel arrays cost more during
+    construction. Context, 8K relief and overlays release their cache references on leaving.
+  - The border follows the image and lookup grids' square, not the 80°S circle. Its label
+    stays inside the free space, above an edge when possible and inside otherwise. Grid
+    labels give way to it; pin and feature labels avoid it. The border stays when the label
+    is hidden. `readouts={false}` hides the label by default for the Slip Planner;
+    `detailLabel` overrides only that label. Other prop meanings are unchanged.
+  - Catalog and ready custom pins in the southern hemisphere can sit on the context,
+    outside the border, labelled "Outside the detailed map" (custom pins retain "Your
+    site"). Northern sites remain in the off-map list. NASA's hover, point and nudge values
+    outside the square say "outside the detailed map". Compute remains available when a
+    callback is supplied and names the 80 m, 240 m or smooth-Moon tier from the shared
+    `tierHint`, using the server's latitude bounds. The pan clamp still keeps the detailed
+    square reachable. The takeover fit reserves the scene's 60 px controls strip.
+  - **Checks:** each full command ran once, sequentially, with its exit code read directly:
+    web test exit 0 (2,342 tests, 103 files); typecheck exit 0; build exit 0; pytest exit 0
+    (425 passed, 1 skipped, 3 existing dependency/fixture warnings, 260.67 s). No timed-out
+    test needed a rerun. Before these, the three map files passed 67 focused tests, including
+    projection, outside-map readouts, tier boundaries, label placement and the takeover's
+    under-1% pin displacement. The Impeccable detector returned no findings.
+  - **By eye:** real-data opening views at 1440 × 900 and 390 × 844 show the whole square
+    with the Moon around it and the label clear of the view bar; left pans show the context
+    following the map. The Slip Planner with forced no-WebGL was captured at both sizes:
+    its spots follow the map and the square's label is hidden. On the phone its existing
+    map controls cover much of the small map; their behavior was left unchanged.
+    Earlier captures show the takeover and minimum zoom. The preview's snapshot and
+    recording host repeatedly timed out or disconnected, so the remaining right/up/down
+    pan checks could not be completed by eye. Some final PNGs are frames from the session
+    browser's recording because its snapshot endpoint failed. No browser test suite added.
+  - `origin/main` was merged at `2dc14c6`, retaining both sides' entries; the final fetch
+    still found main at `5a5fd84`. Own preview tabs were closed and port 5199 stopped;
+    ports 5173, 8000 and 8080 were not touched. Team-lead review remains outstanding.
+
 #### 2026-11-14 · T3 · The ground's look in Local terrain and Lander's eye
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (question
