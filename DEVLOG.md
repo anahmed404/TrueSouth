@@ -2214,7 +2214,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   repository and not used in the app. Checked by the agent with the Luna tests, the full
   suite, typecheck and build, and by eye in a browser (the gallery at 160, 64, 40 and 28 px,
   and lesson 1 at 1440 × 900). A human has not judged the faces yet.
-- **State:** built, not verified
+- **State:** verified (art only: every mood keeps its parts, labels and token-only colours (the Luna tests, extended); the team approved adapting the faces and saw the gallery before and after; merged on the orchestrator's checks without a second reviewer because of the deadline; on the tree merged with main 6f9cb4e: 472 Python tests (1 skipped), 2,912 web tests, typecheck and build all exit 0)
 - **Changed:** `web/src/components/luna/` (`art/*` faces and `shapes.tsx`, `resolve-art.ts`
   and `Luna.tsx` drop extras below 40 px, `LunaGallery.tsx` shows 160, 64, 40 and 28 px,
   `luna.test.ts`), `web/src/app/theme.css` (one token, `--luna-blush: #d6a19a`, a muted
