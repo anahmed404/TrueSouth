@@ -3,7 +3,7 @@ import type { CameraViewId } from "../../../app/scene";
 import type { DecodedApron, DecodedTerrain } from "../../../data";
 import { sceneImageUrl } from "../../../data";
 import { EARTH_RADIUS_KM, MOON_RADIUS_M, SUN_RADIUS_KM, type ApronGrid } from "../../../lib/geo";
-import { DRAWN_SUN_RADIUS, drawnDistance, earthOpacity } from "./proportions";
+import { DRAWN_SUN_RADIUS, earthDuringScale, earthOpacity, sunDuringScale } from "./proportions";
 import { altitudeOf, type SiteFrame } from "./camera";
 import { apronGeometry, apronUpGrid, patchGeometry, patchOutline, patchUpGrid, smoothGroundGeometry, type GroundSite } from "./ground";
 import { GroundLook } from "./ground-material";
@@ -114,6 +114,8 @@ export class World {
   textureState: TextureState = { moon: "none", cap: false, earth: false };
   /** Draw the cap's fixed top-left lighting (the flat map's look) instead of the real Sun: 0 to 1. */
   draw = 0;
+  /** 0 schematic, 1 true scale, between during the toggle's flight (the rig's scaleBlend). */
+  scaleBlend = 0;
   /**
    * The Slip Planner (slip.ts): 0 to 1, how much the Moon is lit by `slipLight`, a fixed
    * drawing light, instead of the real Sun. In that view Earth, the Sun, the guides, the
@@ -486,7 +488,7 @@ export class World {
     this.moon.uniforms.uNoSun.value = inputs.bodies ? 0 : 1;
     this.moon.uniforms.uSun.value.set(...inputs.sunDir);
     // Earth is lit from the series' Moon-to-Sun direction, not from the drawn Earth toward the
-    // drawn Sun (which can differ by up to about 8° in the schematic, proportions.ts). Seen
+    // drawn Sun (which can differ by up to about 10° in the schematic, proportions.ts). Seen
     // from Earth and from the Moon the Sun's direction agrees to within about 0.15°, so this
     // draws Earth's true phase; lighting it from the drawn Sun would make the phase false to
     // flatter the schematic. proportions.test.ts pins it.
@@ -539,10 +541,12 @@ export class World {
     const earthNear = nearCentre.clone().add(earthNearDir.multiplyScalar(earthNearDistance));
     const sunNear = nearCentre.clone().add(sunNearDir.multiplyScalar(sunNearDistance));
 
-    const earthFar = new THREE.Vector3(...inputs.earthCentre);
+    // Far out: the schematic or true scale, blended in step with the toggle's flight.
+    const earthPlaced = earthDuringScale(inputs.earthDir, inputs.earthDistKm, this.scaleBlend);
+    const earthFar = new THREE.Vector3(...earthPlaced.centre);
     this.earthMesh.visible = inputs.bodies;
     this.earthMesh.position.lerpVectors(earthFar, earthNear, near);
-    const earthRadius = lerp(inputs.earthRadius, earthNearDistance * (EARTH_RADIUS_KM / inputs.earthDistKm), near);
+    const earthRadius = lerp(earthPlaced.radius, earthNearDistance * (EARTH_RADIUS_KM / inputs.earthDistKm), near);
     this.earthMesh.scale.setScalar(earthRadius);
     // Earth turns once every 23.934 h of the clock. Decoration; nothing reads from it.
     this.earthMesh.rotation.set(0, (inputs.hourIndex / 23.934) * Math.PI * 2, 0);
@@ -553,14 +557,15 @@ export class World {
     this.earth.uniforms.uAlpha.value = earthAlpha;
     if (earthAlpha <= 0.001) this.earthMesh.visible = false;
 
-    const sunFar = new THREE.Vector3(...inputs.sunDir).multiplyScalar(drawnDistance(inputs.sunDistKm));
+    const sunPlaced = sunDuringScale(inputs.sunDir, inputs.sunDistKm, this.scaleBlend);
+    const sunFar = new THREE.Vector3(...sunPlaced.centre);
     this.sunMesh.position.lerpVectors(sunFar, sunNear, near);
     const sunRadius = lerp(DRAWN_SUN_RADIUS, sunNearDistance * (SUN_RADIUS_KM / inputs.sunDistKm), near);
     this.sun.uniforms.uExt.value = lerp(1.8, 1.5, near);
     this.sunMesh.scale.setScalar(sunRadius * this.sun.uniforms.uExt.value);
     this.sunMesh.quaternion.copy(camera.quaternion);
     // At true scale the Sun is only a direction, marked at the screen's edge.
-    this.sunMesh.visible = inputs.bodies && !(inputs.trueScale && near < 0.5);
+    this.sunMesh.visible = inputs.bodies && !(!sunPlaced.visible && near < 0.5);
     anchors.sun = this.sunMesh.visible ? this.sunMesh.position.clone() : null;
     anchors.sunRadius = sunRadius;
 

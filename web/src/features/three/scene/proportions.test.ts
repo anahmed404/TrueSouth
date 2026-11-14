@@ -16,7 +16,9 @@ import {
   drawnEarth,
   drawnRadius,
   drawnSun,
+  earthDuringScale,
   earthOpacity,
+  sunDuringScale,
 } from "./proportions";
 
 /**
@@ -56,31 +58,31 @@ const extremes = (() => {
   return { perigee: by("earthDistKm", -1), apogee: by("earthDistKm", 1), sunNear: by("sunDistKm", -1), sunFar: by("sunDistKm", 1) };
 })();
 
-describe("the rule: drawn size and distance are the cube root of the true value relative to the Moon", () => {
-  it("names its constants: size exponent 1/3, distance exponent 1/3, distance scale 0.75", () => {
-    expect(SIZE_EXPONENT).toBe(1 / 3);
-    expect(DISTANCE_EXPONENT).toBe(1 / 3);
-    expect(DISTANCE_SCALE).toBe(0.75);
+describe("the mapping: drawn size and distance are powers below 1 of the true value relative to the Moon", () => {
+  it("names its constants: size exponent 0.25, distance exponent 0.3, distance scale 1.35", () => {
+    expect(SIZE_EXPONENT).toBe(0.25);
+    expect(DISTANCE_EXPONENT).toBe(0.3);
+    expect(DISTANCE_SCALE).toBe(1.35);
   });
 
-  it("draws every size as the cube root of its ratio to the Moon, to 1e-12 relative", () => {
+  it("draws every size as the fourth root of its ratio to the Moon, to 1e-12 relative", () => {
     for (let km = 1; km < 1e7; km *= 1.37) {
-      const expected = Math.cbrt(km / MOON_RADIUS_KM);
+      const expected = Math.pow(km / MOON_RADIUS_KM, 0.25);
       expect(Math.abs(drawnRadius(km) - expected) / expected).toBeLessThan(1e-12);
     }
   });
 
-  it("draws every distance as 0.75 times the cube root of its ratio to the Moon's radius, to 1e-12 relative", () => {
+  it("draws every distance as 1.35 times its ratio to the Moon's radius to the power 0.3, to 1e-12 relative", () => {
     for (let km = 1; km < 1e10; km *= 1.37) {
-      const expected = 0.75 * Math.cbrt(km / MOON_RADIUS_KM);
+      const expected = 1.35 * Math.pow(km / MOON_RADIUS_KM, 0.3);
       expect(Math.abs(drawnDistance(km) - expected) / expected).toBeLessThan(1e-12);
     }
   });
 
-  it("gives Moon 1, Earth 1.54264 and the Sun 7.37068 Moon radii (a size exponent of 0.4 would give 1.68 and 11.0)", () => {
+  it("gives Moon 1, Earth 1.38420 and the Sun 4.47333 Moon radii (an exponent of 1/3 would give 1.54 and 7.37)", () => {
     expect(drawnRadius(MOON_RADIUS_KM)).toBe(1);
-    expect(DRAWN_EARTH_RADIUS).toBeCloseTo(1.54264, 5);
-    expect(DRAWN_SUN_RADIUS).toBeCloseTo(7.37068, 5);
+    expect(DRAWN_EARTH_RADIUS).toBeCloseTo(1.3842, 4);
+    expect(DRAWN_SUN_RADIUS).toBeCloseTo(4.47333, 5);
     expect(DRAWN_EARTH_RADIUS).toBe(drawnRadius(EARTH_RADIUS_KM));
     expect(DRAWN_SUN_RADIUS).toBe(drawnRadius(SUN_RADIUS_KM));
   });
@@ -119,11 +121,11 @@ describe("on the real series (data/derived/system.bin)", () => {
     expect(extremes.sunFar.sunDistKm).toBeGreaterThan(152_000_000);
   });
 
-  it("at the extremes: Earth 4.42 to 4.63 Moon radii out, the Sun 32.9 to 33.4", () => {
-    expect(drawnDistance(extremes.perigee.earthDistKm)).toBeGreaterThan(4.42);
-    expect(drawnDistance(extremes.apogee.earthDistKm)).toBeLessThan(4.63);
-    expect(drawnDistance(extremes.sunNear.sunDistKm)).toBeGreaterThan(32.9);
-    expect(drawnDistance(extremes.sunFar.sunDistKm)).toBeLessThan(33.4);
+  it("at the extremes: Earth 6.66 to 6.94 Moon radii out, the Sun 40.5 to 41.1", () => {
+    expect(drawnDistance(extremes.perigee.earthDistKm)).toBeGreaterThan(6.66);
+    expect(drawnDistance(extremes.apogee.earthDistKm)).toBeLessThan(6.94);
+    expect(drawnDistance(extremes.sunNear.sunDistKm)).toBeGreaterThan(40.5);
+    expect(drawnDistance(extremes.sunFar.sunDistKm)).toBeLessThan(41.1);
   });
 
   it("keeps the order Moon < Earth < Sun in size, and Earth < Sun in distance, at every hour", () => {
@@ -134,7 +136,7 @@ describe("on the real series (data/derived/system.bin)", () => {
     }
   });
 
-  it("draws the Sun 7.1 to 7.6 times further than Earth at every hour (389 true, its cube root 7.3)", () => {
+  it("draws the Sun 5.8 to 6.2 times further than Earth at every hour (389 true; 389^0.3 = 6.0)", () => {
     let low = Infinity;
     let high = 0;
     for (const h of hours) {
@@ -142,11 +144,11 @@ describe("on the real series (data/derived/system.bin)", () => {
       low = Math.min(low, ratio);
       high = Math.max(high, ratio);
     }
-    expect(low).toBeGreaterThan(7.1);
-    expect(high).toBeLessThan(7.6);
+    expect(low).toBeGreaterThan(5.8);
+    expect(high).toBeLessThan(6.2);
   });
 
-  it("keeps clear gaps between the surfaces at every hour: Moon to Earth over 1.85, Moon to Sun over 24, Earth to Sun over 19", () => {
+  it("keeps clear gaps between the surfaces at every hour: Moon to Earth over 4.2, Moon to Sun over 35, Earth to Sun over 27", () => {
     let moonEarth = Infinity;
     let moonSun = Infinity;
     let earthSun = Infinity;
@@ -157,9 +159,9 @@ describe("on the real series (data/derived/system.bin)", () => {
       moonSun = Math.min(moonSun, between(MOON.centre, sun.centre) - 1 - sun.radius);
       earthSun = Math.min(earthSun, between(earth.centre, sun.centre) - earth.radius - sun.radius);
     }
-    expect(moonEarth).toBeGreaterThan(1.85);
-    expect(moonSun).toBeGreaterThan(24);
-    expect(earthSun).toBeGreaterThan(19);
+    expect(moonEarth).toBeGreaterThan(4.2);
+    expect(moonSun).toBeGreaterThan(35);
+    expect(earthSun).toBeGreaterThan(27);
   });
 
   it("keeps every direction exactly as the series gives it", () => {
@@ -218,8 +220,8 @@ describe("Earth's light is the series' Sun direction, not the drawn offset", () 
   );
 
   it("the drawn offset is real (several degrees at the worst hour), so the test can tell the two apart", () => {
-    expect(worst.off).toBeGreaterThan(7);
-    expect(worst.off).toBeLessThan(8.5);
+    expect(worst.off).toBeGreaterThan(9);
+    expect(worst.off).toBeLessThan(10.5);
   });
 
   it("the scene hands Earth's shader the series' direction at that hour", async () => {
@@ -251,20 +253,61 @@ describe("Earth's light is the series' Sun direction, not the drawn offset", () 
     const light = (world as unknown as { earth: { uniforms: { uSun: { value: { x: number; y: number; z: number } } } } }).earth.uniforms.uSun.value;
     const l: V = unit([light.x, light.y, light.z]);
     expect(angleDeg(l, sun)).toBeLessThan(1e-6);
-    expect(angleDeg(l, worst.drawnDir)).toBeGreaterThan(7);
+    expect(angleDeg(l, worst.drawnDir)).toBeGreaterThan(9);
+  });
+});
+
+describe("Earth and the Sun while True scale turns on or off", () => {
+  const h = extremes.perigee;
+  const { sun, earth } = bodyDirections(h);
+
+  it("starts at the schematic and ends at true scale, along the true direction throughout", () => {
+    const start = earthDuringScale(earth, h.earthDistKm, 0);
+    const end = earthDuringScale(earth, h.earthDistKm, 1);
+    expect(start.centre.map((v, i) => v - drawnEarth(h, false).centre[i]!).every((d) => Math.abs(d) < 1e-12)).toBe(true);
+    expect(start.radius).toBeCloseTo(DRAWN_EARTH_RADIUS, 12);
+    expect(length(end.centre)).toBeCloseTo(length(drawnEarth(h, true).centre), 9);
+    expect(end.radius).toBeCloseTo(drawnEarth(h, true).radius, 12);
+    for (let t = 0; t <= 1; t += 0.1) {
+      const u = unit(earthDuringScale(earth, h.earthDistKm, t).centre);
+      for (let i = 0; i < 3; i += 1) expect(u[i]).toBeCloseTo(earth[i]!, 12);
+    }
+  });
+
+  it("moves Earth smoothly: no step of a 100-step flight moves it more than 5 % of its distance", () => {
+    let previous = earthDuringScale(earth, h.earthDistKm, 0);
+    for (let k = 1; k <= 100; k += 1) {
+      const now = earthDuringScale(earth, h.earthDistKm, k / 100);
+      expect(between(now.centre, previous.centre)).toBeLessThan(0.05 * length(previous.centre));
+      expect(Math.abs(now.radius - previous.radius)).toBeLessThan(0.05 * previous.radius);
+      previous = now;
+    }
+  });
+
+  it("carries the Sun out and hides it only at the end; bad blends give no NaN", () => {
+    expect(sunDuringScale(sun, h.sunDistKm, 0).visible).toBe(true);
+    expect(length(sunDuringScale(sun, h.sunDistKm, 0).centre)).toBeCloseTo(drawnDistance(h.sunDistKm), 12);
+    expect(sunDuringScale(sun, h.sunDistKm, 0.99).visible).toBe(true);
+    expect(sunDuringScale(sun, h.sunDistKm, 1).visible).toBe(false);
+    for (const bad of [Number.NaN, -1, 2, Number.POSITIVE_INFINITY]) {
+      expect(earthDuringScale(earth, h.earthDistKm, bad).centre.every(Number.isFinite)).toBe(true);
+      expect(sunDuringScale(sun, h.sunDistKm, bad).centre.every(Number.isFinite)).toBe(true);
+    }
   });
 });
 
 describe("the zoom-out limit", () => {
   it("reaches far enough to see the Sun's disc and glow beside the Moon in a small free space", () => {
     const sunReach = drawnDistance(152_100_000) + DRAWN_SUN_RADIUS * 1.8;
+    // ... and no more than needed: a fifth less would not reach.
+    expect((1 + SYSTEM_MAX_ALTITUDE * 0.8) * Math.tan((15 * Math.PI) / 180) * (1 / 3)).toBeLessThan(sunReach);
     const halfHeight = (1 + SYSTEM_MAX_ALTITUDE) * Math.tan((15 * Math.PI) / 180) * (1 / 3);
     expect(halfHeight).toBeGreaterThan(sunReach);
   });
 });
 
 describe("Earth fades while it stands in front of the Moon", () => {
-  const earth: BodyPlacement = { centre: [4.5, 0, 0], radius: DRAWN_EARTH_RADIUS };
+  const earth: BodyPlacement = { centre: [6.8, 0, 0], radius: DRAWN_EARTH_RADIUS };
 
   it("is fully drawn beside the Moon or behind it", () => {
     expect(earthOpacity([0, -12, 0], earth)).toBe(1);
@@ -273,7 +316,7 @@ describe("Earth fades while it stands in front of the Moon", () => {
 
   it("is a faint ghost when it covers the Moon (From Earth), and hidden from inside it", () => {
     expect(earthOpacity([9.3, 0, 0], earth)).toBeLessThan(0.2);
-    expect(earthOpacity([4.6, 0.2, 0], earth)).toBe(0);
+    expect(earthOpacity([6.9, 0.2, 0], earth)).toBe(0);
   });
 
   it("fades smoothly as the camera swings round, never jumping", () => {

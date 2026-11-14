@@ -19,6 +19,8 @@ type Tween = {
   onDone?: () => void;
   /** A locked flight ignores drags, scrolls and keys; only another flight replaces it. */
   locked: boolean;
+  /** Where `scaleBlend` starts and ends over this flight. */
+  scale: { from: number; to: number };
 };
 
 type Offset = { x: number; y: number; width: number; height: number };
@@ -62,7 +64,22 @@ export class Rig {
   mode: Mode = "system";
   /** The site the Local terrain and Lander's eye controls turn about. */
   site: SiteFrame | null = null;
-  trueScale = false;
+  private trueScaleOn = false;
+  /**
+   * 0 with the schematic arrangement, 1 at true scale, and in between while the flight that
+   * the toggle starts is under way: every flight carries it from where it is to the current
+   * setting, in step with the camera (and at once with reduced motion). world.ts places Earth
+   * and the Sun from it (proportions.ts, earthDuringScale and sunDuringScale).
+   */
+  scaleBlend = 0;
+
+  get trueScale(): boolean {
+    return this.trueScaleOn;
+  }
+
+  set trueScale(on: boolean) {
+    this.trueScaleOn = on;
+  }
   /** True once the user has turned or zoomed since the last pick. */
   userMoved = false;
   /**
@@ -115,15 +132,17 @@ export class Rig {
     options: { locked?: boolean; now?: number } = {},
   ): void {
     this.userMoved = false;
+    const scale = { from: this.scaleBlend, to: this.trueScaleOn ? 1 : 0 };
     if (ms <= 0) {
       this.tween = null;
+      this.scaleBlend = scale.to;
       this.apply(to);
       onT?.(1);
       onDone?.();
       return;
     }
     const t0 = options.now ?? performance.now();
-    this.tween = { from: this.pose(), to, t0, ms, onT, onDone, locked: options.locked ?? false };
+    this.tween = { from: this.pose(), to, t0, ms, onT, onDone, locked: options.locked ?? false, scale };
   }
 
   /**
@@ -192,6 +211,8 @@ export class Rig {
   /** Advances a flight and the offset slide. Returns true while something still moves. */
   update(now: number): boolean {
     let active = false;
+    // With no flight under way (a drag stopped it, or none was started), the arrangement is the setting.
+    if (!this.tween) this.scaleBlend = this.trueScaleOn ? 1 : 0;
     if (this.offsetTween) {
       const t = clamp((now - this.offsetTween.t0) / this.offsetTween.ms, 0, 1);
       const e = 1 - (1 - t) ** 3;
@@ -211,6 +232,7 @@ export class Rig {
       const t = clamp((now - tween.t0) / tween.ms, 0, 1);
       const eased = easeInOutCubic(t);
       this.apply(lerpPose(tween.from, tween.to, eased));
+      this.scaleBlend = tween.scale.from + (tween.scale.to - tween.scale.from) * eased;
       tween.onT?.(eased);
       if (t >= 1) {
         this.tween = null;

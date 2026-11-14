@@ -12,34 +12,38 @@ import {
  * How big and how far the System view draws Earth and the Sun by default, when "True scale"
  * is off (docs/features/system-view.md, "Scale"). Scene units are Moon radii.
  *
- * A schematic that keeps the order. The true values (docs/science.md §1, and the series):
+ * A schematic, not a model: the Moon is the subject, and Earth and the Sun read as far away
+ * (the team lead, 2026-11-14). The true values (docs/science.md §1, and the series):
  * - radii: Moon 1,737.4 km; Earth 6,378.137 km (3.67 Moons); Sun 695,700 km (400 Moons,
  *   109 Earths);
  * - distances from the Moon: Earth about 384,400 km (221 Moon radii; 356,000 to 407,000 km
  *   over a month); the Sun about 149.6 million km (86,100 Moon radii, 389 times Earth's).
  *
- * Both are compressed by one rule, a power below 1 of the true value relative to the Moon,
- * so the order can never invert: a larger body is always drawn larger, a further body always
- * further. Directions are not touched: they come from `system.bin` (computed in Python).
+ * Each is a power below 1 of the true value relative to the Moon, so the order can never
+ * invert: a larger body is always drawn larger, a further body always further. Directions
+ * are not touched: they come from `system.bin` (computed in Python).
  *
  * To retune, change one constant:
- * - SIZE_EXPONENT: 1/3 draws Earth 1.54 and the Sun 7.37 Moon radii across. Higher spreads
- *   the sizes apart (0.4: Earth 1.68, Sun 11.0).
- * - DISTANCE_EXPONENT: 1/3 draws the Sun 7.3 times further than Earth (389^⅓). Higher spreads
- *   the distances apart.
- * - DISTANCE_SCALE: 0.75 puts Earth about 4.5 Moon radii out and the Sun about 33. Larger
- *   moves both further out together ("a bit further").
+ * - SIZE_EXPONENT: 0.25 draws Earth 1.38 and the Sun 4.47 Moon radii across: just larger
+ *   than the Moon, and clearly the largest. Lower makes both smaller ("Earth a bit smaller").
+ * - DISTANCE_EXPONENT: 0.3 draws the Sun 6 times further than Earth (389^0.3). Higher
+ *   spreads the two distances apart.
+ * - DISTANCE_SCALE: 1.35 puts Earth about 6.8 Moon radii out (6.67 at perigee to 6.94 at
+ *   apogee), just outside the opening frame in every layout, the widest included (camera.ts,
+ *   homePose; three zoom steps show its edge on a laptop), and the Sun about 41. Smaller
+ *   brings both in ("a bit closer"), but below about 1.3 a sliver of Earth can show at a
+ *   corner of the opening frame.
  */
-export const SIZE_EXPONENT = 1 / 3;
-export const DISTANCE_EXPONENT = 1 / 3;
-export const DISTANCE_SCALE = 0.75;
+export const SIZE_EXPONENT = 0.25;
+export const DISTANCE_EXPONENT = 0.3;
+export const DISTANCE_SCALE = 1.35;
 
 /**
- * How far the System view can zoom out, in Moon radii above the surface: far enough to see
- * the Moon, Earth and the Sun's disc and edge together on a 1024 × 768 window. At true
- * scale, 900, far enough for Earth at its real distance.
+ * How far the System view can zoom out, in Moon radii above the surface: just far enough to
+ * see the Moon, Earth and the Sun's disc and edge together in a 1024 × 768 window with the
+ * panels open. At true scale, 900, far enough for Earth at its real distance.
  */
-export const SYSTEM_MAX_ALTITUDE = 600;
+export const SYSTEM_MAX_ALTITUDE = 580;
 export const TRUE_SCALE_MAX_ALTITUDE = 900;
 
 /**
@@ -76,6 +80,37 @@ export function drawnEarth(hour: SystemHour, trueScale: boolean): BodyPlacement 
 /** Where the Sun is drawn by default, along `sunDir` (a unit vector) at `sunDistKm`. At true scale it is only a direction. */
 export function drawnSun(sunDir: readonly [number, number, number], sunDistKm: number): BodyPlacement {
   return { centre: along(sunDir, drawnDistance(sunDistKm)), radius: DRAWN_SUN_RADIUS };
+}
+
+/** How far out the Sun is carried as "True scale" turns on, before it becomes only a direction. */
+export const SUN_TRUE_SCALE_EXIT = 4_000;
+
+/** Interpolates between two positive lengths on a log scale, so a move from 6 to 221 is even. */
+function logLerp(a: number, b: number, t: number): number {
+  if (!(a > 0) || !(b > 0)) return a + (b - a) * t;
+  return Math.exp(Math.log(a) + (Math.log(b) - Math.log(a)) * t);
+}
+
+function clamp01(t: number): number {
+  return Number.isFinite(t) ? Math.max(0, Math.min(1, t)) : 0;
+}
+
+/**
+ * Earth while "True scale" turns on or off: `blend` 0 is the schematic, 1 is true scale. The
+ * rig moves `blend` with the camera flight the toggle starts (rig.ts, scaleBlend), so Earth
+ * glides out (or in) on a log scale in step with the camera, instead of jumping in one frame.
+ */
+export function earthDuringScale(earthDir: readonly [number, number, number], earthDistKm: number, blend: number): BodyPlacement {
+  const t = clamp01(blend);
+  const distance = logLerp(drawnDistance(earthDistKm), usable(earthDistKm) / MOON_RADIUS_KM, t);
+  const radius = logLerp(DRAWN_EARTH_RADIUS, EARTH_RADIUS_KM / MOON_RADIUS_KM, t);
+  return { centre: along(earthDir, distance), radius };
+}
+
+/** The Sun while "True scale" turns on or off: carried out to SUN_TRUE_SCALE_EXIT, then only a direction (visible: false). */
+export function sunDuringScale(sunDir: readonly [number, number, number], sunDistKm: number, blend: number): BodyPlacement & { visible: boolean } {
+  const t = clamp01(blend);
+  return { centre: along(sunDir, logLerp(drawnDistance(sunDistKm), SUN_TRUE_SCALE_EXIT, t)), radius: DRAWN_SUN_RADIUS, visible: t < 1 };
 }
 
 /**

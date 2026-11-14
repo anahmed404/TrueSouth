@@ -104,45 +104,73 @@ export type Subjects = {
   earth: { centre: V3; radius: number };
 };
 
+/** The Sun's drawn glow ends by 1.8 disc radii (system-view.md, "What it shows"). */
+const SUN_EXTENT = 1.8;
+
 /**
- * Home, the System view's first framing: from under the south pole, looking up the Moon's
- * axis, with the Moon and Earth side by side across the free space's longer side (Earth's
- * direction across a laptop's screen, up a phone's) and the camera slid sideways so the pair
- * is centred, as large as both fit. The Sun is drawn too far out (proportions.ts) to share
- * the frame without shrinking the Moon to a dot: its edge arrow and sight-line point to it,
- * and a zoom out or "From the Sun" brings it in (docs/features/system-view.md, "Camera").
+ * The opening frame is the Moon's (the team lead, 2026-11-14): it is the frame the System
+ * view has always opened on, which fitted Earth and the Sun drawn 2.5 Moon radii out at radii
+ * 0.4 and 0.12. Earth and the Sun are now drawn further out (proportions.ts), just beyond this
+ * frame; their edge arrows and the sight-lines point to them, and a zoom out brings them in.
+ * The frame still turns with their directions, as before.
  */
-export function homePose(subjects: Subjects, space: FreeSpace): Pose {
+export const OPENING_FRAME = { reach: 2.5, earthRadius: 0.4, sunRadius: 0.12 } as const;
+
+function extents(subjects: Subjects, right: V3, up: V3): { halfX: number; halfY: number } {
+  let halfX = 1;
+  let halfY = 1;
+  const bodies = [subjects.earth, ...(subjects.sun ? [{ ...subjects.sun, radius: subjects.sun.radius * SUN_EXTENT }] : [])];
+  for (const body of bodies) {
+    halfX = Math.max(halfX, Math.abs(dot(body.centre, right)) + body.radius);
+    halfY = Math.max(halfY, Math.abs(dot(body.centre, up)) + body.radius);
+  }
+  return { halfX, halfY };
+}
+
+/**
+ * What the opening frame fits: by default the bodies' directions at OPENING_FRAME's reach and
+ * radii, whatever their drawn place; at true scale (no Sun drawn) the bodies as drawn, as
+ * before.
+ */
+function openingSubjects(subjects: Subjects): Subjects {
+  if (!subjects.sun) return subjects;
+  const at = (v: V3): V3 => (len(v) > 1e-9 ? mul(norm(v), OPENING_FRAME.reach) : [0, 0, 0]);
+  return {
+    earth: { centre: at(subjects.earth.centre), radius: OPENING_FRAME.earthRadius },
+    sun: { dir: subjects.sun.dir, centre: at(subjects.sun.dir), radius: OPENING_FRAME.sunRadius },
+  };
+}
+
+/**
+ * Home: from under the south pole, looking up the Moon's axis, turned so that Earth's and the
+ * Sun's directions sit either side of the Moon. The line between them is laid across the free
+ * space's longer side (side by side on a laptop, above and below on a phone), and the camera
+ * backs off to OPENING_FRAME, with the Moon in the middle.
+ */
+export function homePose(drawn: Subjects, space: FreeSpace): Pose {
+  const subjects = openingSubjects(drawn);
   const look: V3 = [0, 1, 0];
   const e = subjects.earth.centre;
-  const r = subjects.earth.radius;
-  let across: V3 = [e[0], 0, e[2]];
-  if (len(across) < 1e-6) across = [1, 0, 0];
+  const s = subjects.sun?.centre ?? [0, 0, 0];
+  let across: V3 = [e[0] - s[0], 0, e[2] - s[2]];
+  if (len(across) < 0.25) {
+    // Earth and the Sun nearly line up as seen from under the pole: put them to one side.
+    const mid: V3 = [e[0] + s[0], 0, e[2] + s[2]];
+    across = len(mid) > 1e-6 ? mid : [1, 0, 0];
+  }
+  // Try the Earth–Sun line across the screen, then up the screen; keep whichever gives the
+  // larger Moon. right × look = up for a camera looking down its −z with +y up.
   const a = norm(across);
   const b = norm(cross(a, look));
-  // Try Earth across the screen, then up the screen; keep whichever gives the larger Moon.
-  // right × look = up for a camera looking down its −z with +y up.
   let best: Pose | null = null;
   let bestDistance = Infinity;
   for (const right of [a, b]) {
     const up = norm(cross(right, look));
-    const x = dot(e, right);
-    const y = dot(e, up);
-    const left = Math.min(-1, x - r);
-    const rightEdge = Math.max(1, x + r);
-    const bottom = Math.min(-1, y - r);
-    const top = Math.max(1, y + r);
-    const distance = fitDistance((rightEdge - left) / 2, (top - bottom) / 2, SPACE_FOV, space);
+    const { halfX, halfY } = extents(subjects, right, up);
+    const distance = fitDistance(halfX, halfY, SPACE_FOV, space);
     if (distance < bestDistance - 1e-9) {
       bestDistance = distance;
-      const cx = (left + rightEdge) / 2;
-      const cy = (bottom + top) / 2;
-      const pos: V3 = [
-        -look[0] * distance + right[0] * cx + up[0] * cy,
-        -look[1] * distance + right[1] * cx + up[1] * cy,
-        -look[2] * distance + right[2] * cx + up[2] * cy,
-      ];
-      best = { pos, look, up, fov: SPACE_FOV };
+      best = { pos: mul(look, -distance), look, up, fov: SPACE_FOV };
     }
   }
   return best as Pose;
