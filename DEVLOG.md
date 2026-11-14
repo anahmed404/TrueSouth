@@ -1320,7 +1320,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   a headless Chrome with hardware WebGL (RTX 2060) against its own API (port 8123, the main
   checkout's `data/prepared` read-only) and dev server (port 5198); no AI-generated imagery;
   a human has not reviewed it yet
-- **State:** built, not verified (after the re-check fixes: 2,589 web tests, typecheck and build pass; Python unchanged and not rerun; first round: 438 Python tests, 1 skipped)
+- **State:** verified (reviewed twice by Codex (gpt-6.1-terra): its own rim probe measures 0.5 to 2.6 mm at full detail (13 to 23 m before), no hole or overlap at the corners, catalog heights identical to main away from the rim; the two moving-state findings of the re-check were then fixed by the author with tests at every detail level and every globe mesh, not re-reviewed; on the tree merged with main 36010d2: 458 Python tests (1 skipped), 2,589 web tests, typecheck and build all exit 0. Not yet tried by the team lead)
 - **Changed:** `web/src/features/three/scene/custom-apron.ts` and its test (new);
   `world.ts` (`setGround` builds the apron for a custom site; the height map is read once);
   `plates.ts` and its test (`apronLoadState`, the "surroundings" plate); `scene-root.tsx`
