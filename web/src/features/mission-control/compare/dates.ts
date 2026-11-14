@@ -127,7 +127,7 @@ export function datesSummary(columns: readonly ColumnView[], profile: MissionPro
   if (columns.some((c) => c.status.kind === "loading")) return first;
   const winners = columns.filter((_, i) => best[i]);
   // With A and B the same site, the two pairs are the same columns: name each date once.
-  const named = [...new Map(winners.map((c) => [c.key, c])).values()];
+  const named = [...new Map(winners.map((c) => [`${c.siteId}@${c.landingUtc}`, c])).values()];
   if (named.length > 0) {
     const score = scoreText((named[0] as ColumnView).evaluation?.score ?? 0);
     const list = named.map((c) => `${c.name} on ${formatUtc(c.landingUtc ?? "")}`);

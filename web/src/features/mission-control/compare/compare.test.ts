@@ -26,11 +26,14 @@ import { useSiteStatus, type SiteStatus } from "../../../app/mission/site-status
 import { hourIndexToUtc } from "../../../lib/time";
 import { dataStore, seriesKey } from "../../../state/data";
 import { createScenarioStore, type ScenarioCatalog } from "../../../state/scenario";
-import { allNodes, installDocument, propsOf, textOf, type FakeNode } from "../../../app/mission/fake-dom";
+import { allNodes, click, installDocument, propsOf, textOf, type FakeNode } from "../../../app/mission/fake-dom";
 import { FloatingWindow } from "../../../app/mission/floating-window";
 import { formatUtc } from "../../../components/format";
 import Compare, { CompareTable, compareRenders } from "./index";
 import { parseCsv } from "../../../lib/export";
+import { evaluate, evaluationsAtUtcMidnight, siteSlopeDeg, slipSweep } from "../../../lib/scoring";
+import { datesColumnSpecs, writeCmp, type DatesPicks } from "./dates";
+import { compareStore } from "./picks-store";
 import { compareCsv } from "./export";
 import { NOT_RANKED_NOTE, compareColumn, metricRows, statusCells, summarySentence, type ColumnView } from "./model";
 
@@ -475,5 +478,96 @@ describe("the window's header (MC9b, MC9c): the title, the mode switch, the land
     expect(seen(dom)).not.toContain("side by side");
     // The notes under the table stay.
     expect(seen(byClass(dom, "cmp-foot")[0])).toContain("A tie for best marks every tied site.");
+  });
+});
+
+// ── "Sites and dates" (MC9c), mounted on the shared fixture ─────────────────────
+
+function fixtureSeries(siteId: string) {
+  const bytes = readFileSync(path.join(fixtures, "sites", siteId, "series.bin"));
+  const copy = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(copy).set(bytes);
+  return decodeSeries(copy, SERIES_COLUMNS, grid.count, "series.bin");
+}
+
+describe("Sites and dates: four columns on the shared fixture", () => {
+  afterEach(() => compareStore.reset());
+
+  async function mountDates(profile: MissionProfile, picks: DatesPicks, landingUtc: string) {
+    const store = createScenarioStore(catalog, `?profile=${profile.id}&sites=${SITE_IDS.join(",")}&land=${landingUtc}&t=0&view=compare`);
+    compareStore.set({ mode: "dates", picks });
+    const dom = await mount(
+      createElement(ScenarioStoreProvider, { store, children: createElement(Compare, { scenario: store.getState().scenario, mode: "mission" }) }),
+    );
+    return { store, dom };
+  }
+
+  // Two 00:00 UTC landings, so the Slip Planner's sweep has the same rows.
+  const DATE1 = hourIndexToUtc(grid, 4704);
+  const DATE2 = hourIndexToUtc(grid, 12000);
+
+  it.each(profiles.map((p) => [p.id, p] as const))(
+    "%s: each column equals the scoring engine and the Slip Planner's sweep for its site and date",
+    async (_id, profile) => {
+      const picks: DatesPicks = { siteA: SITE_IDS[0] as string, siteB: SITE_IDS[3] as string, date1: DATE1, date2: DATE2 };
+      const { dom } = await mountDates(profile, picks, DATE1);
+      const cells = allNodes(dom).filter((n) => n.nodeName === "TR" && hasClass(n, "cmp-row-status"))[0] as FakeNode;
+      const shown = cells.childNodes.filter((n) => n.nodeName === "TD").map((td) => ({
+        status: seen(byClass(td, "status-badge")[0]),
+        score: seen(byClass(td, "cmp-score")[0]).replace(/\s*(not used)?\s*(best)?$/, ""),
+      }));
+      const specs = datesColumnSpecs(picks);
+      expect(shown).toHaveLength(4);
+      specs.forEach((spec, i) => {
+        const series = fixtureSeries(spec.siteId);
+        const slope = siteSlopeDeg(sites, spec.siteId);
+        const hour = Math.round((Date.parse(spec.landingUtc) - Date.parse(grid.start_utc)) / 3_600_000);
+        const engine = evaluate(series, profile, hour, slope);
+        const sweepRow = evaluationsAtUtcMidnight(slipSweep(series, profile, slope), profile)[hour / 24];
+        expect(engine, `${spec.siteId} ${spec.landingUtc}`).not.toBeNull();
+        expect(shown[i]?.status, `${spec.siteId} ${spec.landingUtc}`).toBe(engine?.status);
+        expect(shown[i]?.score).toBe(scoreText(engine?.score ?? 0));
+        // The Slip Planner shows the same status and score for that day.
+        expect(sweepRow?.status).toBe(engine?.status);
+        expect(scoreText(sweepRow?.score ?? -1)).toBe(scoreText(engine?.score ?? 0));
+      });
+    },
+  );
+
+  it("leaves the scenario's landing date alone until \"Use this date\"", async () => {
+    const landing = hourIndexToUtc(grid, 4700);
+    const picks: DatesPicks = { siteA: SITE_IDS[0] as string, siteB: SITE_IDS[1] as string, date1: DATE1, date2: DATE2 };
+    const { store, dom } = await mountDates(profiles.find((p) => p.id === "im2_athena") as MissionProfile, picks, landing);
+    const before = { landing: store.getState().landingUtc, current: store.getState().currentUtc, focus: store.getState().focusedSiteId };
+    // Picking another date and site changes nothing in the scenario.
+    await act(async () => compareStore.set({ picks: { ...picks, date2: hourIndexToUtc(grid, 20000), siteB: SITE_IDS[2] as string } }));
+    expect({ landing: store.getState().landingUtc, current: store.getState().currentUtc, focus: store.getState().focusedSiteId }).toEqual(before);
+
+    // "Use this date" on B, date 2: the scenario lands there and focuses B.
+    const all = allNodes(dom).filter((n) => n.nodeName === "BUTTON" && String(propsOf(n)["aria-label"] ?? "").startsWith("Use this date"));
+    expect(all).toHaveLength(4);
+    const last = all[3] as FakeNode;
+    expect(String(propsOf(last)["aria-label"])).toBe(`Use this date: land on ${formatUtc(hourIndexToUtc(grid, 20000))} and focus ${sites[2]?.name}`);
+    await act(async () => click(last));
+    expect(store.getState().landingUtc).toBe(hourIndexToUtc(grid, 20000));
+    expect(store.getState().focusedSiteId).toBe(SITE_IDS[2]);
+    // The picks stay as they were: the table does not follow the new landing date.
+    expect(compareStore.get().picks?.date1).toBe(DATE1);
+  });
+
+  it("opens from a link's picks, once, and ignores picks that do not fit", async () => {
+    const good = writeCmp({ siteA: SITE_IDS[1] as string, siteB: SITE_IDS[2] as string, date1: DATE1, date2: DATE2 });
+    compareStore.reset(good);
+    const store = createScenarioStore(catalog, `?profile=im2_athena&sites=${SITE_IDS.join(",")}&land=${DATE1}&t=0&view=compare`);
+    await mount(createElement(ScenarioStoreProvider, { store, children: createElement(Compare, { scenario: store.getState().scenario, mode: "mission" }) }));
+    expect(compareStore.get().mode).toBe("dates");
+    expect(compareStore.get().picks).toEqual({ siteA: SITE_IDS[1], siteB: SITE_IDS[2], date1: DATE1, date2: DATE2 });
+    expect(compareStore.takeLinkPicks()).toBeNull();
+    await act(async () => root?.unmount());
+    root = null;
+
+    compareStore.reset(`${SITE_IDS[1]},nowhere,2028-01-01T00:00Z,2028-01-08T00:00Z`);
+    await mount(createElement(ScenarioStoreProvider, { store, children: createElement(Compare, { scenario: store.getState().scenario, mode: "mission" }) }));
+    expect(compareStore.get().mode).toBe("sites");
   });
 });
