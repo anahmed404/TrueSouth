@@ -581,13 +581,14 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
-#### 2026-11-14 · MC testing feedback 3 · A steady bottom strip, the black box, the middle mouse button
+#### 2026-11-14 · MC testing feedback 3 · A steady bottom strip, the black box, the middle mouse button, "Enter coordinates"
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (keeping the
   approved look) — rebuilt the countdown cards' rows so the strip keeps one height, wrote
-  the stretch chip, extended `pointers.ts` to the middle button, and wrote 17 vitest tests
-  (a structure test of both cards for every hour kind from the fixture, which fails on the
-  old cards, and six middle-button tests); investigated the black box — checked by the
+  the stretch chip, extended `pointers.ts` to the middle button, made the add-site picker's
+  coordinates row a visible control, and wrote 20 vitest tests (a structure test of both
+  cards for every hour kind from the fixture, which fails on the old cards, six
+  middle-button tests and three for the coordinates row); investigated the black box — checked by the
   agent with typecheck, the vitest suite, the build and `uv run pytest`, and by eye with
   hardware WebGL (NVIDIA, ANGLE D3D11) at 2000, 1440, 1024, folded and 390 px; a human has
   not reviewed it yet
@@ -596,19 +597,24 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 - **Changed:** `web/src/app/mission/timeline/countdowns.tsx` and a new `countdowns.test.ts`,
   `timeline/timeline.css`, `web/src/app/shell.css` (containment on the countdown column),
   `web/src/features/three/scene/pointers.ts` and its test, three props and the spoken hint
-  in `scene-root.tsx`, two hints in `web/src/lib/explain.ts`, `docs/features/site-detail.md`,
-  `docs/design/c2/built-feedback3-*.png`
+  in `scene-root.tsx`, two hints in `web/src/lib/explain.ts`, `custom-site-ui.tsx` (the
+  closed row only), `sites.css`, a new `custom-coordinates.test.ts`, two no-ops in
+  `fake-dom.ts`, `docs/features/site-detail.md`, `mission-control.md`, `polar-map.md`,
+  `docs/challenge.md`, `docs/design/c2/built-feedback3-*.png`
 - **Notes:**
   - The strip: each card's rows are now the same at every hour (head, countdown, values, a
     notes row reserved two lines tall). The dark stretch or blackout is a chip in that row,
     "✕ 130 h dark · limit 6 h" with its tag, its full sentence as description and tip; "Under
     6 h" moved there too. Measured 196 px at 1440 and 244 px at 1024 at lit, warning, dark
     and blackout hours and while playing across a sunset (was 196 to 237 at 1440); folded
-    50 px; phone 180 px.
+    50 px; phone 180 px. In the Slip Planner the slot holds its landing-date panel: 204 px at
+    1440 against the timeline's 196 px, steady when switching views back and forth (sampled
+    every 250 ms, no in-between heights).
   - The black box did **not** reproduce, on this branch or on the reported commit c5ec7a9
-    (dev and production build), at 1× and 1.25× scale, 950 to 2560 px wide, in the four
-    camera views, with the focused-site panel open and folded and the lamp's hover card
-    open. The point under it is the scene's WebGL canvas, not a DOM element, and the add-site
+    (dev and production build, a throwaway worktree), at 1× and 1.25× scale, 950 to 2560 px
+    wide and 640 to 1300 px tall, in the four camera views, with the focused-site panel open
+    and folded, the lamp's hover card open, and with the CPU throttled 20× on first load
+    (the scene still did not fall back to its still picture). The point under it is the scene's WebGL canvas, not a DOM element, and the add-site
     popover and tips are in the top layer, so no panel's stacking can cover them. No fix
     was made without a reproduction. To pin it: a screen recording, the Chrome version,
     `chrome://gpu` (overlay and compositing lines), and whether hovering or reopening the
@@ -616,8 +622,13 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     recomposites over the canvas is not redrawn by the scene; a scene redraw on popover
     toggle would test that. Separately, on current main the flat Polar map (#89) paints
     Night around its square relief by design, which can read as black bands beside the map.
+  - "Enter coordinates": an outlined full-width row with a crosshair at the top of the
+    add-site picker, closed by default; one click opens the form with focus in the latitude
+    field; "Not available on this server" under the label when the server has no custom
+    sites. The form and its requests are unchanged.
   - The middle mouse button turns like the left (`MIDDLE_BUTTON_DRAG` in `pointers.ts`
-    flips it to slide in one line); a middle click does nothing; the browser's own middle
+    flips it to slide in one line), in every view including the Slip Planner; a middle click
+    does nothing; the browser's own middle
     click is prevented over the scene.
 
 #### 2026-11-13 · MC7 · The Slip Planner, a camera view on the Moon
