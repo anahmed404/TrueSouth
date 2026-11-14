@@ -1301,6 +1301,29 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - Seen, not changed: in Lander's eye at a smooth-tier site (also the catalog's Apollo 11)
     the camera looks toward Earth or the Sun, tens of degrees up, so the picture shows sky
     only; that is the camera's framing (`rig.ts`), not the ground.
+  - Review fixes (Codex review of #105), 2026-11-14:
+    - The drawn mesh separated at the patch's edge (the apron's cells crossed the rim with
+      the points under the patch lowered 30 m): measured on the drawn triangles about
+      25.5 m below the patch at every height and tier. Now the apron's full-detail cells stop
+      at its first ring beyond the patch and a strip joins that ring to the patch's own rim
+      points (with the patch's normals): 0.0015 m (`ground-join.test.ts`, tolerance 0.25 m).
+      Same code path for catalog aprons (a flat test apron: 77 m before, 0.006 m after);
+      Connecting Ridge's pictures are unchanged at this scale.
+    - Found while retaking the pictures: `readGlobalHeights` read the image's size after
+      closing the ImageBitmap, which then reports 0 × 0, so every far height was NaN and
+      the apron fell to the site's own height, a cliff of up to 2.4 km at the rim (the
+      first round's pictures were taken with the earlier loader and were right). Fixed and
+      tested with a bitmap that zeroes its size on close.
+    - The global height map has an explicit state (idle, loading, ready, failed); a failure
+      is shown in plain words, not cached, and retried on the next visit to the view.
+    - The outer edge: no fight was seen in a nudge test at grazing views (the pixels that
+      flip under a 0.17 m camera nudge stay the same with the globe hidden), but by the
+      numbers one could happen near the globe's own vertices (0.25 m apart against a depth
+      step of about 1 m); the apron's and smooth ground's edge now ends 150 m below the
+      sphere, pinned by a test.
+    - The ground's key is checked before the apron is built.
+    - Seen, not changed: at grazing angles a thin broken line of drawn shadow can follow a
+      crest-like rim; it is decoration (gone with shadows off), not a gap.
   - For the API later, so a custom site looks like a catalog site: the same apron the
     catalog has, made by the same step (`build-scene-assets`): `aprons/<site_id>.bin`,
     161 × 161 heights over 300 km at the 80 m or 240 m map's resolution where it covers

@@ -231,15 +231,30 @@ meshes and height textures are on the GPU before the first flight.
     ([`../science.md`](../science.md) §2.2);
   - between them, the patch's edge carried outward and handed over to the global map within
     25 km of the edge, with no step at the edge;
-  - in the catalog apron's layout (161 × 161 over 300 km), eased down to the reference
-    sphere at its outer edge like every apron, and shaded, shadowed and stepped down on a
-    slow machine the same way.
+  - in the catalog apron's layout (161 × 161 over 300 km), eased at its outer edge like
+    every apron, and shaded, shadowed and stepped down on a slow machine the same way.
 
   One quiet plate line says what that means: "Around a custom site, the ground beyond the
   nearest few kilometres is drawn from a coarse height map of the whole Moon, so it shows
-  only large hills and craters." (`explain.ts`, `custom_site_surroundings`). If the global
-  height map cannot be read, the patch is drawn alone. A finer apron would need the API to
-  make one (see the DEVLOG entry "T3b").
+  only large hills and craters." (`explain.ts`, `custom_site_surroundings`). While the map is
+  being read, the plate says "Loading the ground around … ". If it cannot be read (a failed
+  fetch, a failed decode, or no way to read image pixels), the patch is drawn alone and the
+  plate says so plainly: "The ground around … could not be loaded, so only the nearest ground
+  is drawn." A failure is not kept for the session: the next visit to Local terrain or
+  Lander's eye tries again. A finer apron would need the API to make one (see the DEVLOG
+  entry "T3b").
+- **How every apron meets the patch and the globe** (catalog and custom alike, `ground.ts`):
+  - At full detail the apron leaves out every cell inside its first ring of points beyond
+    the patch, and a strip of triangles joins that ring to the patch's own rim points, which
+    it repeats exactly, with the patch's normals there. The two surfaces share their edge:
+    sampled on the drawn triangles 10 cm either side of the rim they differ by under
+    0.25 m. (While the camera moves on a slow machine the coarser levels keep the older
+    join, the apron's cells crossing the patch's edge 30 m lower.)
+  - From 80 % to 98 % of its half-width the apron eases to 150 m below the reference sphere
+    (`APRON_EDGE_DROP_M`). The globe is drawn again beyond 140 km of the site and its own
+    triangles lie up to 116.3 m inside the sphere, so where both cover the ground the globe
+    is in front by tens of metres, far more than the depth buffer's step there (about
+    1 m): they never fight. A sphere-tier site's smooth ground eases the same way.
 - **Missing terrain in part of the mesh:** holes are left open, not filled.
 - **Terrain still loading.** Proposed: the camera flies, and the ground appears when it is
   ready; the globe stays in place until then. Reason: a flight should never wait on a file.
