@@ -522,6 +522,33 @@
     flex: none;
   }
 
+  /*
+    The header's free space, which a window's content can fill (Compare: the landing date,
+    then its exports at the right). With something in it the header is one row: the title
+    keeps its own width and the slot takes the rest.
+  */
+  .floating-window-slot {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s2) var(--s3);
+    min-width: 0;
+  }
+
+  .floating-window-slot:empty {
+    display: none;
+  }
+
+  .floating-window-head:has(.floating-window-slot:not(:empty)) {
+    align-items: center;
+    padding: var(--s3) var(--s3) var(--s3) var(--s4);
+  }
+
+  .floating-window-head:has(.floating-window-slot:not(:empty)) .floating-window-titles {
+    flex: none;
+  }
+
   .floating-window-body {
     display: flex;
     flex: 1;

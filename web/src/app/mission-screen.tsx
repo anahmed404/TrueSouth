@@ -24,8 +24,13 @@ import {
   shortcutPanel,
   toggleShellPanel,
   viewBarFitsBetween,
+  NO_WINDOW_FOLD,
+  stripFolded,
+  toggleStrip,
+  windowFoldFor,
   type ShellLayout,
   type SidePanel,
+  type WindowFold,
 } from "./mission/shell-layout";
 import { rectOf, useFreeSpace, usePhone, useReducedMotion, useViewportWidth } from "./mission/shell-hooks";
 import { SitesRail } from "./mission/sites-rail";
@@ -117,14 +122,30 @@ function MissionShell() {
   );
   const toggleRail = useCallback(() => toggle("sitesRail"), [toggle]);
   const toggleFocus = useCallback(() => toggle("focusPanel"), [toggle]);
+  // Compare folds the strip while it is open and restores it on close; never saved
+  // (`windowFoldFor` in shell-layout.ts). Worked out during render, so the window opens onto
+  // the folded strip with no frame of the open one.
+  const [heldFold, setWindowFold] = useState<WindowFold>(NO_WINDOW_FOLD);
+  const windowFold = windowFoldFor(heldFold, state.window, layout.timeline.collapsed);
+  if (windowFold !== heldFold) setWindowFold(windowFold);
+  const windowFoldRef = useRef(windowFold);
+  windowFoldRef.current = windowFold;
+
   // Folding swaps the strip's content; if focus was in it, it lands on the new fold button.
   const toggleTimeline = useCallback(() => {
     const hadFocus = strip.current?.contains(document.activeElement) ?? false;
-    setLayout((current) => {
-      const next = toggleShellPanel(current, "timeline");
-      setAnnouncement(foldAnnouncement("timeline", next.timeline.collapsed));
-      return next;
-    });
+    const { fold, toggleRemembered } = toggleStrip(windowFoldRef.current);
+    if (toggleRemembered) {
+      setLayout((current) => {
+        const next = toggleShellPanel(current, "timeline");
+        setAnnouncement(foldAnnouncement("timeline", next.timeline.collapsed));
+        return next;
+      });
+    } else {
+      // The user unfolds the strip Compare folded: let go of the fold, keep the saved state.
+      setWindowFold(fold);
+      setAnnouncement(foldAnnouncement("timeline", false));
+    }
     if (hadFocus) requestAnimationFrame(() => strip.current?.querySelector<HTMLButtonElement>(".tl-fold")?.focus());
   }, [setLayout]);
 
@@ -214,7 +235,7 @@ function MissionShell() {
   const windowRef = useRef<HTMLElement>(null);
   const railCollapsed = phone ? false : layout.sitesRail.collapsed;
   const focusCollapsed = phone ? !focusSheet : layout.focusPanel.collapsed;
-  const timelineFolded = phone ? false : layout.timeline.collapsed;
+  const timelineFolded = phone ? false : stripFolded(layout, windowFold);
   const topSpans = !phone && !viewBarFitsBetween(viewportWidth, layout);
   const placement = windowPlacement(viewportWidth, layout, phone);
 
@@ -259,7 +280,7 @@ function MissionShell() {
     phone,
     layout.sitesRail.collapsed,
     layout.focusPanel.collapsed,
-    layout.timeline.collapsed,
+    timelineFolded,
     state.camera,
     state.window ?? "",
     sitesSheet,
@@ -367,6 +388,7 @@ const OpenWindow = memo(function OpenWindow({ id, windowRef, onClose, windowButt
       title={view.name}
       closeLabel={id === "slip" ? "Close the Slip Planner" : "Close Compare"}
       description={firstSentence(explanations[view.term]?.text ?? "")}
+      descriptionHidden={id === "compare"}
       onClose={onClose}
       button={button}
       closedByUser={closedByUser}
