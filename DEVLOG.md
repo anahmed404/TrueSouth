@@ -1809,7 +1809,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   publisher's or NASA's page, and counted the words of each section by script. No browser was
   opened and no test suite was run. The team gave the team name, the four members' names and
   their responsibilities; nothing else about a person was written. A human has not read it.
-- **State:** built, not verified
+- **State:** verified (fact-checked by Cursor (grok-4.7): headline numbers recomputed, both quotations word for word, nine references confirmed; two wrong statements and five loose ones corrected by the orchestrator; roles set by the team; on the tree merged with main bbc6df0: 458 Python tests (1 skipped), 2,649 web tests, typecheck and build all exit 0)
 - **Changed:** `docs/submission/proposal.md`; stale statements in `project-description.md`, `links-checklist.md` and `ai-use.md` (the deploy files pull request #101 is merged; the test count now cites `status.md` as of 2026-11-14); this entry
 - **Notes:** The four optional slots for a line on each member's background are kept only in a comment at the top of the proposal. The two Horizons
   references that could not be checked (Giorgini et al. 1996; the DE421 report) were left out.
