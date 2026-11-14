@@ -42,10 +42,10 @@ each integration checkpoint.
 | Milestone | State |
 | :--- | :--- |
 | M0 Foundations | complete, 2026-11-13: S0 to S2, MC0 to MC2, T0, A0 and A1 verified; 151 Python and 1,058 web tests pass; the app loads all five fixture sites |
-| M1 Thin slice | done in substance: the panels and the timeline run on real data for all 20 catalog sites (S3 to S9, MC3 to MC5 verified); validation against NASA is published (S12) |
-| M2 Mission Control complete on catalog data | in progress: the space-first shell (MC4c) is in review and the 3D scene (T1, T2) is being built; the Polar map, Local terrain, Lander's eye, Slip Planner and Compare follow it |
-| M3 Everything | not started |
-| M4 Tuned and submitted | not started |
+| M1 Thin slice | complete: the panels and the timeline run on real data for all 20 catalog sites and the 5 best-lit variants (S3 to S9, MC3 to MC5 verified); validation against NASA is published (S12) |
+| M2 Mission Control complete on catalog data | complete, 2026-11-14: the space-first shell, the 3D scene, the Polar map, Local terrain, Lander's eye, the Slip Planner and Compare are verified and merged |
+| M3 Everything | done within the deadline's scope, 2026-11-14: custom coordinates (S10, S10b, S10c), Docker (S13) and the deploy files (S13b, not yet run on a server), the validation page (A8), the math review (A9), Academy lessons 1 to 4 (A5, A3). Out of scope: the sensitivity grid (S11), "compute for my dates" (T8), lessons 5 to 8 (A6) |
+| M4 Tuned and submitted | in progress, 2026-11-14: the submission texts are current (A11b); fixes from the team lead's testing continue; the deploy, the public repository or zip, and the video are open. The live record is [`docs/orchestration/status.md`](docs/orchestration/status.md) |
 
 ## Science
 
