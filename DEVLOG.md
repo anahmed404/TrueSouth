@@ -704,6 +704,37 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     flips it to slide in one line), in every view including the Slip Planner; a middle click
     does nothing; the browser's own middle click is prevented over the scene.
 
+#### 2026-11-14 · MC9b · Compare: the table gets the space
+- **Who:** Claude Code agent, for the orchestrator, from the team lead's feedback
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (a refinement
+  of the approved C2 window, no redesign) — removed the window's explanation and summary
+  sentence from the screen (both kept as accessible descriptions), put the landing date and
+  the exports in a one-row header through a small header slot on `FloatingWindow`, wrote the
+  temporary fold of the bottom strip while Compare is open (`windowFoldFor`, `toggleStrip`
+  in `shell-layout.ts`), trimmed the table's vertical padding, clamped the best-lit line to
+  two lines, replaced the copied site wording with imports from `site-labels.ts`, updated the
+  specs, and wrote 10 vitest tests (9 for the fold rule; 1 for the header on the real window) —
+  checked by the agent with typecheck, the vitest suite, the build and `uv run pytest`, and
+  by eye at 1440 × 900, 1024 × 768 and 390 × 844 with one, four and eight sites, the strip
+  open before Compare opened, in a camera view and in the Slip Planner, with the strip
+  folded by the user and unfolded by hand; a human has not reviewed it yet
+- **State:** verified (reviewed by Antigravity (gemini-4-hydrogen): approve, two mutations killed; on the tree merged with main d9ea075: 438 Python tests (1 skipped), web tests, typecheck and build all exit 0)
+- **Changed:** `web/src/features/mission-control/compare/` (header items, hidden summary,
+  padding, the shared wording; `site-wording.ts` deleted),
+  `web/src/app/mission/floating-window.tsx` (an optional header slot and a hidden
+  description), `web/src/app/mission/shell-layout.ts` and `shell-layout.test.ts` (the
+  temporary fold), `web/src/app/mission-screen.tsx` (the fold wired in; Compare's
+  description hidden), `web/src/app/shell.css` (the header slot), `docs/features/compare.md`,
+  `docs/features/mission-control.md`, `docs/design/c2/built-compare-space-*.png`, this entry
+- **Notes:**
+  - Table rows fully visible with four sites, the strip open before Compare opened:
+    1440 × 900 from 2 of 9 to 5 of 9 (the table's height from 343 px to 562 px; it needs
+    781 px); 1024 × 768 from 1 of 9 to 4 of 9 (280 px to 438 px). All nine rows at 1440 × 900
+    would need about 220 px more: the rest is content (the Broken rule row wraps in 135 px
+    columns between the open side panels), not padding.
+  - The temporary fold is never saved; closing Compare returns the strip, timeline or Slip
+    Planner panel, to the same place, so the camera's free space is unchanged (checked by
+    rectangle).
 #### 2026-11-13 · MC7 · The Slip Planner, a camera view on the Moon
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (design already
@@ -1226,6 +1257,58 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - Measured: 4 vitest tests pass; production bundle 259 kB (82 kB gzipped).
 
 ## 3D and Map
+
+#### 2026-11-14 · T7b · The Moon around the Polar map's detailed square
+- **Who:** implementation agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — built the context reprojection, border,
+  outside-map readouts, tests and the first visual pass with the impeccable skill;
+  Codex, gpt-6.1-sol — resumed the interrupted work, finished label placement and readout
+  wrapping, added free-space label tests, ran the checks, updated the spec and captured the
+  final opening views and flat Slip Planner. No AI-generated imagery; human review pending.
+- **State:** verified (reviewed by Cursor (grok-4.7): approve with two fixes, both made by the orchestrator (a 240 m point inside the square is no longer called outside the detailed map; the zoom floor in the doc is 40 %); on the tree merged with main 8176241: 438 Python tests (1 skipped), 2,431 web tests, typecheck and build all exit 0)
+- **Changed:** `web/src/features/polar-map/`; `docs/features/polar-map.md`; eight
+  `docs/design/c2/built-polar-map-context-*.png` screenshots; this entry.
+- **Notes:**
+  - Uses the scene's existing NASA `scene/moon_4k.webp`, redrawn in the browser with the
+    shared projection helpers. A 1,024 px outer canvas reaches the equator; a 2,048 px inner
+    canvas reaches 960 km from the pole (about 59°S along its sides). The quieter grey
+    context is a picture, never a terrain or visibility result. No pipeline, contract,
+    scene, Mission Control or dependency changes.
+  - The earlier timing probe measured about 1.5 s to build on this machine, with completion
+    competing with the flight under load. Work yields between roughly 8 ms slices and
+    starts when the view is picked. The two RGBA canvases total 20 MiB (calculated, not a
+    measured heap peak); the decoded source and temporary pixel arrays cost more during
+    construction. Context, 8K relief and overlays release their cache references on leaving.
+  - The border follows the image and lookup grids' square, not the 80°S circle. Its label
+    stays inside the free space, above an edge when possible and inside otherwise. Grid
+    labels give way to it; pin and feature labels avoid it. The border stays when the label
+    is hidden. `readouts={false}` hides the label by default for the Slip Planner;
+    `detailLabel` overrides only that label. Other prop meanings are unchanged.
+  - Catalog and ready custom pins in the southern hemisphere can sit on the context,
+    outside the border, labelled "Outside the detailed map" (custom pins retain "Your
+    site"). Northern sites remain in the off-map list. NASA's hover, point and nudge values
+    outside the square say "outside the detailed map". Compute remains available when a
+    callback is supplied and names the 80 m, 240 m or smooth-Moon tier from the shared
+    `tierHint`, using the server's latitude bounds. The pan clamp still keeps the detailed
+    square reachable. The takeover fit reserves the scene's 60 px controls strip.
+  - **Checks:** each full command ran once, sequentially, with its exit code read directly:
+    web test exit 0 (2,342 tests, 103 files); typecheck exit 0; build exit 0; pytest exit 0
+    (425 passed, 1 skipped, 3 existing dependency/fixture warnings, 260.67 s). No timed-out
+    test needed a rerun. Before these, the three map files passed 67 focused tests, including
+    projection, outside-map readouts, tier boundaries, label placement and the takeover's
+    under-1% pin displacement. The Impeccable detector returned no findings.
+  - **By eye:** real-data opening views at 1440 × 900 and 390 × 844 show the whole square
+    with the Moon around it and the label clear of the view bar; left pans show the context
+    following the map. The Slip Planner with forced no-WebGL was captured at both sizes:
+    its spots follow the map and the square's label is hidden. On the phone its existing
+    map controls cover much of the small map; their behavior was left unchanged.
+    Earlier captures show the takeover and minimum zoom. The preview's snapshot and
+    recording host repeatedly timed out or disconnected, so the remaining right/up/down
+    pan checks could not be completed by eye. Some final PNGs are frames from the session
+    browser's recording because its snapshot endpoint failed. No browser test suite added.
+  - `origin/main` was merged at `2dc14c6`, retaining both sides' entries; the final fetch
+    still found main at `5a5fd84`. Own preview tabs were closed and port 5199 stopped;
+    ports 5173, 8000 and 8080 were not touched. Team-lead review remains outstanding.
 
 #### 2026-11-14 · T3 · The ground's look in Local terrain and Lander's eye
 - **Who:** Claude Code agent, for the orchestrator

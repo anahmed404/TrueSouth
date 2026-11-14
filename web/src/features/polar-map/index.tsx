@@ -11,7 +11,7 @@ export type { OverlayId } from "./readout";
  * Slip Planner's flat mode, the Academy's drop-pin step). See `MapCoreProps` for each.
  */
 export type PolarMapProps = PanelProps &
-  Pick<MapCoreProps, "onRequestSite" | "sites" | "showFeatureNames" | "overlay" | "overlayOpacity" | "onProjector">;
+  Pick<MapCoreProps, "onRequestSite" | "sites" | "showFeatureNames" | "overlay" | "overlayOpacity" | "onProjector" | "detailLabel">;
 
 const REDUCE_MOTION = "(prefers-reduced-motion: reduce)";
 
@@ -65,6 +65,7 @@ export default function PolarMap({ scenario, onScenarioChange, mode, onRequestSi
         overlay={extra.overlay}
         overlayOpacity={extra.overlayOpacity}
         onProjector={extra.onProjector}
+        detailLabel={extra.detailLabel}
       />
     </div>
   );
