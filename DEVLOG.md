@@ -2214,7 +2214,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   by reading the files, counting words by script, and checking that the named captures
   exist in `docs/design/c2/` and that the on-screen labels exist in the source. It ran no
   tests, no server and no browser. No AI-generated images.
-- **State:** built, not verified (not read by a reviewer; no one has recorded the video or
+- **State:** verified (the slide content built from the fact-checked submission texts; the deck's numbers match the proposal; four of the seven previews read at full size by the orchestrator; merged on the orchestrator's checks without a second reviewer because of the deadline; the .pptx not opened in PowerPoint; on the tree merged with main eb5d0a2: 472 Python tests (1 skipped), 2,912 web tests, typecheck and build all exit 0)
   built the deck from it; the timings are not rehearsed against a clock)
 - **Changed:** `docs/submission/slides.md`, `docs/submission/video-script.md`
 - **Notes:** The deck and the video say nothing about Compare's second mode (open pull
