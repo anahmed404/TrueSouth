@@ -286,12 +286,8 @@ export class Rig {
     return this.style !== "none" && !this.locked;
   }
 
-  /**
-   * A drag of (dx, dy) CSS pixels: turn the view (see the rule above). `fromKey` marks an
-   * arrow key, which the scene sends as a 24 px drag the other way; only Lander's eye's
-   * vertical axis tells the two apart.
-   */
-  orbit(dx: number, dy: number, fromKey = false): void {
+  /** A drag of (dx, dy) CSS pixels: turn the view (see the rule above). */
+  orbit(dx: number, dy: number): void {
     const c = this.camera;
     if (!this.turnable) return;
     this.stop();
@@ -339,17 +335,13 @@ export class Rig {
       c.lookAt(ground);
       return;
     }
-    // Lander's eye: look around from where the camera stands. Horizontally the picture follows
-    // the pointer, as in every view. Vertically the view follows the drag instead: dragging up
-    // looks up. The team's tester called the grab-the-world vertical "inverted" here: from
-    // 2 m up there is a horizon, not a globe, in the hand. An arrow key already looks the
-    // arrow's way (it arrives as a drag the other way), so its sign is left alone.
+    // Lander's eye: look around from where the camera stands; the view turns against the drag.
     const look = new THREE.Vector3(0, 0, -1).applyQuaternion(c.quaternion);
     let el = THREE.MathUtils.radToDeg(Math.asin(clamp(look.dot(up), -1, 1)));
     let az = THREE.MathUtils.radToDeg(Math.atan2(look.dot(east), look.dot(north)));
     const k = c.fov / 60;
     az -= dx * 0.12 * k;
-    el = clamp(el + (fromKey ? dy : -dy) * 0.08 * k, -20, 60);
+    el = clamp(el + dy * 0.08 * k, -20, 60);
     c.up.copy(up);
     c.lookAt(c.position.clone().add(along(az, el)));
   }

@@ -1,4 +1,4 @@
-import { metricColumn } from "./drag-body";
+import { metricColumn, storyMonth } from "./drag-body";
 import { hasExample, resolveValue, type WorkedExamples } from "./placeholders";
 import { clockwiseWidthDeg } from "./skyline-score";
 import type { GoalSpec, Lesson, Step } from "./types";
@@ -56,6 +56,19 @@ function checkTolerance(problems: string[], goal: GoalSpec, where: string): void
   if (!Number.isFinite(goal.tolerance) || goal.tolerance < 0) {
     problems.push(`${where} has a negative or non-finite tolerance`);
   }
+}
+
+/** True when a step drags through, or a reveal plays, the story month or a timeline band over it. */
+function usesStoryMonth(lesson: Lesson): boolean {
+  const steps: readonly Step[] = lesson.steps;
+  return steps.some((step) => {
+    if (step.kind === "drag-body" && step.scene.timeRange?.kind === "span") return true;
+    if (step.kind === "predict" && step.reveal.kind === "panel") {
+      const when = step.reveal.when;
+      return when?.kind === "span" || when?.kind === "band";
+    }
+    return false;
+  });
 }
 
 /**
@@ -167,6 +180,12 @@ export function validateLesson(lesson: Lesson, check: LessonCheck): readonly str
       if (step.kind === "drop-pin" && step.goal) checkTolerance(problems, step.goal, where);
       if (step.kind === "drag-body") checkTolerance(problems, step.goal, where);
     }
+  }
+
+  // A lesson that plays the story month needs its two ends to agree (drag-body.ts, storyMonth).
+  if (usesStoryMonth(lesson)) {
+    const month = storyMonth(check.examples, check.grid);
+    if ("problem" in month) problems.push(`the story month does not match: ${month.problem}`);
   }
 
   walkStrings(lesson, (text, path) => {
