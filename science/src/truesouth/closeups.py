@@ -10,6 +10,7 @@ import io
 import json
 from pathlib import Path
 import re
+import shutil
 import time
 
 import httpx
@@ -206,6 +207,47 @@ def _json(path, value):
     temp.replace(path)
 
 
+def _crop_candidates(src, info, candidates, prepared, index, name):
+    for site in candidates:
+        if index['sites'].get(site.id, {}).get('covered'):
+            continue
+        output = prepared/f'{site.id}.npy'
+        reused = False
+        for key, entry in index['sites'].items():
+            if key == site.id or entry.get('file') != name or not entry.get('covered'):
+                continue
+            existing = prepared/f'{key}.npy'
+            if not existing.is_file():
+                continue
+            terrain = PreparedMap(existing)
+            # Nearby variants can share the already fetched native crop, with
+            # enough extra margin for the complete ±160 m agreement lag search.
+            if window_covered(terrain, site.lat_deg, site.lon_deg, window_km=2.4):
+                shutil.copyfile(existing, output)
+                _json(output.with_suffix('.json'), {**terrain.meta, 'centre':[site.lat_deg, site.lon_deg]})
+                reused = True
+                del terrain
+                break
+            del terrain
+        if not reused:
+            crop_map(src, output, (site.lat_deg, site.lon_deg), source={**info, 'source':name})
+        covered = window_covered(PreparedMap(output), site.lat_deg, site.lon_deg)
+        index['sites'][site.id] = dict(file=name, covered=covered,
+                                      reason='complete valid window' if covered else 'nodata in window envelope')
+        if not covered:
+            output.unlink()
+            output.with_suffix('.json').unlink()
+
+
+def _candidates(info, sites):
+    result = []
+    for site in sites:
+        r0, r1, c0, c1 = _indices(info, envelope(site.lat_deg, site.lon_deg))
+        if 0 <= r0 <= r1 < info['shape'][0] and 0 <= c0 <= c1 < info['shape'][1]:
+            result.append(site)
+    return result
+
+
 @contextmanager
 def _raster(client, item, size, raw, *, allow_download=True, block_size=BLOCK):
     """HTTP range first; a whole-file fallback is deleted before returning."""
@@ -252,11 +294,21 @@ def fetch_closeups(client, files, sites, raw, prepared, *, check_only=False):
     centres = {s.id:[s.lat_deg, s.lon_deg] for s in sites}
     previous = json.loads(index_path.read_text()) if index_path.exists() else {}
     index = previous if previous.get('version') == VERSION and previous.get('centres') == centres else dict(version=VERSION, centres=centres, files={}, sites={})
+    for key, entry in list(index['sites'].items()):
+        if entry.get('covered') and not all((prepared/f'{key}{suffix}').is_file() for suffix in ('.npy', '.json')):
+            index['files'].get(entry.get('file'), {})['complete'] = False
+            del index['sites'][key]
     sizes = check(client, files)
+    if sizes:
+        limits([max(sizes.values())])
     infos = {}
     needed = []
     for item in files:
         old = index['files'].get(item.name, {})
+        if old.get('size') != sizes[item.name]:
+            for key, entry in list(index['sites'].items()):
+                if entry.get('file') == item.name:
+                    del index['sites'][key]
         complete = old.get('size') == sizes[item.name] and old.get('complete')
         crops_present = all((prepared/f'{key}.npy').is_file() and (prepared/f'{key}.json').is_file()
                             for key, entry in index['sites'].items()
@@ -273,17 +325,19 @@ def fetch_closeups(client, files, sites, raw, prepared, *, check_only=False):
             except RuntimeError as exc:
                 if 'ranges unsupported' not in str(exc):
                     raise
+                if check_only:
+                    raise
                 limits(list(sizes.values()))
                 with _raster(client, item, sizes[item.name], raw) as (src, count):
                     info = inspect_map(src)
                     info.update(size=sizes[item.name], url=item.url, metadata_bytes=count())
+                    _crop_candidates(src, info, _candidates(info, sites), prepared, index, item.name)
+                    info.update(complete=True, crop_bytes=0, full_download_bytes=count())
+                index['files'][item.name] = info
+                _json(index_path, index)
             infos[item.name] = info
         info = infos[item.name]
-        candidates = []
-        for site in sites:
-            r0, r1, c0, c1 = _indices(info, envelope(site.lat_deg, site.lon_deg))
-            if 0 <= r0 <= r1 < info['shape'][0] and 0 <= c0 <= c1 < info['shape'][1]:
-                candidates.append(site)
+        candidates = _candidates(info, sites)
         if candidates:
             needed.append((item, candidates))
         print(f"{item.name}: grid {info['shape']}, blocks {info['block_shape']}; candidates {[s.id for s in candidates]}", flush=True)
@@ -296,18 +350,11 @@ def fetch_closeups(client, files, sites, raw, prepared, *, check_only=False):
         info = infos[item.name]
         if info.get('complete'):
             continue
+        if all(index['sites'].get(s.id, {}).get('covered') for s in candidates):
+            info.update(complete=True, crop_bytes=0)
+            continue
         with _raster(client, item, sizes[item.name], raw, block_size=1024*1024) as (src, count):
-            for site in candidates:
-                if index['sites'].get(site.id, {}).get('covered'):
-                    continue
-                output = prepared/f'{site.id}.npy'
-                crop_map(src, output, (site.lat_deg, site.lon_deg), source={**info, 'source':item.name})
-                covered = window_covered(PreparedMap(output), site.lat_deg, site.lon_deg)
-                index['sites'][site.id] = dict(file=item.name, covered=covered,
-                                              reason='complete valid window' if covered else 'nodata in window envelope')
-                if not covered:
-                    output.unlink()
-                    output.with_suffix('.json').unlink()
+            _crop_candidates(src, info, candidates, prepared, index, item.name)
             info['crop_bytes'] = count()
         print(f"{item.name}: {info['crop_bytes']} bytes transferred for crops; no full TIFF retained", flush=True)
         info['complete'] = True

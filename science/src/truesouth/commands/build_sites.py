@@ -20,7 +20,7 @@ from time import perf_counter
 
 from truesouth import catalog, paths
 from truesouth.constants import (MOON_RADIUS_M, OBSERVER_HEIGHT_M, SKYLINE_BINS,
-                                 TIME_GRID_COUNT, TIME_GRID_START_UTC, TIME_GRID_STEP_S)
+                                 TIME_GRID_COUNT, TIME_GRID_START_UTC, TIME_GRID_STEP_S, TERRAIN_SIZE)
 from truesouth.contracts import (Manifest, TimeGrid, Site, Sites, SiteMeta,
                                  SeriesLayout, SeriesMeta, SkylineLayout, MeshMeta)
 from truesouth.dem import DemStore, site_tier
@@ -66,6 +66,14 @@ def _write_model(path, model):
 
 def _write_index(index, built):
     _write_model(index, Sites(root=[built[key] for key in sorted(built)]))
+
+
+def _closeup_budget(output):
+    existing = {p.parent.name:p.stat().st_size for p in (output/'sites').glob('*/closeup.bin')}
+    for path in (paths.prepared_dir()/'closeups').glob('*.npy'):
+        existing.setdefault(path.stem, TERRAIN_SIZE*TERRAIN_SIZE*4*4)
+    if sum(existing.values()) > 20_000_000:
+        raise ValueError('Close-up artifacts would exceed the 20 MB repository limit; stop and report')
 
 
 def _recover_site(target):
@@ -347,6 +355,7 @@ def run(args):
         time_grid=TimeGrid(start_utc=TIME_GRID_START_UTC, step_s=TIME_GRID_STEP_S, count=TIME_GRID_COUNT),
         observer_height_m=OBSERVER_HEIGHT_M, skyline_bins=SKYLINE_BINS, moon_radius_m=MOON_RADIUS_M)
     output = paths.derived_dir()
+    _closeup_budget(output)
     global_data = load_global(output/'system.bin')
     index = output/'sites.json'
     built = {site.id: site for site in Sites.model_validate_json(index.read_bytes()).root} if index.exists() else {}
@@ -358,6 +367,8 @@ def run(args):
               *Path(__file__).resolve().parents[1].rglob('*.py')]
     if terrain_needed:
         inputs += [path for map_path in (core, wide) for path in (map_path, map_path.with_suffix('.json')) if path.exists()]
+    inputs += [path for crop in (paths.prepared_dir()/'closeups').glob('*.npy')
+               for path in (crop, crop.with_suffix('.json')) if path.exists()]
     newest_input = max(path.stat().st_mtime_ns for path in inputs)
     cache = None
     if core.is_file() and any(_qualifies(site) for site in selected):
@@ -458,10 +469,8 @@ def _refresh_closeups(selected, args):
     core = PreparedMap(core_path) if core_path.exists() else None
     if core is None:
         raise ValueError('Prepared core80 map is required for close-up agreement checks')
-    # Refuse the worst possible addition before writing any binary.
-    potential = sum((paths.prepared_dir()/'closeups'/f'{s.id}.npy').is_file() for s in records)
-    if potential*257*257*4*4 > 20_000_000:
-        raise ValueError('Close-up artifacts would exceed the 20 MB repository limit; stop and report')
+    # Refuse the worst possible total addition before writing any binary.
+    _closeup_budget(output)
     for site in records:
         target = output/'sites'/site.id
         _recover_site(target)

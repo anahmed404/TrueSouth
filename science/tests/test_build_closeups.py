@@ -54,3 +54,17 @@ def test_failed_refresh_keeps_complete_previous_site(tree, monkeypatch):
     with pytest.raises(OSError, match='synthetic close-up'):
         main(['build-sites', '--closeups-only', '--only', site.id])
     assert snapshot(output) == before
+
+
+def test_normal_build_publishes_closeup_without_changing_site_science(tree):
+    output, maps, _ = tree
+    build('connecting_ridge')
+    before = snapshot(output)
+    site = Sites.model_validate_json((output/'sites.json').read_bytes()).root[0]
+    closeups = maps/'closeups'; closeups.mkdir()
+    prepared(closeups, site.id, np.full((801,801), 1234), (site.lat_deg, site.lon_deg), pixel=5)
+    build(site.id, force=True)
+    after = snapshot(output)
+    assert json.loads(after['sites.json'])[0]['has_closeup']
+    for suffix in ('series.bin', 'skyline.bin', 'terrain.bin'):
+        assert before[f'sites/{site.id}/{suffix}'] == after[f'sites/{site.id}/{suffix}']

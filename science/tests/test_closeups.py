@@ -172,3 +172,47 @@ def test_fetch_crop_idempotent_and_full_download_deleted(raster, tmp_path, range
     assert not list(raw.glob('*'))
     assert {p.name:p.read_bytes() for p in prepared.iterdir() if p.is_file()} == first
     assert window_covered(PreparedMap(prepared/'point.npy'), -88, 35)
+
+
+def test_missing_crop_is_resumed(raster, tmp_path):
+    from types import SimpleNamespace
+    url = 'https://test/one.tif'
+    client, requests = fake_client({url:raster.read_bytes()})
+    item = Download('closeup', url, 'one.tif')
+    sites = [SimpleNamespace(id='point', lat_deg=-88, lon_deg=35)]
+    raw, prepared = tmp_path/'raw', tmp_path/'prepared'
+    with client:
+        fetch_closeups(client, [item], sites, raw, prepared)
+        (prepared/'point.npy').unlink()
+        fetch_closeups(client, [item], sites, raw, prepared)
+    assert (prepared/'point.npy').is_file()
+    assert len([r for r in requests if r[0]=='GET']) > 1
+
+
+def test_fallback_deletes_before_next_file_and_obeys_total_limit(raster, tmp_path):
+    from types import SimpleNamespace
+    raw, prepared = tmp_path/'raw', tmp_path/'prepared'
+    urls = ['https://test/one.tif', 'https://test/two.tif']
+    items = [Download('closeup', url, url.rsplit('/',1)[1]) for url in urls]
+    requests = []
+    data = raster.read_bytes()
+    def handler(request):
+        requests.append(request)
+        if request.method == 'HEAD':
+            return httpx.Response(200, headers={'content-length':str(len(data))})
+        if str(request.url) == urls[1]:
+            assert not list(raw.glob('*.tif'))
+        return httpx.Response(200, content=data)  # Range deliberately unsupported.
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        fetch_closeups(client, items, [SimpleNamespace(id='point',lat_deg=-88,lon_deg=35)], raw, prepared)
+    # Exactly one full GET per map (plus the refused range probe).
+    assert len([r for r in requests if r.method=='GET' and 'range' not in r.headers]) == 2
+    assert not list(raw.glob('*'))
+    def too_large(request):
+        if request.method=='HEAD':
+            return httpx.Response(200, headers={'content-length':'150000001'})
+        assert request.headers['range'] == 'bytes=0-65535'
+        return httpx.Response(200)  # Cannot inspect metadata through ranges.
+    with httpx.Client(transport=httpx.MockTransport(too_large)) as client:
+        with pytest.raises(RuntimeError, match='150 MB'):
+            fetch_closeups(client, items, [], raw, tmp_path/'oversize')

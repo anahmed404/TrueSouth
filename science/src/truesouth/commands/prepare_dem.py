@@ -11,8 +11,9 @@ def add_arguments(parser):
 def run(args):
     """Convert each polar terrain map (`LDEM_*.TIF`) in the raw folder.
 
-    Close-up DEMs (`*_surf.tif`) are in their own projection and are prepared by a later
-    work package (S8), so they are skipped here. Partly downloaded `.part` files are ignored.
+    Close-up crops are already prepared by fetch-raw --group closeup; select
+    --group closeup to validate them. Old full `*_surf.tif` files are skipped.
+    Partly downloaded `.part` files are ignored.
     One refused map does not stop the others; the step exits non-zero if any was refused.
     """
     if args.group == 'closeup':
@@ -44,6 +45,6 @@ def run(args):
             refused.append(path.name)
             print(f'{path.name}: REFUSED: {exc}')
     for path in skipped:
-        print(f'{path.name}: skipped (close-up DEMs are prepared by a later step)')
+        print(f'{path.name}: skipped (use fetch-raw --group closeup for bounded crops)')
     if refused:
         raise SystemExit('Refused: ' + ', '.join(refused))
