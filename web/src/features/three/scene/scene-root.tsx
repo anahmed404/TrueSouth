@@ -1,7 +1,7 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
 import * as THREE from "three";
-import type { CameraViewId, FreeSpace, SceneProps } from "../../../app/scene";
+import type { CameraViewId, FreeSpace, SceneProjector, SceneProps } from "../../../app/scene";
 import type { Site } from "../../../contracts/generated";
 import { useApron, useManifest, useSceneMeta, useSeries, useSite, useSites, useSystem, useTerrain } from "../../../data";
 import type { DecodedApron, DecodedSeries, DecodedSystem, DecodedTerrain } from "../../../data";
@@ -14,6 +14,7 @@ import {
   localDirectionToScene,
   siteFrameScene,
   siteGroundScene,
+  surfacePointScene,
   type ApronGrid,
   type SystemHour,
 } from "../../../lib/geo";
@@ -40,6 +41,7 @@ import { decorationDisclosure, sceneContent, seriesSunAnswer, type LoadState } f
 import { southPolePose } from "./navigate";
 import { Rig } from "./rig";
 import { sightState, type SightState } from "./sight";
+import { SLIP_REFIT_MS, inSlipView, slipPose, type SlipSite } from "./slip";
 import { PointerTracker, type Command as PointerCommand } from "./pointers";
 import { FrameMeter, MOON_SEGMENTS_FULL, QualityGovernor, drawDpr, moonSegments, qualityStages } from "./perf";
 import { Stars, starExposure } from "./stars";
@@ -216,6 +218,41 @@ function shrink(space: FreeSpace, top: number, bottom: number): FreeSpace {
   return { ...space, y: space.y + top, height: space.height - top - bottom };
 }
 
+/**
+ * The projector the scene hands the shell (SceneProps `onProjector`): sites to screen points
+ * with the camera of the last drawn frame, and a call after every frame.
+ */
+class ProjectorHub implements SceneProjector {
+  private camera: THREE.Camera | null = null;
+  private size = { width: 1, height: 1 };
+  private readonly listeners = new Set<() => void>();
+  private readonly point = new THREE.Vector3();
+  private readonly toCamera = new THREE.Vector3();
+
+  frame(camera: THREE.Camera, size: { width: number; height: number }): void {
+    this.camera = camera;
+    this.size = size;
+    for (const listener of this.listeners) listener();
+  }
+
+  project = (latDeg: number, lonDeg: number) => {
+    const camera = this.camera;
+    if (!camera) return { x: 0, y: 0, visible: false };
+    const p = this.point.set(...surfacePointScene(latDeg, lonDeg));
+    const facing = p.dot(this.toCamera.copy(camera.position).sub(p)) > 0;
+    const ndc = p.clone().project(camera);
+    const front = ndc.z > -1 && ndc.z < 1;
+    return { x: ((ndc.x + 1) / 2) * this.size.width, y: ((1 - ndc.y) / 2) * this.size.height, visible: front && facing };
+  };
+
+  subscribe = (onFrame: () => void) => {
+    this.listeners.add(onFrame);
+    return () => {
+      this.listeners.delete(onFrame);
+    };
+  };
+}
+
 function Scene3D(props: SceneProps) {
   const { view, scenario, reduceMotion, ignoreSlow, onStatus, onFocusSite, onViewChange } = props;
   const capture = useMemo(captureMode, []);
@@ -267,6 +304,19 @@ function Scene3D(props: SceneProps) {
     [scenario.siteIds, siteList],
   );
   const focusedSite = focusedId ? (siteList.find((site) => site.id === focusedId) ?? null) : null;
+  // The Slip Planner frames the selected sites inside the polar cap (slip.ts).
+  const slipKey = selected.filter(inSlipView).map((site) => site.id).join("|");
+  const slipSites = useMemo(
+    (): SlipSite[] => selected.filter(inSlipView).map((site) => ({ latDeg: site.lat_deg, lonDeg: site.lon_deg })),
+    // The key lists the sites, so the fit changes only when they do.
+    [slipKey],
+  );
+  const hub = useMemo(() => new ProjectorHub(), []);
+  const { onProjector } = props;
+  useEffect(() => {
+    onProjector?.(hub);
+    return () => onProjector?.(null);
+  }, [hub, onProjector]);
   const focusReady = focus && focus.siteId === focusedId ? focus : null;
 
   const apronEntry = useMemo(() => {
@@ -570,6 +620,10 @@ function Scene3D(props: SceneProps) {
           smoothGround={content.ground === "smooth"}
           onStatus={onStatus}
           onArrive={props.onArrive}
+          slipSites={slipSites}
+          slipKey={slipKey}
+          slipShading={props.slipShading ?? false}
+          hub={hub}
         />
       </Canvas>
       {capture ? null : (
@@ -633,6 +687,11 @@ type DirectorProps = {
   smoothGround: boolean;
   onStatus: SceneProps["onStatus"];
   onArrive?: SceneProps["onArrive"];
+  /** The Slip Planner's polar sites, a key that changes with them, and its shading switch. */
+  slipSites: readonly SlipSite[];
+  slipKey: string;
+  slipShading: boolean;
+  hub: ProjectorHub;
 };
 
 function Director(props: DirectorProps) {
@@ -731,6 +790,12 @@ function Director(props: DirectorProps) {
       };
       const site = i.site;
       if (view === "map") return polarPose(space);
+      if (view === "slip") {
+        const pose = slipPose(p.slipSites, space);
+        rig.slipCentre = { centre: pose.centre, up0: pose.up0 };
+        world.slipLight = pose.light;
+        return pose;
+      }
       if ((view === "terrain" || view === "panorama") && site) {
         const sunAz = p.sight?.sunAz ?? 0;
         const earthAz = p.sight?.earthAz ?? 180;
@@ -744,7 +809,7 @@ function Director(props: DirectorProps) {
       if (p.preset === "south_pole" && p.presetPulse > 0) return southPolePose(subjects, space);
       return homePose(subjects, space);
     },
-    [],
+    [rig, world],
   );
 
   /** The System view's point of interest for the current preset: drags close in turn about it. */
@@ -812,8 +877,18 @@ function Director(props: DirectorProps) {
   }, []);
 
   // ── Flights ──
+  /**
+   * The Slip Planner's fit changed (its sites, or the free space) while a locked flight ran:
+   * refit once the flight lands, so the view never rests on a fit made before the data was in.
+   */
+  const slipRefitPending = useRef(false);
   const arrive = useCallback((view: CameraViewId) => {
     const p = latest.current;
+    if (view === "slip" && slipRefitPending.current) {
+      slipRefitPending.current = false;
+      rig.flyTo(targetFor("slip"), p.reduceMotion ? 0 : SLIP_REFIT_MS);
+      invalidate();
+    }
     if (!p.onArrive) return;
     if (view === "map") {
       const pose = polarPose(p.sceneSpace);
@@ -821,7 +896,7 @@ function Director(props: DirectorProps) {
     } else {
       p.onArrive({ view });
     }
-  }, []);
+  }, [rig, targetFor, invalidate]);
 
   /**
    * Flies to a camera view (the rig's `flyToView`: locked against drags, scrolls and keys;
@@ -850,7 +925,10 @@ function Director(props: DirectorProps) {
   // Levels the System view after free turning: flies back to the current preset's framing.
   const levelView = useRef<() => void>(() => undefined);
   levelView.current = () => {
-    if (latest.current.view === "system" && !rig.locked) flyToView("system", FLIGHT_MS, false);
+    if (rig.locked) return;
+    if (latest.current.view === "system") flyToView("system", FLIGHT_MS, false);
+    // The Slip Planner: frame the sites again, as a new site set does.
+    else if (latest.current.view === "slip") rig.flyTo(targetFor("slip"), latest.current.reduceMotion ? 0 : SLIP_REFIT_MS);
   };
 
   // The intro: once the data for the current time is in, ease in from 1.5 times the distance.
@@ -897,13 +975,23 @@ function Director(props: DirectorProps) {
         ? `system|${props.preset}|${props.presetPulse}|${props.trueScale}|${props.preset === "follow_site" ? siteId : ""}`
         : props.view === "map"
           ? "map"
-          : `${props.view}|${groundKey}|${props.view === "panorama" ? props.lookToward : ""}|${props.sight ? "s" : ""}`;
+          : props.view === "slip"
+            ? `slip|${props.slipKey}`
+            : `${props.view}|${groundKey}|${props.view === "panorama" ? props.lookToward : ""}|${props.sight ? "s" : ""}`;
     const previous = lastKey.current;
     lastKey.current = key;
     if (!introDone.current || previous === null || previous === key) return;
     if (previous.split("|")[0] !== key.split("|")[0]) return; // a view change flies by itself
+    if (props.view === "slip") {
+      // A new site set refits the Slip Planner in 450 to 600 ms. A locked flight in carries on
+      // and lands on the new fit, since its target is read again below when it is re-aimed.
+      if (rig.locked) slipRefitPending.current = true;
+      else rig.flyTo(targetFor("slip"), latest.current.reduceMotion ? 0 : SLIP_REFIT_MS);
+      invalidate();
+      return;
+    }
     flyToView(props.view, FLIGHT_MS, props.view !== "system");
-  }, [props.view, props.preset, props.presetPulse, props.trueScale, siteId, groundKey, props.lookToward, props.sight !== null, flyToView]);
+  }, [props.view, props.preset, props.presetPulse, props.trueScale, siteId, groundKey, props.lookToward, props.sight !== null, props.slipKey, flyToView]);
 
   // The free space: the centre slides there; a camera the user has not moved re-frames.
   const firstSpace = useRef(true);
@@ -916,8 +1004,11 @@ function Director(props: DirectorProps) {
       return;
     }
     rig.setFreeSpace(props.sceneSpace, latest.current.reduceMotion ? 0 : INSET_MS);
+    if (introDone.current && latest.current.view === "slip" && rig.locked) slipRefitPending.current = true;
     if (introDone.current && !rig.userMoved && !rig.flying) {
-      rig.flyTo(targetFor(latest.current.view), latest.current.reduceMotion ? 0 : INSET_MS);
+      // The Slip Planner refits in 450 to 600 ms (slip-planner.md, "The camera fit").
+      const ms = latest.current.view === "slip" ? SLIP_REFIT_MS : INSET_MS;
+      rig.flyTo(targetFor(latest.current.view), latest.current.reduceMotion ? 0 : ms);
     }
     invalidate();
   }, [props.sceneSpace, rig, targetFor, invalidate]);
@@ -957,6 +1048,8 @@ function Director(props: DirectorProps) {
     }
     const moving = rig.update(now);
     world.draw = rig.draw;
+    world.slip = rig.slip;
+    world.slipShading = latest.current.slipShading && latest.current.view === "slip";
     // three updates the camera's matrices during render; the overlay projects before that.
     frameCamera.updateMatrixWorld();
     const anchors = world.layout(frameCamera);
@@ -982,6 +1075,8 @@ function Director(props: DirectorProps) {
     world.groundLook.setMotion(inMotion, quality.stage);
     const overlayStart = devMeter ? performance.now() : 0;
     latest.current.bus.current.overlay?.(anchors, frameCamera as THREE.PerspectiveCamera, size);
+    // The Slip Planner's spots follow the camera: the projector's subscribers run after every frame.
+    latest.current.hub.frame(frameCamera, size);
     if (devMeter) devMeter.parts.overlay += performance.now() - overlayStart;
     if (devMeter) {
       devMeter.meter.tick(now);

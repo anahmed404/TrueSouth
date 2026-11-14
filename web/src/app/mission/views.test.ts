@@ -15,15 +15,15 @@ import {
 } from "./views";
 
 describe("which views are camera views and which are windows", () => {
-  it("has the four camera views, in the view bar's order", () => {
-    expect(CAMERA_VIEWS.map((v) => v.id)).toEqual(["system", "map", "terrain", "panorama"]);
-    expect(CAMERA_VIEWS.map((v) => v.name)).toEqual(["System view", "Polar map", "Local terrain", "Lander's eye"]);
+  it("has the five camera views, the Slip Planner between the Polar map and Local terrain", () => {
+    expect(CAMERA_VIEWS.map((v) => v.id)).toEqual(["system", "map", "slip", "terrain", "panorama"]);
+    expect(CAMERA_VIEWS.map((v) => v.name)).toEqual(["System view", "Polar map", "Slip Planner", "Local terrain", "Lander's eye"]);
   });
 
-  it("has the two windows after them", () => {
-    expect(WINDOW_VIEWS.map((v) => v.id)).toEqual(["slip", "compare"]);
-    expect(WINDOW_VIEWS.map((v) => v.name)).toEqual(["Slip Planner", "Compare"]);
-    expect(VIEWS.map((v) => v.id)).toEqual(["system", "map", "terrain", "panorama", "slip", "compare"]);
+  it("has the one window after them: Compare", () => {
+    expect(WINDOW_VIEWS.map((v) => v.id)).toEqual(["compare"]);
+    expect(WINDOW_VIEWS.map((v) => v.name)).toEqual(["Compare"]);
+    expect(VIEWS.map((v) => v.id)).toEqual(["system", "map", "slip", "terrain", "panorama", "compare"]);
   });
 
   it("covers every view the scenario store knows, each exactly once", () => {
@@ -38,18 +38,23 @@ describe("which views are camera views and which are windows", () => {
 
 describe("the link's view and what is on screen", () => {
   it("a camera view in the link is that camera view, with no window", () => {
-    for (const id of ["system", "map", "terrain", "panorama"] as const) {
+    for (const id of ["system", "map", "slip", "terrain", "panorama"] as const) {
       expect(viewState(id)).toEqual({ camera: id, window: null });
     }
   });
 
+  it("an old link with view=slip opens the Slip Planner's camera view, not a window", () => {
+    expect(viewState("slip")).toEqual({ camera: "slip", window: null });
+    expect(viewState("slip", "terrain")).toEqual({ camera: "slip", window: null });
+  });
+
   it("a window in the link opens over the System view on load", () => {
-    expect(viewState("slip")).toEqual({ camera: "system", window: "slip" });
     expect(viewState("compare")).toEqual({ camera: "system", window: "compare" });
   });
 
   it("a window opened in the page keeps the camera view under it", () => {
     expect(viewState("compare", "terrain")).toEqual({ camera: "terrain", window: "compare" });
+    expect(viewState("compare", "slip")).toEqual({ camera: "slip", window: "compare" });
   });
 
   it("round-trips every view through the link", () => {
@@ -59,31 +64,29 @@ describe("the link's view and what is on screen", () => {
 
 describe("picking in the view bar", () => {
   const onMap: ViewState = { camera: "map", window: null };
-  const slipOverMap: ViewState = { camera: "map", window: "slip" };
+  const compareOverMap: ViewState = { camera: "map", window: "compare" };
 
   it("a camera view moves the camera", () => {
     expect(pickView(onMap, "terrain")).toBe("terrain");
+    expect(pickView(onMap, "slip")).toBe("slip");
   });
 
   it("a window opens over the camera view without moving it", () => {
-    const next = pickView(onMap, "slip");
-    expect(next).toBe("slip");
-    expect(viewState(next, onMap.camera)).toEqual(slipOverMap);
+    const next = pickView(onMap, "compare");
+    expect(next).toBe("compare");
+    expect(viewState(next, onMap.camera)).toEqual(compareOverMap);
   });
 
   it("the open window's button closes it again", () => {
-    expect(pickView(slipOverMap, "slip")).toBe("map");
+    expect(pickView(compareOverMap, "compare")).toBe("map");
   });
 
-  it("the other window replaces it", () => {
-    expect(pickView(slipOverMap, "compare")).toBe("compare");
-  });
-
-  it("a camera view closes an open window", () => {
-    expect(pickView(slipOverMap, "panorama")).toBe("panorama");
+  it("a camera view closes an open window, the Slip Planner too", () => {
+    expect(pickView(compareOverMap, "panorama")).toBe("panorama");
+    expect(viewState(pickView(compareOverMap, "slip"), "map")).toEqual({ camera: "slip", window: null });
   });
 
   it("closing a window returns to the camera view under it", () => {
-    expect(closeWindow(slipOverMap)).toBe("map");
+    expect(closeWindow(compareOverMap)).toBe("map");
   });
 });
