@@ -1265,6 +1265,50 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## 3D and Map
 
+#### 2026-11-14 · System view proportions · Earth and the Sun read larger and farther than the Moon
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote `proportions.ts` (the drawn sizes and
+  distances, Earth's fade in front of the Moon) and its vitest tests against the stored
+  `system.bin` fixture, the new home framing in `camera.ts`, Earth's edge marker in
+  `overlay.tsx`, the About sentence and the spec changes; no AI-generated imagery — checked
+  by the agent with the vitest suite, typecheck, build, pytest, and by eye in Chrome with
+  hardware WebGL (RTX 2060) at 1440 × 900 and 1024 × 768, panels open and folded; a human
+  has not reviewed it
+- **State:** built, not verified
+- **Changed:** `web/src/features/three/scene/` (`proportions.ts` and its test are new;
+  `camera.ts` home framing, `world.ts` Sun placement and Earth fade, `materials.ts` Earth
+  opacity, `rig.ts` zoom-out limit, `overlay.tsx` Earth edge marker, two placement lines in
+  `scene-root.tsx`, the home tests in `scene-logic.test.ts` and two trackball tests'
+  starting pose in `navigate.test.ts`), `web/src/lib/explain.ts` (`system_view`),
+  `docs/features/system-view.md`, `docs/design/c2/built-system-proportions-*.png`, this entry
+- **Notes:**
+  - **The rule:** drawn sizes and distances are the cube root of the true values relative
+    to the Moon (`SIZE_EXPONENT`, `DISTANCE_EXPONENT`, `DISTANCE_SCALE` in
+    `proportions.ts`, with the true values beside them). Moon 1, Earth 1.54, Sun 7.37 Moon
+    radii; Earth about 4.5 Moon radii out (4.42 to 4.62 from perigee to apogee), the Sun
+    about 33, 7.3 times further. Before: both at 2.5, Earth 0.4 and the Sun 0.12. Being one
+    increasing rule, the order of sizes and distances cannot invert. Directions are
+    untouched (`system.bin`); true scale is unchanged.
+  - **Opening framing:** the Moon and Earth side by side across the free space, both in
+    frame and as large as fit (the camera slides sideways to centre the pair). The Sun is
+    marked at the edge; a zoom out or "From the Sun" brings it in. The Moon's radius at
+    1440 × 900 with panels open is about 100 px (was about 135); at 1024 × 768 about 45.
+  - **Zoom out** now reaches 600 Moon radii (was 40), so all three fit even at 1024 × 768;
+    there the Moon and Earth are a few pixels across, which is the point.
+  - **"From Earth"** used to show the back of Earth covering the Moon (see the before
+    capture). Earth now fades to a 15 % ghost while it covers the Moon, and hides when the
+    camera is inside it. Earth also gets an edge marker like the Sun's.
+  - Tests check, over every hour of the stored series: monotonic mapping, Moon < Earth <
+    Sun, the Sun at least 7 times further than Earth, directions equal to the series, no two
+    bodies touching (perigee and apogee included), sight-lines from any site pointing into
+    the drawn Earth and Sun, and true scale's real ratios.
+  - Not measured: a weak GPU. Nothing new is loaded (no texture); Earth is now drawn in the
+    transparent pass, and the Sun's disc is larger on screen when zoomed out. The quality
+    governor stayed on stage 0 on the RTX 2060.
+  - `lib/geo/placement.ts` still exports `SQUEEZED_DISTANCE`, `SQUEEZED_EARTH_RADIUS`,
+    `SQUEEZED_SUN_RADIUS` and `sunPlacement`; the scene no longer uses them (this package
+    was limited to `web/src/features/three/`). The geo owner can remove them.
+
 #### 2026-11-14 · T7b · The Moon around the Polar map's detailed square
 - **Who:** implementation agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — built the context reprojection, border,
