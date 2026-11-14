@@ -5,7 +5,6 @@ import { Explain } from "../../../components/Explain";
 import { cx, formatNumber } from "../../../components/format";
 import { Card } from "../../../components/Panel";
 import { StatusLamp } from "../../../components/StatusLamp";
-import { Tip } from "../../../components/Tip";
 import { useManifest, useSeries } from "../../../data/hooks";
 import type { DecodedSeries } from "../../../data/decode/layouts";
 import { useCountdowns, useHourFlags, windowLength, type HourFlags } from "../../../lib/scoring";
@@ -14,7 +13,7 @@ import type { PanelProps } from "../../panel";
 import { distinctDecimals, ruleFields, settingsProvenance, valueAndLimit } from "../rules";
 import { SettingsTag } from "../settings-tag";
 import { runAround } from "./axis";
-import { SOON_HOURS, earthCountdown, noneBefore, sunCountdown, waitParts, type CountdownView } from "./countdown-text";
+import { SOON_HOURS, earthCountdown, noneBefore, stretchChipText, sunCountdown, waitParts, type CountdownView } from "./countdown-text";
 
 function siteOf(scenario: PanelProps["scenario"]): string | null {
   return scenario.focusedSiteId ?? scenario.siteIds[0] ?? null;
@@ -74,7 +73,7 @@ function SiteCountdowns({ siteId, grid, scenario }: { siteId: string; grid: Time
       <CountdownCard
         view={sun}
         gridEnd={gridEnd}
-        stretch={<StretchChip kind="dark" flags={flags.data} hour={current} landing={landing} windowEnd={windowEnd} profile={profile} />}
+        stretch={stretchNotes("dark", flags.data, current, landing, windowEnd, profile)}
       >
         <Values body="sun" series={series.data} hour={current} profile={profile} />
       </CountdownCard>
@@ -83,9 +82,7 @@ function SiteCountdowns({ siteId, grid, scenario }: { siteId: string; grid: Time
         gridEnd={gridEnd}
         profile={profile}
         stretch={
-          profile.relay_available ? null : (
-            <StretchChip kind="blackout" flags={flags.data} hour={current} landing={landing} windowEnd={windowEnd} profile={profile} />
-          )
+          profile.relay_available ? null : stretchNotes("blackout", flags.data, current, landing, windowEnd, profile)
         }
       >
         <Values body="earth" series={series.data} hour={current} profile={profile} />
@@ -121,8 +118,11 @@ export function nextEvent(view: Pick<CountdownView, "body" | "eventName">): stri
 /**
  * One countdown card. Its rows are the same at every hour, so neither the card nor the
  * bottom strip changes height while the user scrubs or plays: the head, the countdown, the
- * values now, then one notes row reserved two lines tall that holds this stretch's chip
- * ("✕ 130 h dark · limit 6 h" with its tag) and the "Under 6 h" chip, or nothing.
+ * values now, then one notes row of exactly two lines, filled from the bottom. Line one is
+ * this stretch's chip ("✕ 130 h · over the 6 h limit"), which always fits one line; line two
+ * is the limit's provenance tag and, when the next change is under 6 h, "Under 6 h". Those are
+ * the most the row ever holds at once (a stretch and the warning do coexist, at the end of a
+ * dark stretch), and both lines are measured to fit the 158 px card, so nothing is clipped.
  */
 function CountdownCard({
   view,
@@ -135,7 +135,7 @@ function CountdownCard({
   gridEnd: string;
   profile?: MissionProfile;
   /** The current dark stretch or blackout, while there is one in the mission window. */
-  stretch?: ReactNode;
+  stretch?: StretchNotes | null;
   children: ReactNode;
 }) {
   const name = view.body === "sun" ? "Sun" : "Earth";
@@ -168,15 +168,20 @@ function CountdownCard({
         </div>
       )}
       {children}
-      <p className="cd-notes">
-        {stretch}
-        {view.soon ? (
-          <span className="cd-flag">
-            <StatusLamp status="CAUTION" size="xs" />
-            Under {SOON_HOURS} h
-          </span>
+      <div className="cd-notes">
+        {stretch ? <p className="cd-notes-line">{stretch.chip}</p> : null}
+        {stretch || view.soon ? (
+          <p className="cd-notes-line">
+            {stretch?.tag}
+            {view.soon ? (
+              <span className="cd-flag">
+                <StatusLamp status="CAUTION" size="xs" />
+                Under {SOON_HOURS} h
+              </span>
+            ) : null}
+          </p>
         ) : null}
-      </p>
+      </div>
     </Card>
   );
 }
@@ -243,52 +248,39 @@ export function stretchNow(
   return { hours, broken: hours > limit, value: printed.value, limit: printed.limit };
 }
 
-/**
- * This dark stretch or blackout as a chip in the card's notes row: "✕ 130 h dark · limit
- * 6 h", then the limit's sourced or assumed tag. The whole sentence ("This dark stretch
- * lasts 130 h, over the 6 h limit.") is its accessible description and its hover and focus
- * tip. Over the limit it carries the NO-GO lamp and the word "over" in the sentence, so it is
- * never colour alone.
- */
-export function stretchChipText(kind: "dark" | "blackout", now: { value: string; limit: string; broken: boolean }) {
-  const what = kind === "dark" ? "This dark stretch" : "This blackout";
-  return {
-    short: `${now.value} ${kind} · limit ${now.limit}`,
-    sentence: `${what} lasts ${now.value}, ${now.broken ? "over" : "within"} the ${now.limit} limit.`,
-  };
-}
+/** A stretch's chip and its limit's provenance tag, for the two lines of the notes row. */
+type StretchNotes = { chip: ReactNode; tag: ReactNode };
 
-function StretchChip({
-  kind,
-  flags,
-  hour,
-  landing,
-  windowEnd,
-  profile,
-}: {
-  kind: "dark" | "blackout";
-  flags: HourFlags;
-  hour: number;
-  landing: number;
-  windowEnd: number;
-  profile: MissionProfile;
-}) {
+/**
+ * While the current hour is in a dark stretch (Sun) or a blackout (Earth) inside the mission
+ * window: the chip, which says in words whether the stretch is over or within the profile's
+ * limit ("✕ 130 h · over the 6 h limit"), with the NO-GO lamp when over, and the whole
+ * sentence for screen readers; and the limit's sourced or assumed tag. No tooltip: the chip
+ * says everything on screen, on touch as well.
+ */
+function stretchNotes(
+  kind: "dark" | "blackout",
+  flags: HourFlags,
+  hour: number,
+  landing: number,
+  windowEnd: number,
+  profile: MissionProfile,
+): StretchNotes | null {
   const limit = kind === "dark" ? profile.max_dark_h : profile.max_blackout_h;
   const now = stretchNow(kind === "dark" ? flags.lit : flags.link, hour, landing, windowEnd, limit);
   if (!now) return null;
   const tag = settingsProvenance(profile, ruleFields(profile, kind === "dark" ? "darkness" : "blackout"));
   const text = stretchChipText(kind, now);
-  return (
-    <>
-      <Tip content={text.sentence}>
-        {(trigger) => (
-          <span {...trigger} tabIndex={0} className={cx("cd-chip", now.broken && "is-broken")}>
-            {now.broken ? <StatusLamp status="NO-GO" size="xs" /> : null}
-            <span className="tabular">{text.short}</span>
-          </span>
-        )}
-      </Tip>
-      <SettingsTag settings={tag} />
-    </>
-  );
+  return {
+    chip: (
+      <span className={cx("cd-chip", now.broken && "is-broken")}>
+        {now.broken ? <StatusLamp status="NO-GO" size="xs" /> : null}
+        <span className="tabular" aria-hidden="true">
+          {text.short}
+        </span>
+        <span className="sr-only">{text.sentence}</span>
+      </span>
+    ),
+    tag: <SettingsTag settings={tag} />,
+  };
 }

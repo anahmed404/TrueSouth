@@ -11,8 +11,9 @@ import { countdowns, hourFlags, windowLength, type Countdowns as CountdownValues
 import { hourIndexToUtc, utcToHourIndex } from "../../../lib/time";
 import { createScenarioStore, type ScenarioCatalog } from "../../../state/scenario";
 import { allNodes, installDocument, propsOf, textOf, type FakeNode } from "../fake-dom";
-import { Countdowns, stretchChipText } from "./countdowns";
-import { sunCountdown } from "./countdown-text";
+import { Countdowns, stretchNow } from "./countdowns";
+import { CHIP_TEXT_BUDGET_PX, chipTextWidth, stretchChipText, sunCountdown } from "./countdown-text";
+import { valueAndLimit } from "../rules";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../../..");
 const root = path.join(repoRoot, "data", "fixtures");
@@ -89,13 +90,14 @@ const KINDS: { name: string; hour: number; profile: string; missing?: boolean }[
   const warning = firstHour((h) => flags.lit[h] === 1 && sunSoon(h));
   // A dark hour whose stretch inside the window (which starts at it) is longer than 6 h.
   const dark = firstHour((h) => flags.lit[h] === 0 && flags.lit[h - 1] === 1 && Array.from({ length: 7 }, (_, i) => flags.lit[h + i]).every((v) => v === 0));
-  const blackout = firstHour((h) => flags.link[h] === 0 && flags.link[h - 1] === 1);
+  // A blackout whose stretch inside the window (which starts at it) is over IM-2's 12 h limit.
+  const blackout = firstHour((h) => flags.link[h] === 0 && flags.link[h - 1] === 1 && stretchNow(flags.link, h, h, h + n, im2.max_blackout_h)?.broken === true);
   KINDS.push(
     { name: "lit and linked", hour: lit, profile: "im2_athena" },
     { name: "lit, under 6 h to sunset (warning)", hour: warning, profile: "im2_athena" },
     { name: "dark, over the limit", hour: dark, profile: "im2_athena" },
     { name: "dark, within the limit", hour: dark, profile: "custom:im2_athena;max_dark_h=10000" },
-    { name: "blackout", hour: blackout, profile: "im2_athena" },
+    { name: "blackout, over the limit", hour: blackout, profile: "im2_athena" },
     { name: "blackout, within the limit", hour: blackout, profile: "custom:im2_athena;max_blackout_h=10000" },
     { name: "no data before the grid's end", hour: lit, profile: "im2_athena", missing: true },
   );
@@ -163,27 +165,80 @@ describe("the countdown cards keep the same rows at every hour", () => {
     expect(new Set(seen).size, seen.join(" / ")).toBe(1);
   });
 
-  it("puts the stretch, with its tag, and the warning in the notes row, never in a row of their own", async () => {
-    const dark = await render(KINDS[2]!);
+  /** The chip's visible words (its aria-hidden part), with narrow spaces made plain. */
+  const chipWords = (card: FakeNode) => {
+    const chip = allNodes(card).find((node) => String(propsOf(node).className ?? "").split(" ").includes("cd-chip"));
+    const words = chip && allNodes(chip).find((node) => propsOf(node)["aria-hidden"] === "true" && propsOf(node).className === "tabular");
+    return words ? textOf(words).replace(/ /g, " ") : null;
+  };
+  const notesOf = (card: FakeNode) => card.childNodes.find((node) => propsOf(node).className === "cd-notes")!;
+
+  it("says on screen, in words, that a stretch is over its limit, and keeps the sentence for screen readers", async () => {
+    const dark = await render(KINDS.find((k) => k.name === "dark, over the limit")!);
     const [sun, earth] = cards(dark);
-    const notes = (card: FakeNode) => card.childNodes.find((node) => propsOf(node).className === "cd-notes")!;
-    const sunNotes = textOf(notes(sun!)).replace(/ /g, " ");
-    expect(sunNotes).toMatch(/^\d+ h dark · limit 6 h/);
-    expect(sunNotes).toMatch(/This dark stretch lasts \d+ h, over the 6 h limit\./);
-    expect(allNodes(notes(sun!)).some((node) => String(propsOf(node).className ?? "").includes("tag"))).toBe(true);
-    expect(textOf(notes(earth!))).not.toContain("dark");
+    expect(chipWords(sun!)).toMatch(/^\d+ h · over the 6 h limit$/);
+    expect(textOf(notesOf(sun!)).replace(/ /g, " ")).toMatch(/This dark stretch lasts \d+ h, over the 6 h limit\./);
+    expect(allNodes(notesOf(sun!)).some((node) => String(propsOf(node).className ?? "").includes("tag"))).toBe(true);
+    expect(textOf(notesOf(earth!))).not.toContain("dark");
+    await act(async () => root?.unmount());
+    root = null;
+
+    const blackout = await render(KINDS.find((k) => k.name === "blackout, over the limit")!);
+    expect(chipWords(cards(blackout)[1]!)).toMatch(/^\d+ h · over the 12 h limit$/);
+    await act(async () => root?.unmount());
+    root = null;
+
+    const within = await render(KINDS.find((k) => k.name === "dark, within the limit")!);
+    expect(chipWords(cards(within)[0]!)).toMatch(/^\d+ h · within (the )?10,?000 h( limit)?$/);
     await act(async () => root?.unmount());
     root = null;
 
     const warning = await render(KINDS[1]!);
-    expect(textOf(cards(warning)[0]!.childNodes.find((node) => propsOf(node).className === "cd-notes")!)).toContain("Under 6");
+    expect(textOf(notesOf(cards(warning)[0]!))).toContain("Under 6");
   });
 
   it("words the chip and its sentence plainly", () => {
     expect(stretchChipText("dark", { value: "130 h", limit: "6 h", broken: true })).toEqual({
-      short: "130 h dark · limit 6 h",
+      short: "130 h · over the 6 h limit",
       sentence: "This dark stretch lasts 130 h, over the 6 h limit.",
     });
-    expect(stretchChipText("blackout", { value: "4 h", limit: "12 h", broken: false }).sentence).toBe("This blackout lasts 4 h, within the 12 h limit.");
+    expect(stretchChipText("blackout", { value: "4 h", limit: "12 h", broken: false })).toEqual({
+      short: "4 h · within the 12 h limit",
+      sentence: "This blackout lasts 4 h, within the 12 h limit.",
+    });
+  });
+});
+
+describe("the chip's words always fit one line of the card", () => {
+  // The longest strings that can occur: every preset's limits, a three- and five-digit custom
+  // limit, decimal limits, and stretches up to the whole time grid (52,584 h).
+  const limits = [...new Set([...profiles.flatMap((p) => [p.max_dark_h, p.max_blackout_h]), 999, 0.5, 12.25, 99_999, 100_000])];
+  const values = [1, 6, 13, 130, 999, 2_400, 8_760, 52_584];
+
+  it.each(limits.map((limit) => [limit] as const))("limit %s h: every stretch length, over and within", (limit) => {
+    for (const value of values) {
+      const printed = valueAndLimit(value, limit, "h", 0);
+      for (const kind of ["dark", "blackout"] as const) {
+        const text = stretchChipText(kind, { value: printed.value, limit: printed.limit, broken: value > limit });
+        expect(chipTextWidth(text.short), text.short).toBeLessThanOrEqual(CHIP_TEXT_BUDGET_PX);
+        expect(text.short).toContain(value > limit ? "over" : "within");
+      }
+    }
+  });
+
+  it("keeps the fullest wording when it fits, as for IM-2's limits", () => {
+    expect(stretchChipText("dark", { value: "999 h", limit: "6 h", broken: true }).short).toBe("999 h · over the 6 h limit");
+    expect(stretchChipText("blackout", { value: "236 h", limit: "12 h", broken: true }).short).toBe("236 h · over the 12 h limit");
+  });
+
+  it("matches the browser's measured widths to within a pixel", () => {
+    // Measured in Chrome, Jost 12 px weight 500, tabular figures (2026-11-14).
+    expect(chipTextWidth("130 h · over the 6 h limit") / 1.03).toBeCloseTo(128.5, 0);
+    expect(chipTextWidth("52,584 h · within the 999 h limit") / 1.03).toBeCloseTo(169.3, 0);
+  });
+
+  it("leaves the second line room for the widest tag and the warning", () => {
+    // Measured: the "sourced" tag 67 px, "assumed" 58 px; "Under 6 h" with its lamp 71 px; a 6 px gap.
+    expect(67 + 6 + 71).toBeLessThanOrEqual(158);
   });
 });

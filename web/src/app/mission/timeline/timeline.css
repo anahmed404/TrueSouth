@@ -605,21 +605,33 @@
   }
 
   /*
-    The notes row: always there, always two lines tall (a 16 px line and an 18 px tag line),
-    at the foot of the card. It holds this stretch's chip and its tag, and "Under 6 h". Empty,
-    it is the card's bottom margin, as before.
+    The notes row: always there, exactly two lines (16 px and 18 px), filled from the bottom
+    of the card. Line one: this stretch's chip, whose words are chosen to fit one line of the
+    158 px card (countdown-text.ts, CHIP_TEXT_BUDGET_PX). Line two: the limit's tag and "Under
+    6 h", 58 to 67 px and 71 px. Nothing is hidden: the height is reserved for the most the
+    row can hold, and the lines never wrap.
   */
   .cd-notes {
     display: flex;
-    flex-wrap: wrap;
-    align-content: flex-start;
-    align-items: center;
-    gap: 0 6px;
+    flex-direction: column;
+    justify-content: flex-end;
     height: 34px;
     margin: auto 0 0;
-    overflow: hidden;
     font-size: var(--t-sm);
+  }
+
+  .cd-notes-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 16px;
+    margin: 0;
     line-height: 16px;
+    white-space: nowrap;
+  }
+
+  .cd-notes-line + .cd-notes-line {
+    min-height: 18px;
   }
 
   .cd-flag {
