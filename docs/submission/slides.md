@@ -1,28 +1,35 @@
-# Slides: a 7-slide outline
+# Slides: the 7-slide deck
 
 The organisers accept either a video or a 7-slide presentation. This file is the content for
 the deck. The video script is [`video-script.md`](video-script.md). Both tell the same story
 and use the same numbers.
 
-State checked against `origin/main` at **ccb1389, 2026-11-14**. Nothing is deployed, so no
+The deck is built from this file:
+
+- [`slides/TrueSouth-slides.pptx`](slides/TrueSouth-slides.pptx): seven 16:9 slides, with the
+  speaker notes below in each slide's notes.
+- [`slides/TrueSouth-slides.pdf`](slides/TrueSouth-slides.pdf): the same seven slides, one per
+  page.
+- `slides/preview-1.png` to `slides/preview-7.png`: each slide as it looks.
+- `slides/shot-*.png`: the screenshots the slides use, taken at 1600 × 900 from a production
+  build of `main` at 6f9cb4e.
+
+State checked against `origin/main` at **6f9cb4e, 2026-11-14**. Nothing is deployed, so no
 slide shows a live address. Every number below is in [`proposal.md`](proposal.md),
 [`project-description.md`](project-description.md), [`demo-script.md`](demo-script.md),
 [`../validation.md`](../validation.md) or `data/derived/validation.json`.
 
-## How to build the deck
+## How the deck is built
 
-- 16:9, one idea per slide, dark neutral background to match the app. No stock photos.
-- Every picture is a real capture of the running app or a NASA image. Nothing AI-generated.
-- Captures are taken at a 1440 × 900 window. Crop to what a judge must read. If a capture
-  cannot be read from the back of a room, crop closer.
+- 16:9, one idea per slide, the app's dark neutral surfaces and inks, set in Jost (the app's
+  typeface). Status colours appear only where a status is shown. No stock photos.
+- Every picture is a real capture of the running app. Nothing AI-generated.
+- Captures were taken at a 1600 × 900 window and cropped to what a judge must read.
 - The slip story uses the **IM-2 Athena** mission profile and four sites (Connecting Ridge,
   Malapert Massif, Mons Mouton, de Gerlache Rim 2). The links are in
   [`demo-script.md`](demo-script.md), "Before the demo": link A (1 January 2028), link B
   (22 January) and link C (27 January).
-- Existing captures in `docs/design/c2/` were taken during development. Several show other
-  dates or sites, and a few show screens as they were then. The notes below say which are
-  usable as they are. Retake anything marked "new capture".
-- "Planning aid, not flight certification" appears once, on slide 6.
+- "A planning aid, not flight certification" appears once, on slide 6.
 
 ---
 
@@ -34,15 +41,9 @@ slide shows a live address. Every number below is in [`proposal.md`](proposal.md
 - Line under it: Where and when can this mission land?
 - Small print: Landing Went South · NASA Space Apps Cairo 2026 · Challenge: Lunar Landing Site Navigator
 
-**Picture.** The System view as it opens: the Moon in the middle, Earth beside it a little
-smaller and farther, the Sun far off. Full-bleed, text over the dark corner.
-
-- *Stand-in that exists:* `docs/design/c2/built-system-earth-tune-after-1440-opening.png`.
-  It shows the current opening (the Moon leads, Earth beside it). It is dated 1 March 2028
-  and the rail shows four NO-GO sites, which is fine for a title.
-- *Better, new capture:* open link A. In the "Selected sites" rail press "Hide the sites
-  rail", and close the right panel, so only the Moon, Earth, the Sun and the view bar show.
-  Keep "TrueSouth" visible at top left.
+**Picture.** The System view as it opens at link A: the Moon, Earth beside it, and the
+lines to the Sun and Earth. The sites rail and the focused-site panel are folded.
+Capture: `slides/shot-1-system.png`.
 
 **Speaker notes (about 57 words).** We are Landing Went South. We built TrueSouth for NASA's
 Lunar Landing Site Navigator challenge. It answers one question for a mission planner:
@@ -57,18 +58,12 @@ why.
 **On the slide**
 
 - Headline: **At the south pole, the Sun skims the horizon.**
-- **2.10°**, the highest the Sun gets at Connecting Ridge in our data
+- **2.10°**, the highest the Sun gets at Connecting Ridge in six years of hourly data
 - Mountains block the Sun and Earth. A launch slip changes the answer.
 
-**Picture.** Lander's eye at Connecting Ridge: the skyline as a 360° strip, with the Sun
-hugging it.
-
-- *Stand-in that exists:* `docs/design/c2/built-shell-feedback-after-landers-eye-1440.png`.
-  It shows the Horizon chart with the skyline, Earth 6.12° up and the Sun 1.07° below level.
-  It is dated 1 March 2028 and has NO-GO panels around it. Crop to the chart only.
-- *Better, new capture:* open link A, press **Lander's eye**, then press "Horizon chart"
-  so the chart opens. Time at 0 hours after landing (1 January 2028, Sun 0.63° up). The
-  Sun and the skyline line must both be readable, with the degree scale on the left.
+**Picture.** Lander's eye at Connecting Ridge, link A, with the Horizon chart open: the
+skyline as a 360° strip, the Sun 0.63° up and Earth 2.03° up. Capture:
+`slides/shot-2-landers-eye-horizon.png`, cropped to the chart.
 
 **Speaker notes (about 64 words).** At the Moon's south pole the Sun stays within about two
 degrees of the horizon. The highest it climbs at Connecting Ridge in our data is 2.10
@@ -82,17 +77,14 @@ slips, the answer changes.
 
 **On the slide**
 
-- Headline: **Where and when can this mission land?**
-- **GO**, **CAUTION** or **NO-GO**, with the rule that decided it
-- 20 catalog sites, 5 best-lit variants, or your own coordinates
+- Headline: **GO, CAUTION or NO-GO, with the rule that decided it.**
+- 25 sites: 20 catalog sites and 5 best-lit variants, or your own coordinates
+- Every limit is tagged sourced or assumed
 
-**Picture.** The focused-site panel showing a NO-GO with its broken rule and its limit
-tagged "assumed", beside the sites rail with one status per site.
-
-- *Exists, usable:* `docs/design/c2/built-slip-after-slip.png`. NO-GO at Connecting Ridge,
-  "Longest blackout 206 h, limit 12 h", the "assumed" tag, the four sites in the rail. It is
-  dated 19 September 2028, which does not matter on this slide. Crop to the left rail and
-  the right panel, leaving out the Moon.
+**Picture.** The sites rail and the focused-site panel on 22 January 2028: Connecting Ridge
+NO-GO, its three broken rules ("Longest blackout 119 h, limit 12 h") and their "assumed"
+tags, and one status per site in the rail. Capture: `slides/shot-3-verdict-nogo.png`,
+cropped to the rail and the panel.
 
 **Speaker notes (about 65 words).** You choose a mission profile, up to eight sites and a
 landing date. TrueSouth scores that date and gives one of three statuses: GO, CAUTION or
@@ -107,27 +99,23 @@ number as sourced.
 **On the slide**
 
 - Headline: **Same site, same mission. Three weeks later, NO-GO.**
-- 1 Jan 2028: **GO**
+- 1 Jan 2028: **GO**, score 100
 - 22 Jan 2028: **NO-GO**: Earth out of contact 119 h (limit 12 h, assumed)
-- 27 Jan 2028: **GO** again, at "Next GO"
+- 27 Jan 2028: **GO** again, score 99, at "Next GO"
 
-Small print under the three: Connecting Ridge · IM-2 Athena profile.
+Small print: Connecting Ridge · IM-2 Athena profile.
 
-**Picture.** Three crops side by side, left to right, from the Slip Planner. All new
-captures, 1440 × 900, IM-2 Athena, the four demo sites, Connecting Ridge focused:
+**Picture.** Three crops of the focused-site panel in the Slip Planner, side by side:
 
-1. Link A, then press **Slip Planner**. Landing date reads `2028-01-01 00:00 UTC`.
-   Connecting Ridge's spot shows GO; the other three show NO-GO. Crop to the focused-site
-   panel (GO, score 100) and the spots.
-2. Link B (22 January, Slip Planner). The plate reads "Slipped +21 d, 01 Jan → 22 Jan 2028.
-   1 of 4 sites changed. No site is GO or CAUTION on this date." Crop to that plate and the
-   NO-GO panel with "Longest blackout 119 h, limit 12 h, assumed".
-3. Press **Next GO**. Landing date reads 2028-01-27. The note reads "Landing moved to 27 Jan
-   2028, the next GO date for Connecting Ridge." Focused panel shows GO, score 99.
-
-Existing capture for panel 1 only: `docs/design/c2/built-compare-1440-four.png` shows
-Connecting Ridge GO at score 100 on 2028-01-01, but with a different set of sites and the
-Compare window open. Prefer the new capture.
+1. Link A, Slip Planner, landing date `2028-01-01 00:00 UTC`: GO, score 100.
+   `slides/shot-4a-slip-jan01-go.png`.
+2. The landing date slipped with **+14 d** and **Slip +7 d**: the plate reads "Slipped
+   +21 d, 01 Jan → 22 Jan 2028. 1 of 4 sites changed. No site is GO or CAUTION on this
+   date." The panel shows NO-GO with "Longest blackout 119 h, limit 12 h, assumed".
+   `slides/shot-4b-slip-jan22-nogo.png`.
+3. **Next GO**: the landing date reads 2028-01-27 and the note reads "Landing moved to 27 Jan
+   2028, the next GO date for Connecting Ridge." GO, score 99.
+   `slides/shot-4c-slip-jan27-nextgo.png`.
 
 **Speaker notes (about 66 words).** This is real data. Connecting Ridge, on the IM-2 Athena
 profile, is GO if we land on 1 January 2028. Slip the launch three weeks, to 22 January, and
@@ -142,30 +130,23 @@ mission.
 **On the slide**
 
 - Headline: **See why a site is lit or dark.**
-- System view · Polar map · Slip Planner · Local terrain · Lander's eye
-- **Compare**: sites side by side, with the deciding row marked
+- Five views share one clock: System view · Polar map · Slip Planner · Local terrain ·
+  Lander's eye
+- **Compare**: sites side by side, or two sites at two landing dates, with the deciding row
+  marked
 
-**Picture.** A strip of five small captures labelled with the view names, and a sixth,
-larger, of Compare. New captures are best, all at link C (27 January 2028), 1440 × 900.
-Existing stand-ins, all showing real data:
+**Picture.** Compare, large, with the five views as small captures under it, all at link C
+(27 January 2028): `slides/shot-5f-compare-sites.png` (Compare, "Sites" mode),
+`shot-5a-system-view.png`, `shot-5b-polar-map.png`, `shot-4c-slip-jan27-nextgo.png`,
+`shot-5d-local-terrain.png` (with the close-up ground from NASA's 5 m maps) and
+`shot-5e-landers-eye.png`. `shot-5g-compare-sites-and-dates.png` shows Compare's second
+mode; it is not on the slide.
 
-| View | Existing capture in `docs/design/c2/` | Note |
-| :--- | :--- | :--- |
-| System view | `built-system-earth-tune-after-1440-opening.png` | Current opening. 1 March 2028. |
-| Polar map | `built-shell-feedback-after-map-1440.png` | 1 March 2028. Four spots on the pole. |
-| Slip Planner | `built-slip-after-slip.png` | 19 September 2028, with six years of strips. |
-| Local terrain | `built-ground-after-cr-terrain-lit.png` | Connecting Ridge, 1 March 2028. Taken before the close-up ground work. |
-| Lander's eye | `built-shell-feedback-after-landers-eye-1440.png` | Horizon chart open. 1 March 2028. |
-| Compare | `built-compare-1440-four.png` | 1 January 2028. Connecting Ridge GO; Mons Mouton, Apollo 11 and Shackleton rim NO-GO. Export CSV and Export JSON visible. |
-
-Do **not** use `built-shell-feedback-after-compare-1440.png` or `space-compare.png`: they
-were taken before Compare was built and say "Not built yet".
-
-**Speaker notes (about 68 words).** Five camera views share one clock: the System view,
+**Speaker notes (about 75 words).** Five camera views share one clock: the System view,
 the Polar map, the Slip Planner, Local terrain and Lander's eye, the 360 degree view from two
-metres above the ground. Compare sets sites side by side for one landing date, marks the row
-that decides between them, and exports CSV and JSON. The 3D shadows are only a drawing.
-Lit or dark always comes from the computed record.
+metres above the ground. Compare sets sites side by side for one landing date, or two sites
+at two landing dates, marks the row that decides between them, and exports CSV and JSON. The
+3D shadows are only a drawing. Lit or dark always comes from the computed record.
 
 ---
 
@@ -173,21 +154,18 @@ Lit or dark always comes from the computed record.
 
 **On the slide**
 
-- Headline: **Our Sun and Earth directions match NASA's within 0.0061°.**
+- Lead number: **0.0061°**, the largest difference between our Sun and Earth directions and
+  NASA's JPL Horizons
 - **2,103,360** comparisons with JPL Horizons
 - **5 of 59** comparisons with NASA's maps are outside their marks. We publish them.
-- Planning aid, not flight certification.
+- A planning aid, not flight certification.
 
 Source line, small: NASA LOLA terrain · JPL Horizons positions.
 
-**Picture.** The top of the validation page, "How we know it's right": the card reading "Our
-Sun and Earth positions agree with NASA's to within 0.0061°", with the pass mark visible.
-
-- *Exists:* `docs/design/c2/built-validation-1440.png`. It is a full-length page capture, so
-  crop the first card of "Sun and Earth positions". The "Against NASA's maps" tables further
-  down show the rows marked "Outside the mark"; a second crop of one of those is optional.
-- *Better, new capture:* open `<live>/validation` on a running copy at 1440 × 900 and
-  capture the card and the line "2,103,360 comparisons".
+**Picture.** The validation page, "How we know it's right", at "Sun and Earth positions":
+the card reading "Our Sun and Earth positions agree with NASA's to within 0.0061°", marked
+"Passed", and the line with "2,103,360 comparisons in all". Capture:
+`slides/shot-6-validation.png`.
 
 **Speaker notes (about 62 words).** The terrain is NASA's LOLA data and the Sun and Earth
 positions come from JPL Horizons. We compared our Sun and Earth directions with Horizons'
@@ -197,35 +175,31 @@ reason. TrueSouth models the stay on the surface only.
 
 ---
 
-## Slide 7. The Academy and what is next
+## Slide 7. The Academy, and the team
 
 **On the slide**
 
 - Headline: **The Academy teaches the same physics.**
-- Four lessons with Luna, to land a fictional lander, Pip
-- Next: close-up ground from NASA's 5 m maps (in progress), Academy lessons 5 to 8
-- Built with AI tools under the team's direction. Full disclosure in our submission.
+- Four lessons with Luna, our mascot, to land Pip, a fictional lander
+- Next: more Academy lessons, and the official Artemis region outlines on the Polar map
+- Coding agents wrote and reviewed the code under the team's direction.
 
 Team, bottom of the slide: Abdallah Mostafa · Omar Khaled · Tawfic Kobtan · Ahmed Salah.
 Team name: Landing Went South.
 
-**Picture.** An Academy lesson step with Luna and a live panel.
+**Picture.** Lesson 1, "Where's the Sun?", step 2 of 5: the Sun's path over one month at
+Connecting Ridge, the elevation readout, and Luna's line. Capture:
+`slides/shot-7-academy-lesson1.png`.
 
-- *Exists, usable:* `docs/design/c2/built-academy-panels-l1-system-view-after.png`. Lesson 1,
-  "Where's the Sun?", step 3 of 5, with the System view panel and Luna's reply. Luna is a
-  placeholder drawing, so crop her out or keep her small. Do not describe her art as final.
-- *Alternative, new capture:* **Academy**, then lesson 1, step 1 or 2 (the Sun drag), at
-  1440 × 900.
-
-**Speaker notes (about 70 words).** The Academy uses the same engine and data as Mission
-Control. Luna, a moon mascot, guides a learner through four lessons to land Pip, a fictional
-lander, and each lesson has a card with the real formula. Next: close-up ground from NASA's
-5 metre maps, in progress, and lessons 5 to 8, not yet written. AI tools wrote most of the
-code under our direction. We are Landing Went South.
+**Speaker notes (about 68 words).** The Academy uses the same engine and data as Mission
+Control. Luna, our moon mascot, guides a learner through four lessons to land Pip, a
+fictional lander, and each lesson has a card with the real formula. Next, we will write more
+lessons and draw the official Artemis regions on the Polar map. Coding agents wrote and
+reviewed the code under our direction. We are Landing Went South.
 
 ---
 
 ## What is not on any slide
 
-Academy lessons 5 to 8, final art for Luna (her drawings are placeholders), official
-Artemis region outlines on the Polar map, the sensitivity grid, and any live address.
+The sensitivity grid, a list of future plans beyond the one line on slide 7, and any live
+address.

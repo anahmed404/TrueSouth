@@ -2221,6 +2221,8 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   request #116) and call the 5 m close-up ground "in progress". Most captures in
   `docs/design/c2/` predate today's changes or show other dates, so slides 1, 4 and 6 name
   new captures to take. Spoken words: 194 (2 minutes), 127 (60 seconds), 60 (30 seconds).
+- **2026-11-14 · Deck built (Claude Code, claude-opus-5-5):** `slides/TrueSouth-slides.pptx` and `.pdf` (seven 16:9 slides in Jost, speaker notes from `slides.md`), `preview-1..7.png`, and 14 fresh 1600 × 900 captures from a production build of `main` at 6f9cb4e; `slides.md` now names Compare's second mode, the built 5 m close-up ground, one line of next steps and Luna as the mascot.
+- **Checked:** each preview read at full size for clipped or overlapping text, and the numbers against `proposal.md`; the PPTX was not opened in PowerPoint (Jost must be installed, see `slides/fonts/`). State still built, not verified.
 
 #### 2026-11-14 · A4b · The lessons' panels show the real thing
 - **Who:** Claude Code agent, for the orchestrator
