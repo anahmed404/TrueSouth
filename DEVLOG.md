@@ -1497,7 +1497,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   `scene.css`), the Labels button in Local terrain's row, the spec changes and the tests
   (`fold.test.ts`, `plates.test.ts`) — checked by the agent with vitest, typecheck, build, and
   by eye in Chrome at 1440 × 900 and 1280 × 720; a human has not reviewed it
-- **State:** built, not verified
+- **State:** verified (reviewed by Cursor Grok 4.7 with no blockers, the spec brought in line with its notes; on the tree merged with main 7cb6de9: 472 Python tests (1 skipped), 2,927 web tests, typecheck and build all exit 0)
 - **Changed:** `web/src/features/three/scene/plates.ts`, `fold.ts` and `fold.test.ts` (new),
   `overlay.tsx`, `scene.css`, `plates.test.ts`, `docs/features/local-terrain.md` ("Shadows are
   decoration"), `docs/features/system-view.md` (Labels bullet), this entry
