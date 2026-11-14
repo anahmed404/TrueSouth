@@ -623,6 +623,8 @@ in their methods, not necessarily in a list of physical limits.
   NASA-map numbers in decision 0012. Its “pixels less than 160 m apart” prose
   is not proved by a 160 m search radius, which allows pairs up to 320 m apart.
   The precise pairwise claim remains unverified.
+  Science §7.1 now states the verified search-radius meaning instead of making
+  that pairwise-distance claim.
 - The full G2 rerun uses the repository parser and comparison routine on raw
   saved responses. Independent formula checks cover representative ordinary
   and edge inputs; they are not a second independent ephemeris system. I did

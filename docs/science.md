@@ -419,7 +419,7 @@ elevation minus the skyline at decoded azimuth exactly.
 
 A site's result is for one point. On a sharp ridge the answer changes a great deal over a
 short distance: at the catalog's five sunlit peaks, mean `sun_frac` differs by 14 to 47
-percentage points between map pixels less than 160 m apart
+percentage points among map pixels within 160 m of the listed point
 ([`decisions/0012`](decisions/0012-sunlit-peaks-keep-their-listed-point.md)). So for every
 catalog site in the group `sunlit_peak`, the pipeline also evaluates the centre of every
 80 m map pixel whose centre is within 160 m of the listed point, measured in map metres
