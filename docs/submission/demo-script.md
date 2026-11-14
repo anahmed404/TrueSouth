@@ -135,9 +135,9 @@ Timings add up to 3:00. About 400 spoken words.
 
 - **Click:** **Academy** in the top bar, then lesson 1, **Start lesson 1**
   ("Where's the Sun?"). Or open `<live>/academy/l1_sun`.
-- **Do:** Luna asks how high the Sun gets at the south pole. Pick **Under 3°** and press
-  **Check**. On the next step, drag the Sun through the month to its highest point and
-  press **Check**.
+- **Do:** Luna asks how high the Sun gets at the south pole. Pick **Under 3°**, press
+  **Check**, then **Continue**. On the next step, drag the Sun through the month to its
+  highest point and press **Check**.
 - **Say:** "The same physics, as a short guided story for students and the public. Luna
   walks you through four lessons to land Pip: dragging the Sun, sketching a skyline,
   finding a bug in a calculation. Every number comes from the same pipeline, and each
