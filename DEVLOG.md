@@ -822,9 +822,11 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   (a `middle` slot), `web/src/app/mission-screen.tsx` (where the view bar goes),
   `web/src/app/shell.css`, `docs/features/mission-control.md`, `DESIGN.md`, this entry
 - **Notes:**
-  - From 1,440 px nothing is compacted; from 1,280 px to 1,439 px the profile card drops its
-    "Mission profile" label, Share shows its icon and the tabs (and the underline) lose 4 px;
-    below 1,280 px the view bar keeps its own row. The phone is unchanged.
+  - Below 1,600 px the profile card drops its "Mission profile" label (the orchestrator
+    moved this from 1,440 px: with the label, "Artemis crewed landing" was cut to 88 px at
+    1,440 px); from 1,280 px to 1,439 px Share shows its icon and the tabs (and the
+    underline) lose 4 px; below 1,280 px the view bar keeps its own row. The phone is
+    unchanged.
   - The profile card is the only piece that shrinks: its name truncates with an ellipsis
     (full name in the title and accessible name), down to 48 px; the duration and its tag
     stay. The fixed 1,280 px switch holds for the longest name (`topRowMinWidth`: 1,241 px

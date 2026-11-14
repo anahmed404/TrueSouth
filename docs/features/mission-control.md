@@ -92,10 +92,11 @@ The window entry carries a small window icon and `aria-expanded`.
 
 **Where it sits** (M14, the team lead's request): from 1,280 px wide, in the app bar's row,
 centred in the gap between the brand-and-mode block and the profile, with the same 44 px
-height, top and card as its neighbours, so the scene gets the row below. From 1,440 px it fits
-as it is. From 1,280 px to 1,439 px the row is compacted: the profile card drops its
-"Mission profile" label (the button's accessible name keeps it), Share shows its icon only,
-and each tab (and the current tab's underline) gives up 4 px. No view is dropped or renamed.
+height, top and card as its neighbours, so the scene gets the row below. Below 1,600 px the
+profile card drops its "Mission profile" label (the button's accessible name keeps it), so
+that a preset's name is never cut to keep the label. From 1,280 px to 1,439 px the row is
+compacted further: Share shows its icon only, and each tab (and the current tab's
+underline) gives up 4 px. No view is dropped or renamed.
 The profile card is the row's one flexible piece: as room runs out, its name truncates with
 an ellipsis (the full name is the button's title and accessible name), down to 48 px; the
 duration and its sourced or assumed tag always stay. The view bar keeps its width; nothing

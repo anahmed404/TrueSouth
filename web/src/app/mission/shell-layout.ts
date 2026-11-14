@@ -137,9 +137,9 @@ export function viewBarFitsBetween(viewportWidth: number, layout: ShellLayout): 
 
 /**
  * The narrowest window at which the view bar sits in the app bar's row, between the brand
- * and the profile (docs/features/mission-control.md, "Layout"). From 1,440 px it fits as it
- * is; from 1,280 px to 1,439 px the row is compacted (shell.css): the profile card drops its
- * "Mission profile" label, Share shows its icon only and the tabs lose 4 px of padding.
+ * and the profile (docs/features/mission-control.md, "Layout"). Below 1,600 px the profile
+ * card drops its "Mission profile" label; from 1,280 px to 1,439 px the row is compacted
+ * further (shell.css): Share shows its icon only and the tabs lose 4 px of padding.
  * Narrower, the view bar keeps its own row under the app bar. Never on a phone.
  */
 export const VIEW_BAR_IN_TOP_ROW_MIN = 1280;
@@ -152,8 +152,9 @@ export function viewBarInTopRow(viewportWidth: number, phone: boolean): boolean 
  * The app bar's row with the view bar in it, at its narrowest: the pieces' widths in px,
  * measured in the app (Chrome, the C2 type) and kept in step with shell.css. Only the
  * profile card shrinks: its chrome (trigger padding, chevron, duration, the sourced or
- * assumed tag) stays, and the name truncates down to `nameMin`. Compact is 1,280 to
- * 1,439 px: no "Mission profile" label, Share as its icon, tabs 4 px narrower.
+ * assumed tag) stays, and the name truncates down to `nameMin`. Below `PROFILE_LABEL_MIN`
+ * the card has no "Mission profile" label; compact is 1,280 to 1,439 px: Share as its icon,
+ * tabs 4 px narrower.
  */
 export const TOP_ROW_PARTS = {
   padding: 32,
@@ -168,17 +169,29 @@ export const TOP_ROW_PARTS = {
   nameMin: 48,
 } as const;
 
+/** From this width the profile card shows its "Mission profile" label (shell.css). */
+export const PROFILE_LABEL_MIN = 1600;
+
+/**
+ * The room the row leaves for the profile's name at a window width, in px. "Artemis crewed
+ * landing", the longest preset name, is about 173 px wide (it shows in full at 1,366 px).
+ */
+export function topRowNameRoom(viewportWidth: number): number {
+  return viewportWidth - (topRowMinWidth(viewportWidth) - TOP_ROW_PARTS.nameMin);
+}
+
 /** The row's narrowest total at a window width: the fit rule the view bar's place rests on. */
 export function topRowMinWidth(viewportWidth: number): number {
   const p = TOP_ROW_PARTS;
   const compact = viewportWidth < 1440;
+  const label = viewportWidth >= PROFILE_LABEL_MIN;
   return (
     p.padding +
     p.gaps +
     p.brand +
     (compact ? p.viewBarCompact : p.viewBar) +
     (compact ? p.shareCompact : p.share) +
-    (compact ? p.profileChromeCompact : p.profileChrome) +
+    (label ? p.profileChrome : p.profileChromeCompact) +
     p.nameMin
   );
 }

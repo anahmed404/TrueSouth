@@ -14,6 +14,7 @@ import {
   viewBarFitsBetween,
   viewBarInTopRow,
   topRowMinWidth,
+  topRowNameRoom,
   shortcutPanel,
   toggleShellPanel,
   type ShellLayout,
@@ -154,7 +155,12 @@ describe("viewBarInTopRow (M14)", () => {
     expect(VIEW_BAR_IN_TOP_ROW_MIN).toBe(1280);
   });
 
-  it.each([1280, 1366, 1439, 1440, 1920])("fits at %i px with the longest profile name truncated, nothing overlapping", (width) => {
+  it.each([1366, 1439, 1440, 1599, 1600, 1920])("leaves the longest preset name its full width at %i px", (width) => {
+    // "Artemis crewed landing" is about 173 px wide; with the label at 1,440 px it had 88 px.
+    expect(topRowNameRoom(width)).toBeGreaterThanOrEqual(173);
+  });
+
+  it.each([1280, 1366, 1439, 1440, 1599, 1600, 1920])("fits at %i px with the longest profile name truncated, nothing overlapping", (width) => {
     // The name ("Custom, based on Artemis crewed landing") truncates to TOP_ROW_PARTS.nameMin
     // at worst; every other piece keeps its width.
     expect(viewBarInTopRow(width, false)).toBe(true);
