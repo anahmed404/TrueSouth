@@ -211,13 +211,54 @@ meshes and height textures are on the GPU before the first flight.
 
 ## States
 
-- **Sphere-tier site (Apollo 11):** no ground. A plate at the top of the free space reads "No terrain data for
-  Apollo 11. It is far from the pole, so TrueSouth treats the ground there as a smooth
-  sphere." A button offers "Show Apollo 11 in the System view", and the camera follows the
-  site on the globe instead of descending.
-- **A site with no terrain around the patch by design (a custom site):** the scene's
-  metadata lists no apron for it, so the 20 km patch is drawn alone and no plate says
-  anything is missing. An apron that is listed but fails to load keeps its message.
+- **Sphere-tier site (Apollo 11, or a custom site north of 60° S):** the smooth Moon: a
+  300 km square on the reference sphere, where the globe is, so it joins the globe with no
+  step. A plate at the top of the free space reads "No terrain data for Apollo 11. This is
+  the smooth Moon." with a button "Show it in the System view". (Seen, not changed: in
+  Lander's eye at such a site the camera looks toward Earth or the Sun, often tens of
+  degrees up, so little or no ground is in the picture.)
+- **A custom site with terrain (80 m or 240 m tier).** The API makes the patch but no
+  apron, and having none is by design, not an error: no plate says anything failed to load.
+  An apron that is listed in the scene's metadata but fails to load keeps its message
+  (`apronLoadState`, `plates.ts`). Without an apron the patch sat alone at the site's true
+  height, often kilometres above or below the globe's reference sphere, in the 140 km hole
+  the globe leaves for an apron. So the browser builds the apron from data it already has
+  (`custom-apron.ts`), and invents nothing:
+  - on the patch, the patch's own heights;
+  - farther out, NASA's global height map that the globe already uses
+    (`scene/moon_height_1440.png`: LOLA, 4 pixels a degree, so one height about every
+    7.6 km north to south), read at each point's true position
+    ([`../science.md`](../science.md) §2.2);
+  - between them, the patch's edge carried outward and handed over to the global map within
+    25 km of the edge, with no step at the edge;
+  - in the catalog apron's layout (161 × 161 over 300 km), eased at its outer edge like
+    every apron, and shaded, shadowed and stepped down on a slow machine the same way.
+
+  One quiet plate line says what that means: "Around a custom site, the ground beyond the
+  nearest few kilometres is drawn from a coarse height map of the whole Moon, so it shows
+  only large hills and craters." (`explain.ts`, `custom_site_surroundings`). While the map is
+  being read, the plate says "Loading the ground around … ". If it cannot be read (a failed
+  fetch, a failed decode, or no way to read image pixels), the patch is drawn alone and the
+  plate says so plainly: "The ground around … could not be loaded, so only the nearest ground
+  is drawn." A read that has not finished after 20 s counts as failed. A failure is not kept
+  for the session: the next visit to Local terrain or Lander's eye tries again. A finer apron would need the API to make one (see the DEVLOG
+  entry "T3b").
+- **How every apron meets the patch and the globe** (catalog and custom alike, `ground.ts`):
+  - At full detail the apron leaves out every cell inside its first ring of points beyond
+    the patch, and a strip of triangles joins that ring to the patch's own rim points, which
+    it repeats exactly, with the patch's normals there. The two surfaces share their edge:
+    sampled on the drawn triangles 10 cm either side of the rim they differ by under
+    0.25 m. The same holds at every coarser level drawn while the camera moves on a slow
+    machine: the patch and the apron are then both drawn at one step (every second or every
+    fourth point), and that level has its own strip to the patch's edge as it then draws it.
+  - From 80 % to 98 % of its half-width the apron eases to 150 m below the reference sphere
+    (`APRON_EDGE_DROP_M`). The globe is drawn again beyond 140 km of the site. Its finest
+    mesh (384 × 192) lies up to 116.3 m inside the sphere, its coarser ones 262 m to 4.2 km,
+    so while any ground is drawn the globe keeps its finest mesh, even when the quality
+    governor would pick a coarser one while moving (`globeSegments`). Where both cover the
+    ground the globe is then in front by more than 30 m, far more than the depth buffer's
+    step there (about 1 m): they never fight. A sphere-tier site's smooth ground eases the
+    same way.
 - **Missing terrain in part of the mesh:** holes are left open, not filled.
 - **Terrain still loading.** Proposed: the camera flies, and the ground appears when it is
   ready; the globe stays in place until then. Reason: a flight should never wait on a file.

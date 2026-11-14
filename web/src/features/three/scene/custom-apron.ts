@@ -1,0 +1,246 @@
+import { useEffect, useSyncExternalStore } from "react";
+import type { DecodedApron, DecodedTerrain } from "../../../data";
+import { sceneImageUrl } from "../../../data";
+import { apronCellOffsetM, destination, MOON_RADIUS_M, type ApronGrid } from "../../../lib/geo";
+import type { GroundSite } from "./ground";
+
+/**
+ * The terrain around a custom site's patch (docs/features/local-terrain.md, "A custom site").
+ *
+ * A catalog site's apron comes from the pipeline. A custom site has none: the API does not
+ * make one. Without it the patch sat alone at the site's true height, often kilometres above
+ * or below the globe's reference sphere, inside the 140 km hole the globe leaves for an apron.
+ *
+ * So the browser builds one from data it already holds, and invents nothing:
+ * - over the patch, the patch's own heights (terrain.bin);
+ * - farther out, NASA's global height map the scene already loads for the globe
+ *   (`scene/moon_height_1440.png`, LOLA, 4 pixels a degree, heights −9.0 to +10.6 km in 256
+ *   steps), sampled at each cell's true position (science.md §2.2);
+ * - between them, a smooth hand-over over `CONTINUATION_BLEND_KM` from the patch's edge.
+ * The result has the catalog apron's layout, so it is drawn, shaded and shadowed the same
+ * way, and it eases down to the reference sphere at its outer edge like every apron.
+ */
+
+/** The catalog apron's layout (docs/data-contracts.md, "Aprons"). */
+export const CONTINUATION_GRID: ApronGrid = { rows: 161, columns: 161, windowM: 300_000 };
+
+/** The hand-over from the patch's edge to the global map, in kilometres. */
+export const CONTINUATION_BLEND_KM = 25;
+
+/** The global height map, red channel only: row 0 is 90° N, column 0 is 180° W (data-contracts.md). */
+export type GlobalHeights = { width: number; height: number; values: Uint8Array };
+
+const HEIGHT_MIN_M = -9_000;
+const HEIGHT_SPAN_M = 19_600;
+
+function smoothstep(edge0: number, edge1: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
+/**
+ * Height above the reference sphere in metres at a latitude and east longitude, bilinear
+ * between pixel centres. Longitude wraps; latitude stops at the first and last rows.
+ */
+export function globalHeightM(map: GlobalHeights, latDeg: number, lonDeg: number): number {
+  const { width, height, values } = map;
+  const lon = ((((lonDeg + 180) % 360) + 360) % 360) - 180;
+  const x = ((lon + 180) / 360) * width - 0.5;
+  const y = Math.min(height - 1, Math.max(0, ((90 - latDeg) / 180) * height - 0.5));
+  const x0 = Math.floor(x);
+  const y0 = Math.floor(y);
+  const fx = x - x0;
+  const fy = y - y0;
+  const col = (c: number) => ((c % width) + width) % width;
+  const row = (r: number) => Math.min(height - 1, Math.max(0, r));
+  const at = (r: number, c: number) => values[row(r) * width + col(c)]!;
+  const top = at(y0, x0) * (1 - fx) + at(y0, x0 + 1) * fx;
+  const bottom = at(y0 + 1, x0) * (1 - fx) + at(y0 + 1, x0 + 1) * fx;
+  return HEIGHT_MIN_M + ((top * (1 - fy) + bottom * fy) / 255) * HEIGHT_SPAN_M;
+}
+
+/**
+ * The patch's true height above the reference sphere, in metres, at local offsets (E, N) in
+ * metres, clamped to the patch: terrain.bin's `up` is relative to the site's ground point and
+ * includes the Moon's curvature (science.md §13), so z = (R + z0 + up) / cos γ − R with
+ * γ = s / R. Bilinear between grid points; a missing point counts as up = 0, as drawn.
+ */
+export function patchHeightM(terrain: DecodedTerrain, size: number, windowKm: number, site: GroundSite, eastM: number, northM: number): number {
+  const halfM = (windowKm * 1_000) / 2;
+  const stepM = (windowKm * 1_000) / (size - 1);
+  const e = Math.min(halfM, Math.max(-halfM, eastM));
+  const n = Math.min(halfM, Math.max(-halfM, northM));
+  const cx = (e + halfM) / stepM;
+  const ry = (halfM - n) / stepM;
+  const c0 = Math.min(size - 2, Math.floor(cx));
+  const r0 = Math.min(size - 2, Math.floor(ry));
+  const fx = cx - c0;
+  const fy = ry - r0;
+  const up = (r: number, c: number) => {
+    const v = terrain.up_km[r * size + c];
+    return v !== undefined && Number.isFinite(v) ? v * 1_000 : 0;
+  };
+  const upM = (up(r0, c0) * (1 - fx) + up(r0, c0 + 1) * fx) * (1 - fy) + (up(r0 + 1, c0) * (1 - fx) + up(r0 + 1, c0 + 1) * fx) * fy;
+  const gamma = Math.hypot(e, n) / MOON_RADIUS_M;
+  return (MOON_RADIUS_M + site.groundHeightM + upM) / Math.cos(gamma) - MOON_RADIUS_M;
+}
+
+/** How much of a cell's height comes from the global map: 0 on the patch, 1 from `CONTINUATION_BLEND_KM` beyond its edge. */
+export function continuationWeight(eastM: number, northM: number, patchHalfKm: number): number {
+  const beyondKm = Math.max(Math.abs(eastM), Math.abs(northM)) / 1_000 - patchHalfKm;
+  return smoothstep(0, CONTINUATION_BLEND_KM, beyondKm);
+}
+
+/**
+ * The custom site's ground height in metres at local offsets (E, N) in metres: the patch's
+ * own height on it, its edge's height carried outward and handed over to the global map.
+ */
+export function continuationHeightM(
+  terrain: DecodedTerrain,
+  size: number,
+  windowKm: number,
+  site: GroundSite,
+  map: GlobalHeights,
+  eastM: number,
+  northM: number,
+): number {
+  const local = patchHeightM(terrain, size, windowKm, site, eastM, northM);
+  const w = continuationWeight(eastM, northM, windowKm / 2);
+  if (w === 0) return local;
+  const azimuth = (Math.atan2(eastM, northM) * 180) / Math.PI;
+  const point = destination(site.latDeg, site.lonDeg, azimuth, Math.hypot(eastM, northM));
+  return local * (1 - w) + globalHeightM(map, point.latDeg, point.lonDeg) * w;
+}
+
+/** The apron for a custom site, in the catalog apron's layout and units (heights in metres). */
+export function continuationApron(
+  terrain: DecodedTerrain,
+  size: number,
+  windowKm: number,
+  site: GroundSite,
+  map: GlobalHeights,
+  grid: ApronGrid = CONTINUATION_GRID,
+): DecodedApron {
+  const heights = new Float64Array(grid.rows * grid.columns);
+  for (let row = 0; row < grid.rows; row += 1) {
+    for (let column = 0; column < grid.columns; column += 1) {
+      const { eastM, northM } = apronCellOffsetM(row, column, grid);
+      heights[row * grid.columns + column] = continuationHeightM(terrain, size, windowKm, site, map, eastM, northM);
+    }
+  }
+  return { heights, rows: grid.rows, columns: grid.columns };
+}
+
+// ── The global height map's pixels, for the browser's own use ──────────────
+// The globe's copy is a GPU texture; this reads the same file once more into memory.
+
+/** Where reading the map stands. "failed" is not kept for the session: the next request tries again. */
+export type SurroundingsStatus = "idle" | "loading" | "ready" | "failed";
+
+/** What reading the map needs from the browser; tests pass their own. */
+export type HeightsPlatform = {
+  fetch: (url: string) => Promise<{ ok: boolean; blob: () => Promise<Blob> }>;
+  decode: (blob: Blob) => Promise<{ width: number; height: number; close?: () => void } & CanvasImageSource>;
+  /** A 2D context of the given size to read the decoded pixels back, or null when there is none. */
+  canvas: (width: number, height: number) => { drawImage: (image: CanvasImageSource, x: number, y: number) => void; getImageData: (x: number, y: number, w: number, h: number) => { data: ArrayLike<number> } } | null;
+};
+
+const browserPlatform = (): HeightsPlatform => ({
+  fetch: (url) => fetch(url),
+  decode: (blob) => createImageBitmap(blob, { colorSpaceConversion: "none", premultiplyAlpha: "none" }),
+  canvas: (width, height) => {
+    if (typeof OffscreenCanvas !== "undefined") return new OffscreenCanvas(width, height).getContext("2d");
+    if (typeof document === "undefined") return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    return canvas.getContext("2d");
+  },
+});
+
+/** Reads the map, or throws with a plain reason. */
+export async function readGlobalHeights(platform: HeightsPlatform = browserPlatform()): Promise<GlobalHeights> {
+  const response = await platform.fetch(sceneImageUrl("scene/moon_height_1440.png"));
+  if (!response.ok) throw new Error("the global height map could not be fetched");
+  const image = await platform.decode(await response.blob());
+  // Read the size first: a closed ImageBitmap reports 0 × 0.
+  const { width, height } = image;
+  const context = platform.canvas(width, height);
+  if (!context) throw new Error("this browser cannot read image pixels");
+  context.drawImage(image, 0, 0);
+  const rgba = context.getImageData(0, 0, width, height).data;
+  image.close?.();
+  if (width <= 0 || height <= 0 || rgba.length < width * height * 4) throw new Error("the global height map is empty");
+  const values = new Uint8Array(width * height);
+  for (let k = 0; k < values.length; k += 1) values[k] = rgba[k * 4]!;
+  return { width, height, values };
+}
+
+type HeightsState = { status: SurroundingsStatus; heights: GlobalHeights | null };
+let heightsState: HeightsState = { status: "idle", heights: null };
+const listeners = new Set<() => void>();
+
+function setHeightsState(next: HeightsState): void {
+  heightsState = next;
+  for (const listener of listeners) listener();
+}
+
+/** The map's state now. */
+export function globalHeightsState(): Readonly<HeightsState> {
+  return heightsState;
+}
+
+/** Calls `listener` whenever the state changes; returns the unsubscribe. */
+export function subscribeGlobalHeights(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+/**
+ * Starts reading the map unless it is in or on its way. After a failure a new request tries
+ * again (a failure is never kept for the session).
+ */
+export function requestGlobalHeights(platform?: HeightsPlatform, timeoutMs = HEIGHTS_TIMEOUT_MS): void {
+  if (heightsState.status === "loading" || heightsState.status === "ready") return;
+  const attempt = (heightsAttempt += 1);
+  setHeightsState({ status: "loading", heights: null });
+  // A fetch or decode that never settles fails after `timeoutMs`, so the plate never says
+  // "Loading…" for ever and the next visit tries again. A late answer from an attempt that
+  // already timed out is ignored.
+  const timer = setTimeout(() => {
+    if (attempt === heightsAttempt && heightsState.status === "loading") setHeightsState({ status: "failed", heights: null });
+  }, timeoutMs);
+  readGlobalHeights(platform).then(
+    (heights) => {
+      clearTimeout(timer);
+      if (attempt === heightsAttempt && heightsState.status === "loading") setHeightsState({ status: "ready", heights });
+    },
+    () => {
+      clearTimeout(timer);
+      if (attempt === heightsAttempt && heightsState.status === "loading") setHeightsState({ status: "failed", heights: null });
+    },
+  );
+}
+
+/** How long reading the global height map may take before it counts as failed. */
+export const HEIGHTS_TIMEOUT_MS = 20_000;
+let heightsAttempt = 0;
+
+/** For tests: forget the map. */
+export function resetGlobalHeightsForTests(): void {
+  heightsState = { status: "idle", heights: null };
+  listeners.clear();
+}
+
+/**
+ * The map's status for the plates, while `wanted` (a custom site's ground is on screen).
+ * Each time it becomes wanted, a map that failed (or was never asked for) is requested again:
+ * a retry on the next visit to the view.
+ */
+export function useSurroundings(wanted: boolean): SurroundingsStatus {
+  const status = useSyncExternalStore(subscribeGlobalHeights, () => heightsState.status, () => heightsState.status);
+  useEffect(() => {
+    if (wanted) requestGlobalHeights();
+  }, [wanted]);
+  return status;
+}

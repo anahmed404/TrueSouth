@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { DECORATION_SHORT, decorationDisclosure, sceneContent, visiblePlates, type PlateInput } from "./plates";
+import { explanations } from "../../../lib/explain";
+import { apronLoadState, DECORATION_SHORT, decorationDisclosure, sceneContent, visiblePlates, type PlateInput } from "./plates";
 
 const ridge = { name: "Connecting Ridge", sphere: false };
 const apollo = { name: "Apollo 11", sphere: true };
@@ -64,10 +65,27 @@ describe("what the scene draws for each load state", () => {
     expect(content.plates.map((p) => p.id)).toEqual(["apron-error", "decoration"]);
   });
 
-  it("a site with no apron by design (a custom site): the patch alone, and nothing reported missing", () => {
-    const content = sceneContent(input({ view: "terrain", apron: "none" }));
+  it("a site with no apron by design (a custom site): no error, one quiet line about its surroundings", () => {
+    const content = sceneContent(input({ view: "terrain", apron: "none", surroundings: "ready" }));
     expect(content.ground).toBe("terrain");
-    expect(content.plates.map((p) => p.id)).toEqual(["decoration"]);
+    expect(content.plates.map((p) => p.id)).toEqual(["surroundings", "decoration"]);
+    expect(content.plates[0]!.text).toBe(explanations.custom_site_surroundings!.text);
+    expect(content.plates.some((p) => /could not be loaded/.test(p.text))).toBe(false);
+    // The same in Lander's eye.
+    expect(sceneContent(input({ view: "panorama", apron: "none", surroundings: "ready" })).plates.map((p) => p.id)).toEqual(["surroundings", "decoration"]);
+  });
+
+  it("the apron's state: not listed is 'none' by design, listed but not available is a real error", () => {
+    expect(apronLoadState("ready", "not available", false)).toBe("none");
+    expect(apronLoadState("ready", "not available", true)).toBe("error");
+    expect(apronLoadState("ready", { heights: new Float64Array(1), rows: 1, columns: 1 }, true)).toBe("ready");
+    expect(apronLoadState("error", null, true)).toBe("error");
+    expect(apronLoadState("error", null, false)).toBe("error");
+    expect(apronLoadState("loading", null, false)).toBe("loading");
+    // A real failure still says so on screen.
+    expect(sceneContent(input({ view: "terrain", apron: apronLoadState("ready", "not available", true) })).plates.map((p) => p.id)).toContain(
+      "apron-error",
+    );
   });
 
   it("terrain still loading says so, as a status", () => {

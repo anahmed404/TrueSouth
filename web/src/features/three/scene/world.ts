@@ -1,11 +1,12 @@
 import * as THREE from "three";
 import type { CameraViewId } from "../../../app/scene";
 import type { DecodedApron, DecodedTerrain } from "../../../data";
-import { sceneImageUrl } from "../../../data";
+import { isCustomSiteId, sceneImageUrl } from "../../../data";
 import { EARTH_RADIUS_KM, MOON_RADIUS_M, SUN_RADIUS_KM, type ApronGrid } from "../../../lib/geo";
 import { DRAWN_SUN_RADIUS, bodyInFront, earthDuringScale, sunDuringScale } from "./proportions";
 import { altitudeOf, type SiteFrame } from "./camera";
-import { apronGeometry, apronUpGrid, patchGeometry, patchOutline, patchUpGrid, smoothGroundGeometry, type GroundSite } from "./ground";
+import { apronGeometry, apronUpGrid, globeSegments, patchGeometry, patchOutline, patchRim, patchUpGrid, smoothGroundGeometry, type GroundSite } from "./ground";
+import { CONTINUATION_GRID, continuationApron, globalHeightsState, requestGlobalHeights, subscribeGlobalHeights } from "./custom-apron";
 import { GroundLook } from "./ground-material";
 import { aimLander, createLander, LANDER_HEIGHT_M, partAxis, type Lander } from "./lander";
 import { earthMaterial, landerMaterial, moonMaterial, solidTexture, sunMaterial } from "./materials";
@@ -55,6 +56,8 @@ export type WorldInputs = {
 /** Pip is drawn this many times larger than life in Local terrain, and a plate says so. */
 export const LANDER_SCALE = 300;
 /** The globe hides its pixels under the apron, within 140 km of the site, once the ground is in. */
+// The ground covers the band beyond this too; its edge sits below the globe there while the globe
+// keeps its finest mesh (ground.ts, APRON_EDGE_DROP_M and globeSegments).
 const HIDE_RADIUS = 140_000 / MOON_RADIUS_M;
 
 export type Anchors = {
@@ -405,8 +408,21 @@ export class World {
     apron: { data: DecodedApron; grid: ApronGrid } | null,
     smooth = false,
   ): void {
-    const key = site ? `${site.id}|${terrain ? "t" : ""}|${apron ? "a" : ""}|${smooth ? "s" : ""}` : null;
+    this.lastGround = [site, terrain, apron, smooth];
+    // A custom site never has an apron (the API makes none): build one from the patch and
+    // the global height map (custom-apron.ts), once that map's pixels are in.
+    const continuation = Boolean(site && terrain && !apron && !smooth && !site.sphere && isCustomSiteId(site.id));
+    const heights = continuation ? globalHeightsState().heights : null;
+    if (continuation && !heights) {
+      this.unsubscribeHeights ??= subscribeGlobalHeights(() => this.onGlobalHeights());
+      requestGlobalHeights();
+    }
+    // The key first: building a custom site's apron costs 15 to 30 ms.
+    const key = site ? `${site.id}|${terrain ? "t" : ""}|${apron ? "a" : heights ? "c" : ""}|${smooth ? "s" : ""}|${site.groundHeightM}` : null;
     if (key === this.groundFor) return;
+    if (heights && site && terrain) {
+      apron = { data: continuationApron(terrain.data, terrain.size, terrain.windowKm, site, heights), grid: CONTINUATION_GRID };
+    }
     this.clearGround();
     if (!site) {
       this.invalidate();
@@ -423,7 +439,7 @@ export class World {
       meshes.push(new THREE.Mesh(patch, this.groundLook.material));
       const withApron = Boolean(apron && apron.grid.windowM / 2_000 > terrain.windowKm / 2);
       if (apron && withApron) {
-        meshes.push(new THREE.Mesh(apronGeometry(apron.data, apron.grid, terrain.windowKm / 2, g), this.groundLook.material));
+        meshes.push(new THREE.Mesh(apronGeometry(apron.data, apron.grid, terrain.windowKm / 2, g, patchRim(terrain.data, terrain.size, terrain.windowKm, patch)), this.groundLook.material));
       }
       this.groundLook.setHeights(
         { heights: patchUpGrid(terrain.data, terrain.size), columns: terrain.size, rows: terrain.size, halfKm: terrain.windowKm / 2 },
@@ -451,6 +467,15 @@ export class World {
     this.ground.position.set(...site.frame.ground);
     this.groundLook.setFrame(site.frame);
     this.invalidate();
+  }
+
+  private unsubscribeHeights: (() => void) | null = null;
+  private lastGround: Parameters<World["setGround"]> | null = null;
+
+  /** The global height map arrived (custom-apron.ts): rebuild a custom site's ground with its apron. */
+  private onGlobalHeights(): void {
+    if (this.disposed || globalHeightsState().status !== "ready" || !this.lastGround) return;
+    this.setGround(...this.lastGround);
   }
 
   get hasGround(): boolean {
@@ -697,7 +722,9 @@ export class World {
    * Shading is per pixel from the normalised position, so this moves only the silhouette, by
    * under a quarter of a pixel at the size the Director asks for it. 384 is the full mesh.
    */
-  setMoonSegments(segments: number): void {
+  setMoonSegments(requested: number): void {
+    // While ground is drawn, the finest mesh: coarser ones would rise above the ground's edge (ground.ts).
+    const segments = globeSegments(requested, this.ground.visible);
     if (segments === this.moonSegmentsNow) return;
     if (this.moonLods.size === 0) this.moonLods.set(this.moonSegmentsNow, this.moonMesh.geometry);
     let geometry = this.moonLods.get(segments);
@@ -711,6 +738,8 @@ export class World {
 
   dispose(): void {
     this.disposed = true;
+    this.unsubscribeHeights?.();
+    this.unsubscribeHeights = null;
     this.clearGround();
     for (const texture of this.textures) texture.dispose();
     for (const thing of this.owned) thing.dispose();
