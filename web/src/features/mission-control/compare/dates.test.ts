@@ -76,6 +76,14 @@ describe("the default picks", () => {
     expect(resolvePicks(mine, defaults, ids(3))).toEqual({ ...mine, siteB: "s2" });
     expect(resolvePicks(null, defaults, ids(3))).toBe(defaults);
   });
+
+  it("clamps the user's dates again, so a longer mission cannot leave one outside the data", () => {
+    const defaults = defaultPicks(ids(2), "s1", land, null, grid, DAYS);
+    const mine: DatesPicks = { siteA: "s1", siteB: "s2", date1: land, date2: "2031-12-31T00:00:00Z" };
+    const clamp = (utc: string) => clampLanding(grid, DAYS, utc);
+    expect(resolvePicks(mine, defaults, ids(2), clamp)).toEqual({ ...mine, date2: LAST });
+    expect(resolvePicks(mine, defaults, ids(2), () => null)).toMatchObject({ date1: defaults?.date1, date2: defaults?.date2 });
+  });
 });
 
 describe("a picked date at the data's edges, as the landing-date control limits it", () => {
@@ -205,6 +213,22 @@ describe("the summary sentence", () => {
     const nogo = ready(evaluation("NO-GO", 40, { longestDarkH: 30, dark: true }));
     const cols = columns([nogo, nogo, nogo, nogo]);
     expect(plain(datesSummary(cols, athena, bestColumns(cols)))).toContain("All four are NO-GO;");
+  });
+
+  it("does not say all four are NO-GO when a column has no result", () => {
+    const nogo = ready(evaluation("NO-GO", 40, { longestDarkH: 30, dark: true }));
+    const failed = columns([{ kind: "error", message: "could not load" }, { kind: "error", message: "could not load" }, nogo, nogo]);
+    const sentence = plain(datesSummary(failed, athena, bestColumns(failed)));
+    expect(sentence).not.toContain("All four");
+    expect(sentence).toContain("Every column with a result is NO-GO;");
+    expect(bestColumns(failed)).toEqual([false, false, false, false]);
+  });
+
+  it("one site at two dates, both NO-GO: says both dates", () => {
+    const one = { ...PICKS, siteB: PICKS.siteA };
+    const nogo = ready(evaluation("NO-GO", 40, { longestDarkH: 30, dark: true }));
+    const cols = columns([nogo, nogo, nogo, nogo], one);
+    expect(plain(datesSummary(cols, athena, bestColumns(cols)))).toContain("Both dates are NO-GO;");
   });
 
   it("waits while a column is loading", () => {

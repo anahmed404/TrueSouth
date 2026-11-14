@@ -51,7 +51,10 @@ export const DatesBody = memo(function DatesBody({ profile, siteIds, landingUtc,
     () => defaultPicks(siteIds, focusedSiteId, landingUtc, nextGo, grid, durationDays),
     [siteIds, focusedSiteId, landingUtc, nextGo, grid, durationDays],
   );
-  const picks = useMemo(() => resolvePicks(stored, defaults, siteIds), [stored, defaults, siteIds]);
+  const picks = useMemo(
+    () => resolvePicks(stored, defaults, siteIds, (utc) => clampLanding(grid, durationDays, utc)),
+    [stored, defaults, siteIds, grid, durationDays],
+  );
 
   // The share link carries the picks shown (share-link.ts), and only while they show.
   useLayoutEffect(() => {

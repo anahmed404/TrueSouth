@@ -48,16 +48,23 @@ export function defaultPicks(
 
 /**
  * The picks in use: the user's, with any site that has left the selection replaced by its
- * default; the defaults when the user has not picked.
+ * default; the defaults when the user has not picked. `clamp` (the landing-date control's
+ * own limit for the current mission) is applied to the user's dates again, so a change to a
+ * longer mission cannot leave a picked date whose window runs past the data.
  */
-export function resolvePicks(stored: DatesPicks | null, defaults: DatesPicks | null, siteIds: readonly string[]): DatesPicks | null {
+export function resolvePicks(
+  stored: DatesPicks | null,
+  defaults: DatesPicks | null,
+  siteIds: readonly string[],
+  clamp: (utc: string) => string | null = (utc) => utc,
+): DatesPicks | null {
   if (!defaults) return null;
   if (!stored) return defaults;
   return {
     siteA: siteIds.includes(stored.siteA) ? stored.siteA : defaults.siteA,
     siteB: siteIds.includes(stored.siteB) ? stored.siteB : defaults.siteB,
-    date1: stored.date1,
-    date2: stored.date2,
+    date1: clamp(stored.date1) ?? defaults.date1,
+    date2: clamp(stored.date2) ?? defaults.date2,
   };
 }
 
@@ -137,7 +144,11 @@ export function datesSummary(columns: readonly ColumnView[], profile: MissionPro
   const scored = columns.filter((c) => c.evaluation);
   if (scored.length > 0 && scored.every((c) => c.evaluation?.status === "NO-GO")) {
     const firstFail = scored[0] as ColumnView;
-    return `${first} All four are NO-GO; ${columnLabel(firstFail)} fails on ${failText(firstFail)}.`;
+    // "All four" only when all four have a result: a column that failed to load, or has no
+    // result, is not a NO-GO.
+    const all = scored.length === columns.length;
+    const lead = all ? (sameSite ? "Both dates are NO-GO" : "All four are NO-GO") : "Every column with a result is NO-GO";
+    return `${first} ${lead}; ${columnLabel(firstFail)} fails on ${failText(firstFail)}.`;
   }
   if (scored.length >= 2) return `${first} No column is better than another.`;
   return first;
