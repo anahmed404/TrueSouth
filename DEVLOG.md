@@ -49,6 +49,15 @@ each integration checkpoint.
 
 ## Science
 
+### S2c · The fixture's Academy numbers come from the fixture's own series
+
+Built, not verified. Added a synthetic Academy story site and computed its examples with the real builder. The 720-hour story month has a 2.19° highest Sun and Earth visible 62.5% of the time. The full-grid fixture is about 7.6 MB.
+
+AI use: Codex assisted with implementation and tests.
+
+Academy side (Claude Code, claude-opus-5-5): the three expected-to-fail markers on the fixture came off (the whole-dataset lesson check, lessons 1 and 4 "have no problems on the fixture") and the lesson 4 slider check on the fixture is strict again; the sample card's three assertions take the fixture's new `l3` example (6 km, 98 m, azimuth 0.0°). Played lessons 1 to 4 with `VITE_DATA=fixtures` and with the real data: every check can be passed; on the way, a drag-step bug (quick arrow presses were lost) was fixed with a test.
+Still for Science: the fixture's lesson 1 Sun never goes below level (lowest 0.37°) though the lesson says it does for part of the month; its lesson 2 and lesson 3 examples give a ridge 6 km away, 98 m up, an elevation (0.60°, 0.61°) the card's own formula puts at 0.84°; lesson 2's 48 hours all pass its goal; the story site is also the lesson 2 site. Still built, not verified.
+
 #### 2026-11-14 · S8b · Close-up ground from NASA's 5 m site maps
 - **Who:** Codex implementation sub-agent
 - **AI use:** Codex implemented bounded NASA window ingestion, atomic close-up refresh,

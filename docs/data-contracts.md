@@ -442,8 +442,9 @@ names; map metadata gives the actual lookup size. The scoring cases refer to a f
 global indices; subtract the range start before scoring the referenced slice. The cases
 file has `format`, `generated_by`, and `cases` keys; a case's `expected` is null when
 its window does not fit. Each run of `build-fixtures` rewrites the files. Fixture
-validation results and worked examples are synthetic demonstrations, not measurements
-from NASA data.
+validation results are synthetic demonstrations. Worked examples are computed by the same
+builder as the real data, from a separate synthetic Academy story site; neither is a NASA
+measurement. The fixture keeps the full production time grid.
 
 ### Shared scoring cases
 
