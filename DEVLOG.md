@@ -1461,7 +1461,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   the vitest suite, typecheck, build, and by eye in Chrome with hardware WebGL (RTX 2060) at
   1440 × 900 and 1024 × 768 against `main` (bbc6df0) run side by side, with the True-scale
   toggle sampled frame by frame both ways; a human has not reviewed it
-- **State:** built, not verified
+- **State:** verified (reviewed by Cursor (grok-4.7): approve with two can-follow notes; the Sun's drawn distance equal to main at all 52,584 hours, Earth 0.77 to 0.82 times the Moon on screen, the opening's guarantees recomputed in four layouts, no drawn body over the Moon at 1,093 sampled cameras; on the tree merged with main 0fe9217: 471 Python tests (1 skipped), 2,651 web tests, typecheck and build all exit 0. Follow-up queued: fade Earth while it is outside the free space during the True-scale flight)
 - **Changed:** `web/src/features/three/scene/proportions.ts`, `camera.ts` (the opening's lean
   and fit), `proportions.test.ts`, `scene-logic.test.ts`, `docs/features/system-view.md`,
   `docs/design/c2/built-system-earth-tune-*.png`, this entry; `world.ts` untouched
