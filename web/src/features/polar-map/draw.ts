@@ -61,6 +61,7 @@ type Drawable = CanvasImageSource & { width: number; height: number };
 
 /** Draws only the part of a square image that is on screen, so the 8K image stays cheap. */
 function drawClipped(ctx: CanvasRenderingContext2D, image: Drawable, rect: Box, width: number, height: number): void {
+  if (image.width <= 0 || image.height <= 0) return;
   const x0 = Math.max(0, rect.x);
   const y0 = Math.max(0, rect.y);
   const x1 = Math.min(width, rect.x + rect.width);

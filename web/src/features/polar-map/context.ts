@@ -51,11 +51,18 @@ export function contextTexel(col: number, row: number, level: MapImage): { latDe
   return point.latDeg > 0 ? null : point;
 }
 
-/** Context tone: grey from the source's brightness, dimmed and flattened (0–255 in, 0–255 out). */
-export const CONTEXT_TONE = { base: 16, gain: 0.4 } as const;
+/**
+ * Context tone: grey from the source's brightness (0–255 in, 0–255 out). The southern half of
+ * the Moon map runs from about 77 to 199 (1st to 99th percentile), so 70 to 210 is stretched
+ * onto 24 to 120: craters show, and the whole stays well under the relief square's
+ * brightness (flat ground there is 0.707 white, 180), so the square reads as the subject.
+ */
+export const CONTEXT_TONE = { inLow: 70, inHigh: 210, outLow: 24, outHigh: 120 } as const;
 
 export function toneContext(luminance: number): number {
-  return Math.round(CONTEXT_TONE.base + luminance * CONTEXT_TONE.gain);
+  const { inLow, inHigh, outLow, outHigh } = CONTEXT_TONE;
+  const t = Math.min(1, Math.max(0, (luminance - inLow) / (inHigh - inLow)));
+  return Math.round(outLow + t * (outHigh - outLow));
 }
 
 /** The southern half of an equirectangular image's pixels, as RGBA. */
@@ -217,7 +224,8 @@ export function prefetchContext(): void {
 export function releaseContext(): void {
   if (building) building.signal.cancelled = true;
   building = null;
-  if (cached) for (const layer of cached) layer.canvas.width = 0;
+  // Dropping the references is enough; zeroing a canvas a component still holds would make
+  // its next frame draw an empty canvas, which throws.
   cached = null;
 }
 
