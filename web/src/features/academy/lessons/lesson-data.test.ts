@@ -125,13 +125,8 @@ describe("each lesson's checks agree with the dataset it is played on", () => {
     expect(disagreements(loadDataset("derived"))).toEqual([]);
   });
 
-  // Expected to fail until the Science follow-up: the fixture's worked examples are made up
-  // (science/src/truesouth/fixtures.py), so they contradict the fixture's own series (lesson
-  // 1's highest Sun 4.4° against 2.14° stored, Earth visible all month against "about 60%",
-  // story.month_end_utc equal to the landing). Another agent is making them computed from the
-  // fixture's series; when that lands this test passes, `it.fails` turns red, and the marker
-  // comes off. Do not weaken the checks to make it pass.
-  it.fails("the fixture (VITE_DATA=fixtures): expected to fail until its worked examples are computed", () => {
+  // The fixture's worked examples are computed from the fixture's own series (Science, S2c).
+  it("the fixture (VITE_DATA=fixtures): every goal reachable, every correct answer true of the drawn data", () => {
     expect(disagreements(loadDataset("fixtures"))).toEqual([]);
   });
 });

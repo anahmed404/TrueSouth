@@ -163,6 +163,13 @@
       "rows": 5,
       "columns": 5,
       "window_m": 8000.0
+    },
+    {
+      "site_id": "fixture_story",
+      "file": "scene/aprons/fixture_story.bin",
+      "rows": 5,
+      "columns": 5,
+      "window_m": 8000.0
     }
   ],
   "apron": {

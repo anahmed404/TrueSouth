@@ -124,8 +124,19 @@ export function gridIndex(
  * relative to the site's ground point. A missing vertex takes its grid offset at the site's
  * height, so the mesh has no holes.
  */
-export function patchGeometry(terrain: DecodedTerrain, size: number, windowKm: number, site: GroundSite): THREE.BufferGeometry {
-  return gridGeometry({ rows: size, columns: size }, site, patchPoint(terrain, size, windowKm), () => true);
+export function patchGeometry(
+  terrain: DecodedTerrain,
+  size: number,
+  windowKm: number,
+  site: GroundSite,
+  inner?: PatchRim,
+): THREE.BufferGeometry {
+  const point = patchPoint(terrain, size, windowKm);
+  if (!inner) return gridGeometry({ rows: size, columns: size }, site, point, () => true);
+  // A close-up inside (closeup-ground.ts): the patch leaves a hole for it and joins its rim
+  // with the same strips as the apron joins the patch. Without a strip at some level the
+  // geometry says so (userData.joined false) and the caller draws no close-up.
+  return joinedGridGeometry({ rows: size, columns: size, windowM: windowKm * 1_000 }, site, point, () => true, inner);
 }
 
 /** A patch grid point's local position (km), exactly as the patch draws it. */
@@ -244,7 +255,6 @@ export function apronUpGrid(apron: DecodedApron, grid: ApronGrid, site: GroundSi
  */
 export function apronGeometry(apron: DecodedApron, grid: ApronGrid, patchHalfKm: number, site: GroundSite, rim?: PatchRim): THREE.BufferGeometry {
   const halfKm = grid.windowM / 2_000;
-  const stepKm = (2 * halfKm) / (grid.columns - 1);
   const offsetKm = (row: number, column: number) => ({
     east: -halfKm + (column * 2 * halfKm) / (grid.columns - 1),
     north: halfKm - (row * 2 * halfKm) / (grid.rows - 1),
@@ -256,12 +266,43 @@ export function apronGeometry(apron: DecodedApron, grid: ApronGrid, patchHalfKm:
     if (Math.max(Math.abs(east), Math.abs(north)) < patchHalfKm) height -= 30;
     return apronCellLocalKm(row, column, height, site.groundHeightM, grid);
   };
-  // One joining strip for every detail level the scene can draw: while the camera moves the
-  // patch and the apron are both drawn at the governor's one mesh step (GroundLook), so each
-  // level's strip joins the patch's edge as that level draws it.
+  const crossesPatch = (row: number, column: number, step: number) => {
+    const a = offsetKm(row, column);
+    const b = offsetKm(row + step, column + step);
+    return !(
+      Math.max(Math.abs(a.east), Math.abs(b.east)) < patchHalfKm - 1e-6 &&
+      Math.max(Math.abs(a.north), Math.abs(b.north)) < patchHalfKm - 1e-6
+    );
+  };
+  return joinedGridGeometry(grid, site, pointAt, crossesPatch, rim);
+}
+
+/**
+ * A square grid with a hole in its middle for an inner mesh whose edge is `rim`: one joining
+ * strip for every detail level the scene can draw (while the camera moves every ground mesh is
+ * drawn at the governor's one step, GroundLook), so each level's strip joins the inner mesh's
+ * edge as that level draws it. The grid keeps only cells wholly on or beyond the level's first
+ * ring of points outside the rim. The rim's copies take the inner mesh's normals (no shading
+ * seam). Without `rim`, or at a level where the grids do not line up, `fallbackKeep` decides
+ * the cells; `userData.joined` is true only when every level has its strip.
+ */
+function joinedGridGeometry(
+  grid: ApronGrid,
+  site: GroundSite,
+  pointAt: (row: number, column: number) => LocalKm,
+  fallbackKeep: (row: number, column: number, step: number) => boolean,
+  rim?: PatchRim,
+): THREE.BufferGeometry {
+  const halfKm = grid.windowM / 2_000;
+  const stepKm = (2 * halfKm) / (grid.columns - 1);
+  const offsetKm = (row: number, column: number) => ({
+    east: -halfKm + (column * 2 * halfKm) / (grid.columns - 1),
+    north: halfKm - (row * 2 * halfKm) / (grid.rows - 1),
+  });
   const stitches = new Map<number, { triangles: number[]; ringKm: number }>();
   if (rim && grid.rows === grid.columns && grid.columns % 2 === 1) {
     for (const step of GROUND_LOD_STEPS) {
+      if ((grid.rows - 1) % step !== 0) continue;
       const stitch = rimStitch(grid, stepKm, rim, pointAt, step);
       if (stitch) stitches.set(step, stitch);
     }
@@ -271,30 +312,25 @@ export function apronGeometry(apron: DecodedApron, grid: ApronGrid, patchHalfKm:
     site,
     pointAt,
     (row, column, step) => {
+      const stitch = stitches.get(step);
+      if (!stitch) return fallbackKeep(row, column, step);
       const a = offsetKm(row, column);
       const b = offsetKm(row + step, column + step);
-      const stitch = stitches.get(step);
-      if (stitch) {
-        // Only cells wholly on or beyond this level's first ring: its strip covers the rest.
-        const outside = (east: number, north: number) => Math.max(Math.abs(east), Math.abs(north)) >= stitch.ringKm - 1e-6;
-        return outside(a.east, a.north) && outside(b.east, b.north) && outside(a.east, b.north) && outside(b.east, a.north);
-      }
-      const inside =
-        Math.max(Math.abs(a.east), Math.abs(b.east)) < patchHalfKm - 1e-6 &&
-        Math.max(Math.abs(a.north), Math.abs(b.north)) < patchHalfKm - 1e-6;
-      return !inside;
+      const outside = (east: number, north: number) => Math.max(Math.abs(east), Math.abs(north)) >= stitch.ringKm - 1e-6;
+      return outside(a.east, a.north) && outside(b.east, b.north) && outside(a.east, b.north) && outside(b.east, a.north);
     },
     stitches.size > 0
       ? { points: rim!.points, trianglesByStep: Object.fromEntries([...stitches].map(([step, stitch]) => [step, stitch.triangles])) }
       : undefined,
   );
-  // The apron's copies of the rim take the patch's own normals there: no shading seam.
   if (stitches.size > 0 && rim?.normals) {
     const normal = geometry.getAttribute("normal");
     const base = grid.rows * grid.columns;
     rim.normals.forEach(([x, y, z], i) => normal.setXYZ(base + i, x, y, z));
     normal.needsUpdate = true;
   }
+  const levels = GROUND_LOD_STEPS.filter((step) => (grid.rows - 1) % step === 0);
+  geometry.userData.joined = Boolean(rim) && levels.every((step) => stitches.has(step));
   return geometry;
 }
 

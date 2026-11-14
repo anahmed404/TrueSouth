@@ -108,6 +108,13 @@ export function earthLitFraction(sun: V3, earth: V3): number {
  * So it shows only close up, where the 80 m data has no detail, and never at map scale.
  */
 export const GRAIN_FADE = { lo: 0.035, hi: 0.14 };
+/**
+ * The fine grain (value noise of wavelength L) is a texture, not a feature: it may stay until
+ * a wavelength spans about two pixels, so it fades from `lo` × L to `hi` × L.
+ */
+export const GRAIN_OCTAVE_FADE = { lo: 0.15, hi: 0.45 };
+/** The grain's height amplitude over its wavelength (under a degree of slope per octave, typically): at the poles the Sun stays within a few degrees of the horizon, so a steeper grain turns into black spots. */
+export const GRAIN_SLOPE = 0.012;
 export function grainWeight(pixelFootprintM: number, cellM: number): number {
   return 1 - smoothstep(GRAIN_FADE.lo * cellM, GRAIN_FADE.hi * cellM, pixelFootprintM);
 }

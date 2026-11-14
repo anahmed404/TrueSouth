@@ -18,7 +18,12 @@ export type PlateInput = {
   /** `system.bin` and the time grid, so the current hour's row can be read. */
   system: LoadState;
   /** The focused site, or null when none is focused. */
-  site: { name: string; sphere: boolean } | null;
+  site: { name: string; sphere: boolean; tier?: "core80" | "wide240" | "sphere" } | null;
+  /**
+   * NASA's 5 m close-up of the site: "ready" only when it is drawn (closeup-ground.ts),
+   * "none" when the site has none. Optional: absent means none.
+   */
+  closeup?: LoadState | "none";
   /** The focused site's series and its hour flags. */
   series: LoadState;
   /** The focused site's `terrain.bin`. Ignored for a sphere-tier site, which has none. */
@@ -104,6 +109,9 @@ export function sceneContent(input: PlateInput): SceneContent {
             text: `The ground around ${site.name} could not be loaded, so only the nearest ground is drawn.`,
           });
         } else plates.push({ id: "surroundings-loading", text: `Loading the ground around ${site.name}…`, status: true });
+      } else {
+        // A listed site: one line saying what the drawn ground is made from (groundSource).
+        plates.push(groundSourcePlate(site.tier, input.closeup ?? "none"));
       }
       if (input.apron === "error") {
         plates.push({
@@ -225,4 +233,16 @@ export function apronLoadState(
   if (status !== "ready") return status;
   if (data === "not available") return listed ? "error" : "none";
   return "ready";
+}
+
+/**
+ * What a listed site's drawn ground is made from, in one line. The rule: the close-up's line
+ * when NASA's 5 m close-up is drawn ("ready"); otherwise the terrain tier's line (240 m for
+ * wide240, 80 m for core80). While a close-up loads, or if it fails, the 80 m ground is what is
+ * drawn, and the line says so. Custom sites and the smooth Moon keep their own sentences
+ * (sceneContent).
+ */
+export function groundSourcePlate(tier: "core80" | "wide240" | "sphere" | undefined, closeup: LoadState | "none"): Plate {
+  const key = closeup === "ready" ? "closeup_ground" : tier === "wide240" ? "terrain_ground_wide240" : "terrain_ground_core80";
+  return { id: "ground-source", text: explanations[key]!.text };
 }

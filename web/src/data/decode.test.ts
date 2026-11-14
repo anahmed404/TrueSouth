@@ -66,6 +66,7 @@ describe("fixture files", () => {
       "fixture_edge",
       "fixture_ridge",
       "fixture_sphere",
+      "fixture_story",
       "fixture_wide",
     ]);
     expect(parseProfiles(readJson("profiles.json")).length).toBeGreaterThan(0);

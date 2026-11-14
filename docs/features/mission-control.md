@@ -18,7 +18,8 @@ screenshots are in `docs/design/c2/space-*.png`.
 3. **Find dates.** The Slip Planner shows every landing date for every chosen site.
 4. **Inspect one site and date.** The scene and its camera views, a timeline and
    countdowns.
-5. **Compare and share.** The selected sites (up to eight) side by side; copy a link; export.
+5. **Compare and share.** The selected sites (up to eight) side by side, or two sites at two
+   landing dates; copy a link; export.
 
 A new visitor lands on the System view with a working default: profile `im2_athena`, four
 polar sites, landing date 2028-03-01. Nothing is empty on first load. The Slip Planner is

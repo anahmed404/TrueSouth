@@ -152,7 +152,7 @@ limits are not published, so they are our estimates, tagged **assumed** on scree
 shown as sourced. Best-lit variants are labelled "chosen by TrueSouth", are upper readings
 and never win "best" in Compare. The 80 m map cannot see boulders, and our averages cover
 six years against NASA's 18.6. Not in this build: a blocker ring and slope or height colour
-overlays on the 3D ground, close-up 5 m terrain, official Artemis region outlines on the
+overlays on the 3D ground, official Artemis region outlines on the
 Polar map, the "compute for my dates" sensitivity grid, final art for Luna (her drawings
 are placeholders), and Academy lessons 5 to 8. TrueSouth is a planning aid, not flight
 certification.

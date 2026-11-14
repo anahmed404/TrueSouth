@@ -19,8 +19,8 @@ package; this file follows the code.
 
 Not in this build, and out of scope for the deadline: the "compute for my dates"
 sensitivity grid (`S11`, `T8`), Academy lessons 5 to 8 (`A6`), Luna's final art (`A10`),
-a blocker ring and slope or height colour overlays on the 3D ground (`T4`, `T5`), close-up
-5 m terrain, and official Artemis region outlines on the Polar map (they need a ScienceBase
+a blocker ring and slope or height colour overlays on the 3D ground (`T4`, `T5`), and
+official Artemis region outlines on the Polar map (they need a ScienceBase
 login; the app holds region names only).
 
 CHECK (team lead): which server the judges will use. Without the prepared NASA terrain

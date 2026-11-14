@@ -420,28 +420,35 @@
   }
 
   /*
-    On a phone the header is two rows: the title, the date and the close button, then the
-    exports, full width. The header slot lets its items join the header's own row.
+    On a phone the header wraps: the title, the mode switch and the close button on the
+    first row; then the landing date (Sites only); then the exports, full width. The header
+    slot lets its items join the header's own rows.
   */
-  .floating-window-head:has(.cmp-date) {
+  .floating-window-head:has(.cmp-mode) {
     flex-wrap: wrap;
     row-gap: var(--s2);
   }
 
-  .floating-window-slot:has(.cmp-date) {
+  .floating-window-slot:has(.cmp-mode) {
     display: contents;
   }
 
-  .floating-window-head .cmp-date {
-    flex: 1;
+  .floating-window-head .cmp-mode {
+    order: 0;
   }
 
   .floating-window-head .floating-window-close {
     order: 1;
+    margin-left: auto;
+  }
+
+  .floating-window-head .cmp-date {
+    order: 2;
+    flex: 1 0 100%;
   }
 
   .cmp-actions {
-    order: 2;
+    order: 3;
     width: 100%;
     margin-left: 0;
   }
@@ -455,4 +462,161 @@
 .cmp-tag {
   margin: 2px 0 0;
   cursor: help;
+}
+
+/* ── "Sites and dates": the mode switch, the pickers in the table's head ─────────── */
+
+/* The mode switch sits beside the title; its own row on a narrow header. */
+.cmp-mode {
+  flex: none;
+}
+
+/* The head is two rows (sites, then dates): the head sticks as one block, so the second
+   row never slides under the first. Only the corner column keeps its own sticky left. */
+.cmp-table:has(.cmp-dates-sites) thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.cmp-table:has(.cmp-dates-sites) thead > tr > :not(:first-child) {
+  position: static;
+}
+
+.cmp-dates-sites > th,
+.cmp-dates-sites > td {
+  padding-bottom: 2px;
+  border-bottom: 0;
+}
+
+.cmp-dates-dates > th,
+.cmp-dates-dates > td {
+  padding-top: 2px;
+  vertical-align: bottom;
+}
+
+.cmp-corner-label {
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+  vertical-align: bottom;
+}
+
+/* A hairline between site A's two columns and site B's two, through the whole table. */
+.cmp-table:has(.cmp-dates-sites) :is(
+    thead tr.cmp-dates-sites > :nth-child(3),
+    thead tr.cmp-dates-dates > :nth-child(4),
+    tbody tr > :nth-child(4)
+  ) {
+  border-left: 1px solid var(--line);
+}
+
+/* A picker reads as the table's own text (a site name, a date) with a quiet chevron:
+   the same hover fill and focus ring as the site names in the Sites table. */
+.cmp-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  margin: -2px 0 0 -4px;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.cmp-pick:hover,
+.cmp-pick[aria-expanded="true"] {
+  background: var(--hover);
+}
+
+.cmp-pick:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 0;
+}
+
+.cmp-pick-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmp-pick-site {
+  font-size: var(--t-md);
+  font-weight: 600;
+}
+
+.cmp-pick-date {
+  font-size: var(--t-md);
+}
+
+.cmp-pick-when {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.cmp-pick-when small {
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+}
+
+.cmp-pick-icon {
+  flex: none;
+  color: var(--ink-3);
+}
+
+.cmp-dates-group .cmp-meta {
+  display: block;
+}
+
+/* The site picker's list: the selected sites, the current one marked. */
+.cmp-pick-list {
+  display: flex;
+  flex-direction: column;
+  padding: var(--s1);
+}
+
+.cmp-pick-option {
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--t-md);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cmp-pick-option:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.cmp-pick-option:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.cmp-pick-option-on {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .cmp-pick,
+  .cmp-pick-option {
+    min-height: 44px;
+  }
+
+  .cmp-use {
+    min-height: 44px;
+  }
 }
