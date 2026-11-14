@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { lesson2 } from "./lessons/l2";
 import { initialRunnerState, reduceRunner } from "./runner";
 import { createValueEvaluator } from "./evaluator";
+import { primaryAction } from "./step-view";
 import {
   columnAt,
   columnCount,
@@ -127,6 +128,25 @@ describe("lesson 2 step 3 on the real skyline", () => {
       expect(done.phase).toBe("correct");
       expect(done.stepXp).toBe(skylineXp(gapDeg));
     }
+  });
+
+  it("a stroke, then pointerup, leaves Done ready: the first tap on it checks the sketch", () => {
+    // What the stage does: down, moves, up (or cancel); up commits the line as the draft.
+    const columns = columnCount(60);
+    let sketch = strokeTo(emptySketch(columns), null, { column: 0, elDeg: 0.5 });
+    sketch = strokeTo(sketch, { column: 0, elDeg: 0.5 }, { column: 30, elDeg: 1 });
+    sketch = strokeTo(sketch, { column: 30, elDeg: 1 }, { column: 60, elDeg: -1 });
+    const draft = { kind: "draw-skyline" as const, sketch: sketchAzimuths(sketch, window.fromDeg, 60), gapDeg: sketchGapDeg(sketch, real, 60) };
+    const at = { ...initialRunnerState(), stepIndex: (lesson2.steps as readonly Step[]).indexOf(step) };
+    // No state is left that would ignore the tap: Done is enabled at once…
+    expect(primaryAction(step, at, draft, false)).toEqual({ kind: "check", label: "Done", enabled: true });
+    // …and the first submission is taken: the step is answered, with closeness XP.
+    const done = reduceRunner(at, { type: "submit", submission: draft }, lesson2, createValueEvaluator(), realExamples);
+    expect(done.phase).toBe("correct");
+    expect(done.stepXp).toBe(skylineXp(draft.gapDeg));
+    // After the reveal it is one attempt (docs/academy/overview.md): Continue, and no second sketch.
+    expect(primaryAction(step, done, draft, false)).toEqual({ kind: "continue", label: "Continue" });
+    expect(reduceRunner(done, { type: "submit", submission: draft }, lesson2, createValueEvaluator(), realExamples)).toBe(done);
   });
 
   it("scores closeness by the overview's rule: 10 XP to 0.25°, 2 XP from 2°", () => {

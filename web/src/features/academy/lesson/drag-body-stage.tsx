@@ -17,6 +17,7 @@ import { BODY_NAME, bodyAt, heightWords } from "../../panorama/readings";
 import {
   answerHour,
   barXOfHour,
+  goalValuesAt,
   hourAfterKey,
   hourAtBarX,
   hourNearPointer,
@@ -27,6 +28,7 @@ import {
   type NumberGoal,
   type PathPoint,
 } from "../drag-body";
+import { beginDrag, endDrag, idleDrag, moveDrag, setHourNow, type HourDrag } from "../drag-session";
 import { resolveValue, type WorkedExamples } from "../placeholders";
 import type { RunnerState } from "../runner";
 import { isAnswered, type Draft } from "../step-view";
@@ -46,6 +48,8 @@ type DragBodyStageProps = {
   examples: WorkedExamples;
   onDraft: (draft: Draft) => void;
   onStatus: (status: SceneStatus) => void;
+  /** Pip's power, in percent, at the hour on screen, live during a drag; for a step that follows it. */
+  onLivePower?: (power: number | null) => void;
 };
 
 const NO_FEATURES: never[] = [];
@@ -102,12 +106,16 @@ function onlyBody(series: SceneData["series"], body: "sun" | "earth") {
     : { ...series, sun_az: blank, sun_el: blank, sun_frac: blank, sun_clear: blank };
 }
 
-/** The step's goal with its placeholder filled, or null when it is not a number goal. */
+/** The step's goal with its placeholders filled, or null when it is not a number goal. */
 function numberGoal(step: DragStep, examples: WorkedExamples): NumberGoal | null {
   if ("comparedTo" in step.goal) return null;
   const value = resolveValue(step.goal.value, examples).value;
   if (typeof value !== "number") return null;
-  return { metric: step.goal.metric, op: step.goal.op, value, tolerance: step.goal.tolerance };
+  const goal: NumberGoal = { metric: step.goal.metric, op: step.goal.op, value, tolerance: step.goal.tolerance };
+  if (!step.goal.also) return goal;
+  const also = resolveValue(step.goal.also.value, examples).value;
+  if (typeof also !== "number") return null;
+  return { ...goal, also: { metric: step.goal.also.metric, op: step.goal.also.op, value: also } };
 }
 
 /** The drag-body stage: the horizon chart for the step's site and hours, with the body to drag. */
@@ -138,7 +146,7 @@ function SiteDragBody({ siteId, ...props }: DragBodyStageProps & { siteId: strin
   return <DragChart data={load.data} {...props} />;
 }
 
-function DragChart({ data, step, runner, draft, examples, onDraft }: DragBodyStageProps & { data: SceneData }) {
+function DragChart({ data, step, runner, draft, examples, onDraft, onLivePower }: DragBodyStageProps & { data: SceneData }) {
   const body = step.body;
   const answered = isAnswered(runner);
   const goal = useMemo(() => numberGoal(step, examples), [step, examples]);
@@ -157,42 +165,64 @@ function DragChart({ data, step, runner, draft, examples, onDraft }: DragBodySta
     }
   }, [grid]);
 
-  // The body's own hour: local while dragging, sent to the lesson as a draft when the drag ends.
+  // The hour on screen and the hour "Check" judges, kept equal whenever no drag is under way
+  // (drag-session.ts). A drag moves the hour on screen; however it ends, that hour is sent to
+  // the lesson as its draft. The starting place is a draft too, so "Check" works at once.
   const drafted = draft?.kind === "drag-body" ? draft.hour : null;
-  const [hour, setHour] = useState<number>(() => drafted ?? (range ? startHour(series, goal, range) : 0));
-  const dragging = useRef<number | null>(null);
-  // The body follows the lesson's draft when it changes from outside a drag.
-  useEffect(() => {
-    if (drafted !== null && dragging.current === null) setHour(drafted);
-  }, [drafted]);
+  const [drag, setDrag] = useState<HourDrag>(() => idleDrag(drafted ?? (range ? startHour(series, goal, range) : 0)));
+  const live = useRef(drag);
+  live.current = drag;
+  const hour = drag.shown;
 
   const draftAt = useCallback(
     (h: number): Draft => {
       const value = goal ? metricAt(series, goal.metric, h) : null;
+      const values = goal ? goalValuesAt(series, goal, h) : null;
       const utc = utcOf(h);
-      if (value === null || utc === null) return null;
-      return { kind: "drag-body", hour: h, utc, value, sunFrac: metricAt(series, "sun_frac", h) };
+      if (value === null || values === null || utc === null) return null;
+      return { kind: "drag-body", hour: h, utc, value, values, sunFrac: metricAt(series, "sun_frac", h) };
     },
     [goal, series, utcOf],
   );
 
-  // The starting place is a draft too, so "Check" works without moving (it is a miss).
-  const seeded = useRef(false);
-  useEffect(() => {
-    if (seeded.current || drafted !== null || answered) return;
-    seeded.current = true;
-    onDraft(draftAt(hour));
-  }, [drafted, answered, onDraft, draftAt, hour]);
-
   // The readout is announced when the body settles, not on every pixel of a drag.
   const [announced, setAnnounced] = useState<number | null>(null);
-  const commit = useCallback(
-    (h: number) => {
-      setAnnounced(h);
-      if (!answered) onDraft(draftAt(h));
-    },
-    [answered, onDraft, draftAt],
-  );
+  const sent = useRef<number | null>(drafted);
+  useEffect(() => {
+    if (answered || sent.current === drag.committed) return;
+    if (sent.current !== null) setAnnounced(drag.committed);
+    sent.current = drag.committed;
+    onDraft(draftAt(drag.committed));
+  }, [drag.committed, answered, onDraft, draftAt]);
+
+  // The body follows the lesson's draft when it changes from outside (and no drag is under way).
+  useEffect(() => {
+    if (drafted === null || live.current.pointer !== null || drafted === live.current.committed) return;
+    sent.current = drafted;
+    setDrag((state) => setHourNow(state, drafted));
+  }, [drafted]);
+
+  // A drag also ends when the window loses focus or the tab is hidden.
+  useEffect(() => {
+    const end = () => setDrag((state) => endDrag(state, null));
+    const hidden = () => {
+      if (document.visibilityState === "hidden") end();
+    };
+    window.addEventListener("blur", end);
+    document.addEventListener("visibilitychange", hidden);
+    return () => {
+      window.removeEventListener("blur", end);
+      document.removeEventListener("visibilitychange", hidden);
+    };
+  }, []);
+
+  // Pip's power follows the hour on screen, live, on a step that asks for it.
+  const follows = step.follow?.power === "sun-fraction";
+  useEffect(() => {
+    if (!follows || !onLivePower) return;
+    const fraction = metricAt(series, "sun_frac", hour);
+    onLivePower(fraction === null ? null : fraction * 100);
+  }, [follows, onLivePower, series, hour]);
 
   // ── The chart's scales: a level skyline for `flat` and `smooth`, the real one for `terrain` ─
   const terrain: SkylineKind = step.scene.skyline;
@@ -293,9 +323,13 @@ function DragChart({ data, step, runner, draft, examples, onDraft }: DragBodySta
     const next = hourAfterKey(range, hour, event.key, event.shiftKey);
     if (next === null) return;
     event.preventDefault();
-    setHour(next);
-    commit(next);
+    setDrag((state) => setHourNow(state, next));
   };
+
+  // One session for the body and the time bar: down, move, and every way a drag can end.
+  const begin = (pointer: number) => setDrag((state) => beginDrag(state, pointer));
+  const moveTo = (pointer: number, next: number) => setDrag((state) => moveDrag(state, pointer, next));
+  const end = (pointer: number) => setDrag((state) => endDrag(state, pointer));
 
   const onHandleDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (answered || event.button !== 0) return;
@@ -303,19 +337,15 @@ function DragChart({ data, step, runner, draft, examples, onDraft }: DragBodySta
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
     event.currentTarget.focus({ preventScroll: true });
-    dragging.current = event.pointerId;
+    begin(event.pointerId);
   };
   const onHandleMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (dragging.current !== event.pointerId) return;
+    if (live.current.pointer !== event.pointerId) return;
     const { px, py } = local(event);
-    const next = hourNearPointer(points, px, py, hour);
-    if (next !== null && next !== hour) setHour(next);
+    const next = hourNearPointer(points, px, py, live.current.shown);
+    if (next !== null) moveTo(event.pointerId, next);
   };
-  const onHandleUp = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (dragging.current !== event.pointerId) return;
-    dragging.current = null;
-    commit(hour);
-  };
+  const onHandleEnd = (event: ReactPointerEvent<HTMLDivElement>) => end(event.pointerId);
 
   const flat = terrain !== "terrain";
   const label = `Horizon chart for ${data.name}, ${flat ? "with the ground drawn level" : "with its real skyline"}. ${spoken(hour)}`;
@@ -342,6 +372,7 @@ function DragChart({ data, step, runner, draft, examples, onDraft }: DragBodySta
           utcOfHour={utcOf}
           showLabels={false}
           label={label}
+          ground={flat ? "level" : "skyline"}
         />
         {answerNow ? (
           <span
@@ -368,15 +399,25 @@ function DragChart({ data, step, runner, draft, examples, onDraft }: DragBodySta
             onKeyDown={onHandleKey}
             onPointerDown={onHandleDown}
             onPointerMove={onHandleMove}
-            onPointerUp={onHandleUp}
-            onPointerCancel={onHandleUp}
+            onPointerUp={onHandleEnd}
+            onPointerCancel={onHandleEnd}
+            onLostPointerCapture={onHandleEnd}
           />
         ) : null}
       </div>
       {flat ? <p className="ac-drag-note">The ground is drawn level at 0°, so you see the {name}'s own height.</p> : null}
       {data.sphere && !flat ? <p className="ac-drag-note">Terrain not modelled. Showing a smooth Moon.</p> : null}
 
-      <TimeBar range={range} hour={hour} answerAt={answerAt} locked={answered} utcOf={utcOf} onMove={setHour} onCommit={commit} />
+      <TimeBar
+        range={range}
+        hour={hour}
+        answerAt={answerAt}
+        locked={answered}
+        utcOf={utcOf}
+        onBegin={begin}
+        onMove={moveTo}
+        onEnd={end}
+      />
 
       <dl className="ac-drag-read">
         <div>
@@ -433,7 +474,8 @@ function DragChart({ data, step, runner, draft, examples, onDraft }: DragBodySta
 /**
  * The step's hours as a bar under the chart: the knob is the body's hour, and dragging it
  * sweeps through time in a straight line. A second way in for the pointer; the body on the
- * chart is the keyboard's, so the bar is not in the tab order.
+ * chart is the keyboard's, so the bar is not in the tab order. It shares the body's drag
+ * session, so a cancelled drag here ends the same way as one on the body.
  */
 function TimeBar({
   range,
@@ -441,27 +483,27 @@ function TimeBar({
   answerAt,
   locked,
   utcOf,
+  onBegin,
   onMove,
-  onCommit,
+  onEnd,
 }: {
   range: HourRange;
   hour: number;
   answerAt: number | null;
   locked: boolean;
   utcOf: (h: number) => string | null;
-  onMove: (h: number) => void;
-  onCommit: (h: number) => void;
+  onBegin: (pointer: number) => void;
+  onMove: (pointer: number, hour: number) => void;
+  onEnd: (pointer: number) => void;
 }) {
   const [ref, width] = useWidth();
-  const active = useRef<number | null>(null);
-  const last = useRef(hour);
-  last.current = hour;
   const at = (event: ReactPointerEvent<HTMLDivElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
     return hourAtBarX(range, box.width, event.clientX - box.left);
   };
   const first = utcOf(range.fromIndex);
-  const end = utcOf(range.toIndex);
+  const last = utcOf(range.toIndex);
+  const finish = (event: ReactPointerEvent<HTMLDivElement>) => onEnd(event.pointerId);
   return (
     <div className="ac-drag-time" aria-hidden="true">
       <div
@@ -472,25 +514,13 @@ function TimeBar({
           if (locked || event.button !== 0) return;
           event.preventDefault();
           event.currentTarget.setPointerCapture?.(event.pointerId);
-          active.current = event.pointerId;
-          const next = at(event);
-          last.current = next;
-          onMove(next);
+          onBegin(event.pointerId);
+          onMove(event.pointerId, at(event));
         }}
-        onPointerMove={(event) => {
-          if (active.current !== event.pointerId) return;
-          const next = at(event);
-          if (next !== last.current) {
-            last.current = next;
-            onMove(next);
-          }
-        }}
-        onPointerUp={(event) => {
-          if (active.current !== event.pointerId) return;
-          active.current = null;
-          onCommit(last.current);
-        }}
-        onPointerCancel={() => (active.current = null)}
+        onPointerMove={(event) => onMove(event.pointerId, at(event))}
+        onPointerUp={finish}
+        onPointerCancel={finish}
+        onLostPointerCapture={finish}
       >
         <span className="ac-drag-bar-track" />
         {answerAt !== null ? <span className="ac-drag-bar-answer" style={{ left: barXOfHour(range, width, answerAt) }} /> : null}
@@ -498,7 +528,7 @@ function TimeBar({
       </div>
       <div className="ac-drag-bar-ends">
         <span>{first ? formatUtc(first) : ""}</span>
-        <span>{end ? formatUtc(end) : ""}</span>
+        <span>{last ? formatUtc(last) : ""}</span>
       </div>
     </div>
   );

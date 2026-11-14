@@ -37,6 +37,8 @@ type StageProps = {
   /** The step's site data failed to load: a drag or sketch step shows its holding form. */
   sceneFailed: boolean;
   onSceneStatus: (status: SceneStatus) => void;
+  /** Pip's power, live, for a drag step that follows it. */
+  onLivePower?: (power: number | null) => void;
 };
 
 /** The stage's size on a phone: a scene band, a touch band, or a tall band for a panel. */
@@ -57,7 +59,7 @@ export function Stage(props: StageProps) {
   );
 }
 
-function StageBody({ step, runner, draft, views, examples, celebrate, onDraft, sceneFailed, onSceneStatus }: StageProps) {
+function StageBody({ step, runner, draft, views, examples, celebrate, onDraft, sceneFailed, onSceneStatus, onLivePower }: StageProps) {
   const answered = isAnswered(runner);
   const dust = celebrate > 0 ? <Moondust key={celebrate} seed={celebrate + 3} style={{ left: "50%", top: "80%" }} /> : null;
 
@@ -133,7 +135,15 @@ function StageBody({ step, runner, draft, views, examples, celebrate, onDraft, s
       if (sceneFailed) return <FailedStep step={step} examples={examples} />;
       return (
         <>
-          <DragBodyStage step={step} runner={runner} draft={draft} examples={examples} onDraft={onDraft} onStatus={onSceneStatus} />
+          <DragBodyStage
+            step={step}
+            runner={runner}
+            draft={draft}
+            examples={examples}
+            onDraft={onDraft}
+            onStatus={onSceneStatus}
+            onLivePower={onLivePower}
+          />
           {dust}
         </>
       );

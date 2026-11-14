@@ -27,28 +27,21 @@ import {
   type Draft,
 } from "./step-view";
 import { useAcademyStore } from "./store";
-import type { Lesson, Step, Submission } from "./types";
+import { createLiveValue } from "./live-value";
+import type { Lesson, Submission } from "./types";
 import { ConfirmDialog } from "./ui/dialog";
 
 function submissionFrom(draft: Draft): Submission | null {
   if (!draft) return null;
-  if (draft.kind === "drag-body") return { kind: "drag-body", value: draft.value, utc: draft.utc };
+  if (draft.kind === "drag-body") {
+    return { kind: "drag-body", value: draft.value, utc: draft.utc, ...(draft.values ? { values: draft.values } : {}) };
+  }
   if (draft.kind === "draw-skyline") return { kind: "draw-skyline", sketch: draft.sketch, gapDeg: draft.gapDeg };
   if (draft.kind === "tune-slider") {
     if (draft.variant === "date") return { kind: "tune-slider", variant: "date", utc: draft.utc };
     return { kind: "tune-slider", variant: "number", value: draft.value };
   }
   return { kind: draft.kind, selected: draft.selected };
-}
-
-/**
- * Pip's meters, with the power meter following the dragged Sun's disc fraction on a step
- * whose `follow` asks for it. The fraction is the series' value at the dragged hour.
- */
-function livePip(step: Step | undefined, draft: Draft, pip: { power?: number; link?: boolean } | null) {
-  if (step?.kind !== "drag-body" || step.follow?.power !== "sun-fraction") return pip;
-  if (draft?.kind !== "drag-body" || draft.sunFrac === null) return pip;
-  return { ...pip, power: draft.sunFrac * 100 };
 }
 
 /** True when a key press belongs to a control that handles Enter itself. */
@@ -78,6 +71,10 @@ export function LessonScreen({
   const [tab, setTab] = useState<TalkTab>("luna");
   const [celebrate, setCelebrate] = useState(0);
   const [leaveTo, setLeaveTo] = useState<string | null>(null);
+  // Pip's power while a drag drives it (lesson 2 step 4), read by the meter alone, so a
+  // drag does not re-render the lesson screen. Cleared on each new step.
+  const livePower = useMemo(() => createLiveValue<number | null>(null), []);
+  useEffect(() => livePower.set(null), [runner.stepIndex, livePower]);
   // Whether the current step's site data failed to load, by step id, so a new step starts clean.
   const [failedStep, setFailedStep] = useState<string | null>(null);
   const recorded = useRef(false);
@@ -208,7 +205,8 @@ export function LessonScreen({
         stepIndex={runner.stepIndex}
         stepCount={lesson.steps.length}
         answered={isAnswered(runner)}
-        pip={livePip(step, draft, pipAt(lesson.steps, runner.stepIndex))}
+        pip={pipAt(lesson.steps, runner.stepIndex)}
+        livePower={livePower}
         onClose={() => requestLeave("/academy")}
         onSkip={(event: MouseEvent<HTMLAnchorElement>) => {
           event.preventDefault();
@@ -226,6 +224,7 @@ export function LessonScreen({
           onDraft={onStageDraft}
           sceneFailed={sceneFailed}
           onSceneStatus={onSceneStatus}
+          onLivePower={livePower.set}
         />
         <Conversation
           step={step}

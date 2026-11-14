@@ -123,8 +123,13 @@ function SketchBoard({ data, step, runner, examples, onDraft }: SkylineStageProp
   const [handles, setHandles] = useState<number[]>(() => handlesFrom(emptySketch(columns), 0));
   const [announce, setAnnounce] = useState("");
   const last = useRef<{ column: number; elDeg: number } | null>(null);
+  // The sketch as the pointer leaves it, updated at once on every move, so the stroke's end
+  // commits its last segment even before React has drawn it.
   const live = useRef(sketch);
-  live.current = sketch;
+  const draw = (next: Sketch) => {
+    live.current = next;
+    setSketch(next);
+  };
 
   const [hostRef, width] = useWidth();
   const height = width < 480 ? 200 : 240;
@@ -168,15 +173,17 @@ function SketchBoard({ data, step, runner, examples, onDraft }: SkylineStageProp
     event.currentTarget.setPointerCapture?.(event.pointerId);
     const at = point(event);
     last.current = at;
-    setSketch((current) => strokeTo(current, null, at));
+    draw(strokeTo(live.current, null, at));
   };
   const onMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!last.current) return;
     const at = point(event);
     const from = last.current;
     last.current = at;
-    setSketch((current) => strokeTo(current, from, at));
+    draw(strokeTo(live.current, from, at));
   };
+  // The stroke ends cleanly on pointerup, pointercancel and lost capture alike: it commits
+  // the line, and nothing is left waiting, so the next tap (on Done) is an ordinary click.
   const onUp = () => {
     if (!last.current) return;
     last.current = null;
@@ -194,13 +201,13 @@ function SketchBoard({ data, step, runner, examples, onDraft }: SkylineStageProp
     event.preventDefault();
     const line = sketchFromHandles(next, columns);
     setHandles(next);
-    setSketch(line);
+    draw(line);
     commit(line);
     setAnnounce(`Point ${index + 1}: ${formatNumber(next[index] ?? 0, 2)}°`);
   };
   const reset = () => {
     const empty = emptySketch(columns);
-    setSketch(empty);
+    draw(empty);
     setHandles(handlesFrom(empty, 0));
     onDraft(null);
     setAnnounce("Sketch cleared.");
@@ -275,6 +282,7 @@ function SketchBoard({ data, step, runner, examples, onDraft }: SkylineStageProp
           onPointerMove={onMove}
           onPointerUp={onUp}
           onPointerCancel={onUp}
+          onLostPointerCapture={onUp}
         />
         {handleVisible ? (
           <div className="ac-sketch-handles" role="group" aria-label="Points of your sketch">

@@ -29,6 +29,8 @@ export type Draft =
       value: number;
       /** The Sun's stored disc fraction at `hour`, for Pip's power meter, or null. */
       sunFrac: number | null;
+      /** Every goal metric's stored value at `hour`, for a goal with a second condition. */
+      values?: Readonly<Record<string, number>>;
     }
   | { kind: "draw-skyline"; sketch: readonly SketchPoint[]; gapDeg: number }
   | null;
