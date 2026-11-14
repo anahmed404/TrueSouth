@@ -817,7 +817,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   Compare open, the "About" tip and the profile editor open, and with "IM-2 Athena", "Artemis
   crewed landing" and "Custom, based on Artemis crewed landing"; reviewed once (a long
   profile name overflowed the row at 1,280 to 1,439 px: fixed); a human has not reviewed it yet
-- **State:** built, not verified
+- **State:** verified (reviewed twice by Cursor Grok 4.7: one blocker (a long profile name overflowed the row) fixed, then no blockers; on the tree merged with main ce2b892: 472 Python tests (1 skipped), 2,942 web tests, typecheck and build all exit 0)
 - **Changed:** `web/src/app/mission/shell-layout.ts` (and its test), `web/src/app/mission/top-bar.tsx`
   (a `middle` slot), `web/src/app/mission-screen.tsx` (where the view bar goes),
   `web/src/app/shell.css`, `docs/features/mission-control.md`, `DESIGN.md`, this entry
@@ -830,7 +830,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - The profile card is the only piece that shrinks: its name truncates with an ellipsis
     (full name in the title and accessible name), down to 48 px; the duration and its tag
     stay. The fixed 1,280 px switch holds for the longest name (`topRowMinWidth`: 1,241 px
-    needed at 1,280; 1,400 px at 1,440).
+    needed at 1,280; 1,313 px at 1,440; 1,400 px from 1,600, where the label is back).
   - Crossing 1,280 px still remounts the view bar (it moves between the app bar and its own
     row in the DOM), which drops an open "About" tip; placing one element with CSS alone
     would centre it on the window, not in the gap, so it was left.
