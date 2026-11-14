@@ -675,7 +675,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - The strip: each card's rows are now the same at every hour (head, countdown, values, a
     notes row of exactly two lines, filled from the bottom, never clipped). Line one: the
     dark stretch or blackout as a chip that says it in words, "✕ 130 h · over the 6 h limit"
-    or "338 h · within the 432 h limit", the fullest wording that fits the 158 px card (a
+    or "4 h · within the 12 h limit" (and "338 h · within 432 h" when that is too wide), the fullest wording that fits the 158 px card (a
     measured glyph-width budget, tested for every preset and limits up to 100,000 h against
     stretches up to 52,584 h); its full sentence is its screen-reader text. Line two: the
     limit's provenance tag and "Under 6 h" (they coexist at the end of a dark stretch). Measured 196 px at 1440 and 244 px at 1024 at lit, warning, dark
