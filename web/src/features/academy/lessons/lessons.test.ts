@@ -537,6 +537,7 @@ function visibleStrings(lesson: Lesson): { where: string; text: string }[] {
       step.options.forEach((option, index) => out.push({ where: at(`option ${index + 1}`), text: option }));
     }
     if (step.kind === "fill-formula") out.push({ where: at("tex"), text: step.tex });
+    if ((step.kind === "choice" || step.kind === "predict") && step.stage) out.push({ where: at("stage caption"), text: step.stage.caption });
     if (step.kind === "predict") {
       out.push({ where: at("reveal"), text: step.reveal.kind === "text" ? step.reveal.text : step.reveal.caption });
     }

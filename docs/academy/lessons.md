@@ -27,10 +27,10 @@ Ridge, in 2028. Lesson 2 states its exception: Pip looks from `{{l2.site_name}}`
 
 | # | Kind | Luna asks | Answer and what happens |
 | :--- | :--- | :--- | :--- |
-| 1 | `choice` | "At my equator the midday Sun is almost overhead. How high does it get at my south pole?" | Overhead / About 45° / **Under 3°** |
-| 2 | `drag-body` (Sun) | "Drag the Sun through a whole month. Find its highest moment." | Lander's eye view with a flat skyline. The best the learner can find is {{l1.sun_el_max_deg}}°. Luna: "This month the Sun climbs only to {{l1.sun_el_max_deg}}°, and sinks to {{l1.sun_el_min_deg}}°. It skims my horizon." |
-| 3 | `predict` | "Over that month, which directions does the Sun visit?" | Only east and west / **All the way round** / Only north. Reveal: the System view plays one month. |
-| 4 | `fill-formula` | "Highest Sun ≈ (90° − how far south you are) + ( ? )" | **1.54°, my tilt** / 23.4° / 5.1°. The rule is science.md §3.4's highest Sun: 90°, minus how far south the site is, plus 1.54°. It is an estimate, not a limit: at Pip's latitude it says about 2°, and the Sun's real highest point can be a little higher. Luna: "My tilt is about 1.54°; 23.4° is Earth's tilt, and 5.1° is the tilt of my orbit. That rule of thumb says about 2° at Pip's latitude in the best season. This month the Sun only gets to {{l1.sun_el_max_deg}}°. Both are true: one is an estimate for the best season, the other is this month." |
+| 1 | `choice` | "On me, the Moon, a day lasts about a month, and midday is when the Sun is highest. At my equator the midday Sun is almost overhead. How high does it get at my south pole?" | Overhead / About 45° / **Under 3°**. Stage: Pip under a sky ruler, each option's angle drawn on it when picked ("Under 3°" at {{l1.sun_el_max_deg}}°). |
+| 2 | `drag-body` (Sun) | "Here is one month at Connecting Ridge, where Pip landed: the dotted line is the Sun's path. Drag the Sun to its highest moment, and watch its elevation, its height in degrees, below." | Lander's eye view with a flat skyline. The best the learner can find is {{l1.sun_el_max_deg}}°. Luna: "This month the Sun climbs only to {{l1.sun_el_max_deg}}°, and sinks to {{l1.sun_el_min_deg}}°. It skims my horizon." |
+| 3 | `predict` | "Over that month, one of my days, which compass directions does the Sun visit?" | Only east and west / **All the way round** / Only north. Reveal: the System view plays one month. |
+| 4 | `fill-formula` | "How far south you are is counted in degrees: 0° at my equator, 90° at my pole. Highest Sun ≈ (90° − how far south you are) + ( ? )" | **1.54°, my tilt** / 23.4° / 5.1°. The rule is science.md §3.4's highest Sun: 90°, minus how far south the site is, plus 1.54°. It is an estimate, not a limit: at Pip's latitude it says about 2°, and the Sun's real highest point can be a little higher. Luna: "My tilt is about 1.54°; 23.4° is Earth's tilt, and 5.1° is the tilt of my orbit. That rule of thumb says about 2° at Pip's latitude in the best season. This month the Sun only gets to {{l1.sun_el_max_deg}}°. Both are true: one is an estimate for the best season, the other is this month." |
 | 5 | `choice` | "If you stood exactly on my south pole, which way is north?" | East / Up / **Every direction**. Luna: "That is why this tool is called TrueSouth." |
 
 **Words.** The lines the table does not quote, as the app shows them. A hint follows a
@@ -40,7 +40,7 @@ if the site's data does not load: the real answer and "Continue", for no XP, not
 for the stars. A `drop-pin` step, whose panel is not wired yet, also has an "until it is
 ready" line that replaces Luna's question.
 
-1. Hint: "My south pole is as far from my equator as you can go. Picture the Sun near the edge of the sky." Explanation: "At my south pole the Sun stays low, skimming the horizon. Pip sees it side-on, never overhead."
+1. Stage caption: "Pip, our lander, under a sky ruler: 0° is the horizon, 90° is straight up." Hint: "My south pole is as far from my equator as you can go. Picture the Sun near the edge of the sky." Explanation: "At my south pole the Sun stays low, skimming the horizon. Pip sees it side-on, never overhead."
 2. Hint: "The Sun's height changes slowly. Drag back and forth near the top of its path." Explanation: Luna's line in the table. Reveal: Luna's line in the table.
 3. Hint: "This month the Sun stays low the whole time. Where can a low Sun go?" Explanation: "All the way round. This month the Sun's direction circles the whole horizon; it stays low, and for part of the month it is just below level." Reveal caption: "Over the month the Sun's direction goes all the way round Pip's compass. Its height stays between {{l1.sun_el_min_deg}}° and {{l1.sun_el_max_deg}}°, so for part of the month it is just below level."
 4. Hint: "The missing piece is a small angle of my own: how far my equator tilts from my path around the Sun." Explanation: Luna's line in the table: it says what the two wrong options really are.
@@ -66,10 +66,10 @@ longitudes; assuming the pole has 14 days of light then 14 of dark.
 
 | # | Kind | Luna asks | Answer and what happens |
 | :--- | :--- | :--- | :--- |
-| 1 | `predict` | "From {{l2.site_name}}, the Sun is {{l2.sun_el_deg}}° up. In the Sun's direction, a ridge {{l2.ridge_dist_km}} km away stands {{l2.ridge_rise_m}} m above Pip. Sunlight or shadow?" | Sunlight / **Shadow**. Luna: "I moved us to {{l2.site_name}}, where a ridge in the Sun's direction stands above Pip. From a high ridge like Connecting Ridge, distant ground mostly lies below Pip's eyes." Reveal: the Lander's eye view at that hour. The ridge looks {{l2.ridge_el_deg}}° tall. |
-| 2 | `fill-formula` | "How tall a ridge looks: angle = atan( ? ÷ distance )" | **its height above you** / its height above sea level / its width |
-| 3 | `draw-skyline` | "Sketch the skyline you think Pip sees from {{l2.site_name}}, towards the Sun." | The real skyline is laid over the sketch. Closer sketches earn more XP; every sketch passes. |
-| 4 | `drag-body` (Sun) | "The Sun is a disc, not a dot. Find a moment when the Sun is up, but the ridge hides more than half of it." | Goal: `sun_el_deg > 0` and `sun_frac < 0.5`. Pip's power meter follows the visible share. |
+| 1 | `predict` | "Let's move Pip to {{l2.site_name}}, near my south pole. There the Sun is {{l2.sun_el_deg}}° up, and in its direction a ridge {{l2.ridge_dist_km}} km away stands {{l2.ridge_rise_m}} m above Pip. Sunlight or shadow?" | Sunlight / **Shadow**. Luna: "Here a ridge in the Sun's direction stands above Pip's eyes, so it hides the Sun. Back on high Connecting Ridge, distant ground mostly lies below Pip's eyes." Reveal: the Lander's eye view at that hour. The ridge looks {{l2.ridge_el_deg}}° tall. |
+| 2 | `fill-formula` | "How tall a ridge looks is an angle, and a calculator's atan turns rise over distance into it: angle = atan( ? ÷ distance )" | **its height above you** / its height above sea level / its width |
+| 3 | `draw-skyline` | "The skyline is the outline of the ground against the sky. Sketch the one you think Pip sees from {{l2.site_name}}, towards the Sun." | The real skyline is laid over the sketch. Closer sketches earn more XP; every sketch passes. |
+| 4 | `drag-body` (Sun) | "The Sun is a disc, not a dot: the share of it above the skyline is its disc fraction. Find a moment when the Sun is up, but the ridge hides more than half of it." | Goal: `sun_el_deg > 0` and `sun_frac < 0.5`. Pip's power meter follows the visible share. |
 | 5 | `choice` | "Looking the same way, which blocks more sky: a 300 m ridge 12 km away, or a 3,000 m mountain 150 km away?" | **The near ridge** / The far mountain. Luna: "Surprised? The next lesson explains why." |
 
 **Words.** The lines the table does not quote, as the app shows them. A hint follows a
@@ -104,7 +104,7 @@ methods (§5); disc fraction (§6). Worked example: the step-1 hour, from the sk
 | # | Kind | Luna asks | Answer and what happens |
 | :--- | :--- | :--- | :--- |
 | 1 | `predict` | "A mountain 5 km tall stands 130 km from Pip. On a flat Moon it would look 2.2° tall. What does Pip really see?" | 2.2° of mountain / **Just the tip** / Nothing. Reveal: a side view of the curved Moon. At 130 km the ground has dropped {{l3.drop_at_130km_m}} m, so only the top of the mountain shows. |
-| 2 | `fill-formula` | "How far the ground drops away: drop = distance² ÷ ( ? )" | R / **2R** / R² |
+| 2 | `fill-formula` | "R is my radius, from my centre to my surface. How far the ground drops away: drop = distance² ÷ ( ? )" | R / **2R** / R² |
 | 3 | `tune-slider` | "Slide the distance until the ground has dropped {{l3.drop_at_20km_m}} m." | Goal: 20 km. A live readout shows the drop. |
 | 4 | `spot-bug` | "This calculation says Pip is in shadow. One line is wrong." | Lines: (1) the ridge is 1,000 m above Pip; (2) it is 60 km away; **(3) it looks atan(1000 ÷ 60000) = 0.95° tall**; (4) the Sun is 0.5° up, so it is blocked. Line 3 forgot the drop: {{l3.drop_at_60km_m}} m at 60 km. The ridge is below Pip's horizon. |
 | 5 | `choice` | "Why does a third of a degree matter so much here?" | **Because the Sun never gets above {{l1.sun_el_max_deg}}° this month** / Because my mountains are small / It doesn't. Luna: "At 20 km the drop is a third of a degree. That is a big slice of a Sun that never gets above {{l1.sun_el_max_deg}}° this month." |
@@ -144,11 +144,11 @@ formula at long range.
 
 | # | Kind | Luna asks | Answer and what happens |
 | :--- | :--- | :--- | :--- |
-| 1 | `choice` | "From Apollo 11's site, Earth hangs high in the sky all the time. From my south pole?" | It is always overhead / It never appears / **It bobs up and down at the horizon** |
-| 2 | `drag-body` (Earth) | "Drag Earth through a month. Find its highest moment." | Readouts: highest {{l4.earth_el_max_deg}}°, lowest {{l4.earth_el_min_deg}}°. |
+| 1 | `choice` | "Pip can talk to Earth only while Earth is in Pip's sky. From Apollo 11's site, Earth hangs high in the sky all the time. From my south pole?" | It is always overhead / It never appears / **It bobs up and down at the horizon** |
+| 2 | `drag-body` (Earth) | "Drag Earth through the same month. Find its highest moment." | Readouts: highest {{l4.earth_el_max_deg}}°, lowest {{l4.earth_el_min_deg}}°. |
 | 3 | `predict` | "Over this month, how much of the time is Earth above Pip's horizon?" | Always / Almost never / **About {{l4.earth_up_pct}}%**. Reveal: the timeline's Earth band. |
-| 4 | `tune-slider` | "Pip's antenna needs Earth to clear the ground by some margin. Raise the margin until Pip can talk less than 15% of this month." | Goal: {{l4.mask_for_15pct_deg}}° or more. Readout: link time. Pip's link meter follows. |
-| 5 | `spot-bug` | "An early TrueSouth used these rules and called every polar site NO-GO. Which rule made them all fail?" | Lines: (1) Earth must clear the skyline; (2) by at least 5°; **(3) for at least half of every month**; (4) or the site is NO-GO. Luna: "In this month a 5° margin gives Pip a link only {{l4.link_pct_mask5}}% of the time, far short of half, so line 3 calls the site NO-GO. Judge the mission's own days, not the whole month. Lesson 7." |
+| 4 | `tune-slider` | "Pip's antenna needs Earth to clear the ground by a margin, called the antenna mask. Raise the margin until Pip can talk less than 15% of this month; that share is the link time below." | Goal: {{l4.mask_for_15pct_deg}}° or more. Readout: link time. Pip's link meter follows. |
+| 5 | `spot-bug` | "TrueSouth calls a site NO-GO when it breaks a hard rule. An early TrueSouth used these rules and called every polar site NO-GO. Which rule made them all fail?" | Lines: (1) Earth must clear the skyline; (2) by at least 5°; **(3) for at least half of every month**; (4) or the site is NO-GO. Luna: "In this month a 5° margin gives Pip a link only {{l4.link_pct_mask5}}% of the time, far short of half, so line 3 calls the site NO-GO. Judge the mission's own days, not the whole month. Lesson 7." |
 
 **Words.** The lines the table does not quote, as the app shows them. A hint follows a
 first miss (a predict step has one guess, so its hint is not shown). An explanation
