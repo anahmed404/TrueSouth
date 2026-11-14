@@ -48,7 +48,7 @@ import { Stars, starExposure } from "./stars";
 import { mul, type V3 } from "./vec";
 import { World, type WorldInputs, type WorldSite } from "./world";
 import { GL_SWITCHES, OVERLAY_REDRAW_FRAMES } from "./gl-switches";
-import { OVERLAY_CHANGED_EVENT } from "../../../components/overlay-host";
+import { OVERLAY_CHANGED_EVENT, overOverlay } from "../../../components/overlay-host";
 import "./scene.css";
 
 /**
@@ -882,14 +882,20 @@ function Director(props: DirectorProps) {
   // it with no new canvas frame; the black box's leading theory is that on some GPUs the
   // canvas's picture under a newly composited overlay then comes back empty. Untested against
   // the real fault; cheap (a few frames per change). Popovers and tips send `toggle`, which
-  // does not bubble, hence the capture phase.
+  // does not bubble, hence the capture phase. The pointer entering a row of an open popover
+  // repaints that row (the box was seen to grow then), so it counts too.
   useEffect(() => {
     const redraw = () => invalidate(OVERLAY_REDRAW_FRAMES);
+    const overRow = (event: Event) => {
+      if (overOverlay(event.target)) redraw();
+    };
     document.addEventListener("toggle", redraw, true);
     document.addEventListener(OVERLAY_CHANGED_EVENT, redraw);
+    document.addEventListener("pointerover", overRow, true);
     return () => {
       document.removeEventListener("toggle", redraw, true);
       document.removeEventListener(OVERLAY_CHANGED_EVENT, redraw);
+      document.removeEventListener("pointerover", overRow, true);
     };
   }, [invalidate]);
 

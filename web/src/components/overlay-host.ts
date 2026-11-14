@@ -131,6 +131,12 @@ export function placePanel(input: {
  */
 export const OVERLAY_CHANGED_EVENT = "truesouth:overlay-changed";
 
+/** Whether an event's target is inside an open popover panel or tip bubble (the top layer). */
+export function overOverlay(target: EventTarget | null): boolean {
+  const node = target as { closest?: (selector: string) => Element | null } | null;
+  return Boolean(node?.closest?.(".popover, .tip-bubble"));
+}
+
 export function announceOverlayChange(): void {
   if (typeof document === "undefined" || typeof document.dispatchEvent !== "function") return;
   try {

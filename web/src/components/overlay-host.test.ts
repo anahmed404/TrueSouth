@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { allNodes, installDocument, propsOf, type FakeNode } from "../app/mission/fake-dom";
 import { shortcutPanel } from "../app/mission/shell-layout";
 import { escapeCloses } from "../app/mission/window-focus";
-import { PANEL_MIN_ROOM, bridgeTab, overlayHost, placePanel, returnsFocus, withinEither } from "./overlay-host";
+import { OVERLAY_CHANGED_EVENT, PANEL_MIN_ROOM, announceOverlayChange, bridgeTab, overOverlay, overlayHost, placePanel, returnsFocus, withinEither } from "./overlay-host";
 import { Popover } from "./Popover";
 import { Tip } from "./Tip";
 
@@ -204,5 +204,32 @@ describe("a popover panel always ends inside the window (placePanel)", () => {
 
   it("narrows to the window less its margins on a narrow window", () => {
     expect(placePanel({ ...base, width: 440, trigger: plus(100), viewW: 390, viewH: 844, placement: "below" }).width).toBe(358);
+  });
+});
+
+describe("the scene hears when an overlay over it changes (the black box mitigation)", () => {
+  afterEach(() => {
+    delete (globalThis as { document?: unknown }).document;
+  });
+
+  it("announces a moved or resized popover or tip on the document", () => {
+    const heard: string[] = [];
+    (globalThis as { document?: unknown }).document = { dispatchEvent: (event: Event) => heard.push(event.type) };
+    announceOverlayChange();
+    expect(heard).toEqual([OVERLAY_CHANGED_EVENT]);
+  });
+
+  it("does nothing without a document", () => {
+    delete (globalThis as { document?: unknown }).document;
+    expect(() => announceOverlayChange()).not.toThrow();
+  });
+
+  it("counts the pointer entering a row of a popover or tip, not anything else", () => {
+    const inside = { closest: (selector: string) => (selector.includes(".popover") ? el("panel") : null) };
+    const outside = { closest: () => null };
+    expect(overOverlay(inside as unknown as EventTarget)).toBe(true);
+    expect(overOverlay(outside as unknown as EventTarget)).toBe(false);
+    expect(overOverlay(null)).toBe(false);
+    expect(overOverlay({} as EventTarget)).toBe(false);
   });
 });
