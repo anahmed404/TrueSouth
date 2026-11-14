@@ -1,137 +1,171 @@
 # Demo script: three minutes
 
 For the presenter. Read the **Say** lines aloud. They use no lunar jargon. The story is the
-one in the Academy: Pip is a small solar lander headed for the Moon's south pole, and its
-launch slips by three weeks.
+Academy's: Pip is a small solar lander headed for the Moon's south pole, and its launch
+slips by three weeks.
 
-State checked against `origin/main` at **2026-11-14 (`origin/main` at `5a5fd84`)**. Every
-view in this script—System view, Polar map, Slip Planner, Local terrain, Lander's eye,
-Compare, Academy lessons 1–4, and Validation—is merged on `origin/main`.
+State checked against `origin/main` at **69bb26e, 2026-11-14**. Every control named below
+is the label on screen in that build. Nobody has yet run this script start to finish in the
+browser; the first rehearsal is the check. Rehearse it once and fix any label that moved.
 
 ## Before the demo
 
-1. Open every link below in a private window on the machine you will present from. Each
-   one must show the right landing date and view. **Try them before the demo.**
+1. Open every link below in a private window on the machine you will present from.
+   **Try them before the demo.**
 2. Use a browser with a graphics card. Without WebGL the System view shows a still picture
-   and the Slip Planner falls back to the 2D Polar map (see "If something fails").
-3. Have the recorded backup video ready in another tab.
+   and the Slip Planner shows the flat Polar map under the same spots (see "If something
+   fails").
+3. Have the recorded backup video ready in another tab. (Open item in
+   [`links-checklist.md`](links-checklist.md): the video is not recorded yet.)
 4. Window about 1440 × 900. Mission Control is built for a wide screen.
 
-Replace `<live>` with the live origin (CHECK: the live link is not known yet). The link
-format is in [`../data-contracts.md`](../data-contracts.md), "Shareable scenario link".
-Every link uses the IM-2 Athena profile, which is Pip's profile. A date is written
-`2028-01-22T00%3A00Z` in a link.
+Replace `<live>` with the address of the demo server. CHECK (team lead): there is no live
+address yet; see [`links-checklist.md`](links-checklist.md). The link format is in
+[`../data-contracts.md`](../data-contracts.md), "Shareable scenario link". Every link uses
+the IM-2 Athena profile, which is Pip's profile. A date is written `2028-01-22T00%3A00Z` in
+a link. `t` is the current time in hours after the landing date.
 
 | Name | Link |
 | :--- | :--- |
 | **A, the start** | `<live>/mission?profile=im2_athena&sites=connecting_ridge,artemis_malapert,artemis_mouton,artemis_de_gerlache_rim_2&land=2028-01-01T00%3A00Z&t=0&view=system` |
-| **B, three weeks later** | the same, with `land=2028-01-22T00%3A00Z` |
-| **C, the next GO date** | the same, with `land=2028-01-27T00%3A00Z` |
-| **D, Lander's eye on the GO date** | link C with `view=panorama` |
-| **E, the dark hour, Lander's eye** | link B with `view=panorama` |
-| **F, the dark hour, Local terrain** | link B with `view=terrain` |
-| **G, Apollo 11** | `<live>/mission?profile=im2_athena&sites=apollo11,connecting_ridge&land=2028-01-03T00%3A00Z&t=0&view=system` (`CHECK: try on screen`) |
+| **B, three weeks later** | link A with `land=2028-01-22T00%3A00Z` and `view=slip` (a shortcut for step 2) |
+| **C, the next GO date** | link A with `land=2028-01-27T00%3A00Z` |
+| **E, the dark hour from Pip's eye** | link A with `land=2028-01-22T00%3A00Z` and `view=panorama` |
+| **G, Apollo 11 (optional)** | `<live>/mission?profile=im2_athena&sites=apollo11,connecting_ridge&land=2028-01-03T00%3A00Z&t=120&view=panorama` |
 
 ## The facts the story rests on
 
-Quoted directly from `data/derived/academy/worked_examples.json` (keys `story.*`, `l1.*`, `l6.*`, `l7.*`):
+Computed for this file with the Python scoring reference (`truesouth.scoring`) on the
+stored series (`data/derived/sites/<id>/series.bin`), the IM-2 Athena profile from
+`data/derived/profiles.json`, and each site's stored slope. Each landing is at 00:00 UTC.
+Scores print rounded down, as the app does. The Academy's `data/derived/academy/worked_examples.json`
+gives the same Connecting Ridge numbers for 2028-01-01 and 2028-01-22.
 
-| Fact | Value | Key |
+| Landing (UTC) | Connecting Ridge | The other three sites |
 | :--- | :--- | :--- |
-| Story site and profile | `connecting_ridge`, `im2_athena` | `story.site_id`, `story.profile_id` |
-| GO landing | `2028-01-01T00:00:00Z` (GO, score `100`, 0 h dark, 0 h blackout, Sun `0.63°` at landing) | `l7.go_date`, `l6.a_score`, `l6.example_metrics.*` |
-| Mission window ends | `2028-01-11T00:00:00Z` | `story.window_end_utc` |
-| Three weeks later | `2028-01-22T00:00:00Z` (NO-GO) | `l7.slip_date` |
-| Broken rules on that date | `darkness`, `blackout`, `landing_dark` | `l7.slip_vetoes` |
-| Longest blackout then | `119` hours | `l7.slip_blackout_h` |
-| Next GO date | `2028-01-27T00:00:00Z` | `l7.next_go_date` |
+| 2028-01-01 | **GO**, score 100. 0 h dark, 0 h blackout. Sun 0.63° up at landing | Malapert Massif NO-GO (dark stretch 202 h). Mons Mouton NO-GO (dark 240 h, blackout 18 h). de Gerlache Rim 2 NO-GO (slope 10.8° against the 10° limit, and dark) |
+| 2028-01-22 | **NO-GO**. Broken: longest dark stretch (61 h against 6 h), longest blackout (**119 h** against 12 h), dark at landing. The Sun is 0.52° up but 1.01° below the skyline; Earth is 6.11° below the horizon | All three NO-GO |
+| 2028-01-27 | **GO**, score 99 (99.89 rounded down). 0 h dark, 0 h blackout. This is the first GO day after 22 January (23 to 26 January are all NO-GO) | All three NO-GO |
 
-Other dates and on-screen readings used below are not stored in `worked_examples.json`; verify them on the live screen before presenting:
-
-- `2028-01-22` hour 0 solar elevation/clearance and exact score (`CHECK: try on screen`).
-- `2028-01-27` exact score and Sun/Earth countdown durations (`CHECK: try on screen`).
-- Whether any other site in the 4-site set is GO on `2028-01-22` (`CHECK: try on screen`).
-- Apollo 11 on `2028-01-03` (`CHECK: try on screen`).
+So on 1 January, Connecting Ridge is the only GO of the four, and nothing else becomes GO
+on 22 or 27 January. The slip is 21 days; the next GO is 5 days after that.
 
 The limits behind GO and NO-GO for IM-2 Athena are mostly **assumed**. Only the 10-day
 mission length is sourced ([`../mission-profiles.md`](../mission-profiles.md)). Say so if
-asked (see the questions below).
+asked.
 
 ## The three-minute script
 
-Timings add up to 3:00.
+Timings add up to 3:00. About 400 spoken words.
 
-### 1. The Moon and the sites (0:00 to 0:15)
+### 1. The Moon and the sites (0:00 to 0:20)
 
-- **Open:** link A (`2028-01-01T00:00Z`). The **System view** fills the window.
-- **You see:** the Moon, Earth, Sun, and Yale starfield; a green GO marker for Connecting Ridge near the south pole; four sites in the "Selected sites" rail (Connecting Ridge is GO, score 100).
-- **Say:** "This is the Moon's south pole, where the Sun never climbs. It skims the horizon
-  below two degrees. Our lander Pip can only land where the Sun and Earth are both up for
-  its ten-day stay. Every picture here is built from NASA's real terrain and positions."
-- **If something fails:** the still picture appears instead of the 3D Moon. Keep going; the
-  rail, the verdict and the timeline are the same. Say "this is our fallback picture of the
-  same scene".
+- **Open:** link A. The **System view** fills the window.
+- **You see:** the Moon, Earth, the Sun and the stars. The "Selected sites" rail on the left
+  lists four sites; Connecting Ridge is GO and the other three are NO-GO.
+- **Say:** "This is the Moon's south pole. The Sun never climbs more than about two degrees
+  there. It skims the horizon. Pip, our lander, can only land where the Sun and Earth are
+  both in view for its ten-day stay. Everything here is built from NASA's real terrain and
+  positions."
+- **Do:** drag the Moon over a pole to show it turns freely.
+- **If something fails:** a still picture appears in place of the 3D Moon. Keep going; the
+  rail, the verdicts and the timeline are the same.
 
-### 2. The launch slips in the Slip Planner (0:15 to 0:30)
+### 2. The launch slips (0:20 to 0:50)
 
-- **Click:** **Slip Planner** in the view bar. The camera flies to the south pole and each site becomes a **spot** (status lamp inside a score ring) on the Moon, with the **Landing dates** panel below ("Any site" + one 6-year strip per site).
-- **Do:** drag the landing-date slider to `2028-01-22` (or open the Landing date picker in the panel header and click `+14 d` then `+7 d`, or open link B with `view=slip`).
-- **You see:** the spots and strips update live, and a before-and-after summary plate appears (`Slipped +21 d…`).
-- **Say:** "Pip's launch just slipped three weeks. Each spot is a site on the Moon; the strips below show every landing date for six years. It was GO with score 100 on 1 January. Same site, same mission, 22 January."
-- **If 3D is off:** the Slip Planner automatically shows the flat Polar map under the same spots and strips.
+- **Click:** **Slip Planner** in the view bar. The camera flies to the pole. Each site becomes
+  a spot (a status lamp inside a ring that fills to its score), with a strip per site in
+  the bottom panel and an "Any site" strip above them.
+- **Click:** the landing date at the left of the bottom panel (it reads `2028-01-01 00:00
+  UTC`). In the box that opens, press **+14 d**, then **Slip +7 d**. Press Escape.
+- **You see:** the spots and strips update at once. A plate says "Slipped +21 d, 01 Jan →
+  22 Jan 2028. 1 of 4 sites changed. No site is GO or CAUTION on this date." Connecting
+  Ridge's spot shows "was GO".
+- **Say:** "Pip's launch just slipped three weeks. Each spot is a site on the Moon. The
+  strips show every landing date for six years. It was GO on 1 January. Same site, same
+  mission, 22 January: no site works."
+- **If you want to skip the clicks:** open link B.
+- **If 3D is off:** the Slip Planner shows the flat Polar map under the same spots.
 
-### 3. It turns NO-GO, and why (0:30 to 0:55)
+### 3. Why it fails (0:50 to 1:15)
 
-- **Do:** hover Connecting Ridge's spot or strip (or read the focused-site panel at the right).
-- **You see:** **NO-GO**, with the three broken rules: "Longest dark stretch", "Longest blackout" (**119 h** against Pip's 12 h limit, tagged **assumed**), and "Dark at landing".
-- **Say:** "The site turns NO-GO. Three rules break. For 119 hours in a row, Earth is out of
-  sight, so Pip cannot call home. The limit shown there, twelve hours, is our estimate. We
-  tag every estimate, and we never present one as published."
-- **Optional quick peek (if ahead on time):** click **Compare** on the view bar to show the four sites side by side with the deciding row highlighted and `Export CSV` / `Export JSON`, then press Escape to close it.
+- **Look at:** the "Focused site" panel on the right (Connecting Ridge).
+- **You see:** NO-GO, and three broken rules: "Longest dark stretch", "Longest blackout"
+  (**119 h** against a 12 h limit, tagged **assumed**) and "Dark at landing".
+- **Click:** **Lander's eye** in the view bar. The foot row under the 3D horizon gives a
+  one-line reason for the Sun and for Earth, with a **Why?** button. Press it: the box that
+  opens ("Why is it dark?", and "Why is there no link?" for Earth) names the terrain that
+  hides the Sun and gives its bearing, distance and height.
+- **Say:** "Three rules break. For 119 hours in a row Earth is below the horizon, so Pip
+  cannot call home. The twelve-hour limit is our estimate, and the screen says so. We tag
+  every estimate, and we never show one as published. And the Sun is up by half a degree,
+  but a ridge hides it."
 
-### 4. The next good date (0:55 to 1:10)
+### 4. The next good date (1:15 to 1:30)
 
-- **Click:** **Next GO** in the Landing-date panel header (or drag the slider to `2028-01-27`, or open link C).
-- **You see:** Connecting Ridge jumps to **`2028-01-27`** and turns **GO** (`CHECK: try on screen` for the exact score).
-- **Say:** "Five days later it works again. A slip of three weeks is NO-GO. A slip of
-  twenty-six days is GO. That is the whole point: small date changes decide the mission."
+- **Click:** **Next GO** in the landing date row (bottom strip). The landing date jumps to
+  `2028-01-27` and a note says "Landing moved to 27 Jan 2028, the next GO date for
+  Connecting Ridge." The verdict turns GO, score 99.
+- **Say:** "Five days later it works again. Three weeks late is NO-GO. Twenty-six days late
+  is GO. Small date changes decide the mission."
 
-### 5. The view from Pip (1:10 to 1:30)
+### 5. Compare (1:30 to 1:50)
 
-- **Click:** **Lander's eye** in the view bar (or open link D). Click **Horizon chart** at the bottom-left of the panel to expand the 360-degree chart (it starts folded by default so the 3D horizon has the room).
-- **You see:** the 3D horizon at 2 m above Connecting Ridge, the Sun and Earth tracks on the skyline chart, and the Sun and Earth countdown cards in the Timeline below (`CHECK: try on screen` for the exact countdown numbers on `2028-01-27`).
-- **Say:** "This is what Pip would see at two metres above the ground, turning in a full circle. The horizon chart plots NASA's skyline and the Sun and Earth tracks, and the cards count down to the next sunset and Earthset."
-- **If something fails:** the cards, timeline, and SVG horizon chart do not need WebGL.
+- **Click:** **Compare** in the view bar. The bottom strip folds to one row.
+- **You see:** one table, four columns. Connecting Ridge is GO; the other three are NO-GO.
+  One row is marked "Decides between them". The header has the landing date, "Export CSV"
+  and "Export JSON". "Open in NASA’s maps" links each site to QuickMap and Moon Trek.
+- **Say:** "Compare puts the sites side by side for one date. The row that decides between
+  them is marked. Planners can export the table or open any site in NASA's own maps."
+- **Press** Escape to close it.
 
-### 6. A dark hour, and what blocks it (1:30 to 1:55)
+### 6. The ground (1:50 to 2:10)
 
-- **Open:** link E (`2028-01-22`, hour zero—a dark hour at landing). Expand **Horizon chart** if folded, and click **Why?** beside the one-line darkness summary (`CHECK: try on screen` for the exact elevation/clearance and blocker distance shown).
-- **Click:** **Local terrain** in the view bar (or open link F). The camera rises to show the 20 km terrain patch inside the 300 km surrounding terrain out to a curved horizon, with the scaled lander Pip (`Lander not to scale`) and the disclosure plate saying shadows are for understanding only.
-- **Say:** "At landing on 22 January, Pip is in the dark—terrain stands in the way, and the tool measures the exact blocker distance and height. The 3D picture lets you see the ridges around the site; the go or no-go result always comes from the precomputed science data, and the screen says so."
+- **Click:** **Local terrain** in the view bar. The camera drops to the ground at
+  Connecting Ridge: 20 km of terrain around the site and more beyond it to the horizon,
+  with Pip standing at the site ("Lander not to scale").
+- **You see:** relief, drawn shadows and a ground texture, and a plate: "The series says:
+  lit. 100 % of the Sun's disc is above the skyline." with the note that shading and
+  shadows are for understanding only.
+- **Say:** "This is the ground Pip lands on. The shadows are only a drawing. Whether it is
+  light or dark always comes from the computed record, and the screen says so."
+- **If WebGL is off:** skip this step and go on.
 
-### 7. Back to space (1:55 to 2:00)
+### 7. The Academy (2:10 to 2:40)
 
-- **Click:** **System view** in the view bar.
-- **Say:** "Pulling back out."
+- **Click:** **Academy** in the top bar, then lesson 1, **Start lesson 1**
+  ("Where's the Sun?"). Or open `<live>/academy/l1_sun`.
+- **Do:** Luna asks how high the Sun gets at the south pole. Pick **Under 3°** and press
+  **Check**. On the next step, drag the Sun through the month to its highest point and
+  press **Check**.
+- **Say:** "The same physics, as a short guided story for students and the public. Luna
+  walks you through four lessons to land Pip: dragging the Sun, sketching a skyline,
+  finding a bug in a calculation. Every number comes from the same pipeline, and each
+  lesson has an Under-the-hood formula card."
 
-### 8. Apollo 11, for contrast (2:00 to 2:15)
+### 8. How we know it is right (2:40 to 3:00)
 
-- **Open:** link G (`2028-01-03`, `CHECK: try on screen`). Click Apollo 11 in the left rail, then **Lander's eye** (or stay in System view).
-- **You see:** a high Sun, Earth high above the horizon, and "No terrain data for Apollo 11. This is the smooth Moon."
-- **Say:** "Apollo 11 landed near the equator, where the Sun and Earth climb high in the sky. At the south pole both hug the horizon. Away from the poles we treat the Moon as a smooth sphere, and the screen tells you."
+- **Open:** `<live>/validation` ("How we know it's right"; also a link on the start screen).
+- **You see:** under "Sun and Earth positions": "Our Sun and Earth positions agree with
+  NASA's to within 0.0061°." Below it are the terrain checks and "Against NASA's maps",
+  including the rows that are outside our marks.
+- **Say:** "We checked our Sun and Earth directions against NASA's ephemeris service in more
+  than two million comparisons. The largest difference is 0.0061 degrees. Where
+  our numbers differ from NASA's long-term maps, we publish those rows and explain why.
+  TrueSouth is a planning aid, not flight certification."
+- **If the page fails:** hold up the headline card below.
 
-### 9. The Academy (2:15 to 2:45)
+## If there is time
 
-- **Click:** **Academy** in the top bar. Open **Lesson 1 ("Where's the Sun?")** (`/academy/l1_sun`).
-- **You see:** Luna, the moon mascot, asking step 1: "At my equator the midday Sun is almost overhead. How high does it get at my south pole?" Pick **Under 3°**. (Note for presenter: lessons 1–4 are playable; 4 draggable-panel steps show a preview + real answer until PR `#95` merges, so step 1 of Lesson 1 or Lesson 3's curvature slider works best live.)
-- **Say:** "The same physics, as a short guided story for students and the public. Luna walks you through four lessons to land Pip. Every number in the story is computed from the real pipeline, and each lesson opens an Under-the-hood formula card."
-
-### 10. How we know it is right (2:45 to 3:00)
-
-- **Open:** `<live>/validation`.
-- **You see:** the headline comparison against NASA's JPL Horizons, the 9 measured pipeline gates (plus G10 and G11 checked in web tests), and the 59 comparisons against NASA's maps.
-- **Say:** "We checked our Sun and Earth directions against NASA's own ephemeris service across more than two million site-hour pairs: the largest difference is within 0.0061 degrees. And where our numbers differ from NASA's long-term maps, we publish those rows and explain why."
-- **If the page fails:** hold up the headline card below. CHECK: open `/validation` on the live site before presenting and confirm the headline matches.
+- **Apollo 11** (link G): Lander's eye at Apollo 11 on 2028-01-06, five days after the
+  landing date. The Sun is 65° up and Earth 59°. A plate says "No terrain data for Apollo
+  11. This is the smooth Moon." Say: "Near the equator both are high. At the pole both hug
+  the horizon. Away from the poles we treat the Moon as a smooth ball, and the screen says
+  so."
+- **Your own coordinates:** in the "Selected sites" rail press **Add site**, then **Enter
+  coordinates**, type a latitude and an east longitude, and compute. The rail shows the
+  queue position. A south-pole site took 44 to 49 seconds on our development machine. If the
+  server has no prepared NASA maps, the row says "Not available on this server"; skip it.
 
 ## The one-minute version
 
@@ -139,16 +173,15 @@ Use link A, then:
 
 | Time | Do | Say |
 | :--- | :--- | :--- |
-| 0:00 to 0:10 | Link A (`2028-01-01`) | "Landing at the Moon's south pole is hard: the Sun skims the horizon. TrueSouth tells a planner whether a landing date works." |
-| 0:10 to 0:25 | Click **Slip Planner**, drag to `2028-01-22` | "Pip's launch slips three weeks. Each site is a spot on the Moon; Connecting Ridge turns NO-GO with a 119-hour Earth blackout." |
-| 0:25 to 0:35 | Click **Next GO** (`2028-01-27`) | "Five days later, it is GO again." |
-| 0:35 to 0:45 | Click **Lander's eye** | "This is Pip's horizon at two metres up: the skyline, the Sun and Earth, and live countdowns." |
-| 0:45 to 0:55 | Open `/validation` | "Our Sun and Earth directions match NASA's Horizons within 0.0061 degrees across over two million checks." |
-| 0:55 to 1:00 | none | "A planning aid, not flight certification. TrueSouth." |
+| 0:00 to 0:10 | Link A | "Landing at the Moon's south pole is hard: the Sun skims the horizon. TrueSouth tells a planner whether a landing date works." |
+| 0:10 to 0:30 | Click **Slip Planner**, press the landing date, **+14 d**, **Slip +7 d** | "Pip's launch slips three weeks. Connecting Ridge turns NO-GO: Earth is out of sight for 119 hours." |
+| 0:30 to 0:40 | Press **Next GO** | "Five days later, it is GO again." |
+| 0:40 to 0:50 | Click **Lander's eye** | "This is Pip's horizon at two metres up, with live countdowns." |
+| 0:50 to 1:00 | Open `/validation` | "Our Sun and Earth directions match NASA's Horizons within 0.0061 degrees. A planning aid, not flight certification." |
 
 ## The headline card
 
-Hold this on a phone or a slide for step 10 if the page is not live.
+Hold this on a phone or a slide for step 8 if the page is not live.
 
 > **Sun and Earth directions against NASA's JPL Horizons:** 2,103,360 comparisons (20 sites,
 > 2 bodies, 52,584 hours). Largest difference **0.0061°**. Pass mark 0.02°.
@@ -157,49 +190,42 @@ Hold this on a phone or a slide for step 10 if the page is not live.
 ## Likely questions
 
 **How accurate is it?** Our Sun and Earth directions match NASA's Horizons within 0.0061°
-(pass mark 0.02°) at all 20 catalog sites, every hour for six years. Nine automated pipeline
-gates (G1 to G9) pass, and TypeScript/Python scoring parity (G10) and type parity (G11) pass
-in the web tests. Against NASA's 60 m average-sunlight map, 16 of 19 polar entries are within
-8.2 percentage points, 18 of 19 Earth-visibility entries are within 9.3 points, and all 18
-`core80` slopes are within 1.3 degrees. The 80 m map cannot see boulders or small craters.
+(pass mark 0.02°) at all 20 catalog sites, every hour for six years. Nine pipeline gates
+(G1 to G9) pass, and the web tests check TypeScript scoring against the Python reference
+(G10) and the generated types (G11). Against NASA's 60 m average-sunlight map, 16 of 19
+polar entries are within 8.2 percentage points, 18 of 19 Earth-visibility entries are
+within 9.3 points, and all 18 slopes are within 1.3 degrees. The 80 m map cannot see
+boulders or small craters. Nothing here is flight certification.
 
-**Why does your sunlight differ from NASA's map at a few sites?** Three polar entries exceed
-our 10-point sunlight mark (`peak_near_shackleton` +24.0 points, `de_gerlache_rim_best_lit`
-+23.2 points, `malapert_peak_best_lit` +26.0 points) and one best-lit variant exceeds our
-Earth-visibility mark (`de_gerlache_rim_best_lit` +11.0 points). On steep ridges a single 60 m
-pixel varies widely (NASA's neighbours around Peak near Shackleton run from 44.7% to 58.0%,
-and NASA's 120 m map reads 60.1%, matching our 60.2%). NASA also averages 18.6 years at 0 m
-ground height against our 6 years at 2 m. At Connecting Ridge, Gläser et al. (2014) report
-92.27% any-Sun over 19 years at CR1, whereas our 6-year 80 m run gives 65.7% any-Sun (59.9%
-mean) at CR1 and 91.5% any-Sun (87.0% mean) at our `connecting_ridge_best_lit` pixel 149 m
-away; we publish all of these differences openly (`DEVLOG.md`, `docs/site-catalog.md`,
-`/validation`).
+**Why does your sunlight differ from NASA's map at a few sites?** Three polar entries are
+outside our 10-point mark: Peak near Shackleton (+24.0 points), and the best-lit variants at
+de Gerlache rim (+23.2) and Malapert Massif peak (+26.0). One variant is outside the
+Earth-visibility mark (de Gerlache rim, +11.0). On steep ridges a single 60 m pixel varies
+widely: NASA's neighbours around Peak near Shackleton run from 44.7% to 58.0%, and NASA's
+120 m map reads 60.1%, matching our 60.2%. NASA also averages 18.6 years at ground level,
+against our six years at 2 m. We publish all of these rows on the validation page.
 
 **What is assumed?** Most mission limits are not published, so they are tagged **assumed**
-on screen. For IM-2 Athena, only the 10-day length is sourced. The longest dark stretch it
+on screen. For IM-2 Athena only the 10-day length is sourced. The longest dark stretch it
 survives (6 h), the longest blackout (12 h), the slope limit (10°) and no relay are
-assumed. For all profiles, the antenna mask (1°), the share of the Sun that counts as lit
-(0.5) and the weights are ours (`docs/mission-profiles.md`).
+assumed. For every preset, the antenna mask (1°), the share of the Sun that counts as lit
+(0.5) and the weights are ours ([`../mission-profiles.md`](../mission-profiles.md)).
 
-**Does it work for any coordinates?** Yes, when running against the API with prepared NASA
-terrain maps mounted (`POST /api/sites/custom`): users can type any latitude and longitude in
-"+ Add site" → "Your own coordinates" or click empty ground in **Polar map** → "Compute this
-site". Polar sites compute from real 80 m/240 m terrain in under a minute; sites north of
-60°S run on the smooth Moon in seconds. (In the catalog-only Docker build without mounted
-maps, the UI displays that custom sites are not available on that server.)
+**Does it work for any coordinates?** Yes, on a server with NASA's prepared terrain maps.
+Type a latitude and east longitude under "Enter coordinates" in "Add site", or click the
+Polar map and press "Compute this site". South of 80°S it uses 80 m terrain, from 80°S to
+60°S 240 m terrain, and north of 60°S a smooth Moon. A server without the maps says custom
+sites are not available.
 
-**Why six years?** CHECK: the repository does not record the reason. It is the span we
-computed, 2026-01-01 to 2031-12-31 (52,584 hours), keeping the shipped derived dataset
-manageable (~60 MB in repo). Confirm the answer with the team lead before the demo.
+**Why six years?** Not recorded in the repository. The data runs from 2026-01-01 to
+2031-12-31 (52,584 hours). CHECK (team lead): give the reason before the demo.
 
-**What would you do next?** Local terrain slope/height overlays and 5 m close-up meshes (`T4`,
-`T5`), the 9×9 "compute for my dates" sensitivity grid (`S11`/`T8`), Academy lessons 5 to 8
-(`A6`), Luna's final hand-drawn art (`A10`), and official USGS Artemis region outlines (which
-require a ScienceBase login).
+**What would you do next?** Colour overlays and close-up 5 m terrain in Local terrain, a
+"compute for my dates" grid, Academy lessons 5 to 8, final art for Luna, and official
+Artemis region outlines.
 
-**Is it flight certification?** No. It is a planning aid. The footer says so on every
-screen.
+**Is it flight certification?** No. It is a planning aid. The footer says so.
 
-**Did AI write it?** AI tools wrote most of the code and drafts, under a human team lead
-who set the direction and picked every design. The full disclosure is in
+**Did AI write it?** AI tools wrote most of the code and drafts, under a human team lead who
+set the direction and picked every design. The full disclosure is in
 [`ai-use.md`](ai-use.md).
