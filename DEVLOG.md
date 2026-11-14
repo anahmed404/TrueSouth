@@ -2205,6 +2205,33 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Academy
 
+#### 2026-11-14 · A10 · Luna's expressions, adapted from the team's reference sheet
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — drew Luna's eight SVG expressions by
+  hand-adapting the faces from a reference sheet of mascot poses that the team generated
+  with Google Gemini (an AI image tool; no model or version recorded), in Luna's existing
+  style and colours; wrote the tests and the doc changes. The sheet is not in the
+  repository and not used in the app. Checked by the agent with the Luna tests, the full
+  suite, typecheck and build, and by eye in a browser (the gallery at 160, 64, 40 and 28 px,
+  and lesson 1 at 1440 × 900). A human has not judged the faces yet.
+- **State:** verified (art only: every mood keeps its parts, labels and token-only colours (the Luna tests, extended); the team approved adapting the faces and saw the gallery before and after; merged on the orchestrator's checks without a second reviewer because of the deadline; on the tree merged with main 6f9cb4e: 472 Python tests (1 skipped), 2,912 web tests, typecheck and build all exit 0)
+- **Changed:** `web/src/components/luna/` (`art/*` faces and `shapes.tsx`, `resolve-art.ts`
+  and `Luna.tsx` drop extras below 40 px, `LunaGallery.tsx` shows 160, 64, 40 and 28 px,
+  `luna.test.ts`), `web/src/app/theme.css` (one token, `--luna-blush: #d6a19a`, a muted
+  dusty rose for cheeks, tongue and hearts), `docs/academy/luna.md`,
+  `docs/submission/ai-use.md`, `docs/design/c2/built-luna-expressions-*.png`.
+- **Notes:**
+  - Faces only: the body, its grey and the craters are unchanged and no crater moved (the
+    cheeks sit just clear of the left crater). Pairing as proposed: idle pose 6, happy 2,
+    sleepy 3, thinking 4, proud 5, worried 8, cheering 1, surprised derived from 1; angry
+    (7) unused. Thinking keeps two small thought dots beside the sheet's tongue-out face.
+  - Eyes are a cream white with a dark iris and two catch-lights, inside the eyes part, so a
+    blink squashes them. Happy's closed arcs do not blink; sleepy's half lids do.
+  - Gone: the old yellow sparkles and the yellow-starred medal (yellow means the Sun here).
+  - Tests: no literal colour in any art file; every fill or stroke on a face is a `luna-*`
+    token defined in the theme; extras absent at 28 px and present at 64 px; worried's tear
+    kept at 28 px; open eyes blink, closed ones do not.
+
 #### 2026-11-14 · A4b · The lessons' panels show the real thing
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — audited lessons 1 to 4 for stand-ins and

@@ -55,12 +55,13 @@
   --terrain-rim: #a8a8af; /* skyline edge line */
   --grid: rgb(255 255 255 / 0.06); /* chart grid lines */
 
-  /* ── Luna and the Academy (used by components/luna once restyled) ──────── */
+  /* ── Luna and the Academy ───────────────────────────────────────────────── */
   --luna-body: #d8d5ce; /* her face: a warm regolith grey */
   --luna-crater: #b2afa8; /* craters and the shaded limb */
   --luna-feature: #18181a; /* eyes, mouth and brows */
   --luna-sparkle: #fffaf0; /* catch-lights and sparkles */
   --luna-tear: #a6d2ef; /* a tear: pale, so it is not read as Earth */
+  --luna-blush: #d6a19a; /* cheeks, tongue and hearts: a muted dusty rose, never the NO-GO red */
   --speech-bg: #1f1f22; /* Luna's speech bubble */
   --speech-border: var(--line-strong);
   --speech-ink: var(--ink);
@@ -202,6 +203,7 @@
   --color-luna-feature: var(--luna-feature);
   --color-luna-sparkle: var(--luna-sparkle);
   --color-luna-tear: var(--luna-tear);
+  --color-luna-blush: var(--luna-blush);
   --color-speech-bg: var(--speech-bg);
   --color-speech-border: var(--speech-border);
   --color-celebrate-1: var(--celebrate-1);
