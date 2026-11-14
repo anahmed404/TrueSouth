@@ -294,12 +294,15 @@ function resolveGoal(goal: GoalSpec, examples: WorkedExamples): { goal: Resolved
   if ("comparedTo" in goal) return { goal };
   const resolved = resolveValue(goal.value, examples);
   if (resolved.value === null) return { missing: resolved.missing };
+  const also = goal.also ? resolveValue(goal.also.value, examples) : null;
+  if (also && also.value === null) return { missing: also.missing };
   const next: ResolvedGoal = {
     metric: goal.metric,
     op: goal.op,
     value: resolved.value,
     ...(goal.tolerance !== undefined ? { tolerance: goal.tolerance } : {}),
     ...(goal.prior ? { prior: goal.prior } : {}),
+    ...(goal.also && also && also.value !== null ? { also: { metric: goal.also.metric, op: goal.also.op, value: also.value } } : {}),
   };
   return { goal: next };
 }
@@ -390,7 +393,18 @@ function gradeSubmission(
     }
     case "drag-body": {
       if (submission.kind !== "drag-body") return "unmet";
-      return gradeGoal(state, step.goal, { stepId: step.id, kind: "drag-body", value: submission.value }, evaluator, examples);
+      return gradeGoal(
+        state,
+        step.goal,
+        {
+          stepId: step.id,
+          kind: "drag-body",
+          value: submission.value,
+          ...(submission.values ? { values: submission.values } : {}),
+        },
+        evaluator,
+        examples,
+      );
     }
     case "tune-slider": {
       if (submission.kind !== "tune-slider") return "unmet";

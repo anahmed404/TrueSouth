@@ -181,12 +181,32 @@ export function metricExtremes(
   return maxHour < 0 ? null : { max, maxHour, min, minHour };
 }
 
-/** A goal with its placeholder filled, on a number. */
-export type NumberGoal = { metric: string; op: GoalOp; value: number; tolerance?: number };
+/** A goal with its placeholders filled, on numbers, with its optional second condition. */
+export type NumberGoal = {
+  metric: string;
+  op: GoalOp;
+  value: number;
+  tolerance?: number;
+  also?: { metric: string; op: GoalOp; value: number };
+};
+
+/** Each goal metric's stored value at an hour (the attempt's `values`), or null when one is missing. */
+export function goalValuesAt(series: ChartSeries, goal: NumberGoal, hour: number): Record<string, number> | null {
+  const values: Record<string, number> = {};
+  for (const metric of goal.also ? [goal.metric, goal.also.metric] : [goal.metric]) {
+    const value = metricAt(series, metric, hour);
+    if (value === null) return null;
+    values[metric] = value;
+  }
+  return values;
+}
 
 export function meetsAt(series: ChartSeries, goal: NumberGoal, hour: number): boolean {
   const value = metricAt(series, goal.metric, hour);
-  return value !== null && compareGoalValues(value, goal.op, goal.value, goal.tolerance);
+  if (value === null || !compareGoalValues(value, goal.op, goal.value, goal.tolerance)) return false;
+  if (!goal.also) return true;
+  const also = metricAt(series, goal.also.metric, hour);
+  return also !== null && compareGoalValues(also, goal.also.op, goal.also.value);
 }
 
 /**

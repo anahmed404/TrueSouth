@@ -332,7 +332,13 @@ function pickRight(step: Step): Submission | null {
       // The stored value at a right hour; drag-body.test.ts reads these hours from the series.
       if (step.id === "l1-highest") return { kind: "drag-body", value: num("l1.sun_el_max_deg"), utc: "right" };
       if (step.id === "l4-highest") return { kind: "drag-body", value: num("l4.earth_el_max_deg"), utc: "right" };
-      return { kind: "drag-body", value: num("l2.sun_frac"), utc: "right" };
+      // Lesson 2 step 4 also needs the Sun above level: the example hour's Sun is l2.sun_el_deg up.
+      return {
+        kind: "drag-body",
+        value: num("l2.sun_frac"),
+        values: { sun_frac: num("l2.sun_frac"), sun_el_deg: num("l2.sun_el_deg") },
+        utc: "right",
+      };
     case "draw-skyline":
       return { kind: "draw-skyline", sketch: [], gapDeg: 0 };
     default:

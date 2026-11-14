@@ -3,6 +3,7 @@ import { createValueEvaluator } from "./evaluator";
 import {
   answerHour,
   barXOfHour,
+  goalValuesAt,
   hourAfterKey,
   hourAtBarX,
   hourNearPointer,
@@ -22,6 +23,7 @@ import { initialRunnerState, reduceRunner } from "./runner";
 import { realExamples, realGrid, realSite } from "./testing/real-site";
 import type { Lesson, Step } from "./types";
 import { hourOnGrid } from "./utc";
+import { hourIndexToUtc } from "../../lib/time";
 
 type DragStep = Extract<Step, { kind: "drag-body" }>;
 
@@ -42,7 +44,11 @@ function goalOf(step: DragStep): NumberGoal {
   if ("comparedTo" in step.goal) throw new Error("compared goal");
   const value = resolveValue(step.goal.value, realExamples).value;
   if (typeof value !== "number") throw new Error(`${step.id}'s goal is not a number`);
-  return { metric: step.goal.metric, op: step.goal.op, value, tolerance: step.goal.tolerance };
+  const goal: NumberGoal = { metric: step.goal.metric, op: step.goal.op, value, tolerance: step.goal.tolerance };
+  if (!step.goal.also) return goal;
+  const also = resolveValue(step.goal.also.value, realExamples).value;
+  if (typeof also !== "number") throw new Error(`${step.id}'s second condition is not a number`);
+  return { ...goal, also: { metric: step.goal.also.metric, op: step.goal.also.op, value: also } };
 }
 
 const hour = (utc: string) => {
@@ -111,6 +117,43 @@ describe("the real data agrees with the worked examples", () => {
     for (let h = range.fromIndex; h <= range.toIndex; h += 1) if ((metricAt(malapert.series, "sun_frac", h) ?? 1) < 0.5) hidden += 1;
     expect(hidden).toBeGreaterThan(0);
     expect(metricAt(malapert.series, "sun_frac", hour(String(realExamples["l2.example_utc"])))).toBe(0);
+  });
+
+  it("lesson 2 step 4: a risen Sun hidden by the ridge passes; plain night does not", () => {
+    const step = dragStep(lesson2, "l2-disc");
+    const range = rangeOf(step);
+    const goal = goalOf(step);
+    const passing: string[] = [];
+    for (let h = range.fromIndex; h <= range.toIndex; h += 1) {
+      if (meetsAt(malapert.series, goal, h)) passing.push(hourIndexToUtc(realGrid, h));
+    }
+    // The 20 hours from 02:00 to 21:00 UTC on 2028-01-04, the example hour among them.
+    expect(passing).toHaveLength(20);
+    expect(passing[0]).toBe("2028-01-04T02:00:00Z");
+    expect(passing[passing.length - 1]).toBe("2028-01-04T21:00:00Z");
+    expect(passing).toContain(String(realExamples["l2.example_utc"]));
+    for (let h = range.fromIndex; h <= range.toIndex; h += 1) {
+      const passes = meetsAt(malapert.series, goal, h);
+      const el = metricAt(malapert.series, "sun_el_deg", h) ?? Number.NaN;
+      const frac = metricAt(malapert.series, "sun_frac", h) ?? Number.NaN;
+      expect(passes, hourIndexToUtc(realGrid, h)).toBe(el > 0 && frac < 0.5);
+    }
+    // 2028-01-03T17:00:00Z: no disc shows, but the Sun is 0.29° below level. A miss, with the hint.
+    const night = hour("2028-01-03T17:00:00Z");
+    expect(metricAt(malapert.series, "sun_frac", night)).toBe(0);
+    expect(metricAt(malapert.series, "sun_el_deg", night) ?? 0).toBeLessThan(0);
+    const at = { ...initialRunnerState(), stepIndex: (lesson2.steps as readonly Step[]).indexOf(step) };
+    const submission = (h: number) => ({
+      kind: "drag-body" as const,
+      value: metricAt(malapert.series, "sun_frac", h) ?? Number.NaN,
+      values: goalValuesAt(malapert.series, goal, h) ?? {},
+      utc: hourIndexToUtc(realGrid, h),
+    });
+    const missed = reduceRunner(at, { type: "submit", submission: submission(night) }, lesson2, createValueEvaluator(), realExamples);
+    expect(missed.phase).toBe("hint");
+    expect(missed.feedback).toMatch(/above level/);
+    const right = reduceRunner(missed, { type: "submit", submission: submission(hour("2028-01-04T17:00:00Z")) }, lesson2, createValueEvaluator(), realExamples);
+    expect(right.phase).toBe("correct");
   });
 
   it("the body starts where the goal is not yet met, and the marked answer meets it", () => {

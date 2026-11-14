@@ -61,7 +61,16 @@ export type ValueGoal = {
   value: GoalValue;
   tolerance?: number;
   prior?: PriorRef;
+  /**
+   * A second condition that must also hold at the same moment, on another metric, such as
+   * "the Sun is above level" beside "less than half its disc shows". `drag-body` only:
+   * the attempt carries each metric's stored value at the chosen hour.
+   */
+  also?: GoalCondition;
 };
+
+/** One more condition on a metric, with no tolerance. */
+export type GoalCondition = { metric: string; op: GoalOp; value: GoalValue };
 
 /** A condition that compares two metrics, such as site B's score above site A's. */
 export type ComparedGoal = {
@@ -468,6 +477,8 @@ export type Submission =
       value: number | string;
       /** The chosen hour, UTC, ISO-8601 ending in `Z`. */
       utc?: string;
+      /** Every goal metric's stored value at the chosen hour, for a goal with `also`. */
+      values?: Readonly<Record<string, number>>;
     }
   | { kind: "tune-slider"; variant: "number"; value: number }
   | { kind: "tune-slider"; variant: "date"; utc: string }

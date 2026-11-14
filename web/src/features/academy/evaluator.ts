@@ -9,7 +9,14 @@ import { compareUtcHours, parseUtcHour } from "./utc";
 export type PriorValue = { stepId: string; value: number | string };
 
 export type GoalAttempt =
-  | { stepId: string; kind: "drag-body" | "tune-slider"; value: number | string; prior?: PriorValue }
+  | {
+      stepId: string;
+      kind: "drag-body" | "tune-slider";
+      value: number | string;
+      prior?: PriorValue;
+      /** Each goal metric's value at the chosen moment, for a goal's `also` condition. */
+      values?: Readonly<Record<string, number>>;
+    }
   | { stepId: string; kind: "drop-pin"; pin: PinAttempt; prior?: PriorValue };
 
 /**
@@ -18,8 +25,22 @@ export type GoalAttempt =
  * A compared goal has no value to fill.
  */
 export type ResolvedGoal =
-  | (Omit<ValueGoal, "value"> & { value: number | string })
+  | (Omit<ValueGoal, "value" | "also"> & {
+      value: number | string;
+      also?: { metric: string; op: GoalSpec["op"]; value: number | string };
+    })
   | ComparedGoal;
+
+/**
+ * Whether a goal's `also` condition holds for an attempt: true when there is none, false
+ * when the attempt has no value for its metric.
+ */
+export function alsoHolds(goal: ResolvedGoal, attempt: GoalAttempt): boolean {
+  if ("comparedTo" in goal || !goal.also) return true;
+  const value = attempt.kind === "drop-pin" ? undefined : attempt.values?.[goal.also.metric];
+  if (value === undefined) return false;
+  return compareGoalValues(value, goal.also.op, goal.also.value);
+}
 
 /**
  * The runner asks this whether a goal is met. Mission Control's evaluation
@@ -100,7 +121,7 @@ export function createValueEvaluator(): GoalEvaluator {
       if (attempt.kind === "drop-pin") {
         return "siteId" in attempt.pin && compareGoalValues(attempt.pin.siteId, goal.op, goal.value, goal.tolerance);
       }
-      return compareGoalValues(attempt.value, goal.op, goal.value, goal.tolerance);
+      return compareGoalValues(attempt.value, goal.op, goal.value, goal.tolerance) && alsoHolds(goal, attempt);
     },
   };
 }

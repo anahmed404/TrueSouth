@@ -80,14 +80,19 @@ export const lesson2 = {
     },
     {
       id: "l2-disc",
-      luna: { mood: "thinking", says: "The Sun is a disc, not a dot. Find a moment when more than half of it is hidden." },
-      hint: "Look for a moment when the Sun's centre sits just below the skyline.",
-      explain: "More than half the disc is behind the ridge. Pip's power falls with the share that shows, not all at once.",
+      luna: {
+        mood: "thinking",
+        says: "The Sun is a disc, not a dot. Find a moment when the Sun is up, but the ridge hides more than half of it.",
+      },
+      hint: "The Sun must be above level, higher than 0°. Look for a moment when it is up but its centre sits just below the ridge.",
+      explain: "The Sun is up, but the ridge hides more than half of its disc. Pip's power falls with the share that shows, not all at once.",
       kind: "drag-body",
       body: "sun",
       panel: "LandersEye",
       scene: sunDrag,
-      goal: { metric: "sun_frac", op: "<", value: 0.5 },
+      // The Sun is up (above level) and less than half its disc shows: a ridge hiding a
+      // risen Sun, not plain night.
+      goal: { metric: "sun_frac", op: "<", value: 0.5, also: { metric: "sun_el_deg", op: ">", value: 0 } },
       follow: { power: "sun-fraction" },
       preview: {
         reveal:
