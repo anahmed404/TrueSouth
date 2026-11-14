@@ -12,10 +12,12 @@
     same name cross-fade when the mood changes; the body stays still.
   - Colours from theme tokens only (Tailwind `fill-*`/`stroke-*` classes), no literals.
   - Give each mood a `label`: the text alternative a screen reader reads.
-  - Keep features thick enough to read at 48 px; put fine detail in `detail`, which is
-    dropped at small sizes.
+  - Keep eyes and mouth thick enough to read at 28 px. Fine surface detail goes in
+    `detail` (dropped below 72 px); decoration goes in `extras` (dropped below 40 px).
+    Anything the mood needs at every size (a welling tear) belongs to the eyes or mouth.
 
-  The current files are placeholder art. Final art is work package A10.
+  The faces are adapted from a reference sheet the team supplied on 2026-11-14 (work
+  package A10). The body and craters are still the first drawing.
 */
 import type { LunaArtSet } from "../art-contract";
 import { body, detail } from "./body";

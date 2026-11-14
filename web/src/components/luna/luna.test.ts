@@ -1,4 +1,9 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { Luna } from "./Luna";
 import { lunaArt } from "./art";
 import { PART_NAMES } from "./art-contract";
 import {
@@ -11,7 +16,19 @@ import {
   resolveReducedMotion,
 } from "./motion-plan";
 import { isMood, MOOD_USE, MOODS } from "./moods";
-import { DETAIL_MIN_SIZE, FALLBACK_MOOD, resolveMoodArt, showsDetail } from "./resolve-art";
+import {
+  DETAIL_MIN_SIZE,
+  EXTRAS_MIN_SIZE,
+  FALLBACK_MOOD,
+  resolveMoodArt,
+  showsDetail,
+  showsExtras,
+} from "./resolve-art";
+
+const artDir = fileURLToPath(new URL("./art/", import.meta.url));
+const artFiles = readdirSync(artDir).filter((name) => name.endsWith(".tsx"));
+const artSource = (name: string) => readFileSync(`${artDir}${name}`, "utf8");
+const theme = readFileSync(fileURLToPath(new URL("../../app/theme.css", import.meta.url)), "utf8");
 
 describe("moods", () => {
   it("are exactly the eight in docs/academy/luna.md", () => {
@@ -63,6 +80,33 @@ describe("art", () => {
     }
   });
 
+  it("has no literal colours anywhere in the art", () => {
+    for (const name of artFiles) {
+      const source = artSource(name);
+      expect(source, name).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+      expect(source, name).not.toMatch(/\b(rgba?|hsla?|oklch|oklab|color-mix)\(/);
+      expect(source, name).not.toMatch(/\b(fill|stroke|color)=["{]/);
+    }
+  });
+
+  it("colours the faces only with Luna's tokens, each defined in the theme", () => {
+    const used = new Set<string>();
+    for (const name of artFiles) {
+      if (name === "body.tsx") continue; // the body and craters are unchanged by A10
+      for (const match of artSource(name).matchAll(/(?<=["\s])(?:fill|stroke)-([a-z][a-z0-9-]*)/g)) {
+        const token = match[1]!;
+        if (token === "none" || token.startsWith("[")) continue;
+        expect(token, `${name} uses ${token}`).toMatch(/^luna-/);
+        used.add(token);
+      }
+    }
+    expect(used.size).toBeGreaterThan(0);
+    for (const token of used) {
+      expect(theme, `--${token}`).toMatch(new RegExp(`--${token}:\\s*#`));
+      expect(theme, `--color-${token}`).toContain(`--color-${token}: var(--${token});`);
+    }
+  });
+
   it("falls back to idle for an unknown mood", () => {
     expect(resolveMoodArt("grumpy")).toBe(lunaArt.moods[FALLBACK_MOOD]);
   });
@@ -71,6 +115,35 @@ describe("art", () => {
     expect(showsDetail(48)).toBe(false);
     expect(showsDetail(DETAIL_MIN_SIZE)).toBe(true);
     expect(showsDetail(160)).toBe(true);
+  });
+
+  it("drops extras (sparkles, hearts, the note, the z, cheeks) below their threshold", () => {
+    expect(EXTRAS_MIN_SIZE).toBeLessThanOrEqual(48); // the lesson avatar keeps them
+    expect(showsExtras(28)).toBe(false);
+    expect(showsExtras(EXTRAS_MIN_SIZE - 1)).toBe(false);
+    expect(showsExtras(EXTRAS_MIN_SIZE)).toBe(true);
+    // idle's music note is the only tear-blue thing on her face.
+    const draw = (size: number) =>
+      renderToStaticMarkup(createElement(Luna, { mood: "idle", size, reduceMotion: true }));
+    expect(draw(28)).not.toContain("fill-luna-tear");
+    expect(draw(64)).toContain("fill-luna-tear");
+    // Eyes and mouth stay at every size.
+    expect(draw(28)).toContain("fill-luna-sparkle");
+    expect(draw(28)).toContain("fill-luna-feature");
+  });
+
+  it("keeps worried's welling tear at the smallest size: it belongs to the eyes", () => {
+    const small = renderToStaticMarkup(
+      createElement(Luna, { mood: "worried", size: 28, reduceMotion: true }),
+    );
+    expect(small).toContain("fill-luna-tear");
+  });
+
+  it("does not blink eyes that are already closed", () => {
+    expect(lunaArt.moods.happy.blinks).toBe(false);
+    for (const mood of ["idle", "thinking", "cheering", "worried", "surprised", "proud"] as const) {
+      expect(lunaArt.moods[mood].blinks, mood).not.toBe(false);
+    }
   });
 });
 
