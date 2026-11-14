@@ -666,9 +666,17 @@
       "description": "Custom site job submission response.",
       "properties": {
         "position_in_queue": {
-          "description": "Position in queue.",
-          "title": "Position In Queue",
-          "type": "integer"
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Queue position, or null when not queued.",
+          "title": "Position In Queue"
         },
         "site_id": {
           "description": "Custom id c_<lat>_<lon>, coordinates rounded to four decimal places.",

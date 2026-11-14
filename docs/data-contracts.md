@@ -248,8 +248,15 @@ The catalog grid is 161 × 161 over a 300 km square centred on the site. Points 
 
 Described in [`validation.md`](validation.md) and
 [`academy/lessons.md`](academy/lessons.md). A gate leaves `passed` and `measured` null
-together when `validate` did not measure it. Optional nullable `g2_diagnostics` records `raw_azimuth_max_deg`, `raw_azimuth_hours_over_limit`, `sky_max_deg`, and `elevation_max_deg`; each maximum has a corresponding `raw_azimuth_location`, `sky_location`, or `elevation_location` with `site_id`, `body`, and UTC `utc`. The raw compass difference is diagnostic; sky separation is the full direction separation and the gate separately uses the azimuth sky angle and elevation. `samples` is then 0, and `detail` says
+together when `validate` did not measure it. `samples` is then 0, and `detail` says
 where that gate is checked. G10 and G11 are written that way.
+
+Optional nullable `g2_diagnostics` records `raw_azimuth_max_deg`,
+`raw_azimuth_hours_over_limit`, `sky_max_deg`, and `elevation_max_deg`; each maximum has
+a corresponding `raw_azimuth_location`, `sky_location`, or `elevation_location` with
+`site_id`, `body`, and UTC `utc`. The raw compass difference is diagnostic; sky separation
+is the full direction separation and the gate separately uses the azimuth sky angle and
+elevation.
 
 ## API messages
 
@@ -271,6 +278,13 @@ Response:
 to [0, 360); coordinates are rounded before computing, with negative zero removed.
 
 `status` is `queued`, `running`, `ready` or `failed`. A known site returns `ready` at once.
+In both POST and GET answers, `position_in_queue` is a positive integer while queued
+(1 is next to run), and null while running, ready or failed. A sphere-tier site never
+queues. For example, a ready POST returns:
+
+```json
+{ "site_id": "c_0.0000_5.0000", "status": "ready", "position_in_queue": null }
+```
 
 The id is the coordinates rounded to four decimals, as `c_<lat>_<lon>`. Anyone holding the
 id can ask for the site again.
@@ -281,7 +295,7 @@ id can ask for the site again.
 { "site_id": "c_-89.2000_130.5000", "status": "ready", "position_in_queue": null, "site": { "…one sites.json entry…" }, "error": null }
 ```
 
-`position_in_queue` is 1 for the next queued job, increasing in FIFO order; it is null in other states. Unknown ids return 404.
+Unknown ids return 404.
 
 `error` is either null or an error detail `{ code, message }`.
 

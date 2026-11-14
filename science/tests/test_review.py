@@ -184,15 +184,15 @@ def test_every_documented_contract_json_example():
     import re
     text = Path('docs/data-contracts.md').read_text(encoding='utf-8')
     blocks = re.findall(r'```json\s*\n(.*?)\n```', text, flags=re.S)
-    assert len(blocks) == 8
+    assert len(blocks) == 9
     # The status example uses a pseudocode placeholder in place of a site entry.
-    blocks[5] = re.sub(r'"site": \{[^}]*\}', '"site": null', blocks[5])
+    blocks[6] = re.sub(r'"site": \{[^}]*\}', '"site": null', blocks[6])
     examples = [json.loads(block) for block in blocks]
-    models = [c.Manifest, c.SiteMeta, c.MapMeta, c.CustomSiteRequest, c.CustomSiteQueued, c.CustomSiteStatus, c.SensitivityRequest]
-    for model, example in zip(models, examples[:7], strict=True):
+    models = [c.Manifest, c.SiteMeta, c.MapMeta, c.CustomSiteRequest, c.CustomSiteQueued, c.CustomSiteQueued, c.CustomSiteStatus, c.SensitivityRequest]
+    for model, example in zip(models, examples[:8], strict=True):
         model.model_validate(example)
     # Fill the response's explicitly documented 81-value arrays in place of ellipses.
-    response = examples[7]
+    response = examples[8]
     response['sun_fraction_mean'] = [0.81, 0.79] + [0.8] * 79
     response['link_fraction'] = [0.44] * 81
     c.SensitivityResponse.model_validate(response)

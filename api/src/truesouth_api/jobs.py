@@ -170,8 +170,7 @@ class Jobs:
             self._reconcile_worker()
             state = self.status(identity)
             if state and state['status'] != 'failed':
-                position = next((i+1 for i, job in enumerate(self.waiting) if job[0] == identity), 0)
-                return dict(site_id=identity, status=state['status'], position_in_queue=position)
+                return dict(site_id=identity, status=state['status'], position_in_queue=state['position_in_queue'])
             now = self.clock()
             for client, previous in list(self.starts.items()):
                 while previous and previous[0] <= now - 3600:
@@ -203,7 +202,7 @@ class Jobs:
         result = self._compute(identity, request, tier)
         with self.condition:
             self.inline.discard(identity)
-        return dict(site_id=identity, status=result['status'], position_in_queue=0)
+        return dict(site_id=identity, status=result['status'], position_in_queue=None)
 
     def _compute(self, identity, request, tier):
         with self.condition:

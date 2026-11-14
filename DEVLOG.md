@@ -49,6 +49,12 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-14 ? S10c review ? Consistent queue positions
+- **Who:** Codex implementation agent
+- **AI use:** Codex fixed the POST response contract, added test-client coverage and updated the contract documentation; human review pending.
+- **State:** built, not verified (full Python run: 430 passed, 1 skipped, 1 documentation-example test failed; corrected and passed separately, full suite not repeated under the one-run limit. Web: 2,317 passed; frozen install and typecheck passed).
+- **Changed:** POST and GET now return a positive queue position only while queued, and null otherwise.
+
 #### 2026-11-14 ? S12c ? G2 diagnostics
 - **Who:** Codex implementation agent
 - **AI use:** Codex added structured G2 evidence and ran the real-data validation; human review pending.

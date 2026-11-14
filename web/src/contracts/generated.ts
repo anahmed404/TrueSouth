@@ -631,9 +631,9 @@ export interface CustomSiteErrorResponse {
  */
 export interface CustomSiteQueued {
   /**
-   * Position in queue.
+   * Queue position, or null when not queued.
    */
-  position_in_queue: number;
+  position_in_queue: number | null;
   /**
    * Custom id c_<lat>_<lon>, coordinates rounded to four decimal places.
    */

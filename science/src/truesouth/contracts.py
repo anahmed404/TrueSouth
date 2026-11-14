@@ -629,7 +629,7 @@ class CustomSiteQueued(Contract):
 
     site_id: SiteId = Field(description='Custom id c_<lat>_<lon>, coordinates rounded to four decimal places.')
     status: Literal['queued', 'running', 'ready', 'failed'] = Field(description='Job status.')
-    position_in_queue: int = Field(description='Position in queue.')
+    position_in_queue: int | None = Field(ge=1, description='Queue position, or null when not queued.')
 
 
 class ErrorDetail(Contract):
