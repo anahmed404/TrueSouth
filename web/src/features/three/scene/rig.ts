@@ -298,7 +298,10 @@ export class Rig {
       return;
     }
     if (style === "centre") {
-      this.slipMove((pos) => slipOrbit(pos, this.slipCentre!.centre, this.slipCentre!.up0, dx, dy));
+      // The same turn as Local terrain's: the ground nearest the viewer follows the pointer.
+      // slipOrbit moves the camera's azimuth by −dx, so the rig passes −dx (the team's test:
+      // the Slip Planner's horizontal drag was reversed against every other view).
+      this.slipMove((pos) => slipOrbit(pos, this.slipCentre!.centre, this.slipCentre!.up0, -dx, dy));
       return;
     }
     // The two ground views turn about the site, within their limits.
