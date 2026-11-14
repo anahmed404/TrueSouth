@@ -42,7 +42,7 @@ export function LunaGallery() {
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-8 bg-background p-6 text-text">
       <header className="flex flex-col gap-3">
-        <h1 className="m-0 text-2xl font-semibold">Luna gallery (placeholder art)</h1>
+        <h1 className="m-0 text-2xl font-semibold">Luna gallery</h1>
         <fieldset className="m-0 flex flex-wrap items-center gap-2 border-0 p-0">
           <legend className="mb-2 text-sm text-text-muted">Motion</legend>
           {(
