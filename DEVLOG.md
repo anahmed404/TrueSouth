@@ -57,11 +57,118 @@ each integration checkpoint.
 - **State:** built, not verified
 - **Changed:** `science/`, close-up drawing artifacts and availability metadata,
   architecture, data-contract explanations and science conventions. No contract change.
-- **Notes:** All 27 published surface-map extents inspected; 16 candidate points
-  (variants counted separately). Native 5 m crops only; full TIFFs are not retained.
-  Synthetic close-up and atomic refresh tests: 10 passed. Final coverage, measured
-  agreement, retained disk sizes and full check results will be added here before PR.
-  NASA slope TIFFs were not downloaded; custom sites receive no close-up.
+- **Result:** 16 accepted meshes, 1,056,784 bytes each, **16,908,544 bytes** added.
+  All 27 surface maps on [PGDA product 78](https://pgda.gsfc.nasa.gov/products/78)
+  inspected from their own GeoTIFF metadata, including Site20v2, Site42, DM1/DM2,
+  SL2/SL3, NPA–NPD and LM1–LM8. All nine uncovered points are outside every
+  surface map's extent; no candidate failed its complete finite-data check.
+  Site20v2 is preferred to the older Site20 where maps overlap. Best-lit variants
+  are assessed at their own coordinates. NASA source credit: Barker et al. (2021),
+  [doi:10.1016/j.pss.2020.105119](https://doi.org/10.1016/j.pss.2020.105119).
+- **Grid and registration:** 257 × 257 over 2 km, 7.8125 m spacing, bilinear
+  interpolation of native 5 m pixel centres. No invented features or nearest-pixel
+  decimation. Each GeoTIFF's scale, offset, NaN/nodata mask and pixel transform are
+  read. All projections numerically match the existing polar projection and
+  1,737,400 m radius; the README specifies MOON_ME/DE421, matching the polar data.
+  Legacy GMT CRS names differ but no frame, radius or projection conversion is
+  needed. Raw agreement below precedes the constant drawing-height correction
+  described in [science.md §13](docs/science.md#13-local-terrain-coordinates).
+  Ground, site slope, skyline and series still use the polar maps.
+- **Nothing else changes:** compared every one of the 142 pre-existing tracked
+  `data/derived/` files against base `b6d4a5b`. Only the 16 `meta.closeup` values
+  and 16 `has_closeup` flags in `sites.json` changed (17 metadata files).
+  Every other existing byte is unchanged, including the manifest timestamp
+  `2026-11-13T00:00:00Z`. The fixture regression also checks this property and
+  repeatability through the shared atomic builder. No schema or generated types changed.
+
+All heights below are metres. Mean/RMS compare the uncorrected 5 m raster,
+area-averaged onto actual 80 m cells in the local 2 km window, to that map.
+Every accepted site's correlation peak is X/Y = 0/0 m on the 10 m search grid
+over ±160 m; this does not resolve offsets smaller than that step. Comparisons
+use 624–630 80 m cells per site. No horizontal shift is applied.
+
+| Site id | NASA file | 5 m height / unchanged ground (m) | Centre difference (m) | Mean / RMS (m) |
+| :--- | :--- | ---: | ---: | ---: |
+| `apollo11` | none: centre outside all 27 extents | — | — | — |
+| `apollo17` | none: centre outside all 27 extents | — | — | — |
+| `artemis_de_gerlache_rim_2` | `SL2_final_adj_5mpp_surf.tif` | -88.215 / -88.834 | +0.619 | -0.128 / 0.202 |
+| `artemis_haworth` | `Haworth_final_adj_5mpp_surf.tif` | 1628.547 / 1628.032 | +0.516 | +0.085 / 0.126 |
+| `artemis_malapert` | `Site23_final_adj_5mpp_surf.tif` | 4783.796 / 4784.771 | -0.974 | -0.065 / 0.131 |
+| `artemis_mouton` | `Site20v2_final_adj_5mpp_surf.tif` | 6398.630 / 6398.160 | +0.470 | -0.039 / 0.153 |
+| `artemis_nobile_rim_1` | `Site20v2_final_adj_5mpp_surf.tif` | 5946.836 / 5945.618 | +1.219 | +0.012 / 0.210 |
+| `artemis_nobile_rim_2` | `DM2_final_adj_5mpp_surf.tif` | 1009.681 / 1009.324 | +0.356 | +0.042 / 0.362 |
+| `blue_ghost1` | none: centre outside all 27 extents | — | — | — |
+| `chandrayaan3` | none: centre outside all 27 extents | — | — | — |
+| `change4` | none: centre outside all 27 extents | — | — | — |
+| `change6` | none: centre outside all 27 extents | — | — | — |
+| `connecting_ridge` | `Site01_final_adj_5mpp_surf.tif` | 1949.608 / 1950.256 | -0.648 | -0.098 / 0.317 |
+| `connecting_ridge_best_lit` | `Site01_final_adj_5mpp_surf.tif` | 1957.415 / 1956.826 | +0.590 | -0.129 / 0.335 |
+| `de_gerlache_rim` | `Site11_final_adj_5mpp_surf.tif` | 1779.031 / 1779.196 | -0.164 | +0.153 / 0.313 |
+| `de_gerlache_rim_best_lit` | `Site11_final_adj_5mpp_surf.tif` | 1780.867 / 1780.174 | +0.693 | +0.178 / 0.328 |
+| `im1_odysseus` | none: centre outside all 27 extents | — | — | — |
+| `im2_athena` | none: centre outside all 27 extents | — | — | — |
+| `luna25_target` | none: centre outside all 27 extents | — | — | — |
+| `malapert_peak` | `Site23_final_adj_5mpp_surf.tif` | 4970.059 / 4969.078 | +0.981 | -0.088 / 0.185 |
+| `malapert_peak_best_lit` | `Site23_final_adj_5mpp_surf.tif` | 4972.750 / 4972.435 | +0.315 | -0.094 / 0.189 |
+| `peak_near_shackleton` | `Site07_final_adj_5mpp_surf.tif` | 1454.611 / 1454.988 | -0.377 | -0.299 / 0.365 |
+| `peak_near_shackleton_best_lit` | `Site07_final_adj_5mpp_surf.tif` | 1455.477 / 1455.077 | +0.399 | -0.308 / 0.374 |
+| `shackleton_rim` | `Site04_final_adj_5mpp_surf.tif` | 1735.218 / 1732.866 | +2.352 | -0.138 / 0.394 |
+| `shackleton_rim_best_lit` | `Site04_final_adj_5mpp_surf.tif` | 1735.449 / 1735.207 | +0.242 | -0.138 / 0.397 |
+
+**Network and retained disk.** No full NASA surface or slope TIFF was downloaded.
+The 11 candidate source files total 717,884,323 bytes by HEAD, below 1.2 GB;
+the largest is Haworth at 142,123,767 bytes, below 150 MB. All 27 HEAD sizes
+total 1,742,398,995 bytes; the other files require only metadata ranges.
+Successful checkpoints account for 170,917,888 crop-range bytes plus 1,769,472
+metadata bytes. Initial exploratory requests and an interrupted first attempt
+add unmetered transfer. Small 64 KiB requests encountered an HTTP 403; coalesced
+1 MiB requests worked, with one later disconnect resumed from the checkpoint.
+The final repeated fetch exited 0 and issued HEADs only, with no new crop transfer.
+The current implementation also reuses nearby variants' prepared windows and
+skips opening overlapping maps when all their candidate points are already covered.
+
+| Source file | HEAD bytes | Successful crop-range bytes |
+| :--- | ---: | ---: |
+| `Site20v2_final_adj_5mpp_surf.tif` | 108192905 | 40894464 |
+| `DM2_final_adj_5mpp_surf.tif` | 64025607 | 15728640 |
+| `Haworth_final_adj_5mpp_surf.tif` | 142123767 | 22020096 |
+| `SL2_final_adj_5mpp_surf.tif` | 64025605 | 15728640 |
+| `Site01_final_adj_5mpp_surf.tif` | 40980810 | 12582912 |
+| `Site04_final_adj_5mpp_surf.tif` | 40980806 | 14680064 |
+| `Site06_final_adj_5mpp_surf.tif` | 64025603 | 1048576 |
+| `Site07_final_adj_5mpp_surf.tif` | 40980808 | 13631488 |
+| `Site11_final_adj_5mpp_surf.tif` | 40980806 | 13631488 |
+| `Site20_final_adj_5mpp_surf.tif` | 40980802 | 1048576 |
+| `Site23_final_adj_5mpp_surf.tif` | 70586804 | 19922944 |
+
+Site06 and Site20 only incurred extra reads while skipping already covered
+points in the initial implementation; no crop uses them. The other nine files
+provide the accepted meshes. Shared `C:/Users/abdal/TrueSouth/data/prepared/closeups/`
+contains 16 native crops (41,163,896 bytes total), their sidecars, `index.json` and
+`agreement.json` (41,220,103 bytes total at measurement). The new `raw/closeups/`
+folder is empty. Existing polar prepared maps and downloads were reused and left
+alone. No raw or prepared data is staged.
+
+Rebuild in PowerShell, using the existing prepared polar maps and committed ephemeris:
+
+```powershell
+$env:TRUESOUTH_DATA_ROOT='C:/Users/abdal/TrueSouth/data'
+uv run truesouth fetch-raw --group closeup
+uv run truesouth prepare-dem --group closeup
+uv run truesouth build-sites --closeups-only --only artemis_de_gerlache_rim_2 artemis_haworth artemis_malapert artemis_mouton artemis_nobile_rim_1 artemis_nobile_rim_2 connecting_ridge de_gerlache_rim malapert_peak peak_near_shackleton shackleton_rim --generated-utc 2026-11-13T00:00:00Z
+```
+
+Normal `build-sites --only <ids>` also builds accepted close-ups; custom callers
+of the shared builder do not receive one. `--closeups-only` keeps the existing
+manifest rather than regenerating it. Prepare, refresh and idempotent fetch
+checks all exited 0. Final requested suite results will be recorded here.
+
+**Not verified:** visual integration belongs to the scene agent; sub-10 m
+horizontal offsets and independent absolute vertical accuracy were not measured.
+NASA's slope files were deliberately not downloaded, so the independent close-up
+slope comparison R4 remains deferred. NASA reports about 90% interpolated 5 m
+pixels and 0.30–0.50 m median RMS height uncertainty in its regions of interest;
+the close-up is drawing data, not a footpad-safety assessment. Human review pending.
 
 #### 2026-11-14 · S13b · production deploy files
 - **Who:** Codex implementation agent
