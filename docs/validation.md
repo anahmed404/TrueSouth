@@ -44,6 +44,11 @@ time grid.
 
 ## Reported comparisons
 
+S8b's drawing-only 5 m/80 m height and alignment comparison is recorded with its
+per-site measurements in [DEVLOG.md](../DEVLOG.md#2026-11-14--s8b--close-up-ground-from-nasas-5-m-site-maps).
+It leaves `validation.json` and all mission results unchanged; R4 is deferred
+because no close-up slope TIFF was downloaded.
+
 Run with `uv run truesouth validate`. Results go to `data/derived/validation.json`.
 
 | # | Comparison | Against | Investigate when |

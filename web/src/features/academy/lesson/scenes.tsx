@@ -67,7 +67,8 @@ function RulerLine({ mark }: { mark: Mark }) {
   const x2 = useTransform(angle, (value) => point(value, RULER_R)[0]);
   const y2 = useTransform(angle, (value) => point(value, RULER_R)[1]);
   const labelX = useTransform(angle, (value) => point(value, RULER_R - 70)[0]);
-  const labelY = useTransform(angle, (value) => point(value, RULER_R - 70)[1]);
+  // A low angle (the polar Sun's, under 1°) would put the label in the ground: keep it above.
+  const labelY = useTransform(angle, (value) => Math.min(point(value, RULER_R - 70)[1], GROUND_Y - 26));
   const rectX = useTransform(labelX, (value) => value - width / 2);
   const rectY = useTransform(labelY, (value) => value - 17);
   const textY = useTransform(labelY, (value) => value + 6);

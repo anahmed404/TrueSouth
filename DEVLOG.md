@@ -49,6 +49,146 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-14 · S8b · Close-up ground from NASA's 5 m site maps
+- **Who:** Codex implementation sub-agent
+- **AI use:** Codex implemented bounded NASA window ingestion, atomic close-up refresh,
+  synthetic geometry/regression tests and documentation; automated checks below,
+  human review pending.
+- **State:** verified (reviewed by Cursor (grok-4.7): approve; as-is orientation wins at all 16 sites against every flip and rotation, zero shift against the 80 m patch, every existing derived blob byte-identical, certificate checks intact; on the tree merged with main 59556f5: 471 Python tests (1 skipped), 2,649 web tests, typecheck and build all exit 0. Follow-up: pin a mesh vertex at more than one longitude in the tests)
+- **Changed:** `science/`, close-up drawing artifacts and availability metadata,
+  architecture, data-contract explanations and science conventions. No contract change.
+- **Result:** 16 accepted meshes, 1,056,784 bytes each, **16,908,544 bytes** added.
+  All 27 surface maps on [PGDA product 78](https://pgda.gsfc.nasa.gov/products/78)
+  inspected from their own GeoTIFF metadata, including Site20v2, Site42, DM1/DM2,
+  SL2/SL3, NPA–NPD and LM1–LM8. All nine uncovered points are outside every
+  surface map's extent; no candidate failed its complete finite-data check.
+  Site20v2 is preferred to the older Site20 where maps overlap. Best-lit variants
+  are assessed at their own coordinates. NASA source credit: Barker et al. (2021),
+  [doi:10.1016/j.pss.2020.105119](https://doi.org/10.1016/j.pss.2020.105119).
+- **Grid and registration:** 257 × 257 over 2 km, 7.8125 m spacing, bilinear
+  interpolation of native 5 m pixel centres. No invented features or nearest-pixel
+  decimation. Each GeoTIFF's scale, offset, NaN/nodata mask and pixel transform are
+  read. All projections numerically match the existing polar projection and
+  1,737,400 m radius; the README specifies MOON_ME/DE421, matching the polar data.
+  Legacy GMT CRS names differ but no frame, radius or projection conversion is
+  needed. Raw agreement below precedes the constant drawing-height correction
+  described in [science.md §13](docs/science.md#13-local-terrain-coordinates).
+  Ground, site slope, skyline and series still use the polar maps.
+- **Nothing else changes:** compared every one of the 142 pre-existing tracked
+  `data/derived/` files against base `b6d4a5b`. Only the 16 `meta.closeup` values
+  and 16 `has_closeup` flags in `sites.json` changed (17 metadata files).
+  Every other existing byte is unchanged, including the manifest timestamp
+  `2026-11-13T00:00:00Z`. The fixture regression also checks this property and
+  repeatability through the shared atomic builder. No schema or generated types changed.
+
+All heights below are metres. Mean/RMS compare the uncorrected 5 m raster,
+area-averaged onto actual 80 m cells in the local 2 km window, to that map.
+Every accepted site's correlation peak is X/Y = 0/0 m on the 10 m search grid
+over ±160 m; this does not resolve offsets smaller than that step. Comparisons
+use 624–630 80 m cells per site. No horizontal shift is applied.
+
+| Site id | NASA file | 5 m height / unchanged ground (m) | Centre difference (m) | Mean / RMS (m) |
+| :--- | :--- | ---: | ---: | ---: |
+| `apollo11` | none: centre outside all 27 extents | — | — | — |
+| `apollo17` | none: centre outside all 27 extents | — | — | — |
+| `artemis_de_gerlache_rim_2` | `SL2_final_adj_5mpp_surf.tif` | -88.215 / -88.834 | +0.619 | -0.128 / 0.202 |
+| `artemis_haworth` | `Haworth_final_adj_5mpp_surf.tif` | 1628.547 / 1628.032 | +0.516 | +0.085 / 0.126 |
+| `artemis_malapert` | `Site23_final_adj_5mpp_surf.tif` | 4783.796 / 4784.771 | -0.974 | -0.065 / 0.131 |
+| `artemis_mouton` | `Site20v2_final_adj_5mpp_surf.tif` | 6398.630 / 6398.160 | +0.470 | -0.039 / 0.153 |
+| `artemis_nobile_rim_1` | `Site20v2_final_adj_5mpp_surf.tif` | 5946.836 / 5945.618 | +1.219 | +0.012 / 0.210 |
+| `artemis_nobile_rim_2` | `DM2_final_adj_5mpp_surf.tif` | 1009.681 / 1009.324 | +0.356 | +0.042 / 0.362 |
+| `blue_ghost1` | none: centre outside all 27 extents | — | — | — |
+| `chandrayaan3` | none: centre outside all 27 extents | — | — | — |
+| `change4` | none: centre outside all 27 extents | — | — | — |
+| `change6` | none: centre outside all 27 extents | — | — | — |
+| `connecting_ridge` | `Site01_final_adj_5mpp_surf.tif` | 1949.608 / 1950.256 | -0.648 | -0.098 / 0.317 |
+| `connecting_ridge_best_lit` | `Site01_final_adj_5mpp_surf.tif` | 1957.415 / 1956.826 | +0.590 | -0.129 / 0.335 |
+| `de_gerlache_rim` | `Site11_final_adj_5mpp_surf.tif` | 1779.031 / 1779.196 | -0.164 | +0.153 / 0.313 |
+| `de_gerlache_rim_best_lit` | `Site11_final_adj_5mpp_surf.tif` | 1780.867 / 1780.174 | +0.693 | +0.178 / 0.328 |
+| `im1_odysseus` | none: centre outside all 27 extents | — | — | — |
+| `im2_athena` | none: centre outside all 27 extents | — | — | — |
+| `luna25_target` | none: centre outside all 27 extents | — | — | — |
+| `malapert_peak` | `Site23_final_adj_5mpp_surf.tif` | 4970.059 / 4969.078 | +0.981 | -0.088 / 0.185 |
+| `malapert_peak_best_lit` | `Site23_final_adj_5mpp_surf.tif` | 4972.750 / 4972.435 | +0.315 | -0.094 / 0.189 |
+| `peak_near_shackleton` | `Site07_final_adj_5mpp_surf.tif` | 1454.611 / 1454.988 | -0.377 | -0.299 / 0.365 |
+| `peak_near_shackleton_best_lit` | `Site07_final_adj_5mpp_surf.tif` | 1455.477 / 1455.077 | +0.399 | -0.308 / 0.374 |
+| `shackleton_rim` | `Site04_final_adj_5mpp_surf.tif` | 1735.218 / 1732.866 | +2.352 | -0.138 / 0.394 |
+| `shackleton_rim_best_lit` | `Site04_final_adj_5mpp_surf.tif` | 1735.449 / 1735.207 | +0.242 | -0.138 / 0.397 |
+
+**Network and retained disk.** No full NASA surface or slope TIFF was downloaded.
+The 11 candidate source files total 717,884,323 bytes by HEAD, below 1.2 GB;
+the largest is Haworth at 142,123,767 bytes, below 150 MB. All 27 HEAD sizes
+total 1,742,398,995 bytes; the other files require only metadata ranges.
+Successful checkpoints account for 170,917,888 crop-range bytes plus 1,769,472
+metadata bytes. Initial exploratory requests and an interrupted first attempt
+add unmetered transfer. Small 64 KiB requests encountered an HTTP 403; coalesced
+1 MiB requests worked, with one later disconnect resumed from the checkpoint.
+The final repeated fetch exited 0 and issued HEADs only, with no new crop transfer.
+The current implementation also reuses nearby variants' prepared windows and
+skips opening overlapping maps when all their candidate points are already covered.
+
+| Source file | HEAD bytes | Successful crop-range bytes |
+| :--- | ---: | ---: |
+| `Site20v2_final_adj_5mpp_surf.tif` | 108192905 | 40894464 |
+| `DM2_final_adj_5mpp_surf.tif` | 64025607 | 15728640 |
+| `Haworth_final_adj_5mpp_surf.tif` | 142123767 | 22020096 |
+| `SL2_final_adj_5mpp_surf.tif` | 64025605 | 15728640 |
+| `Site01_final_adj_5mpp_surf.tif` | 40980810 | 12582912 |
+| `Site04_final_adj_5mpp_surf.tif` | 40980806 | 14680064 |
+| `Site06_final_adj_5mpp_surf.tif` | 64025603 | 1048576 |
+| `Site07_final_adj_5mpp_surf.tif` | 40980808 | 13631488 |
+| `Site11_final_adj_5mpp_surf.tif` | 40980806 | 13631488 |
+| `Site20_final_adj_5mpp_surf.tif` | 40980802 | 1048576 |
+| `Site23_final_adj_5mpp_surf.tif` | 70586804 | 19922944 |
+
+Site06 and Site20 only incurred extra reads while skipping already covered
+points in the initial implementation; no crop uses them. The other nine files
+provide the accepted meshes. Shared `C:/Users/abdal/TrueSouth/data/prepared/closeups/`
+contains 16 native crops (41,163,896 bytes total), their sidecars, `index.json` and
+`agreement.json` (41,220,103 bytes total at measurement). The new `raw/closeups/`
+folder is empty. Existing polar prepared maps and downloads were reused and left
+alone. No raw or prepared data is staged.
+
+Rebuild in PowerShell, using the existing prepared polar maps and committed ephemeris:
+
+```powershell
+$env:TRUESOUTH_DATA_ROOT='C:/Users/abdal/TrueSouth/data'
+uv run truesouth fetch-raw --group closeup
+uv run truesouth prepare-dem --group closeup
+uv run truesouth build-sites --closeups-only --only artemis_de_gerlache_rim_2 artemis_haworth artemis_malapert artemis_mouton artemis_nobile_rim_1 artemis_nobile_rim_2 connecting_ridge de_gerlache_rim malapert_peak peak_near_shackleton shackleton_rim --generated-utc 2026-11-13T00:00:00Z
+```
+
+Normal `build-sites --only <ids>` also builds accepted close-ups; custom callers
+of the shared builder do not receive one. `--closeups-only` keeps the existing
+manifest rather than regenerating it. Prepare, refresh and idempotent fetch
+checks all exited 0. The five requested final checks ran once each, sequentially,
+with numerical threads and Vitest workers limited to one:
+
+| Command | Result | Exit code |
+| :--- | :--- | ---: |
+| `uv run pytest -q` | 471 passed, 1 skipped; 226.36 s | 0 |
+| `pnpm --dir web install --frozen-lockfile` | installed with the frozen lockfile | 0 |
+| `pnpm --dir web test` | 117 files, 2,589 tests passed; 84.58 s | 0 |
+| `pnpm --dir web typecheck` | passed | 0 |
+| `pnpm --dir web build` | passed; existing large-chunk warning | 0 |
+
+Synthetic tests cover known plane and bump georeferencing (including
+PixelIsPoint), bilinear resampling, nodata/NaN, full-window coverage with a hole
+between vertices, a recovered known 40 m horizontal shift, fetch idempotence and
+missing-crop resume, deletion before the next fallback download, size limits,
+atomic failure recovery and unchanged fixture science on both normal and
+close-up-only builds. No network or real maps are needed by these tests.
+
+**Not verified:** visual integration belongs to the scene agent; sub-10 m
+horizontal offsets and independent absolute vertical accuracy were not measured.
+The existing real-map custom-site byte-identity pytest was skipped because the
+suite ran without the shared-data environment override; the separate catalog
+audit above did use the real prepared maps and checked every existing artifact.
+NASA's slope files were deliberately not downloaded, so the independent close-up
+slope comparison R4 remains deferred. NASA reports about 90% interpolated 5 m
+pixels and 0.30–0.50 m median RMS height uncertainty in its regions of interest;
+the close-up is drawing data, not a footpad-safety assessment. Human review pending.
+
 #### 2026-11-14 · S13b · production deploy files
 - **Who:** Codex implementation agent
 - **AI use:** Codex built the deployment files, trusted-proxy handling, tests and runbook; automated checks run locally, human review pending.
@@ -1800,6 +1940,66 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - `|latitude| > 89.999°` throws for the local frame and for walking. The sphere point and the Sun-elevation formula still accept the poles.
 
 ## Academy
+
+#### 2026-11-14 · A12 · The team proposal
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-sonnet-5-5 — wrote `docs/submission/proposal.md`, the team's
+  proposal in the organisers' template, from the repository's own submission files, specs and
+  validation data; checked each reference by fetching its DOI record (Crossref) or the
+  publisher's or NASA's page, and counted the words of each section by script. No browser was
+  opened and no test suite was run. The team gave the team name, the four members' names and
+  their responsibilities; nothing else about a person was written. A human has not read it.
+- **State:** verified (fact-checked by Cursor (grok-4.7): headline numbers recomputed, both quotations word for word, nine references confirmed; two wrong statements and five loose ones corrected by the orchestrator; roles set by the team; on the tree merged with main bbc6df0: 458 Python tests (1 skipped), 2,649 web tests, typecheck and build all exit 0)
+- **Changed:** `docs/submission/proposal.md`; stale statements in `project-description.md`, `links-checklist.md` and `ai-use.md` (the deploy files pull request #101 is merged; the test count now cites `status.md` as of 2026-11-14); this entry
+- **Notes:** The four optional slots for a line on each member's background are kept only in a comment at the top of the proposal. The two Horizons
+  references that could not be checked (Giorgini et al. 1996; the DE421 report) were left out.
+
+#### 2026-11-14 · A3b · Revisit answered steps; questions get their context
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the review of finished steps
+  (`review.ts`, the runner's per-step `history`, the progress marks in `lesson/top-bar.tsx`,
+  the read-only view in `lesson-screen.tsx`), the context audit of lessons 1 to 4 and the
+  new wording (in `docs/academy/lessons.md` first, then the lesson files), and the vitest
+  tests. Checked by the agent with the tests and typecheck, and in a browser at
+  1440 × 900 and 390 × 844 (touch emulation, and keyboard only): each lesson's progress row
+  at the start, mid-lesson and at the end, reviewing a choice, a drag and the sketch, and
+  returning. Every simplified sentence was checked against `docs/science.md` §3.4 and the
+  CONTEXT.md and `explain.ts` terms. No AI-generated images. A human has not played it.
+- **State:** verified (reviewed by Codex (gpt-6.1-terra): request changes, six items, all fixed by the author (the read-only rule is now tested through the real lesson screen and the injected-XP mutation fails; two prompts reworded); on the tree merged with main f0081ad: 458 Python tests (1 skipped), 2,649 web tests, typecheck and build all exit 0. Not yet played by a person)
+- **Changed:** `web/src/features/academy/` (`review.ts`, `runner.ts`, `step-view.ts`,
+  `lesson-screen.tsx`, `lesson/top-bar.tsx`, `lesson/conversation.tsx`,
+  `lesson/skyline-stage.tsx`, `lesson/scenes.tsx`, `sketch.ts`, `academy.css`,
+  `lessons/l1.ts`–`l4.ts`, tests), `docs/academy/lessons.md`,
+  `docs/design/c2/built-academy-revisit-*.png`, `built-academy-context-*.png`.
+  `explain.ts` unchanged: its texts for the terms used were right.
+- **Notes:**
+  - A finished step's progress mark is a button ("Step 2 of 5, completed. Review"). The
+    step opens read-only: answers, hint, feedback, result and XP, the drag's checked hour,
+    the sketch under the real skyline, and the lesson's card under "Under the hood". One
+    way back: "Back to step N", Esc, Enter, or the current step's mark. Steps not yet
+    reached are never controls; `reviewTarget` ignores any request for them. Nothing is
+    rescored. The current step's unsaved answer (a picked option, the dragged hour, a
+    sketch) waits on return.
+  - Kept for the session in the runner's state: `history`, one record per finished step
+    (attempts, ending, XP, feedback). The lesson screen keeps each finished step's last
+    draft. No new persistence: mid-lesson progress was in memory and a reload restarts the
+    lesson, as before; the lesson's position is not in the URL.
+  - Context: twelve questions now set up their terms first (month and midday, Luna and
+    Pip, elevation, Connecting Ridge, compass directions, how far south, the move to the
+    lesson 2 site, atan, skyline, disc fraction, R, talking to Earth, antenna mask and link
+    time, NO-GO). No number, answer or formula changed. Lesson 1 step 1's stage is now
+    Pip under the sky ruler, so "how high" is an angle before it is asked.
+  - Review fixes (Codex, PR #108): review mode is now tested through the real lesson
+    screen (`review-screen.test.ts`, on a fake DOM that dispatches events): option buttons,
+    number keys, Space, Backspace, the primary button, Enter, Esc, the marks, the drag's
+    keys, body and time bar; XP (from the leave dialog) and saved progress unchanged, and
+    the finished lesson saves exactly 50 XP and 3 stars. An XP award injected into the
+    review button's handler fails it. The sketch's handlers in review are tested too
+    (`skyline-review.test.ts`). Lesson 2 step 2 no longer names atan's numerator; lesson 4
+    step 5 gives NO-GO to a landing, not a site; Esc leaves review from either tab; a
+    one-point sketch survives a review; the step-1 review captures were retaken after the
+    caption and ruler-label fixes (every step type checked in review at 1440 × 900 and
+    390 × 844: no label in the ground or outside the stage, no clipped caption).
 
 #### 2026-11-14 · A11b · Submission materials brought up to date
 - **Who:** Claude Code agent, for the orchestrator

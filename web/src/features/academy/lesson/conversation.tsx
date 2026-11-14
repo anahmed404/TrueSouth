@@ -192,6 +192,13 @@ function ResultRow({ result, examples }: { result: ResultView; examples: WorkedE
 }
 
 function KeyHint({ step, primary }: { step: Step; primary: PrimaryAction }) {
+  if (primary.kind === "back") {
+    return (
+      <span className="ac-keys ac-keys-desk">
+        <span className="ac-kbd">Esc</span> go back
+      </span>
+    );
+  }
   if (primary.kind === "skip") {
     return (
       <span className="ac-keys ac-keys-desk">

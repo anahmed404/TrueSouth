@@ -47,7 +47,7 @@
     "source_url": "https://pgda.gsfc.nasa.gov/products/78",
     "outcome": null,
     "terrain_tier": "core80",
-    "has_closeup": false,
+    "has_closeup": true,
     "elevation_m": -88.83394165110326,
     "slope": {
       "deg": 10.824032501633923,
@@ -70,7 +70,7 @@
     "source_url": "https://pgda.gsfc.nasa.gov/products/78",
     "outcome": null,
     "terrain_tier": "core80",
-    "has_closeup": false,
+    "has_closeup": true,
     "elevation_m": 1628.0317059777528,
     "slope": {
       "deg": 3.8606874519586207,
@@ -93,7 +93,7 @@
     "source_url": "https://pgda.gsfc.nasa.gov/products/78",
     "outcome": null,
     "terrain_tier": "core80",
-    "has_closeup": false,
+    "has_closeup": true,
     "elevation_m": 4784.770881630845,
     "slope": {
       "deg": 3.2768866748541905,
@@ -116,7 +116,7 @@
     "source_url": "https://pgda.gsfc.nasa.gov/products/78",
     "outcome": null,
     "terrain_tier": "core80",
-    "has_closeup": false,
+    "has_closeup": true,
     "elevation_m": 6398.1601187070155,
     "slope": {
       "deg": 7.482868017946682,
@@ -139,7 +139,7 @@
     "source_url": "https://pgda.gsfc.nasa.gov/products/78",
     "outcome": null,
     "terrain_tier": "core80",
-    "has_closeup": false,
+    "has_closeup": true,
     "elevation_m": 5945.617519692205,
     "slope": {
       "deg": 15.734712742031704,
@@ -162,7 +162,7 @@
     "source_url": "https://pgda.gsfc.nasa.gov/products/78",
     "outcome": null,
     "terrain_tier": "core80",
-    "has_closeup": false,
+    "has_closeup": true,
     "elevation_m": 1009.3243694598729,
     "slope": {
       "deg": 4.349376580644487,
@@ -265,7 +265,7 @@
     "source_url": "https://www.sciencedirect.com/science/article/abs/pii/S0019103514004278",
     "outcome": null,
     "terrain_tier": "core80",
-    "has_closeup": false,
+    "has_closeup": true,
     "elevation_m": 1950.2564442439525,
     "slope": {
       "deg": 4.052094096658978,
@@ -293,7 +293,7 @@
     "source_url": "https://github.com/anahmed404/TrueSouth/blob/main/docs/science.md#71-how-much-a-sunlit-peak-depends-on-where-you-stand",
     "outcome": null,
     "terrain_tier": "core80",
-    "has_closeup": false,
+    "has_closeup": true,
     "elevation_m": 1956.8255615234375,
     "slope": {
       "deg": 0.5816590917756863,
@@ -321,7 +321,7 @@
     "source_url": "https://arxiv.org/abs/1208.5587",
     "outcome": null,
     "terrain_tier": "core80",
-    "has_closeup": false,
+    "has_closeup": true,
     "elevation_m": 1779.1955739820874,
     "slope": {
       "deg": 2.1549883225234923,
@@ -349,7 +349,7 @@
     "source_url": "https://github.com/anahmed404/TrueSouth/blob/main/docs/science.md#71-how-much-a-sunlit-peak-depends-on-where-you-stand",
     "outcome": null,
     "terrain_tier": "core80",
-    "has_closeup": false,
+    "has_closeup": true,
     "elevation_m": 1780.174072265625,
     "slope": {
       "deg": 2.693887353681419,
@@ -446,7 +446,7 @@
     "source_url": "https://arxiv.org/abs/1208.5587",
     "outcome": null,
     "terrain_tier": "core80",
-    "has_closeup": false,
+    "has_closeup": true,
     "elevation_m": 4969.078188245067,
     "slope": {
       "deg": 4.070659005325199,
@@ -474,7 +474,7 @@
     "source_url": "https://github.com/anahmed404/TrueSouth/blob/main/docs/science.md#71-how-much-a-sunlit-peak-depends-on-where-you-stand",
     "outcome": null,
     "terrain_tier": "core80",
-    "has_closeup": false,
+    "has_closeup": true,
     "elevation_m": 4972.4345703125,
     "slope": {
       "deg": 2.4488346087377,
@@ -502,7 +502,7 @@
     "source_url": "https://www.sciencedirect.com/science/article/abs/pii/S0019103510001375",
     "outcome": null,
     "terrain_tier": "core80",
-    "has_closeup": false,
+    "has_closeup": true,
     "elevation_m": 1454.9882997958605,
     "slope": {
       "deg": 1.8395603749256617,
@@ -530,7 +530,7 @@
     "source_url": "https://github.com/anahmed404/TrueSouth/blob/main/docs/science.md#71-how-much-a-sunlit-peak-depends-on-where-you-stand",
     "outcome": null,
     "terrain_tier": "core80",
-    "has_closeup": false,
+    "has_closeup": true,
     "elevation_m": 1455.0770263671875,
     "slope": {
       "deg": 2.666082544124815,
@@ -558,7 +558,7 @@
     "source_url": "https://www.sciencedirect.com/science/article/abs/pii/S0019103514004278",
     "outcome": null,
     "terrain_tier": "core80",
-    "has_closeup": false,
+    "has_closeup": true,
     "elevation_m": 1732.8663310926077,
     "slope": {
       "deg": 1.1511636676794361,
@@ -586,7 +586,7 @@
     "source_url": "https://github.com/anahmed404/TrueSouth/blob/main/docs/science.md#71-how-much-a-sunlit-peak-depends-on-where-you-stand",
     "outcome": null,
     "terrain_tier": "core80",
-    "has_closeup": false,
+    "has_closeup": true,
     "elevation_m": 1735.207275390625,
     "slope": {
       "deg": 5.799812469849449,
