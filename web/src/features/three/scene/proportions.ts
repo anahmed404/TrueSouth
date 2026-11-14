@@ -1,3 +1,5 @@
+import * as THREE from "three";
+import type { FreeSpace } from "../../../app/scene";
 import {
   EARTH_RADIUS_KM,
   MOON_RADIUS_KM,
@@ -40,7 +42,9 @@ import {
  *   8.7 to 9.3 times further. Larger moves Earth out and shrinks the opening Moon.
  * A true distance up to NEAR_LAW_KM is drawn by Earth's law, from FAR_LAW_KM by the Sun's,
  * and between them on a straight line on log-log axes joining the two, so the mapping still
- * always increases.
+ * always increases. The curve is continuous but has a corner at each join; no hour of the
+ * series falls near either (Earth is under 410,000 km, the Sun over 147 million), so no
+ * drawn body ever sits on one.
  */
 export const DRAWN_EARTH_RADIUS = 0.83;
 export const DRAWN_SUN_RADIUS = 3.5;
@@ -189,4 +193,27 @@ export function bodyInFront(camera: readonly [number, number, number], body: Bod
   if (apart < (bodyAngle + moonAngle * (1 + IN_FRONT_MARGIN)) * slack) return true;
   const nearer = toBody < toMoon * (1 - IN_FRONT_NEARER / slack);
   return nearer && bodyAngle * slack > moonAngle && inView;
+}
+
+/**
+ * Whether a body's whole disc, as `camera` draws it, lies inside the free space `space`
+ * (window pixels). The camera's frustum spans the window (its view offset only moves the
+ * principal point), so normalised device coordinates map straight onto the window. No free
+ * space known: true.
+ */
+export function discInsideSpace(camera: THREE.PerspectiveCamera, body: BodyPlacement, space: FreeSpace | null): boolean {
+  if (!space) return true;
+  const centre = new THREE.Vector3(...body.centre);
+  const distance = centre.distanceTo(camera.position);
+  if (distance <= body.radius) return false;
+  const look = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  if (centre.clone().sub(camera.position).dot(look) <= body.radius) return false;
+  const p = centre.project(camera);
+  const width = space.viewport.width;
+  const height = space.viewport.height;
+  const x = ((p.x + 1) / 2) * width;
+  const y = ((1 - p.y) / 2) * height;
+  const focal = height / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const r = 1.05 * focal * Math.tan(Math.asin(Math.min(1, body.radius / distance)));
+  return x - r >= space.x && x + r <= space.x + space.width && y - r >= space.y && y + r <= space.y + space.height;
 }

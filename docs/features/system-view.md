@@ -42,6 +42,18 @@ Prototype and designer's notes:
 - **The Sun,** drawn in code: a disc with a short warm edge that ends by 1.8 disc radii. It
   is a light source. An arrow marks the Sun, and Earth, at the edge of the free space when
   that body is off screen.
+- **Two faint orbit lines** (the tester's wish, 2026-11-14), in the System view only: the
+  Moon's orbit, a circle centred on the drawn Earth through the Moon's centre, and Earth's
+  orbit, a circle centred on the drawn Sun through Earth's centre. They are drawings of the
+  idea of an orbit at the schematic distances, not computed orbits: each lies in the plane
+  through its two bodies that is nearest the Moon's equator (the real orbits lie within
+  about 7° of it), so the plane turns smoothly as the hour moves and never flips
+  (`orbits.ts`). One-pixel hairlines in the Ridge Line grey at low contrast, no glow, no
+  labels; drawn behind every body, mark and label, and stopped at the Moon's and Earth's
+  limbs. They fade out with the flight into the Polar map, Slip Planner, Local terrain and
+  Lander's eye. At true scale the Moon's orbit stays (a large circle through the Moon about
+  Earth); Earth's orbit is hidden, since the Sun is only a direction there. Cost: two lines
+  of 256 vertices, rewritten only when the bodies' drawn positions change.
 - **Site pins** for every selected site. The focused site's pin has a Moonlight ring and a
   name plate.
 - **Two sight-lines** from the focused site: one toward the Sun, one toward Earth.
@@ -117,7 +129,9 @@ about 390 times further. Earth is 3.67 times the Moon across and the Sun 109 tim
   the two arrangements in step with that flight (on a log scale, so it never jumps); the Sun
   is carried out and then becomes a direction arrow at the edge of the free space, labelled
   with its distance. The glide runs on its own clock: a drag that stops the flight lets
-  Earth finish gliding instead of snapping.
+  Earth finish gliding instead of snapping. While the glide is under way, Earth fades out
+  (180 ms) whenever any part of its disc is outside the free space, so it never shows over
+  the timeline or a panel's edge, and fades back in when it is whole inside again.
 
 ## Textures
 
