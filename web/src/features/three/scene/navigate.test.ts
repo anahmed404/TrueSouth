@@ -231,6 +231,7 @@ describe("the ground views keep their limits and follow the same grab rule", () 
     expect(dragMoves(rig, ahead(), 20, 0).x).toBeGreaterThan(1);
     expect(dragMoves(rig, ahead(), -20, 0).x).toBeLessThan(-1);
     expect(dragMoves(rig, ahead(), 0, 20).y).toBeGreaterThan(1);
+    expect(dragMoves(rig, ahead(), 0, -20).y).toBeLessThan(-1);
     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(rig.camera.quaternion);
     expect(Math.abs(right.dot(new THREE.Vector3(...frame.up)))).toBeLessThan(1e-9);
   });
