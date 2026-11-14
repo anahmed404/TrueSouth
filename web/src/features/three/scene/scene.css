@@ -212,6 +212,57 @@
     flex: none;
   }
 
+  /* A folded plate (overlay.tsx FoldedPlate): the short line, opening upward to the full text. */
+  .scene-fold {
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px 6px 4px 10px;
+  }
+
+  .scene-fold-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 58ch;
+    padding: 4px 4px 2px 0;
+    text-align: left;
+  }
+
+  .scene-fold-details[hidden] {
+    display: none;
+  }
+
+  .scene-fold-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 24px;
+    padding: 0 4px;
+    border: 0;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .scene-fold-button svg {
+    flex: none;
+    color: var(--ink-3);
+  }
+
+  .scene-fold-button:hover,
+  .scene-fold-button[aria-expanded="true"],
+  .scene-fold-button:hover svg,
+  .scene-fold-button[aria-expanded="true"] svg {
+    color: var(--ink);
+  }
+
+  .scene-fold-button:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: 1px;
+  }
+
   /* The Labels toggle off (labels.ts): the name tags hide; the edge pointers (.scene-marker)
      and the pins stay. Visibility, not display, so the layout loop places everything as before. */
   .scene-overlay[data-labels="off"] .scene-label:not(.scene-marker) {

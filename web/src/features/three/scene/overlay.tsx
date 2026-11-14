@@ -1,4 +1,5 @@
-import { memo, useLayoutEffect, useRef } from "react";
+import { Info } from "lucide-react";
+import { memo, useId, useLayoutEffect, useReducer, useRef } from "react";
 import { useStore } from "zustand";
 import * as THREE from "three";
 import type { CameraViewId, FreeSpace } from "../../../app/scene";
@@ -9,6 +10,7 @@ import { StatusLamp, type Status } from "../../../components/StatusLamp";
 import type { MissionProfile, Site } from "../../../contracts/generated";
 import { surfacePointScene } from "../../../lib/geo";
 import { useEvaluation } from "../../../lib/scoring";
+import { FOLD_CLOSED, foldOpen, foldStep, type FoldState } from "./fold";
 import { labelsAttr, labelsStore } from "./labels";
 import { groupPins, moreSitesLine, type ScreenPin } from "./pins";
 import { visiblePlates, type Plate } from "./plates";
@@ -112,6 +114,59 @@ const SMALL_MOON_PX = 60;
  * The Labels toggle (labels.ts): off hides the name tags on the scene; the markers, the sight
  * lines, the edge pointers and the plates stay.
  */
+/**
+ * A folded plate (plates.ts `foldedDecoration`): the short line as a button with an info mark;
+ * mouse hover, keyboard focus, or a click or tap opens the full sentences above it (fold.ts).
+ * Never hidden by the Labels toggle: it is a plate, not a label. `initial` is for tests.
+ */
+export function FoldedPlate({ plate, initial = FOLD_CLOSED }: { plate: Plate; initial?: FoldState }) {
+  const [state, send] = useReducer(foldStep, initial);
+  const open = foldOpen(state);
+  const id = useId();
+  return (
+    <div
+      className="plate scene-plate scene-plate-top scene-plate-interactive scene-fold"
+      data-open={open}
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse") send("enter");
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType === "mouse") send("leave");
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && open) {
+          e.stopPropagation();
+          send("escape");
+        }
+      }}
+    >
+      <div id={id} className="scene-fold-details" hidden={!open}>
+        {(plate.details ?? []).map((line, i) => (
+          <p key={i} className={i === (plate.details?.length ?? 0) - 1 ? "scene-plate-note" : undefined}>
+            {line}
+          </p>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="scene-fold-button"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={() => send("click")}
+        onFocus={(e) => {
+          // Keyboard focus opens it; a click's or a tap's focus does not (the click does).
+          if (e.currentTarget.matches(":focus-visible")) send("focus");
+        }}
+        onBlur={() => send("blur")}
+      >
+        <span>{plate.text}</span>
+        <Info size={14} strokeWidth={1.8} aria-hidden="true" />
+        <span className="sr-only">{open ? ", hide the full note" : ", show the full note"}</span>
+      </button>
+    </div>
+  );
+}
+
 export function LabelsToggle({ on, onChange }: { on: boolean; onChange: (on: boolean) => void }) {
   return (
     <Button aria-pressed={on} className="scene-toggle" onClick={() => onChange(!on)} title="Names on the Moon, Earth and the Sun. Off, only the markers show.">
@@ -333,7 +388,10 @@ export function Overlay(props: OverlayProps) {
   const plateStack = (plates: readonly Plate[]) =>
     plates.length > 0 ? (
       <div className="scene-plate-stack">
-        {plates.map((plate) => (
+        {plates.map((plate) =>
+          plate.details ? (
+            <FoldedPlate key={plate.id} plate={plate} />
+          ) : (
           <div
             key={plate.id}
             className={plate.action ? "plate scene-plate scene-plate-top scene-plate-interactive" : "plate scene-plate scene-plate-top"}
@@ -343,7 +401,8 @@ export function Overlay(props: OverlayProps) {
             {plate.note ? <p className="scene-plate-note">{plate.note}</p> : null}
             {plate.action === "show-system" ? <Button onClick={() => props.onViewChange("system")}>Show it in the System view</Button> : null}
           </div>
-        ))}
+          ),
+        )}
       </div>
     ) : null;
   // The decoration plate is never hidden with the rest (plates.ts, visiblePlates): in a tight
@@ -452,6 +511,11 @@ export function Overlay(props: OverlayProps) {
                 <Button aria-pressed={props.moon8k} className="scene-toggle" onClick={() => props.onMoon8k(!props.moon8k)} title="Loads two more images, 3 MB">
                   Sharper Moon
                 </Button>
+                <LabelsToggle on={labels.on} onChange={labels.setOn} />
+              </div>
+            ) : null}
+            {view === "terrain" ? (
+              <div className="plate scene-controls scene-plate-interactive" style={fit}>
                 <LabelsToggle on={labels.on} onChange={labels.setOn} />
               </div>
             ) : null}

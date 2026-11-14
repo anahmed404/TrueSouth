@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { explanations } from "../../../lib/explain";
-import { apronLoadState, DECORATION_SHORT, decorationDisclosure, sceneContent, visiblePlates, type PlateInput } from "./plates";
+import { apronLoadState, DECORATION_SHORT, decorationDisclosure, decorationShort, sceneContent, visiblePlates, type PlateInput } from "./plates";
 
 const ridge = { name: "Connecting Ridge", sphere: false };
 const apollo = { name: "Apollo 11", sphere: true };
@@ -99,7 +99,7 @@ describe("what the scene draws for each load state", () => {
     expect(content.ground).toBe("smooth");
     expect(content.plates).toEqual([
       { id: "sphere", text: "No terrain data for Apollo 11. This is the smooth Moon.", action: "show-system" },
-      { id: "decoration", text: "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right.", place: "foot" },
+      { id: "decoration", text: "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right.", place: "foot", short: "Drawing only" },
     ]);
   });
 
@@ -132,6 +132,7 @@ describe("the plate that says the drawn ground is decoration", () => {
       text: "The series says: lit. 62 % of the Sun's disc is above the skyline.",
       note: "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right.",
       place: "foot",
+      short: "Lit · drawing only",
     });
     expect(plate({ view: "terrain", sun: { lit: false, discFraction: 0.1234 } })?.text).toBe(
       "The series says: dark. Sun disc fraction 0.12 above the skyline.",
@@ -153,6 +154,7 @@ describe("the plate that says the drawn ground is decoration", () => {
       id: "decoration",
       text: "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right.",
       place: "foot",
+      short: "Drawing only",
     });
     expect(plate({ view: "terrain", sun: { lit: true, discFraction: Number.NaN } })?.note).toBeUndefined();
   });
@@ -165,13 +167,20 @@ describe("the decoration plate is on screen wherever the drawing is (visiblePlat
   const plates = [other, decoration];
   const roomy = { width: 900, height: 500, windowOpen: false };
 
-  it("roomy: the full plate at the foot, other plates at the top", () => {
+  const folded = {
+    id: "decoration",
+    text: "Lit · drawing only",
+    details: ["The series says: lit. 100 % of the Sun's disc is above the skyline.", "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right."],
+    place: "foot",
+  };
+
+  it("roomy: the plate folded to its short line at the foot, opening to the full sentences; other plates at the top", () => {
     expect(decorationDisclosure(roomy)).toBe("full");
-    expect(visiblePlates(plates, roomy, false)).toEqual({ top: [other], foot: [decoration] });
+    expect(visiblePlates(plates, roomy, false)).toEqual({ top: [other], foot: [folded] });
   });
 
-  it("the phone's free space (374 × 300) still takes the full plate", () => {
-    expect(visiblePlates(plates, { width: 374, height: 300, windowOpen: false }, false).foot).toEqual([decoration]);
+  it("the phone's free space (374 × 300) still takes the folded plate with the full text", () => {
+    expect(visiblePlates(plates, { width: 374, height: 300, windowOpen: false }, false).foot).toEqual([folded]);
   });
 
   it("a floating window open (Compare over Local terrain): other plates hide, the decoration shortens to one line", () => {
@@ -198,5 +207,50 @@ describe("the decoration plate is on screen wherever the drawing is (visiblePlat
 
   it("the short line names both made-up things", () => {
     expect(DECORATION_SHORT).toBe("Shadows and ground texture are illustrative.");
+  });
+});
+
+describe("Local terrain's two notes fold into one short line (local-terrain.md, \"Shadows are decoration\")", () => {
+  const roomy = { width: 900, height: 500, windowOpen: false };
+  const NOTE = "Shading, shadows and the fine ground texture are drawn for understanding only. Where the drawing differs, the series is right.";
+  const shown = (change: Partial<PlateInput>) => visiblePlates(sceneContent(input(change)).plates, roomy, false);
+
+  it("the short line: the series' answer in its own word, and that the picture is a drawing", () => {
+    expect(decorationShort({ lit: true, discFraction: 0.62 })).toBe("Lit · drawing only");
+    expect(decorationShort({ lit: false, discFraction: 0.12 })).toBe("Dark · drawing only");
+    expect(decorationShort(null)).toBe("Drawing only");
+    expect(decorationShort({ lit: true, discFraction: Number.NaN })).toBe("Drawing only");
+    expect(shown({ view: "terrain", sun: { lit: true, discFraction: 0.62 } }).foot[0]?.text).toBe("Lit · drawing only");
+    expect(shown({ view: "terrain", sun: { lit: false, discFraction: 0.12 } }).foot[0]?.text).toBe("Dark · drawing only");
+    expect(shown({ view: "terrain", sun: null }).foot[0]?.text).toBe("Drawing only");
+  });
+
+  it("opens to both notes in full, in order: the ground's source, the series' sentence with its numbers, the decoration sentence", () => {
+    const lit = shown({ view: "terrain", closeup: "ready", sun: { lit: true, discFraction: 1 } });
+    expect(lit.top.map((p) => p.id)).not.toContain("ground-source");
+    expect(lit.foot).toHaveLength(1);
+    expect(lit.foot[0]!.details).toEqual([
+      explanations.closeup_ground!.text,
+      "The series says: lit. 100 % of the Sun's disc is above the skyline.",
+      NOTE,
+    ]);
+    const dark = shown({ view: "terrain", sun: { lit: false, discFraction: 0.1234 } });
+    expect(dark.foot[0]!.details).toEqual([explanations.terrain_ground_core80!.text, "The series says: dark. Sun disc fraction 0.12 above the skyline.", NOTE]);
+    // Without the series: the source and the decoration sentence.
+    expect(shown({ view: "terrain", sun: null }).foot[0]!.details).toEqual([explanations.terrain_ground_core80!.text, NOTE]);
+  });
+
+  it("Lander's eye folds the same way, to \"Drawing only\" (its horizon bar gives the series' answer)", () => {
+    const eye = shown({ view: "panorama", sun: { lit: true, discFraction: 1 } });
+    expect(eye.foot[0]?.text).toBe("Drawing only");
+    expect(eye.foot[0]?.details).toEqual([explanations.terrain_ground_core80!.text, NOTE]);
+    expect(eye.top.map((p) => p.id)).not.toContain("ground-source");
+  });
+
+  it("other plates keep their own place at the top (a custom site's surroundings, errors)", () => {
+    const custom = shown({ view: "terrain", apron: "none", surroundings: "ready", sun: null });
+    expect(custom.top.map((p) => p.id)).toEqual(["surroundings"]);
+    expect(custom.foot[0]?.details).toEqual([NOTE]);
+    expect(shown({ view: "terrain", apron: "error", sun: null }).top.map((p) => p.id)).toEqual(["apron-error"]);
   });
 });
