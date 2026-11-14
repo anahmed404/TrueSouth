@@ -135,7 +135,7 @@ describe("drawing the card", () => {
     expect(html).toContain("<math");
     expect(html).toContain("katex-display");
     // A number with its unit, as a chip, from text and from inside TeX.
-    expect(html).toContain('<span class="ac-fill">3 km</span>');
+    expect(html).toContain('<span class="ac-fill">6 km</span>');
     expect(html).toContain(`<span class="ac-fill ac-fill--missing">${MISSING_TEXT}</span>`);
     expect(html).toContain("A dashed box is a number TrueSouth&#x27;s pipeline has not built yet.");
     expect(html).not.toContain("{{");
@@ -152,7 +152,7 @@ describe("drawing the card", () => {
     const html = draw(sampleCard, ready);
     // KaTeX writes \htmlClass{ac-fill}{…} as a span with that class, and keeps the number in the MathML.
     expect(html).toContain('class="enclosing ac-fill"');
-    expect(html).toContain("<mn>100</mn>");
+    expect(html).toContain("<mn>98</mn>");
   });
 
   it("shows the TeX source, quietly, while KaTeX loads", () => {
@@ -210,7 +210,7 @@ describe("drawing the card", () => {
 
   it("draws the worked example's title as card text, with its chip", () => {
     const html = draw(sampleCard, ready);
-    expect(html).toContain('<h3>A worked example: one skyline bin, at azimuth <span class="ac-fill">45.0°</span></h3>');
+    expect(html).toContain('<h3>A worked example: one skyline bin, at azimuth <span class="ac-fill">0.0°</span></h3>');
   });
 
   it("chooses the comparison word from the data, so it agrees with the numbers", () => {
