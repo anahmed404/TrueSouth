@@ -29,6 +29,11 @@ export type PlateInput = {
    */
   apron: LoadState | "none";
   /**
+   * For a site with no apron by design: the global height map its surroundings are drawn
+   * from (custom-apron.ts). Ignored otherwise.
+   */
+  surroundings?: "idle" | "loading" | "ready" | "failed";
+  /**
    * The series' answer for the Sun at the current hour (its hour flag and disc fraction), or
    * null while it is not in. Optional: without it the decoration plate says only what is drawn.
    */
@@ -89,8 +94,16 @@ export function sceneContent(input: PlateInput): SceneContent {
       ground = "terrain";
       if (input.apron === "none") {
         // No apron by design (a custom site): not an error. Its surroundings are drawn from
-        // the coarse global height map (custom-apron.ts), and the plate says so, quietly.
-        plates.push({ id: "surroundings", text: explanations.custom_site_surroundings!.text });
+        // the coarse global height map (custom-apron.ts), and the plate says so, quietly; if
+        // that map cannot be read, only the patch is drawn, and the plate says that instead.
+        const surroundings = input.surroundings ?? "idle";
+        if (surroundings === "ready") plates.push({ id: "surroundings", text: explanations.custom_site_surroundings!.text });
+        else if (surroundings === "failed") {
+          plates.push({
+            id: "surroundings-error",
+            text: `The ground around ${site.name} could not be loaded, so only the nearest ground is drawn.`,
+          });
+        } else plates.push({ id: "surroundings-loading", text: `Loading the ground around ${site.name}…`, status: true });
       }
       if (input.apron === "error") {
         plates.push({

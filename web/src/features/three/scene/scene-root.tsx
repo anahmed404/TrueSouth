@@ -37,6 +37,7 @@ import {
   type SiteFrame,
 } from "./camera";
 import { Overlay, type OverlayBus, type Preset, type LookToward } from "./overlay";
+import { useSurroundings } from "./custom-apron";
 import { apronLoadState, decorationDisclosure, sceneContent, seriesSunAnswer, type LoadState } from "./plates";
 import { southPolePose } from "./navigate";
 import { Rig } from "./rig";
@@ -387,6 +388,8 @@ function Scene3D(props: SceneProps) {
           ? "ready"
           : "error"
         : "loading";
+  // A custom site's surroundings come from the global height map; retried on each visit (custom-apron.ts).
+  const surroundings = useSurroundings((view === "terrain" || view === "panorama") && focusReady?.states.apron === "none");
   const content = useMemo(
     () =>
       sceneContent({
@@ -398,8 +401,9 @@ function Scene3D(props: SceneProps) {
         terrain: focusReady?.states.terrain ?? "loading",
         apron: focusReady?.states.apron ?? "loading",
         sun: seriesSunAnswer(focusReady?.series, focusReady?.flags, hourIndex),
+        surroundings,
       }),
-    [view, trueScale, systemState, worldSite, focusReady?.states.series, focusReady?.states.terrain, focusReady?.states.apron, focusReady?.series, focusReady?.flags, hourIndex],
+    [view, trueScale, systemState, worldSite, focusReady?.states.series, focusReady?.states.terrain, focusReady?.states.apron, focusReady?.series, focusReady?.flags, hourIndex, surroundings],
   );
 
   const inputs = useMemo((): WorldInputs => {

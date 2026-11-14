@@ -66,13 +66,13 @@ describe("what the scene draws for each load state", () => {
   });
 
   it("a site with no apron by design (a custom site): no error, one quiet line about its surroundings", () => {
-    const content = sceneContent(input({ view: "terrain", apron: "none" }));
+    const content = sceneContent(input({ view: "terrain", apron: "none", surroundings: "ready" }));
     expect(content.ground).toBe("terrain");
     expect(content.plates.map((p) => p.id)).toEqual(["surroundings", "decoration"]);
     expect(content.plates[0]!.text).toBe(explanations.custom_site_surroundings!.text);
     expect(content.plates.some((p) => /could not be loaded/.test(p.text))).toBe(false);
     // The same in Lander's eye.
-    expect(sceneContent(input({ view: "panorama", apron: "none" })).plates.map((p) => p.id)).toEqual(["surroundings", "decoration"]);
+    expect(sceneContent(input({ view: "panorama", apron: "none", surroundings: "ready" })).plates.map((p) => p.id)).toEqual(["surroundings", "decoration"]);
   });
 
   it("the apron's state: not listed is 'none' by design, listed but not available is a real error", () => {

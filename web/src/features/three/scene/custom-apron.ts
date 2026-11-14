@@ -1,3 +1,4 @@
+import { useEffect, useSyncExternalStore } from "react";
 import type { DecodedApron, DecodedTerrain } from "../../../data";
 import { sceneImageUrl } from "../../../data";
 import { apronCellOffsetM, destination, MOON_RADIUS_M, type ApronGrid } from "../../../lib/geo";
@@ -130,30 +131,96 @@ export function continuationApron(
   return { heights, rows: grid.rows, columns: grid.columns };
 }
 
-let heightsOnce: Promise<GlobalHeights | null> | null = null;
+// ── The global height map's pixels, for the browser's own use ──────────────
+// The globe's copy is a GPU texture; this reads the same file once more into memory.
+
+/** Where reading the map stands. "failed" is not kept for the session: the next request tries again. */
+export type SurroundingsStatus = "idle" | "loading" | "ready" | "failed";
+
+/** What reading the map needs from the browser; tests pass their own. */
+export type HeightsPlatform = {
+  fetch: (url: string) => Promise<{ ok: boolean; blob: () => Promise<Blob> }>;
+  decode: (blob: Blob) => Promise<{ width: number; height: number; close?: () => void } & CanvasImageSource>;
+  /** A 2D context of the given size to read the decoded pixels back, or null when there is none. */
+  canvas: (width: number, height: number) => { drawImage: (image: CanvasImageSource, x: number, y: number) => void; getImageData: (x: number, y: number, w: number, h: number) => { data: ArrayLike<number> } } | null;
+};
+
+const browserPlatform = (): HeightsPlatform => ({
+  fetch: (url) => fetch(url),
+  decode: (blob) => createImageBitmap(blob, { colorSpaceConversion: "none", premultiplyAlpha: "none" }),
+  canvas: (width, height) => {
+    if (typeof OffscreenCanvas !== "undefined") return new OffscreenCanvas(width, height).getContext("2d");
+    if (typeof document === "undefined") return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    return canvas.getContext("2d");
+  },
+});
+
+/** Reads the map, or throws with a plain reason. */
+export async function readGlobalHeights(platform: HeightsPlatform = browserPlatform()): Promise<GlobalHeights> {
+  const response = await platform.fetch(sceneImageUrl("scene/moon_height_1440.png"));
+  if (!response.ok) throw new Error("the global height map could not be fetched");
+  const image = await platform.decode(await response.blob());
+  const context = platform.canvas(image.width, image.height);
+  if (!context) throw new Error("this browser cannot read image pixels");
+  context.drawImage(image, 0, 0);
+  const rgba = context.getImageData(0, 0, image.width, image.height).data;
+  const values = new Uint8Array(image.width * image.height);
+  for (let k = 0; k < values.length; k += 1) values[k] = rgba[k * 4]!;
+  image.close?.();
+  return { width: image.width, height: image.height, values };
+}
+
+type HeightsState = { status: SurroundingsStatus; heights: GlobalHeights | null };
+let heightsState: HeightsState = { status: "idle", heights: null };
+const listeners = new Set<() => void>();
+
+function setHeightsState(next: HeightsState): void {
+  heightsState = next;
+  for (const listener of listeners) listener();
+}
+
+/** The map's state now. */
+export function globalHeightsState(): Readonly<HeightsState> {
+  return heightsState;
+}
+
+/** Calls `listener` whenever the state changes; returns the unsubscribe. */
+export function subscribeGlobalHeights(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
 
 /**
- * The global height map's pixels, read once for the session (the globe's own copy is a GPU
- * texture). Null when it cannot be read: the custom site then shows its patch alone.
+ * Starts reading the map unless it is in or on its way. After a failure a new request tries
+ * again (a failure is never kept for the session).
  */
-export function loadGlobalHeights(): Promise<GlobalHeights | null> {
-  heightsOnce ??= (async () => {
-    try {
-      const response = await fetch(sceneImageUrl("scene/moon_height_1440.png"));
-      if (!response.ok) return null;
-      const bitmap = await createImageBitmap(await response.blob(), { colorSpaceConversion: "none", premultiplyAlpha: "none" });
-      const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-      const context = canvas.getContext("2d");
-      if (!context) return null;
-      context.drawImage(bitmap, 0, 0);
-      const rgba = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
-      const values = new Uint8Array(bitmap.width * bitmap.height);
-      for (let k = 0; k < values.length; k += 1) values[k] = rgba[k * 4]!;
-      bitmap.close();
-      return { width: canvas.width, height: canvas.height, values };
-    } catch {
-      return null;
-    }
-  })();
-  return heightsOnce;
+export function requestGlobalHeights(platform?: HeightsPlatform): void {
+  if (heightsState.status === "loading" || heightsState.status === "ready") return;
+  setHeightsState({ status: "loading", heights: null });
+  readGlobalHeights(platform).then(
+    (heights) => setHeightsState({ status: "ready", heights }),
+    () => setHeightsState({ status: "failed", heights: null }),
+  );
+}
+
+/** For tests: forget the map. */
+export function resetGlobalHeightsForTests(): void {
+  heightsState = { status: "idle", heights: null };
+  listeners.clear();
+}
+
+/**
+ * The map's status for the plates, while `wanted` (a custom site's ground is on screen).
+ * Each time it becomes wanted, a map that failed (or was never asked for) is requested again:
+ * a retry on the next visit to the view.
+ */
+export function useSurroundings(wanted: boolean): SurroundingsStatus {
+  const status = useSyncExternalStore(subscribeGlobalHeights, () => heightsState.status, () => heightsState.status);
+  useEffect(() => {
+    if (wanted) requestGlobalHeights();
+  }, [wanted]);
+  return status;
 }

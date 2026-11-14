@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { decodeTerrain } from "../../../data/decode";
 import { destination, MOON_RADIUS_M, siteGroundScene, trueLocalPosition } from "../../../lib/geo";
 import {
@@ -11,9 +11,17 @@ import {
   continuationHeightM,
   continuationWeight,
   globalHeightM,
+  globalHeightsState,
   patchHeightM,
+  readGlobalHeights,
+  requestGlobalHeights,
+  resetGlobalHeightsForTests,
+  subscribeGlobalHeights,
   type GlobalHeights,
+  type HeightsPlatform,
 } from "./custom-apron";
+import { explanations } from "../../../lib/explain";
+import { sceneContent } from "./plates";
 import { apronGeometry, patchGeometry, smoothGroundGeometry, type GroundSite } from "./ground";
 
 /**
@@ -158,5 +166,99 @@ describe("a custom site's patch, placed against the globe", () => {
     const flat = { ...terrain, up_km: new Float32Array(SIZE * SIZE).fill(up / 1_000) };
     // A patch whose every point has this up reads back as about 1 km at (5 km, −3 km).
     expect(patchHeightM(flat, SIZE, WINDOW_KM, site, 5_000, -3_000)).toBeCloseTo(1_000, 1);
+  });
+});
+
+describe("reading the global height map: loading, ready, failed, and a retry", () => {
+  const pixels = (w: number, h: number) => ({ data: new Uint8ClampedArray(w * h * 4).fill(128) });
+  const image = { width: 4, height: 2, close: () => undefined } as unknown as { width: number; height: number } & CanvasImageSource;
+  const good: HeightsPlatform = {
+    fetch: async () => ({ ok: true, blob: async () => new Blob() }),
+    decode: async () => image,
+    canvas: (w, h) => ({ drawImage: () => undefined, getImageData: () => pixels(w, h) }),
+  };
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  beforeEach(() => resetGlobalHeightsForTests());
+
+  it("reads the red channel into a map", async () => {
+    const map = await readGlobalHeights(good);
+    expect(map).toMatchObject({ width: 4, height: 2 });
+    expect(map.values[7]).toBe(128);
+  });
+
+  for (const [name, platform] of [
+    ["a failed fetch", { ...good, fetch: async () => ({ ok: false, blob: async () => new Blob() }) }],
+    ["a fetch that throws", { ...good, fetch: async () => Promise.reject(new Error("offline")) }],
+    ["a failed image decode", { ...good, decode: async () => Promise.reject(new Error("bad image")) }],
+    ["no canvas to read pixels with", { ...good, canvas: () => null }],
+  ] as const) {
+    it(`${name}: "failed", not kept: the next request tries again and can succeed`, async () => {
+      requestGlobalHeights(platform as HeightsPlatform);
+      expect(globalHeightsState().status).toBe("loading");
+      await settle();
+      expect(globalHeightsState()).toEqual({ status: "failed", heights: null });
+      requestGlobalHeights(good);
+      await settle();
+      expect(globalHeightsState().status).toBe("ready");
+    });
+  }
+
+  it("tells its listeners each change, and is not read twice once in", async () => {
+    const seen: string[] = [];
+    const stop = subscribeGlobalHeights(() => seen.push(globalHeightsState().status));
+    let fetches = 0;
+    const counting: HeightsPlatform = { ...good, fetch: async (url) => ((fetches += 1), good.fetch(url)) };
+    requestGlobalHeights(counting);
+    requestGlobalHeights(counting);
+    await settle();
+    requestGlobalHeights(counting);
+    stop();
+    expect(seen).toEqual(["loading", "ready"]);
+    expect(fetches).toBe(1);
+  });
+});
+
+describe("the plate for a custom site's surroundings, in each state of the map", () => {
+  const input = (surroundings: "idle" | "loading" | "ready" | "failed" | undefined) =>
+    sceneContent({
+      view: "terrain",
+      trueScale: false,
+      system: "ready",
+      site: { name: "Custom site", sphere: false },
+      series: "ready",
+      terrain: "ready",
+      apron: "none",
+      surroundings,
+    }).plates.filter((p) => p.id.startsWith("surroundings"));
+
+  it("ready: the quiet line that the surroundings are coarse", () => {
+    expect(input("ready")).toEqual([{ id: "surroundings", text: explanations.custom_site_surroundings!.text }]);
+  });
+
+  it("failed: says plainly that only the nearest ground is drawn, never the coarse-map line", () => {
+    expect(input("failed")).toEqual([
+      { id: "surroundings-error", text: "The ground around Custom site could not be loaded, so only the nearest ground is drawn." },
+    ]);
+  });
+
+  it("loading (or not asked yet): a status line", () => {
+    for (const state of ["loading", "idle", undefined] as const) {
+      expect(input(state)).toEqual([{ id: "surroundings-loading", text: "Loading the ground around Custom site…", status: true }]);
+    }
+  });
+
+  it("a catalog site (apron listed) shows none of these", () => {
+    const plates = sceneContent({
+      view: "terrain",
+      trueScale: false,
+      system: "ready",
+      site: { name: "Connecting Ridge", sphere: false },
+      series: "ready",
+      terrain: "ready",
+      apron: "ready",
+      surroundings: "failed",
+    }).plates;
+    expect(plates.some((p) => p.id.startsWith("surroundings"))).toBe(false);
   });
 });

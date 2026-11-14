@@ -4,8 +4,8 @@ import type { DecodedApron, DecodedTerrain } from "../../../data";
 import { isCustomSiteId, sceneImageUrl } from "../../../data";
 import { EARTH_RADIUS_KM, MOON_RADIUS_M, SQUEEZED_DISTANCE, SQUEEZED_SUN_RADIUS, SUN_RADIUS_KM, type ApronGrid } from "../../../lib/geo";
 import { altitudeOf, type SiteFrame } from "./camera";
-import { apronGeometry, apronUpGrid, patchGeometry, patchOutline, patchUpGrid, smoothGroundGeometry, type GroundSite } from "./ground";
-import { CONTINUATION_GRID, continuationApron, loadGlobalHeights, type GlobalHeights } from "./custom-apron";
+import { apronGeometry, apronUpGrid, patchGeometry, patchOutline, patchRim, patchUpGrid, smoothGroundGeometry, type GroundSite } from "./ground";
+import { CONTINUATION_GRID, continuationApron, globalHeightsState, requestGlobalHeights, subscribeGlobalHeights } from "./custom-apron";
 import { GroundLook } from "./ground-material";
 import { aimLander, createLander, LANDER_HEIGHT_M, partAxis, type Lander } from "./lander";
 import { earthMaterial, landerMaterial, moonMaterial, solidTexture, sunMaterial } from "./materials";
@@ -405,13 +405,17 @@ export class World {
     // A custom site never has an apron (the API makes none): build one from the patch and
     // the global height map (custom-apron.ts), once that map's pixels are in.
     const continuation = Boolean(site && terrain && !apron && !smooth && !site.sphere && isCustomSiteId(site.id));
-    if (continuation && !this.globalHeights) this.requestGlobalHeights();
-    const built = continuation && this.globalHeights && site && terrain
-      ? { data: continuationApron(terrain.data, terrain.size, terrain.windowKm, site, this.globalHeights), grid: CONTINUATION_GRID }
-      : null;
-    if (built) apron = built;
-    const key = site ? `${site.id}|${terrain ? "t" : ""}|${apron ? (built ? "c" : "a") : ""}|${smooth ? "s" : ""}|${site.groundHeightM}` : null;
+    const heights = continuation ? globalHeightsState().heights : null;
+    if (continuation && !heights) {
+      this.unsubscribeHeights ??= subscribeGlobalHeights(() => this.onGlobalHeights());
+      requestGlobalHeights();
+    }
+    // The key first: building a custom site's apron costs 15 to 30 ms.
+    const key = site ? `${site.id}|${terrain ? "t" : ""}|${apron ? "a" : heights ? "c" : ""}|${smooth ? "s" : ""}|${site.groundHeightM}` : null;
     if (key === this.groundFor) return;
+    if (heights && site && terrain) {
+      apron = { data: continuationApron(terrain.data, terrain.size, terrain.windowKm, site, heights), grid: CONTINUATION_GRID };
+    }
     this.clearGround();
     if (!site) {
       this.invalidate();
@@ -428,7 +432,7 @@ export class World {
       meshes.push(new THREE.Mesh(patch, this.groundLook.material));
       const withApron = Boolean(apron && apron.grid.windowM / 2_000 > terrain.windowKm / 2);
       if (apron && withApron) {
-        meshes.push(new THREE.Mesh(apronGeometry(apron.data, apron.grid, terrain.windowKm / 2, g), this.groundLook.material));
+        meshes.push(new THREE.Mesh(apronGeometry(apron.data, apron.grid, terrain.windowKm / 2, g, patchRim(terrain.data, terrain.size, terrain.windowKm)), this.groundLook.material));
       }
       this.groundLook.setHeights(
         { heights: patchUpGrid(terrain.data, terrain.size), columns: terrain.size, rows: terrain.size, halfKm: terrain.windowKm / 2 },
@@ -458,19 +462,13 @@ export class World {
     this.invalidate();
   }
 
-  private globalHeights: GlobalHeights | null = null;
-  private heightsRequested = false;
+  private unsubscribeHeights: (() => void) | null = null;
   private lastGround: Parameters<World["setGround"]> | null = null;
 
-  private requestGlobalHeights(): void {
-    if (this.heightsRequested) return;
-    this.heightsRequested = true;
-    void loadGlobalHeights().then((heights) => {
-      if (!heights || this.disposed) return;
-      this.globalHeights = heights;
-      // Rebuild the focused custom site's ground with its apron.
-      if (this.lastGround) this.setGround(...this.lastGround);
-    });
+  /** The global height map arrived (custom-apron.ts): rebuild a custom site's ground with its apron. */
+  private onGlobalHeights(): void {
+    if (this.disposed || globalHeightsState().status !== "ready" || !this.lastGround) return;
+    this.setGround(...this.lastGround);
   }
 
   get hasGround(): boolean {
@@ -716,6 +714,8 @@ export class World {
 
   dispose(): void {
     this.disposed = true;
+    this.unsubscribeHeights?.();
+    this.unsubscribeHeights = null;
     this.clearGround();
     for (const texture of this.textures) texture.dispose();
     for (const thing of this.owned) thing.dispose();

@@ -29,22 +29,26 @@ function finite(value: number | undefined, fallback: number): number {
   return value !== undefined && Number.isFinite(value) ? value : fallback;
 }
 
+type LocalKm = { eastKm: number; northKm: number; upKm: number };
+
 function gridGeometry(
   size: { rows: number; columns: number },
   site: GroundSite,
-  localKm: (row: number, column: number) => { eastKm: number; northKm: number; upKm: number },
+  localKm: (row: number, column: number) => LocalKm,
   keepQuad: (row: number, column: number, step: number) => boolean,
+  extra?: { points: LocalKm[]; triangles: number[] },
 ): THREE.BufferGeometry {
   const { rows, columns } = size;
-  const count = rows * columns;
+  const gridCount = rows * columns;
+  const count = gridCount + (extra?.points.length ?? 0);
   const position = new Float32Array(count * 3);
   const moonFixed = new Float32Array(count * 3);
   const local = new Float32Array(count * 3);
   const ground = siteGroundScene(site.latDeg, site.lonDeg, site.groundHeightM);
-  for (let row = 0; row < rows; row += 1) {
-    for (let column = 0; column < columns; column += 1) {
-      const k = row * columns + column;
-      const { eastKm, northKm, upKm } = localKm(row, column);
+  for (let k = 0; k < count; k += 1) {
+    {
+      // The grid's points, then any extra points (the patch's rim, for the apron's join).
+      const { eastKm, northKm, upKm } = k < gridCount ? localKm(Math.floor(k / columns), k % columns) : extra!.points[k - gridCount]!;
       local[k * 3] = eastKm;
       local[k * 3 + 1] = northKm;
       local[k * 3 + 2] = upKm;
@@ -64,6 +68,7 @@ function gridGeometry(
   geometry.setAttribute("aL", new THREE.BufferAttribute(local, 3));
   // Normals from the full mesh only, before the coarser levels join the index.
   const full = gridIndex(rows, columns, 1, keepQuad);
+  if (extra) for (const k of extra.triangles) full.push(k);
   geometry.setIndex(full);
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
@@ -118,21 +123,34 @@ export function gridIndex(
  * height, so the mesh has no holes.
  */
 export function patchGeometry(terrain: DecodedTerrain, size: number, windowKm: number, site: GroundSite): THREE.BufferGeometry {
+  return gridGeometry({ rows: size, columns: size }, site, patchPoint(terrain, size, windowKm), () => true);
+}
+
+/** A patch grid point's local position (km), exactly as the patch draws it. */
+function patchPoint(terrain: DecodedTerrain, size: number, windowKm: number): (row: number, column: number) => LocalKm {
   const half = windowKm / 2;
   const step = windowKm / (size - 1);
-  return gridGeometry(
-    { rows: size, columns: size },
-    site,
-    (row, column) => {
-      const k = row * size + column;
-      return {
-        eastKm: finite(terrain.east_km[k], -half + column * step),
-        northKm: finite(terrain.north_km[k], half - row * step),
-        upKm: finite(terrain.up_km[k], 0),
-      };
-    },
-    () => true,
-  );
+  return (row, column) => {
+    const k = row * size + column;
+    return {
+      eastKm: finite(terrain.east_km[k], -half + column * step),
+      northKm: finite(terrain.north_km[k], half - row * step),
+      upKm: finite(terrain.up_km[k], 0),
+    };
+  };
+}
+
+/** The patch's rim: its edge points, clockwise from the north-west corner, exactly as drawn. */
+export type PatchRim = { points: LocalKm[]; halfKm: number };
+
+export function patchRim(terrain: DecodedTerrain, size: number, windowKm: number): PatchRim {
+  const point = patchPoint(terrain, size, windowKm);
+  const points: LocalKm[] = [];
+  for (let c = 0; c < size - 1; c += 1) points.push(point(0, c));
+  for (let r = 0; r < size - 1; r += 1) points.push(point(r, size - 1));
+  for (let c = size - 1; c > 0; c -= 1) points.push(point(size - 1, c));
+  for (let r = size - 1; r > 0; r -= 1) points.push(point(r, 0));
+  return { points, halfKm: windowKm / 2 };
 }
 
 /**
@@ -171,35 +189,104 @@ export function apronUpGrid(apron: DecodedApron, grid: ApronGrid, site: GroundSi
 }
 
 /**
- * The apron, with a hole where the patch is. Apron vertices under the patch sit 30 m lower so
- * the patch covers the cells across its edge, and the outer edge eases down to the reference sphere,
- * where the globe takes over. Both changes are drawing only.
+ * The apron, with a hole where the patch is, and the outer edge eased down below the
+ * reference sphere, where the globe takes over (`APRON_EDGE_DROP_M`). Drawing only.
+ *
+ * The join with the patch (full detail, when `rim` is given): every apron quad that reaches
+ * inside the first ring of apron points beyond the patch is left out, and a strip of
+ * triangles joins that ring to the patch's own rim points, which the apron repeats exactly.
+ * The two meshes then share their edge and meet with no gap and no step. In the coarser
+ * levels drawn while the camera moves (and without `rim`), the older join remains: the
+ * apron's quads cross the patch's edge, with the points under the patch lowered 30 m so the
+ * patch covers them.
  */
-export function apronGeometry(apron: DecodedApron, grid: ApronGrid, patchHalfKm: number, site: GroundSite): THREE.BufferGeometry {
+export function apronGeometry(apron: DecodedApron, grid: ApronGrid, patchHalfKm: number, site: GroundSite, rim?: PatchRim): THREE.BufferGeometry {
   const halfKm = grid.windowM / 2_000;
+  const stepKm = (2 * halfKm) / (grid.columns - 1);
   const offsetKm = (row: number, column: number) => ({
     east: -halfKm + (column * 2 * halfKm) / (grid.columns - 1),
     north: halfKm - (row * 2 * halfKm) / (grid.rows - 1),
   });
+  const pointAt = (row: number, column: number): LocalKm => {
+    const { east, north } = offsetKm(row, column);
+    let height = apronDrawnHeightM(apron, grid, row, column, site);
+    // Only vertices strictly under the patch: the patch hides them, and nothing outside it moves.
+    if (Math.max(Math.abs(east), Math.abs(north)) < patchHalfKm) height -= 30;
+    return apronCellLocalKm(row, column, height, site.groundHeightM, grid);
+  };
+  const stitch = rim && grid.rows === grid.columns && grid.columns % 2 === 1 ? rimStitch(grid, stepKm, rim, pointAt) : null;
+  const ringKm = stitch?.ringKm ?? 0;
+  const outsideRing = (east: number, north: number) => Math.max(Math.abs(east), Math.abs(north)) >= ringKm - 1e-6;
   return gridGeometry(
     { rows: grid.rows, columns: grid.columns },
     site,
-    (row, column) => {
-      const { east, north } = offsetKm(row, column);
-      let height = apronDrawnHeightM(apron, grid, row, column, site);
-      // Only vertices strictly under the patch: the patch hides them, and nothing outside it moves.
-      if (Math.max(Math.abs(east), Math.abs(north)) < patchHalfKm) height -= 30;
-      return apronCellLocalKm(row, column, height, site.groundHeightM, grid);
-    },
+    pointAt,
     (row, column, step) => {
       const a = offsetKm(row, column);
       const b = offsetKm(row + step, column + step);
+      if (step === 1 && stitch) {
+        // Only quads wholly on or beyond the first ring: the strip covers the rest.
+        return outsideRing(a.east, a.north) && outsideRing(b.east, b.north) && outsideRing(a.east, b.north) && outsideRing(b.east, a.north);
+      }
       const inside =
         Math.max(Math.abs(a.east), Math.abs(b.east)) < patchHalfKm - 1e-6 &&
         Math.max(Math.abs(a.north), Math.abs(b.north)) < patchHalfKm - 1e-6;
       return !inside;
     },
+    stitch ? { points: rim!.points, triangles: stitch.triangles } : undefined,
   );
+}
+
+/**
+ * Triangles joining the patch's rim (inner ring, appended after the grid's points) to the
+ * first ring of apron grid points beyond it (outer ring). Both rings run clockwise from their
+ * north-west corner and are walked by their share of the way round, so the corners meet.
+ */
+function rimStitch(
+  grid: ApronGrid,
+  stepKm: number,
+  rim: PatchRim,
+  pointAt: (row: number, column: number) => LocalKm,
+): { triangles: number[]; ringKm: number } {
+  const columns = grid.columns;
+  const centre = (columns - 1) / 2;
+  let k = 1;
+  while (k * stepKm <= rim.halfKm + 1e-6) k += 1;
+  const r0 = centre - k;
+  const r1 = centre + k;
+  const outer: number[] = [];
+  for (let c = r0; c < r1; c += 1) outer.push(r0 * columns + c);
+  for (let r = r0; r < r1; r += 1) outer.push(r * columns + r1);
+  for (let c = r1; c > r0; c -= 1) outer.push(r1 * columns + c);
+  for (let r = r1; r > r0; r -= 1) outer.push(r * columns + r0);
+  const base = grid.rows * columns;
+  const nIn = rim.points.length;
+  const nOut = outer.length;
+  const en = (index: number): [number, number] => {
+    const p = index >= base ? rim.points[index - base]! : pointAt(Math.floor(index / columns), index % columns);
+    return [p.eastKm, p.northKm];
+  };
+  const triangles: number[] = [];
+  const push = (a: number, b: number, c: number) => {
+    // Counter-clockwise seen from above (east, north), like the grid's own triangles.
+    const [ax, ay] = en(a);
+    const [bx, by] = en(b);
+    const [cx, cy] = en(c);
+    if ((bx - ax) * (cy - ay) - (by - ay) * (cx - ax) >= 0) triangles.push(a, b, c);
+    else triangles.push(a, c, b);
+  };
+  let i = 0;
+  let j = 0;
+  while (i < nIn || j < nOut) {
+    if (j < nOut && (i >= nIn || (j + 1) / nOut <= (i + 1) / nIn)) {
+      push(base + (i % nIn), outer[j]!, outer[(j + 1) % nOut]!);
+      j += 1;
+    } else {
+      push(base + i, outer[j % nOut]!, base + ((i + 1) % nIn));
+      i += 1;
+    }
+  }
+  return { triangles, ringKm: k * stepKm };
 }
 
 /** A sphere-tier site has no terrain: the smooth Moon, as a flat-height apron. */
