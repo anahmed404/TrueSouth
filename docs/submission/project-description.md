@@ -7,8 +7,8 @@ from a file named in the table at the end. Nothing here is claimed beyond what
 ## Before pasting
 
 State checked against `origin/main` at **69bb26e, 2026-11-14**. Everything described below
-is merged there. The only open pull request at that time was #101, the production deploy
-files; it is not merged, so no text here mentions a live site.
+is merged there. The production deploy files (#101) were merged afterwards (9f12ff4), but the
+deploy itself has not been run on a server, so no text here mentions a live site.
 
 - CHECK (team lead): does the form allow links, line breaks or headings? The full
   description uses plain headings; flatten them if the form does not.

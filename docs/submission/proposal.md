@@ -1,10 +1,10 @@
 <!--
-TO FILL IN before sending (search this file for "[optional" to find every slot):
-  [optional: one line on Abdallah's background]   Role of Team Members
-  [optional: one line on Omar's background]       Role of Team Members
-  [optional: one line on Tawfic's background]     Role of Team Members
-  [optional: one line on Ahmed's background]      Role of Team Members
-The Role of Team Members section reads complete without these four lines. If the team has nothing to add, delete the four slots.
+TO FILL IN before sending: nothing is required. The Role of Team Members section is finished.
+Optional: if the team wants a line on each member's background in that section, add it at the end of the member's entry:
+  [optional: one line on Abdallah's background]
+  [optional: one line on Omar's background]
+  [optional: one line on Tawfic's background]
+  [optional: one line on Ahmed's background]
 Word counts for the limited sections are in the comments under their headings. They were counted by script from the text under each heading. Re-count after any edit.
 Delete this comment before pasting into the organisers' form.
 -->
@@ -105,15 +105,15 @@ TrueSouth models the surface stay only. It is a planning aid, not flight certifi
 
 ## Role of Team Members
 
-Four people lead this project, and all four test the running app and review the design variants at checkpoints. Coding agents (Claude Code, Codex, Cursor and Antigravity) write and review the code under an orchestrating agent. The members steer, test and decide. Large parts of the code have had no line-by-line human review, as our AI-use disclosure says.
+All four members test the running app and choose between design variants at checkpoints. Coding agents wrote and reviewed the code under the team's direction; large parts have had no line-by-line human review.
 
-**Abdallah Mostafa: team lead; science and data.** Owns the direction and the final decisions, the correctness of the pipeline (NASA terrain and positions, skylines, the hourly series), the validation gates and the production deployment. Contribution: numbers checked against NASA, which make the tool trustworthy. [optional: one line on Abdallah's background]
+**Abdallah Mostafa: team lead; architecture and delivery.** Owns the design and final decisions: science computed once in Python, stored as compact series, scored in the browser; the data contracts; the build process, with review and tests before each merge; integration; the production deployment. It keeps the parts fitting.
 
-**Omar Khaled: Mission Control.** Owns the planner's tool: the mission profiles and their rules, scoring and status, the timeline, the Slip Planner and Compare. Contribution: the GO, CAUTION or NO-GO answer a planner reads, with its reason. [optional: one line on Omar's background]
+**Omar Khaled: lunar science and validation.** Owns the numbers: NASA's LOLA terrain and JPL Horizons positions, skylines to 300 km, the six-year hourly record of Sun and Earth, custom coordinates, and the validation gates against NASA's products, with differences published. Every answer rests on it.
 
-**Tawfic Kobtan: 3D and map.** Owns the views of the Moon (System view, Polar map, Local terrain and Lander's eye) and how they perform on ordinary laptops. Contribution: users can see why a site is lit or dark, on modest hardware. [optional: one line on Tawfic's background]
+**Tawfic Kobtan: Mission Control and the scoring engine.** Owns the planner's answer: mission profiles tagged sourced or assumed; scoring that gives GO, CAUTION or NO-GO with the deciding rule, identical in Python and the browser; the timeline, Slip Planner, "Next GO" and Compare. A planner acts on it.
 
-**Ahmed Salah: Academy and learning content.** Owns the guided lessons (the story of landing Pip, Luna's voice, the questions and their feedback); the "Under the hood" formula cards, each citing the science document; the plain-language explanation of every term used across the app; and the "How we know it's right" page that explains the validation to the public. Contribution: the physics is understandable to learners and the public. [optional: one line on Ahmed's background]
+**Ahmed Salah: visualisation and the Academy.** Owns how people see and learn it: the System view, Polar map, Local terrain and Lander's eye, fast on ordinary laptops; and the Academy, the second mode, with interactive lessons on the same engine and data. It shows why a site is lit or dark.
 
 ## Workflow Strategy
 

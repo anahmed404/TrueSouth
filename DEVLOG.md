@@ -1741,9 +1741,8 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   opened and no test suite was run. The team gave the team name, the four members' names and
   their responsibilities; nothing else about a person was written. A human has not read it.
 - **State:** built, not verified
-- **Changed:** `docs/submission/proposal.md`, this entry
-- **Notes:** Four optional slots for a line on each member's background are marked
-  `[optional: ...]` and listed in a comment at the top of the file. The two Horizons
+- **Changed:** `docs/submission/proposal.md`; stale statements in `project-description.md`, `links-checklist.md` and `ai-use.md` (the deploy files pull request #101 is merged; the test count now cites `status.md` as of 2026-11-14); this entry
+- **Notes:** The four optional slots for a line on each member's background are kept only in a comment at the top of the proposal. The two Horizons
   references that could not be checked (Giorgini et al. 1996; the DE421 report) were left out.
 
 #### 2026-11-14 · A11b · Submission materials brought up to date
