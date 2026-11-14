@@ -23,8 +23,9 @@ import { SkylineStage } from "./skyline-stage";
 
 const repoRoot = fileURLToPath(new URL("../../../../../", import.meta.url));
 const json = <T,>(path: string) => JSON.parse(readFileSync(`${repoRoot}data/derived/${path}`, "utf8")) as T;
-const step = (lesson2.steps as readonly Step[]).find((item) => item.id === "l2-sketch");
-if (step?.kind !== "draw-skyline") throw new Error("lesson 2 step 3 sketches");
+const found = (lesson2.steps as readonly Step[]).find((item) => item.id === "l2-sketch");
+if (found?.kind !== "draw-skyline") throw new Error("lesson 2 step 3 sketches");
+const step: Extract<Step, { kind: "draw-skyline" }> = found;
 const stepIndex = (lesson2.steps as readonly Step[]).indexOf(step);
 
 let root: Root | null = null;
