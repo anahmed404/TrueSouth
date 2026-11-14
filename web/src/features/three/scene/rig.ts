@@ -3,6 +3,7 @@ import type { CameraViewId, FreeSpace } from "../../../app/scene";
 import { MOON_RADIUS_M } from "../../../lib/geo";
 import { easeInOutCubic, lerpPose, viewOffset, type Pose, type SiteFrame } from "./camera";
 import { focusPose, hitMoon, lookOf, orbitSystem, panSystem, rayThrough, systemPivot, zoomSystem } from "./navigate";
+import { SYSTEM_MAX_ALTITUDE, TRUE_SCALE_MAX_ALTITUDE } from "./proportions";
 import { slipLightBlend, slipOrbit, slipZoom } from "./slip";
 import { clamp, smooth, type V3 } from "./vec";
 
@@ -61,7 +62,28 @@ export class Rig {
   mode: Mode = "system";
   /** The site the Local terrain and Lander's eye controls turn about. */
   site: SiteFrame | null = null;
-  trueScale = false;
+  private trueScaleOn = false;
+  /**
+   * 0 with the schematic arrangement, 1 at true scale, and in between while the flight that
+   * the toggle starts is under way: every flight carries it from where it is to the current
+   * setting, in step with the camera (and at once with reduced motion). world.ts places Earth
+   * and the Sun from it (proportions.ts, earthDuringScale and sunDuringScale).
+   */
+  scaleBlend = 0;
+  /**
+   * The glide of `scaleBlend`, on the same clock and curve as the flight that started it but
+   * not stopped with it: a drag that stops the flight lets Earth finish its glide instead of
+   * snapping.
+   */
+  private scaleGlide: { from: number; to: number; t0: number; ms: number } | null = null;
+
+  get trueScale(): boolean {
+    return this.trueScaleOn;
+  }
+
+  set trueScale(on: boolean) {
+    this.trueScaleOn = on;
+  }
   /** True once the user has turned or zoomed since the last pick. */
   userMoved = false;
   /**
@@ -114,8 +136,11 @@ export class Rig {
     options: { locked?: boolean; now?: number } = {},
   ): void {
     this.userMoved = false;
+    const target = this.trueScaleOn ? 1 : 0;
     if (ms <= 0) {
       this.tween = null;
+      this.scaleBlend = target;
+      this.scaleGlide = null;
       this.apply(to);
       onT?.(1);
       onDone?.();
@@ -123,6 +148,7 @@ export class Rig {
     }
     const t0 = options.now ?? performance.now();
     this.tween = { from: this.pose(), to, t0, ms, onT, onDone, locked: options.locked ?? false };
+    this.scaleGlide = this.scaleBlend === target ? null : { from: this.scaleBlend, to: target, t0, ms };
   }
 
   /**
@@ -191,6 +217,16 @@ export class Rig {
   /** Advances a flight and the offset slide. Returns true while something still moves. */
   update(now: number): boolean {
     let active = false;
+    // The arrangement glides with the flight that started it; with no glide under way it is the setting.
+    const glide = this.scaleGlide;
+    if (glide) {
+      const t = clamp((now - glide.t0) / glide.ms, 0, 1);
+      this.scaleBlend = glide.from + (glide.to - glide.from) * easeInOutCubic(t);
+      if (t >= 1 || glide.to !== (this.trueScaleOn ? 1 : 0)) this.scaleGlide = null;
+      else active = true;
+    } else {
+      this.scaleBlend = this.trueScaleOn ? 1 : 0;
+    }
     if (this.offsetTween) {
       const t = clamp((now - this.offsetTween.t0) / this.offsetTween.ms, 0, 1);
       const e = 1 - (1 - t) ** 3;
@@ -333,7 +369,7 @@ export class Rig {
     if (this.mode === "system") {
       // Without a pointer, toward the pivot's point of interest, which moves continuously.
       const toward = systemPivot(c.position, lookOf(c), this.focus).surface.normalize();
-      zoomSystem(c, factor, this.trueScale ? 900 : 40, ndc, toward);
+      zoomSystem(c, factor, this.trueScale ? TRUE_SCALE_MAX_ALTITUDE : SYSTEM_MAX_ALTITUDE, ndc, toward);
       return;
     }
     if (this.style === "centre") {
