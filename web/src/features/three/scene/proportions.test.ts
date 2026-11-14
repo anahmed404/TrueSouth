@@ -315,20 +315,32 @@ describe("the zoom-out limit", () => {
 describe("a body between the camera and the Moon is not drawn", () => {
   const earth: BodyPlacement = { centre: [4, 0, 0], radius: DRAWN_EARTH_RADIUS };
 
-  it("is drawn beside the Moon (the opening, up to 7° of libration either way) and behind it", () => {
+  it("is drawn beside the Moon in the opening view (which leans 10° away from Earth), whatever the libration, and behind it", () => {
+    const t = (10 * Math.PI) / 180;
     for (const lat of [-7, 0, 7]) {
       const r = (lat * Math.PI) / 180;
       const e: BodyPlacement = { centre: [4 * Math.cos(r), 4 * Math.sin(r), 0], radius: DRAWN_EARTH_RADIUS };
-      expect(bodyInFront([0, -23, 0], e)).toBe(false);
-      expect(bodyInFront([0, -16, 0], e)).toBe(false);
+      for (const d of [16, 23, 30]) expect(bodyInFront([-d * Math.sin(t), -d * Math.cos(t), 0], e)).toBe(false);
     }
     expect(bodyInFront([-10, 0, 0], earth)).toBe(false);
   });
 
-  it("is not drawn when it stands in front of the Moon (From Earth), when the camera is inside it, or just beside the line of sight", () => {
+  it("is not drawn when it stands in front of the Moon (From Earth), when the camera is inside it, or beside the line of sight on the camera's side", () => {
     expect(bodyInFront([10.3, 0, 0], earth)).toBe(true);
     expect(bodyInFront([4.1, 0.2, 0], earth)).toBe(true);
     expect(bodyInFront([10.3 * Math.cos(0.4), 10.3 * Math.sin(0.4), 0], earth)).toBe(true);
+  });
+
+  it("keeps the Sun drawn when zoomed out far enough to see it, and Earth at true scale, though a few per cent nearer", () => {
+    const t = (10 * Math.PI) / 180;
+    for (const d of [150, 250, 380]) {
+      for (let deg = 0; deg < 360; deg += 15) {
+        const sun = drawnSun([Math.cos((deg * Math.PI) / 180), 0.03, Math.sin((deg * Math.PI) / 180)], 147_000_000);
+        expect(bodyInFront([-d * Math.sin(t), -d * Math.cos(t), 0], sun)).toBe(false);
+      }
+    }
+    const lat = (-7 * Math.PI) / 180;
+    expect(bodyInFront([0, -1_096, 0], { centre: [229 * Math.cos(lat), 229 * Math.sin(lat), 0], radius: 3.67 })).toBe(false);
   });
 
   it("holds for the Sun too, by the same geometry", () => {

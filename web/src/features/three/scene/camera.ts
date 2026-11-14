@@ -128,6 +128,9 @@ function extents(subjects: Subjects, right: V3, up: V3): { halfX: number; halfY:
  *   points along the free space's longer side: Earth sits to the left of the Moon on a
  *   laptop, above it on a phone. Left, because the sight-line labels sit to the right of the
  *   short "To Earth" mark, so they never reach Earth.
+ * - It leans `tiltDeg` away from Earth's side, so Earth is always a little further from the
+ *   camera than the Moon (it reads as behind, and is never "in front" by proportions.ts,
+ *   bodyInFront); the south pole stays near the middle of the Moon's disc.
  * - It does not depend on the hour, so scrubbing time never moves it.
  * - `earthReach` (Earth's centre at its farthest, plus its drawn radius) must fit along the
  *   long side; `across` is the room needed across it: Earth's swing with libration, its
@@ -141,6 +144,7 @@ export const OPENING = {
   earthReach: drawnDistance(EARTH_FARTHEST_KM) + DRAWN_EARTH_RADIUS,
   across: 2.6,
   margin: 1.04,
+  tiltDeg: 10,
   minMoonPx: 30,
 } as const;
 
@@ -181,7 +185,11 @@ export function homePose(drawn: Subjects, space: FreeSpace): Pose {
   const top = { up: [1, 0, 0] as V3, distance: fitDistance(OPENING.across, OPENING.earthReach, SPACE_FOV, space, OPENING.margin) };
   const pick = top.distance < left.distance - 1e-9 ? top : left;
   const distance = Math.min(pick.distance, distanceForMoonPx(OPENING.minMoonPx, space.viewport.height));
-  return { pos: mul(look, -distance), look, up: pick.up, fov: SPACE_FOV };
+  // Lean away from Earth's side (scene −x) by tiltDeg, still looking at the Moon's centre.
+  const t = (OPENING.tiltDeg * Math.PI) / 180;
+  const pos: V3 = [-distance * Math.sin(t), -distance * Math.cos(t), 0];
+  const tilted: V3 = [Math.sin(t), Math.cos(t), 0];
+  return { pos, look: tilted, up: perpendicular(pick.up, tilted), fov: SPACE_FOV };
 }
 
 /** "From Earth" and "From the Sun": looking back at the Moon along that body's direction. */

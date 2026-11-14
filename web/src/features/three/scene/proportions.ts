@@ -130,17 +130,21 @@ export function sunDuringScale(sunDir: readonly [number, number, number], sunDis
 }
 
 /**
- * A body this far or more from side-on, seen from the Moon's centre, counts as in front of the
- * Moon (bodyInFront). In the opening view Earth is always within 7° of side-on (libration), so
- * it is never hidden there.
+/**
+ * How much nearer to the camera than the Moon a body must be to count as in front of it: 5 %.
+ * From a far camera a body beside the Moon is only a few per cent nearer (the Sun when zoomed
+ * out, Earth at true scale) and stays drawn; in "From the Sun" a body on the near side is 5 to
+ * 60 % nearer.
  */
-export const IN_FRONT_ANGLE_DEG = 10;
+export const IN_FRONT_NEARER = 0.05;
 
 /**
  * True when a body stands between the camera and the Moon, so drawing it would cover or
- * crowd the subject: its centre lies on the camera's side of the Moon, more than
- * IN_FRONT_ANGLE_DEG away from side-on, and nearer to the camera than the Moon's centre is
- * (or the camera is inside it). The scene then does not draw it, and marks it with an edge
+ * crowd the subject: its centre lies on the camera's side of the Moon (the side facing the
+ * camera) and at least IN_FRONT_NEARER nearer to the camera than the Moon's centre is, or
+ * the camera is inside it.
+ * The opening view leans away from Earth (camera.ts, OPENING.tiltDeg), so there Earth is
+ * always on the far side and drawn. The scene then does not draw it, and marks it with an edge
  * arrow and its label instead (overlay.tsx). Geometry only, whatever the preset; it holds for
  * the Sun as for Earth. Decoration: it changes no result.
  */
@@ -153,5 +157,5 @@ export function bodyInFront(camera: readonly [number, number, number], body: Bod
   const bodyFromMoon = Math.hypot(bx, by, bz);
   if (toMoon < 1e-9 || bodyFromMoon < 1e-9) return false;
   const facing = (bx * cx + by * cy + bz * cz) / (bodyFromMoon * toMoon);
-  return facing > Math.sin((IN_FRONT_ANGLE_DEG * Math.PI) / 180) && toBody < toMoon;
+  return facing > 0 && toBody < toMoon * (1 - IN_FRONT_NEARER);
 }

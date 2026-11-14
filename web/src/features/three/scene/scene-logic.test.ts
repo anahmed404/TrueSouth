@@ -25,7 +25,7 @@ import {
   type Subjects,
 } from "./camera";
 import { groupPins, moreSitesLine } from "./pins";
-import { DRAWN_EARTH_RADIUS, EARTH_FARTHEST_KM, drawnDistance, drawnSun } from "./proportions";
+import { DRAWN_EARTH_RADIUS, EARTH_FARTHEST_KM, bodyInFront, drawnDistance, drawnSun } from "./proportions";
 import { bodyLabel, formatSignedDeg, sightGood, sightLabel, sightState } from "./sight";
 import { cross, dot, len, norm, sub } from "./vec";
 
@@ -111,7 +111,8 @@ describe("the camera keeps its subject in the free space", () => {
       const moon = project(first, [0, 0, 0], fs);
       expect(moon.x).toBeCloseTo(freeCentre(fs).x, 6);
       expect(moon.y).toBeCloseTo(freeCentre(fs).y, 6);
-      expect(first.look).toEqual([0, 1, 0]);
+      // Looking at the Moon from under the south pole, leaning 10° away from Earth's side.
+      expect(first.look[1]).toBeCloseTo(Math.cos((10 * Math.PI) / 180), 12);
     }
   });
 
@@ -130,6 +131,8 @@ describe("the camera keeps its subject in the free space", () => {
         const moon = disc(pose, [0, 0, 0], 1, fs);
         const e = disc(pose, earth.centre, earth.radius, fs);
         expect(e.r / moon.r).toBeGreaterThanOrEqual(1);
+        // Behind the Moon's centre as seen from the camera, so it is never "in front" and always drawn.
+        expect(bodyInFront(pose.pos, earth)).toBe(false);
         expect(e.r / moon.r).toBeLessThanOrEqual(1.5);
         // To the Moon's left, clear of its disc and of the sight-line marks' far ends (1.15 Moon
         // radii from the site, with their labels to the right of them).
