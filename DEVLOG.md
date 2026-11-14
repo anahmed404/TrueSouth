@@ -592,7 +592,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   typecheck, the vitest suite (including the spot = strip = hover = sites rail agreement test
   on every fixture site), the build, and by eye in headless Chrome on the machine's GPU on
   the real data at 1440 × 900, 1024 × 768 and 390 × 844; a human has not reviewed it yet
-- **State:** built, not verified
+- **State:** verified (2,317 web tests, typecheck and build (the sweep worker emitted once) pass on the merge with main (the orchestrator's run), and 425 Python tests on the same tree (the builder's run); reviewed by Cursor, which compared the sweep with the ordinary evaluation for every fixture site, two profiles and more than 60 landing days, and checked dates in two other time zones; seven findings fixed with tests (Any site while sites compute; a landing not at 00:00 UTC; spots equal the sites rail during a profile change; a failed sweep; the shading label); it absorbed the scene polish, the flat Polar map (its 3D-off view now uses the real map) and the ground's look; seen by the builder on hardware WebGL; not yet tried by the team lead)
 - **Changed:** `web/src/features/mission-control/slip-planner/` (new), `web/src/lib/scoring/`
   (`slip-days.ts` new; `next-go.ts`, `next-go.test.ts` and `index.ts` byte-for-byte as in
   #83), `web/src/features/three/scene/` (`slip.ts`
