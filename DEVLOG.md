@@ -655,11 +655,14 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   the stretch chip, extended `pointers.ts` to the middle button, made the add-site picker's
   coordinates row a visible control, and wrote 20 vitest tests (a structure test of both
   cards for every hour kind from the fixture, which fails on the old cards, six
-  middle-button tests and three for the coordinates row); investigated the black box — checked by the
-  agent with typecheck, the vitest suite, the build and `uv run pytest`, and by eye with
+  middle-button tests and three for the coordinates row); investigated the black box;
+  then fixed the review of PR #97 (Codex: request changes): the notes row could clip, the
+  chip said "over" only in a tooltip, `aria-controls` pointed at a closed form, a slow
+  validation test — checked by the agent with typecheck, the vitest suite, the build and
+  `uv run pytest`, and by eye with
   hardware WebGL (NVIDIA, ANGLE D3D11) at 2000, 1440, 1024, folded and 390 px; a human has
   not reviewed it yet
-- **State:** built, not verified (2,337 web tests, 425 Python tests with 1 skipped, typecheck and
+- **State:** built, not verified (2,429 web tests, 438 Python tests with 1 skipped, typecheck and
   build pass on the merge with main; the team lead has not seen it)
 - **Changed:** `web/src/app/mission/timeline/countdowns.tsx` and a new `countdowns.test.ts`,
   `timeline/timeline.css`, `web/src/app/shell.css` (containment on the countdown column),
@@ -670,33 +673,36 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   `docs/challenge.md`, `docs/design/c2/built-feedback3-*.png`
 - **Notes:**
   - The strip: each card's rows are now the same at every hour (head, countdown, values, a
-    notes row reserved two lines tall). The dark stretch or blackout is a chip in that row,
-    "✕ 130 h dark · limit 6 h" with its tag, its full sentence as description and tip; "Under
-    6 h" moved there too. Measured 196 px at 1440 and 244 px at 1024 at lit, warning, dark
+    notes row of exactly two lines, filled from the bottom, never clipped). Line one: the
+    dark stretch or blackout as a chip that says it in words, "✕ 130 h · over the 6 h limit"
+    or "338 h · within the 432 h limit", the fullest wording that fits the 158 px card (a
+    measured glyph-width budget, tested for every preset and limits up to 100,000 h against
+    stretches up to 52,584 h); its full sentence is its screen-reader text. Line two: the
+    limit's provenance tag and "Under 6 h" (they coexist at the end of a dark stretch). Measured 196 px at 1440 and 244 px at 1024 at lit, warning, dark
     and blackout hours and while playing across a sunset (was 196 to 237 at 1440); folded
     50 px; phone 180 px. In the Slip Planner the slot holds its landing-date panel: 204 px at
     1440 against the timeline's 196 px, steady when switching views back and forth (sampled
     every 250 ms, no in-between heights).
-  - The black box did **not** reproduce, on this branch or on the reported commit c5ec7a9
-    (dev and production build, a throwaway worktree), at 1× and 1.25× scale, 950 to 2560 px
-    wide and 640 to 1300 px tall, in the four camera views, with the focused-site panel open
-    and folded, the lamp's hover card open, and with the CPU throttled 20× on first load
-    (the scene still did not fall back to its still picture). The point under it is the scene's WebGL canvas, not a DOM element, and the add-site
-    popover and tips are in the top layer, so no panel's stacking can cover them. No fix
-    was made without a reproduction. To pin it: a screen recording, the Chrome version,
-    `chrome://gpu` (overlay and compositing lines), and whether hovering or reopening the
-    popover clears it. One candidate: the scene draws on demand, so a region Chrome
-    recomposites over the canvas is not redrawn by the scene; a scene redraw on popover
-    toggle would test that. Separately, on current main the flat Polar map (#89) paints
-    Night around its square relief by design, which can read as black bands beside the map.
+  - The black box did **not** reproduce here, with the team lead's exact steps (fold the
+    sites rail, press its "+", hover a picker row and a rail lamp). Tried: the reported commit
+    c5ec7a9 and current main, dev and production builds; 950 to 2560 px wide, 640 to 1300 px
+    tall; scaling 1×, 1.1, 1.25 and 1.5; the four camera views and the Polar map; the focused
+    panel open and folded; Chrome with SwiftShader and with the GPU off; the CPU throttled 6×
+    and 20× so the quality governor steps down; and captures of the real window with
+    Windows' PrintWindow (which includes hardware overlay planes that Chrome's screenshots
+    miss). Each time: the point under the box is the scene's canvas (or the flat map's), the
+    WebGL viewport is the whole canvas, the scissor test is off, the drawing buffer matches the
+    canvas, and the free space does not change when a popover or hover card opens (popovers
+    and tips are never covers in `readShell`). The box's shape (the bounding box of the open
+    popover and hover card) points at the browser's compositor on the team lead's setup. No
+    fix was made without a reproduction; the pull request has "How to capture it".
   - "Enter coordinates": an outlined full-width row with a crosshair at the top of the
     add-site picker, closed by default; one click opens the form with focus in the latitude
     field; "Not available on this server" under the label when the server has no custom
     sites. The form and its requests are unchanged.
   - The middle mouse button turns like the left (`MIDDLE_BUTTON_DRAG` in `pointers.ts`
     flips it to slide in one line), in every view including the Slip Planner; a middle click
-    does nothing; the browser's own middle
-    click is prevented over the scene.
+    does nothing; the browser's own middle click is prevented over the scene.
 
 #### 2026-11-13 · MC7 · The Slip Planner, a camera view on the Moon
 - **Who:** Claude Code agent, for the orchestrator
