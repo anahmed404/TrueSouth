@@ -15,7 +15,8 @@ import { windowPlacement, type Rect, type ShellState } from "./mission/free-spac
 import { SceneSlot } from "./mission/scene-slot";
 import { SpaceScene } from "../features/three/scene";
 import { LandingDatePanel, SLIP_PLANNER_LAYER, slipStore, type LandingWrite } from "../features/mission-control/slip-planner";
-import { POLAR_MAP_LAYER } from "../features/polar-map";
+import { polarMapLayer } from "../features/polar-map";
+import { useRequestCustomSite } from "./mission/custom-site-actions";
 import { useStore } from "zustand";
 import { TRY_AGAIN_ANNOUNCEMENT } from "./mission/scene-status";
 import {
@@ -85,9 +86,6 @@ export function MissionScreen() {
  * any floating window float above it. The floating layout is a CSS grid over the whole
  * window; the empty cell in its middle is the free space the scene reads.
  */
-/** The flat layers over the scene: the Polar map's flat map, and the Slip Planner's spots. */
-const FLAT_LAYERS = [POLAR_MAP_LAYER, SLIP_PLANNER_LAYER] as const;
-
 function MissionShell() {
   const store = useScenarioStore();
   const [layout, setLayout] = useShellLayout();
@@ -96,6 +94,10 @@ function MissionShell() {
   const viewportWidth = useViewportWidth();
   const state = useViewState();
   const commands = useViewCommands(state);
+  const requestCustomSite = useRequestCustomSite();
+  const polarMap = useMemo(() => polarMapLayer({ onRequestSite: requestCustomSite }), [requestCustomSite]);
+  // The flat layers over the scene: the Polar map's flat map, and the Slip Planner's spots.
+  const flatLayers = useMemo(() => [polarMap, SLIP_PLANNER_LAYER] as const, [polarMap]);
   const windowOpen = state.window !== null;
   const shellRef = useRef<HTMLDivElement>(null);
 
@@ -309,7 +311,7 @@ function MissionShell() {
 
       <SceneSlot
         Scene={SpaceScene}
-        flat={FLAT_LAYERS}
+        flat={flatLayers}
         view={state.camera}
         scenario={scenario}
         freeSpace={freeSpace}

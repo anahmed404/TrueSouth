@@ -690,6 +690,49 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - Fixed while checking: the #89 change cleared the foot plates' `top` in 3D, which left the
     shading switch above the window and hid every spot label; a mount test now guards it.
 
+#### 2026-11-14 · MC-sites · Custom coordinates, best-lit variant labels and the nearby range
+- **Who:** Claude Code agent (Opus 5.5), for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote the custom-site client, job store,
+  the coordinates form, the rail's computing rows, the focused-site panel's notes, their
+  tests and these doc changes — checked with vitest (client against every documented
+  status and error with a mocked `fetch`; store; form; row states; labels with made-up
+  and real 25-site data), typecheck, and by eye in the browser at 1440 × 900, 1024 × 768
+  and 390 × 844, against the PR #80 server running on the real prepared maps
+- **State:** verified (425 Python tests, 2,241 web tests, typecheck and build pass on the merge with main; reviewed by Codex (all five variant labels and ranges match the data; no custom file is requested before a job is ready; three mutations caught); six findings fixed with tests (a compute request is sent only on a button press, with the counts recorded; an answer about another place is refused; ready sites and names are validated; removal frees polling and data; polling backs off and announces once per change; invalid ids in links are dropped); run end to end by the builder against the merged server on the real terrain, including Compute this site on the Polar map; not yet tried by the team lead)
+- **Changed:** `web/src/data/custom-sites.ts`, `web/src/state/custom-sites.ts`,
+  `web/src/data/hooks.ts` (`useSites` merges ready custom sites; `useCatalogSites`),
+  `web/src/state/data.ts` (a custom site's files wait for its job), `web/src/app/mission/`
+  (`sites-rail.tsx`, `focused-site-panel.tsx`, `site-status.ts`, new `custom-site-*.ts(x)`,
+  `site-labels.ts`, `sites.css`), `web/src/components/Popover.tsx` (`placement="auto"`),
+  docs, screenshots `docs/design/c2/built-sites-*.png`
+- **Notes:**
+  - Real run: −88.5, 45 queued about 25 s while the server loaded its maps, then ran about
+    50 s; −87.75, 200.5 took about 40 s; 2.5, 334.75 was a smooth-Moon site in under 5 s.
+    Status, timeline, countdowns, the "why is it dark" card, the scene's pin, Local terrain
+    (own `terrain.bin`, no apron) and Lander's eye all read them.
+  - The Polar map's "Compute this site": the shell passes `useRequestCustomSite()` from
+    `custom-site-actions.ts` as `onRequestSite`.
+  - Shared wording for Compare: `web/src/app/mission/site-labels.ts` (`CHOSEN_TAG`,
+    `variantLine`, `upperReadingLine`, `nearbyRangeText`, `ARTEMIS_NOTE`).
+  - Not mine, seen while testing: Local terrain says the apron "could not be loaded" for a
+    custom site, which never has one; the timeline shows "Loading the hourly data…" while a
+    focused custom site is not computed yet.
+  - Review fixes (Codex review of #92): a POST only on a button press (polling, links,
+    remounts, focus and reconnecting are GET; counted in tests); answers must name the id
+    the server's rules make for the coordinates sent (`web/src/data/custom-site-id.ts`
+    ports `site_id` and its Python rounding); ready sites validated field by field; names
+    cleaned of control and bidirectional characters, 60 characters, shown isolated;
+    remove, failure and Stop waiting release polling, waiters, files and scores; request
+    timeouts, back-off, no polling while hidden, `Retry-After` kept to 1 s to 1 h; one
+    shared clock and one announcement per change of state; non-canonical ids in links are
+    left out with one notice.
+  - The Polar map's "Compute this site" is wired (`useRequestCustomSite()` in
+    `mission-screen.tsx`); the map gets no callback until `/api/health` says custom sites
+    work, checked once when the Polar map view first opens. A ready custom pin carries
+    "Your site" (one line in `features/polar-map/draw.ts`).
+  - Not doable on the web side without the scene: Local terrain's apron message for a
+    custom site (`useApron` has no "none" state the scene reads).
+
 #### 2026-11-14 · MC9 · The Compare window, share, CSV and JSON export, confirmed NASA links
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (building the
