@@ -15,3 +15,13 @@ export const DETAIL_MIN_SIZE = 72;
 export function showsDetail(size: number): boolean {
   return size >= DETAIL_MIN_SIZE;
 }
+
+/**
+ * Below this size the extras (sparkles, hearts, the music note, the "z", cheeks) are
+ * dropped: they would only be specks, and eyes and mouth carry the mood on their own.
+ */
+export const EXTRAS_MIN_SIZE = 40;
+
+export function showsExtras(size: number): boolean {
+  return size >= EXTRAS_MIN_SIZE;
+}

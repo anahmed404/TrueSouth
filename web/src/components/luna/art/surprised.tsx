@@ -1,11 +1,12 @@
 import type { LunaMoodArt } from "../art-contract";
-import { FEATURE_FILL, FEATURE_LINE, LINE, RoundEyes } from "./shapes";
+import { FEATURE_FILL, FEATURE_LINE, GlossyEyes, LINE } from "./shapes";
 
+/* Derived from sheet pose 1: the same wide eyes, raised brows, a small round mouth, no smile. */
 export const surprised: LunaMoodArt = {
   label: "Luna, surprised",
-  eyes: <RoundEyes r={7} dy={-1} />,
+  eyes: <GlossyEyes rx={8.5} ry={10} iris={5} dy={-1} />,
   brows: (
-    <path className={FEATURE_LINE} strokeWidth={LINE * 0.8} d="M31 34 Q38 28 45 33 M55 33 Q62 28 69 34" />
+    <path className={FEATURE_LINE} strokeWidth={LINE * 0.8} d="M33 32 Q38 27 44 30 M56 30 Q62 27 67 32" />
   ),
-  mouth: <ellipse className={FEATURE_FILL} cx={50} cy={67} rx={5.5} ry={6.5} />,
+  mouth: <ellipse className={FEATURE_FILL} cx={50} cy={69} rx={4.2} ry={5.2} />,
 };

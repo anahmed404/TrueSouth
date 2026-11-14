@@ -1,4 +1,4 @@
-/* Placeholder moon body and craters. Replaced in work package A10. */
+/* Her body and craters: the first drawing, kept as it is by A10, which changed only the faces. */
 
 export const body = (
   <circle className="fill-text-muted stroke-text-faint" cx={50} cy={52} r={40} strokeWidth={2} />

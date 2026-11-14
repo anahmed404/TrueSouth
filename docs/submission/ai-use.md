@@ -116,8 +116,12 @@ the orchestrator made".
 
 ## AI-generated images and media
 
-- The eight placeholder drawings of Luna, the mascot, are inline SVG made by Claude Code
-  (`claude-opus-5-5`, `web/src/components/luna/art/`). The final art is not made yet.
+- Luna, the mascot, is inline SVG drawn by Claude Code (`claude-opus-5-5`,
+  `web/src/components/luna/art/`). Her eight facial expressions (A10) were hand-adapted by
+  Claude Code from a reference sheet of mascot poses that **the team generated with Google
+  Gemini, an AI image tool** (no model or version was recorded). The sheet is not in the
+  repository and is not used in the app; Claude Code drew the faces in Luna's existing style
+  and colours, and her body is the earlier drawing, unchanged.
 - The two start-screen porthole drawings are inline SVG ported by Claude Code
   (`claude-opus-5-5`, `web/src/app/start/portholes.tsx`) from a prototype. The skyline in
   them is a made-up curve, not data.

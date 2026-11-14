@@ -9,11 +9,11 @@ import {
   resolveReducedMotion,
 } from "./motion-plan";
 import type { Mood } from "./moods";
-import { resolveMoodArt, showsDetail } from "./resolve-art";
+import { resolveMoodArt, showsDetail, showsExtras } from "./resolve-art";
 
 export type LunaProps = {
   mood?: Mood;
-  /** Width and height in px. Readable from 48 to 160. */
+  /** Width and height in px. Readable from 28 to 160; extras drop below 40. */
   size?: number;
   /** Force reduced motion on or off. Leave unset to follow the system setting. */
   reduceMotion?: boolean;
@@ -123,7 +123,7 @@ export function Luna({
     brows: art.brows,
     eyes: art.eyes,
     mouth: art.mouth,
-    extras: art.extras,
+    extras: showsExtras(size) ? art.extras : undefined,
   };
 
   const a11y = decorative
