@@ -626,6 +626,41 @@
       "title": "Comparison",
       "type": "object"
     },
+    "CustomSiteErrorResponse": {
+      "additionalProperties": false,
+      "description": "Custom-site HTTP error body.",
+      "properties": {
+        "code": {
+          "description": "Stable error code.",
+          "enum": [
+            "too_large",
+            "invalid_request",
+            "rate_limited",
+            "queue_full",
+            "maps_missing",
+            "ephemeris_missing",
+            "address_limit",
+            "shutting_down",
+            "storage_full",
+            "not_ready",
+            "not_found"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "description": "Plain-language error message.",
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "CustomSiteErrorResponse",
+      "type": "object"
+    },
     "CustomSiteQueued": {
       "additionalProperties": false,
       "description": "Custom site job submission response.",
@@ -873,33 +908,13 @@
       "additionalProperties": false,
       "description": "API error envelope.",
       "properties": {
-        "code": {
-          "description": "Stable error code.",
-          "enum": [
-            "too_large",
-            "invalid_request",
-            "rate_limited",
-            "queue_full",
-            "maps_missing",
-            "ephemeris_missing",
-            "address_limit",
-            "shutting_down",
-            "storage_full",
-            "not_ready",
-            "not_found"
-          ],
-          "title": "Code",
-          "type": "string"
-        },
-        "message": {
-          "description": "Plain-language error message.",
-          "title": "Message",
-          "type": "string"
+        "error": {
+          "$ref": "#/$defs/ErrorDetail",
+          "description": "Error code and message."
         }
       },
       "required": [
-        "code",
-        "message"
+        "error"
       ],
       "title": "ErrorResponse",
       "type": "object"

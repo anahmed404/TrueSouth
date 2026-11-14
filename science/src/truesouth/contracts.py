@@ -642,6 +642,12 @@ class ErrorDetail(Contract):
 class ErrorResponse(Contract):
     """API error envelope."""
 
+    error: ErrorDetail = Field(description='Error code and message.')
+
+
+class CustomSiteErrorResponse(Contract):
+    """Custom-site HTTP error body."""
+
     code: Literal['too_large', 'invalid_request', 'rate_limited', 'queue_full', 'maps_missing', 'ephemeris_missing', 'address_limit', 'shutting_down', 'storage_full', 'not_ready', 'not_found'] = Field(description='Stable error code.')
     message: str = Field(description='Plain-language error message.')
 

@@ -144,9 +144,9 @@ def test_documented_validation_example_and_api_error_detail():
         'sources': [{'name': 'JPL Horizons', 'url': 'https://ssd.jpl.nasa.gov/horizons/',
                      'used_for': 'Sun and Earth positions'}],
     }
-    assert c.Validation.model_validate(example).model_dump() == example
+    assert c.Validation.model_validate(example).model_dump(exclude_unset=True) == example
     status = {'site_id': 'c_-89.2000_130.5000', 'status': 'failed', 'site': None, 'error': {'code': 'terrain_unavailable', 'message': 'Terrain unavailable.'}}
-    assert c.CustomSiteStatus.model_validate(status).model_dump() == status
+    assert c.CustomSiteStatus.model_validate(status).model_dump(exclude_unset=True) == status
 
 
 def test_documented_worked_example_subset():

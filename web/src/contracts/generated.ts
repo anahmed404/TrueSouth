@@ -597,6 +597,33 @@ export interface Comparison {
   unit: string;
 }
 /**
+ * Custom-site HTTP error body.
+ *
+ * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
+ * via the `definition` "CustomSiteErrorResponse".
+ */
+export interface CustomSiteErrorResponse {
+  /**
+   * Stable error code.
+   */
+  code:
+    | "too_large"
+    | "invalid_request"
+    | "rate_limited"
+    | "queue_full"
+    | "maps_missing"
+    | "ephemeris_missing"
+    | "address_limit"
+    | "shutting_down"
+    | "storage_full"
+    | "not_ready"
+    | "not_found";
+  /**
+   * Plain-language error message.
+   */
+  message: string;
+}
+/**
  * Custom site job submission response.
  *
  * This interface was referenced by `TrueSouthContracts`'s JSON-Schema
@@ -863,21 +890,24 @@ export interface DifferenceOverTime {
  * via the `definition` "ErrorResponse".
  */
 export interface ErrorResponse {
+  error: ErrorDetail1;
+}
+/**
+ * Structured API error.
+ */
+export interface ErrorDetail1 {
   /**
    * Stable error code.
    */
   code:
-    | "too_large"
-    | "invalid_request"
+    | "invalid_coordinates"
+    | "date_outside_time_grid"
     | "rate_limited"
     | "queue_full"
-    | "maps_missing"
-    | "ephemeris_missing"
-    | "address_limit"
-    | "shutting_down"
-    | "storage_full"
-    | "not_ready"
-    | "not_found";
+    | "terrain_unavailable"
+    | "not_found"
+    | "computation_failed"
+    | "storage_full";
   /**
    * Plain-language error message.
    */
