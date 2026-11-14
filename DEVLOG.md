@@ -795,6 +795,33 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Mission Control
 
+#### 2026-11-14 · MC9c · Compare two sites at two landing dates
+- **Who:** Claude Code agent, for the orchestrator, from a tester's request
+- **AI use:** Claude Code, claude-opus-5-5, with the impeccable design skill (a second mode
+  in the approved C2 Compare window, no new colours) — wrote the spec section, the "Sites and
+  dates" mode (`dates.ts`, `dates-view.tsx`, `mode-switch.tsx`, `picks-store.ts`,
+  `probe.tsx`), the dates CSV and JSON exports, the `cmp` share parameter, the shared
+  `LandingDateFields` and `clampLanding`, and 41 vitest tests (32 rule tests; 7 mounted on
+  the shared fixture, comparing each column with the scoring engine and the Slip Planner's
+  sweep for every preset) — checked by the agent with the vitest suite, typecheck and the
+  build, and by eye at 1440 × 900, 1024 × 768 and 390 × 844 (default picks, one site at two
+  dates, the pickers open, "Use this date", a copied link reopened in a fresh browser); a
+  human has not reviewed it yet
+- **State:** verified (reviewed by Cursor (grok-4.7): approve with fixes; 60 cases on fixture and real data matched the scoring engine, the Sites mode and Python; its must-fix (the summary said all four are NO-GO when a column had no result) and one can-follow (picked dates clamped again when the mission changes) fixed by the orchestrator; on the tree merged with main ccb1389: 471 Python tests (1 skipped), 2,834 web tests with 3 expected to fail on the fixture, typecheck and build all exit 0. Not yet tried by the team)
+- **Changed:** `web/src/features/mission-control/compare/` (the new mode, its tests; the
+  table takes an optional head, last row and best column; columns have a key and a date),
+  `web/src/features/mission-control/share/share-link.ts` (adds `cmp` while the mode shows),
+  `web/src/app/mission/landing-date-control.tsx` (the form's date and hour fields are now
+  `LandingDateFields`, used by the strip's form unchanged and by Compare's pickers),
+  `web/src/app/mission/landing-control.ts` (`clampLanding`), `docs/features/compare.md`,
+  `docs/features/mission-control.md`, `docs/design/c2/built-compare-dates-*.png`, this entry
+- **Notes:**
+  - Labels: "Sites" (unchanged, the default) and "Sites and dates".
+  - The best column: GO beats CAUTION beats NO-GO, then the higher printed score; ties all
+    marked; none when every column is NO-GO, all four tie, or one is loading.
+  - The share link carries the picks only through the Share button: the address bar is the
+    scenario's, and the scenario store was left as it is. `docs/data-contracts.md`, which
+    lists the link's parameters, does not list `cmp` yet (not this track's file).
 #### 2026-11-14 · MC rail overlays · Popovers and hover cards leave the rail (the black box)
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — portalled `Popover` and `Tip` to the page's
@@ -2087,6 +2114,56 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   - `|latitude| > 89.999°` throws for the local frame and for walking. The sphere point and the Sun-elevation formula still accept the poles.
 
 ## Academy
+
+#### 2026-11-14 · A4b · The lessons' panels show the real thing
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — audited lessons 1 to 4 for stand-ins and
+  missing values, wrote the lesson panels (`lesson/panels/`), their data module and tests,
+  the wiring into the predict reveal and the lesson-complete screen, and the doc changes.
+  Checked by the agent with the tests (on the real derived files and the fixture), the
+  typecheck and the build, and in a browser at 1440 × 900 and 390 × 844, keyboard only,
+  with reduced motion, and with `VITE_DATA=fixtures`. No AI-generated images. A human has
+  not played it.
+- **State:** verified (reviewed by Codex (gpt-6.1-terra): every panel number recomputed from the stored data and equal to the lessons after display rounding; five findings, all fixed by the author (a read-only horizon chart, the month validated, a whole-dataset lesson check, wider no-stand-in coverage); on the tree merged with main 23d3a1b: 471 Python tests (1 skipped), 2,792 web tests with 3 expected to fail on the fixture until S2c lands, typecheck and build all exit 0. Not yet played by a person)
+- **Changed:** `web/src/features/academy/` (`lesson/panels/`, `lesson/stage.tsx`,
+  `complete-screen.tsx`, `drag-body.ts`, `lessons/story.ts`, `lessons/l4.ts`, `academy.css`,
+  tests), `docs/academy/lessons.md`, `docs/academy/overview.md`,
+  `docs/design/c2/built-academy-panels-*.png`. One additive change outside the Academy
+  (review fix): `web/src/features/panorama/chart.tsx` takes an optional
+  `interactive?: boolean` on `HorizonChart` (default true, Mission Control unchanged); with
+  false the chart is a picture (`role="img"`, its label the text alternative; no tab stop,
+  cursor, readout, marking, wheel or key handling, no instructions or live region), and
+  `panorama.css` gives `.pano-chart[data-static]` a default cursor. Otherwise the panels
+  import `HorizonChart` and its geometry, `bandSegments` and `Countdowns` (timeline, lazy),
+  `hourFlags` and `useHourFlags` (scoring) and `drawnDistance` and `DRAWN_EARTH_RADIUS`
+  (`three/scene/proportions.ts`, a pure module) as they are.
+- **Notes:**
+  - Seven stand-ins removed: three prediction reveals (lesson 1 step 3 System view, lesson 2
+    step 1 Lander's eye, lesson 4 step 3 timeline) and four lesson-complete screens ("The …
+    panel appears here once Mission Control builds it"). Each now draws the lesson's stored
+    data at its site and moment; `panel-data.test.ts` checks the numbers against the worked
+    examples, `no-stand-ins.test.ts` renders every step and complete screen.
+  - Lesson 4 step 3's caption called its band "the timeline's Earth band", but that band
+    is link hours (51.5% of the story month at the 1° mask) while the caption quotes
+    `l4.earth_up_pct` (59.7%, any of Earth's disc showing). The reveal draws the latter
+    and the caption now says so (lessons.md first).
+  - The story site is now `story.site_id` (it was hard-coded to `connecting_ridge`, absent
+    from the fixtures). The story month is `story.landing_utc` to `story.month_end_utc`
+    only when they are exactly 720 hours apart and inside the time grid; otherwise the
+    lesson shows "This lesson's numbers do not match the lesson" and nothing is drawn or
+    shortened (review fix; the earlier fixture workaround is gone).
+  - Review fixes (Codex, PR #113): the reveal's horizon chart is read-only (above); the
+    System view names the missing data when `system.bin` fails; `lesson-data.test.ts` runs
+    every lesson's checks on a whole dataset (goals reachable, correct answers true of the
+    drawn data). It passes on the real data and is marked expected-to-fail on the fixture,
+    whose made-up worked examples contradict its own series (lesson 1's highest Sun 4.4°
+    against 2.14° stored, Earth visible all month against "about 60%", the month end equal
+    to the landing): the Science follow-up is making them computed, and the marker comes off
+    when it lands. `no-stand-ins.test.ts` now also covers prompts, conversation lines,
+    cards, live stages and the bare readout key `l4.link_pct_by_mask`.
+  - Cost: about +13 kB JavaScript and +13 kB CSS in all (10 kB of it the timeline's CSS,
+    loaded only with the countdowns on lesson 4's complete screen). No 3D code is loaded;
+    `system.bin` (1.26 MB) is fetched only by lesson 1's reveal and complete screen.
 
 #### 2026-11-14 · A12 · The team proposal
 - **Who:** Claude Code agent, for the orchestrator

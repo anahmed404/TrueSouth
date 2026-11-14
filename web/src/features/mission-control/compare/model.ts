@@ -42,7 +42,11 @@ export const TOO_FEW_SITES = "Compare needs two or more sites. Add one from the 
 
 /** One selected site, ready to draw as a column. */
 export type ColumnView = {
+  /** Unique in a table: the site id, or the site id and its date in "Sites and dates". */
+  key: string;
   siteId: string;
+  /** The column's own landing date in "Sites and dates"; null when the table has one date. */
+  landingUtc: string | null;
   name: string;
   site: Site | null;
   /** For a best-lit variant, the site it belongs to. */
@@ -67,13 +71,21 @@ function variantNote(site: Site, sites: readonly Site[]): string | null {
   return variantLine(site, parent ? siteName(parent, parent.id) : null);
 }
 
-export function compareColumn(siteId: string, sites: readonly Site[], status: SiteStatus, profile: MissionProfile): ColumnView {
+export function compareColumn(
+  siteId: string,
+  sites: readonly Site[],
+  status: SiteStatus,
+  profile: MissionProfile,
+  landingUtc: string | null = null,
+): ColumnView {
   const site = sites.find((s) => s.id === siteId) ?? null;
   const evaluation = status.kind === "ready" ? status.evaluation : null;
   const notes: string[] = [];
   if (site?.group === "artemis" && !site.variant_of) notes.push(MAP_CENTRE_NOTE);
   return {
+    key: landingUtc ? `${siteId}@${landingUtc}` : siteId,
     siteId,
+    landingUtc,
     name: siteName(site, siteId),
     site,
     parent: parentOf(site, sites),

@@ -1,5 +1,5 @@
 import { ArrowUpRight, Download } from "lucide-react";
-import { memo, useCallback, useContext, useId, useLayoutEffect, useMemo, useState } from "react";
+import { memo, useCallback, useContext, useId, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { MissionProfile, Site } from "../../../contracts/generated";
 import type { PanelProps } from "../../../app/panel";
@@ -12,9 +12,9 @@ import { useSites } from "../../../data/hooks";
 import { saveTextFile } from "../../../lib/export";
 import { scoreTitle } from "../../../app/mission/rules";
 import { WindowHeaderSlot } from "../../../app/mission/floating-window";
-import { useScenarioStore } from "../../../app/mission/scenario-context";
+import { useScenario, useScenarioStore } from "../../../app/mission/scenario-context";
 import { SettingsTag } from "../../../app/mission/settings-tag";
-import { NO_RESULT_TEXT, useSiteStatus, type SiteStatus } from "../../../app/mission/site-status";
+import { NO_RESULT_TEXT } from "../../../app/mission/site-status";
 import { coordinatesText, moonTrekLink, quickmapLink } from "../share/nasa-links";
 import { currentScenarioLink } from "../share/share-link";
 import { compareCsv, compareFileName, scenarioFileName, scenarioJson, type ExportScenario } from "./export";
@@ -32,6 +32,11 @@ import {
   type StatusCell,
 } from "./model";
 import { CHOSEN_TAG, CHOSEN_TIP, isVariant } from "../../../app/mission/site-labels";
+import { readCmp } from "./dates";
+import { DatesBody } from "./dates-view";
+import { ModeSwitch } from "./mode-switch";
+import { compareStore, useCompareState } from "./picks-store";
+import { LOADING, StatusProbe, mergeReport, type Reported } from "./probe";
 import "./compare.css";
 
 /** How many times the table has rendered. For the test that a scrub does not re-render it. */
@@ -44,6 +49,29 @@ export const compareRenders = { count: 0 };
  * not re-render it.
  */
 export default function Compare({ scenario }: PanelProps) {
+  const { mode } = useCompareState();
+  const grid = useScenario((s) => s.catalog.grid);
+
+  // A shared link may open "Sites and dates" with its picks (`cmp`, docs/features/compare.md):
+  // read once, kept only when it fits this scenario, ignored otherwise.
+  useLayoutEffect(() => {
+    const picks = readCmp(compareStore.takeLinkPicks(), scenario.siteIds, grid, scenario.profile.duration_days);
+    if (picks) compareStore.set({ mode: "dates", picks });
+    // Only the first opening reads the link.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (mode === "dates") {
+    return (
+      <DatesBody
+        profile={scenario.profile}
+        siteIds={scenario.siteIds}
+        landingUtc={scenario.landingUtc}
+        focusedSiteId={scenario.focusedSiteId}
+        grid={grid}
+      />
+    );
+  }
   return (
     <CompareBody
       profile={scenario.profile}
@@ -61,44 +89,6 @@ type BodyProps = {
   focusedSiteId: string | null;
 };
 
-type Reported = { status: SiteStatus; profile: MissionProfile; landingUtc: string };
-
-const LOADING: SiteStatus = { kind: "loading" };
-
-function sameStatus(a: SiteStatus, b: SiteStatus): boolean {
-  if (a.kind !== b.kind) return false;
-  if (a.kind === "ready" && b.kind === "ready") return a.evaluation === b.evaluation;
-  if (a.kind === "error" && b.kind === "error") return a.message === b.message;
-  return true;
-}
-
-/**
- * One site's status, through the focused-site panel's own hook. It draws nothing; it
- * reports the status to the table, which lays the sites out row by row.
- */
-function StatusProbe({
-  siteId,
-  profile,
-  landingUtc,
-  onStatus,
-}: {
-  siteId: string;
-  profile: MissionProfile;
-  landingUtc: string;
-  onStatus: (siteId: string, reported: Reported) => void;
-}) {
-  const status = useSiteStatus(siteId, profile, landingUtc);
-  const evaluation = status.kind === "ready" ? status.evaluation : null;
-  const message = status.kind === "error" ? status.message : null;
-  // Before paint, so the table never shows one frame of the old profile's numbers.
-  useLayoutEffect(() => {
-    onStatus(siteId, { status, profile, landingUtc });
-    // `status` is rebuilt each render; what it holds is in the other dependencies.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onStatus, siteId, profile, landingUtc, status.kind, evaluation, message]);
-  return null;
-}
-
 const CompareBody = memo(function CompareBody({ profile, siteIds, landingUtc, focusedSiteId }: BodyProps) {
   const store = useScenarioStore();
   const sitesResult = useSites();
@@ -106,13 +96,7 @@ const CompareBody = memo(function CompareBody({ profile, siteIds, landingUtc, fo
   const [reports, setReports] = useState<Readonly<Record<string, Reported>>>({});
 
   const onStatus = useCallback((siteId: string, reported: Reported) => {
-    setReports((current) => {
-      const before = current[siteId];
-      if (before && before.profile === reported.profile && before.landingUtc === reported.landingUtc && sameStatus(before.status, reported.status)) {
-        return current;
-      }
-      return { ...current, [siteId]: reported };
-    });
+    setReports((current) => mergeReport(current, siteId, reported));
   }, []);
 
   const columns = useMemo(
@@ -160,6 +144,7 @@ const CompareBody = memo(function CompareBody({ profile, siteIds, landingUtc, fo
   const headerSlot = useContext(WindowHeaderSlot);
   const head = (
     <>
+      <ModeSwitch />
       <p className="cmp-date">
         <span className="sr-only">Landing </span>
         <time className="tabular" dateTime={landingUtc}>
@@ -212,10 +197,33 @@ type TableProps = {
   landingUtc: string;
   focusedSiteId: string | null;
   onFocusSite: (siteId: string) => void;
+  /**
+   * "Sites and dates" (dates.tsx) draws its own header rows (the pickers), its own last row
+   * ("Use this date"), its own "best" column and caption. Left out, the Sites table draws.
+   */
+  head?: ReactNode;
+  lastRow?: { name: ReactNode; cell: (column: ColumnView) => ReactNode };
+  statusBest?: readonly boolean[];
+  caption?: ReactNode;
+  tieNote?: string;
 };
 
 /** The table itself. Exported for tests, which draw it with known columns. */
-export const CompareTable = memo(function CompareTable({ summary, columns, rows, statuses, profile, landingUtc, focusedSiteId, onFocusSite }: TableProps) {
+export const CompareTable = memo(function CompareTable({
+  summary,
+  columns,
+  rows,
+  statuses,
+  profile,
+  landingUtc,
+  focusedSiteId,
+  onFocusSite,
+  head,
+  lastRow,
+  statusBest,
+  caption,
+  tieNote = "A tie for best marks every tied site.",
+}: TableProps) {
   compareRenders.count += 1;
   const sources = slopeSources(columns);
   const summaryId = useId();
@@ -229,16 +237,22 @@ export const CompareTable = memo(function CompareTable({ summary, columns, rows,
       <div className="cmp-scroll" role="region" aria-label="Comparison table" tabIndex={0}>
         <table className="cmp-table" data-columns={columns.length} aria-describedby={summary ? summaryId : undefined}>
           <caption className="sr-only">
-            Selected sites compared for {profile.name}, landing {formatUtc(landingUtc)}. One column per site; the best value in a row
-            is marked “best”.
+            {caption ?? (
+              <>
+                Selected sites compared for {profile.name}, landing {formatUtc(landingUtc)}. One column per site; the best value in a
+                row is marked “best”.
+              </>
+            )}
           </caption>
           <thead>
-            <tr>
-              <td className="cmp-corner" />
-              {columns.map((column) => (
-                <SiteHeader key={column.siteId} column={column} focused={column.siteId === focusedSiteId} onFocusSite={onFocusSite} />
-              ))}
-            </tr>
+            {head ?? (
+              <tr>
+                <td className="cmp-corner" />
+                {columns.map((column) => (
+                  <SiteHeader key={column.key} column={column} focused={column.siteId === focusedSiteId} onFocusSite={onFocusSite} />
+                ))}
+              </tr>
+            )}
           </thead>
           <tbody>
             <tr className="cmp-row-status">
@@ -247,8 +261,8 @@ export const CompareTable = memo(function CompareTable({ summary, columns, rows,
                 <span className="cmp-limit">and the score, of 100</span>
               </th>
               {columns.map((column, index) => (
-                <td key={column.siteId}>
-                  <StatusContent column={column} cell={statuses[index] ?? null} />
+                <td key={column.key}>
+                  <StatusContent column={column} cell={withBest(statuses[index] ?? null, statusBest?.[index])} />
                 </td>
               ))}
             </tr>
@@ -257,7 +271,7 @@ export const CompareTable = memo(function CompareTable({ summary, columns, rows,
                 <Explain term="veto">Broken rule</Explain>
               </th>
               {columns.map((column) => (
-                <td key={column.siteId}>
+                <td key={column.key}>
                   <BrokenContent column={column} />
                 </td>
               ))}
@@ -265,26 +279,41 @@ export const CompareTable = memo(function CompareTable({ summary, columns, rows,
             {rows.map((row) => (
               <MetricRowView key={row.id} row={row} columns={columns} />
             ))}
-            <tr className="cmp-row-links">
-              <th scope="row">Open in NASA’s maps</th>
-              {columns.map((column) => (
-                <td key={column.siteId}>
-                  <NasaLinks site={column.site} />
-                </td>
-              ))}
-            </tr>
+            {lastRow ? (
+              <tr className="cmp-row-links">
+                <th scope="row">{lastRow.name}</th>
+                {columns.map((column) => (
+                  <td key={column.key}>{lastRow.cell(column)}</td>
+                ))}
+              </tr>
+            ) : (
+              <tr className="cmp-row-links">
+                <th scope="row">Open in NASA’s maps</th>
+                {columns.map((column) => (
+                  <td key={column.key}>
+                    <NasaLinks site={column.site} />
+                  </td>
+                ))}
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
       <p className="cmp-foot">
         {columns.length === 1 ? `${TOO_FEW_SITES} ` : null}
-        A tie for best marks every tied site.
+        {tieNote}
         {columns.some((column) => isVariant(column.site)) ? ` ${NOT_RANKED_NOTE}` : null}
         {sources.length > 0 ? ` Slope from ${sources.join("; ")}.` : null}
       </p>
     </>
   );
 });
+
+/** A status cell with its "best" mark replaced, for a table that ranks columns its own way. */
+function withBest(cell: StatusCell | null, best: boolean | undefined): StatusCell | null {
+  if (!cell || best === undefined) return cell;
+  return { ...cell, best };
+}
 
 function SiteHeader({ column, focused, onFocusSite }: { column: ColumnView; focused: boolean; onFocusSite: (siteId: string) => void }) {
   const site = column.site;
@@ -414,7 +443,7 @@ function MetricRowView({ row, columns }: { row: MetricRow; columns: readonly Col
       </th>
       {columns.map((column, index) => {
         const cell = row.cells[index] ?? null;
-        return <td key={column.siteId}>{cell ? <CellContent cell={cell} kind={row.id} /> : <NotReady column={column} />}</td>;
+        return <td key={column.key}>{cell ? <CellContent cell={cell} kind={row.id} /> : <NotReady column={column} />}</td>;
       })}
     </tr>
   );

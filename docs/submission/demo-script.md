@@ -15,8 +15,8 @@ browser; the first rehearsal is the check. Rehearse it once and fix any label th
 2. Use a browser with a graphics card. Without WebGL the System view shows a still picture
    and the Slip Planner shows the flat Polar map under the same spots (see "If something
    fails").
-3. Have the recorded backup video ready in another tab. (Open item in
-   [`links-checklist.md`](links-checklist.md): the video is not recorded yet.)
+3. If the live site fails during a demo, keep going from the screenshots in
+   `docs/design/c2/` or the slides ([`links-checklist.md`](links-checklist.md), item 3).
 4. Window about 1440 × 900. Mission Control is built for a wide screen.
 
 Replace `<live>` with the address of the demo server. CHECK (team lead): there is no live
