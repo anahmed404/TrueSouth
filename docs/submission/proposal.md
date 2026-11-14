@@ -109,11 +109,11 @@ All four members test the running app and choose between design variants at chec
 
 **Abdallah Mostafa: team lead; architecture and delivery.** Owns the architecture (science computed once in Python, scored in the browser) and final decisions; the datasets (LOLA terrain, Horizons positions, NASA's validation maps, Moon and Earth imagery) and their preparation into the compact per-site files the browser loads; the data contracts and the server API, including on-demand custom coordinates with a queue and limits; integration; the production deployment. It joins the parts.
 
-**Omar Khaled: lunar science and validation.** Owns the science on that data: skylines to 300 km, the six-year hourly Sun and Earth record (elevation, clearance, disc fraction), slope, each terrain tier's correctness (the code custom coordinates run), and the validation gates against NASA's products, with differences published. Every answer rests on it.
+**Omar Khaled: lunar science and validation.** Owns the science done on that data: each site's skyline out to 300 km; the six-year hourly record of the Sun's and Earth's elevation, clearance and disc fraction; slope; the three terrain tiers, which custom coordinates also run on; and the validation gates that compare our results with NASA's own products and publish the differences. Every answer rests on it.
 
-**Tawfic Kobtan: Mission Control and the scoring engine.** Owns the planner's answer: mission profiles tagged sourced or assumed; scoring that gives GO, CAUTION or NO-GO with the deciding rule, identical in Python and the browser; the timeline, Slip Planner, "Next GO" and Compare. A planner acts on it.
+**Tawfic Kobtan: Mission Control and the scoring engine.** Owns the planner's answer: the mission profiles and their rules, every value tagged sourced or assumed; the scoring engine that turns the hourly record into a score and a GO, CAUTION or NO-GO status with the rule that decided it, identical in Python and the browser; the timeline, the Slip Planner's six-year sweep, "Next GO" and Compare with its exports. A planner acts on it.
 
-**Ahmed Salah: visualisation and the Academy.** Owns how people see and learn it: the System view, Polar map, Local terrain and Lander's eye, fast on ordinary laptops; and the Academy, the second mode, with interactive lessons on the same engine and data. It shows why a site is lit or dark.
+**Ahmed Salah: visualisation and the Academy.** Owns how people see and learn it: the 3D scene and the map, drawn from NASA's data (the System view, Polar map, Local terrain and Lander's eye) and kept fast on ordinary laptops; and the Academy, the product's second mode, whose interactive lessons run on the same engine and data, each with the formula behind it. It shows why a site is lit or dark.
 
 ## Workflow Strategy
 
