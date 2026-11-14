@@ -14,7 +14,8 @@ import { ScenarioProvider, useScenario, useScenarioStore } from "./mission/scena
 import { windowPlacement, type Rect, type ShellState } from "./mission/free-space";
 import { SceneSlot } from "./mission/scene-slot";
 import { SpaceScene } from "../features/three/scene";
-import { POLAR_MAP_LAYER } from "../features/polar-map";
+import { polarMapLayer } from "../features/polar-map";
+import { useRequestCustomSite } from "./mission/custom-site-actions";
 import { TRY_AGAIN_ANNOUNCEMENT } from "./mission/scene-status";
 import {
   OVERLAY_SELECTOR,
@@ -96,6 +97,8 @@ function MissionShell() {
   const viewportWidth = useViewportWidth();
   const state = useViewState();
   const commands = useViewCommands(state);
+  const requestCustomSite = useRequestCustomSite();
+  const polarMap = useMemo(() => polarMapLayer({ onRequestSite: requestCustomSite }), [requestCustomSite]);
   const windowOpen = state.window !== null;
   const shellRef = useRef<HTMLDivElement>(null);
 
@@ -317,7 +320,7 @@ function MissionShell() {
 
       <SceneSlot
         Scene={SpaceScene}
-        flat={POLAR_MAP_LAYER}
+        flat={polarMap}
         view={state.camera}
         scenario={scenario}
         freeSpace={freeSpace}
