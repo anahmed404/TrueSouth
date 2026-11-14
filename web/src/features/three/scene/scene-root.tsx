@@ -553,7 +553,7 @@ function Scene3D(props: SceneProps) {
     const step = 24;
     const move = (dx: number, dy: number) => () => {
       controls.beginDrag();
-      if (!event.shiftKey || !controls.pan(dx, dy)) controls.orbit(dx, dy);
+      if (!event.shiftKey || !controls.pan(dx, dy)) controls.orbit(dx, dy, true);
     };
     const keys: Record<string, () => void> = {
       ArrowLeft: move(step, 0),
@@ -768,8 +768,8 @@ function Director(props: DirectorProps) {
   useEffect(() => {
     props.bus.current.controls = {
       beginDrag: () => rig.beginDrag(),
-      orbit: (dx, dy) => {
-        rig.orbit(dx, dy);
+      orbit: (dx, dy, fromKey) => {
+        rig.orbit(dx, dy, fromKey);
         invalidate();
       },
       pan: (dx, dy) => {

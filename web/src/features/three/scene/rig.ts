@@ -286,8 +286,12 @@ export class Rig {
     return this.style !== "none" && !this.locked;
   }
 
-  /** A drag of (dx, dy) CSS pixels: turn the view (see the rule above). */
-  orbit(dx: number, dy: number): void {
+  /**
+   * A drag of (dx, dy) CSS pixels: turn the view (see the rule above). `fromKey` marks an
+   * arrow key, which the scene sends as a 24 px drag the other way; only Lander's eye's
+   * vertical axis tells the two apart.
+   */
+  orbit(dx: number, dy: number, fromKey = false): void {
     const c = this.camera;
     if (!this.turnable) return;
     this.stop();
@@ -298,7 +302,10 @@ export class Rig {
       return;
     }
     if (style === "centre") {
-      this.slipMove((pos) => slipOrbit(pos, this.slipCentre!.centre, this.slipCentre!.up0, dx, dy));
+      // The same turn as Local terrain's: the ground nearest the viewer follows the pointer.
+      // slipOrbit moves the camera's azimuth by −dx, so the rig passes −dx (the team's test:
+      // the Slip Planner's horizontal drag was reversed against every other view).
+      this.slipMove((pos) => slipOrbit(pos, this.slipCentre!.centre, this.slipCentre!.up0, -dx, dy));
       return;
     }
     // The two ground views turn about the site, within their limits.
@@ -332,13 +339,17 @@ export class Rig {
       c.lookAt(ground);
       return;
     }
-    // Lander's eye: look around from where the camera stands; the view turns against the drag.
+    // Lander's eye: look around from where the camera stands. Horizontally the picture follows
+    // the pointer, as in every view. Vertically the view follows the drag instead: dragging up
+    // looks up. The team's tester called the grab-the-world vertical "inverted" here: from
+    // 2 m up there is a horizon, not a globe, in the hand. An arrow key already looks the
+    // arrow's way (it arrives as a drag the other way), so its sign is left alone.
     const look = new THREE.Vector3(0, 0, -1).applyQuaternion(c.quaternion);
     let el = THREE.MathUtils.radToDeg(Math.asin(clamp(look.dot(up), -1, 1)));
     let az = THREE.MathUtils.radToDeg(Math.atan2(look.dot(east), look.dot(north)));
     const k = c.fov / 60;
     az -= dx * 0.12 * k;
-    el = clamp(el + dy * 0.08 * k, -20, 60);
+    el = clamp(el + (fromKey ? dy : -dy) * 0.08 * k, -20, 60);
     c.up.copy(up);
     c.lookAt(c.position.clone().add(along(az, el)));
   }
