@@ -100,6 +100,8 @@ export type DrawInput = {
   /** The lesson box: no catalog names and fewer labels. */
   compact: boolean;
   marker: Marker | null;
+  /** Where labels may go: the free space in the box's pixels. Default: the whole box. */
+  area?: Box;
   /** Whether the detailed square's border carries its label. Default true. */
   detailLabel?: boolean;
   /** The rest of the Moon around the square, drawn under it, quieter (context.ts). */
@@ -110,18 +112,31 @@ export type DrawInput = {
 export const DETAIL_LABEL = "Detailed terrain · 80 m map";
 
 /**
- * Where the detailed square's label goes: just outside its top edge, from its left corner,
- * kept inside the box; under the bottom edge when the top one is off screen; or nowhere when
- * neither edge is on screen. Its size never changes with the zoom.
+ * Where the detailed square's label goes, inside `area` (the free space, or the whole box):
+ * just outside the top edge from its left corner when that stays in the area, else just
+ * inside the top-left corner; when the top edge is out of the area, the same at the bottom
+ * edge; when neither edge is in it, nowhere. Its size never changes with the zoom.
  */
-export function detailLabelBox(rect: Box, labelWidth: number, box: { width: number; height: number }): Box | null {
+export function detailLabelBox(rect: Box, labelWidth: number, area: Box): Box | null {
   const h = 20;
   const w = labelWidth;
-  if (rect.x + rect.width < 8 || rect.x > box.width - 8 || rect.width < w) return null;
-  const x = Math.min(Math.max(rect.x, 8), rect.x + rect.width - w, box.width - 8 - w);
-  if (rect.y - h - 4 >= 4 && rect.y <= box.height) return { x, y: rect.y - h - 4, width: w, height: h };
-  const below = rect.y + rect.height + 4;
-  if (below >= 4 && below + h <= box.height - 4) return { x, y: below, width: w, height: h };
+  const gap = 4;
+  const areaRight = area.x + area.width;
+  const areaBottom = area.y + area.height;
+  const rectRight = rect.x + rect.width;
+  const rectBottom = rect.y + rect.height;
+  if (area.width < w + 2 * gap || area.height < h + 2 * gap) return null;
+  if (rectRight < area.x + w || rect.x > areaRight - w || rect.width < w + 2 * gap) return null;
+  const xFor = (inside: boolean) =>
+    Math.max(area.x + gap, Math.min(rect.x + (inside ? gap : 0), rectRight - w - gap, areaRight - gap - w));
+  if (rect.y >= area.y && rect.y <= areaBottom) {
+    if (rect.y - h - gap >= area.y) return { x: xFor(false), y: rect.y - h - gap, width: w, height: h };
+    if (rect.y + gap + h <= areaBottom) return { x: xFor(true), y: rect.y + gap, width: w, height: h };
+  }
+  if (rectBottom >= area.y && rectBottom <= areaBottom) {
+    if (rectBottom + gap + h <= areaBottom) return { x: xFor(false), y: rectBottom + gap, width: w, height: h };
+    if (rectBottom - gap - h >= area.y) return { x: xFor(true), y: rectBottom - gap - h, width: w, height: h };
+  }
   return null;
 }
 
@@ -148,11 +163,12 @@ export function drawMap(input: DrawInput): void {
     drawClipped(ctx, input.relief, rect, width, height);
   }
   if (input.overlay && input.scratch) drawOverlay(input, rect);
-  drawGraticule(input);
+  const labelBox = detailLabelFor(input, rect);
+  drawGraticule(input, labelBox);
 
   const taken: Box[] = [];
   const plates: (() => void)[] = [];
-  drawDetailBorder(input, rect, taken, plates);
+  drawDetailBorder(input, rect, labelBox, taken, plates);
   drawTies(input);
   for (const pin of input.pins) drawPin(ctx, pin, palette);
   drawMarker(input);
@@ -199,7 +215,7 @@ function drawOverlay(input: DrawInput, rect: Box): void {
 }
 
 /** Rings every degree from 80°S, meridians every 30°, labelled where they have room. */
-function drawGraticule(input: DrawInput): void {
+function drawGraticule(input: DrawInput, avoid: Box | null): void {
   const { ctx, view, palette } = input;
   const pole = planeToScreen(0, 0, view);
   const outer = latitudeRadiusPx(-80, view);
@@ -231,21 +247,30 @@ function drawGraticule(input: DrawInput): void {
     if (Math.abs(lat) % every !== 0 || lat === -80) continue;
     const r = latitudeRadiusPx(lat, view);
     const at = { x: pole.x + 4, y: pole.y - r };
-    gridLabel(ctx, `${Math.abs(lat)}°S`, at, palette);
+    gridLabel(ctx, `${Math.abs(lat)}°S`, at, palette, "left", avoid);
   }
   if (outer > 90) {
     for (let lon = 0; lon < 360; lon += 30) {
       const at = latLonToScreen(-79.6, lon, view);
-      gridLabel(ctx, lon === 0 ? "0°" : lon === 180 ? "180°" : `${lon}° E`, at, palette, "centre");
+      gridLabel(ctx, lon === 0 ? "0°" : lon === 180 ? "180°" : `${lon}° E`, at, palette, "centre", avoid);
     }
   }
   ctx.restore();
 }
 
-function gridLabel(ctx: CanvasRenderingContext2D, text: string, at: ScreenPoint, palette: Palette, align: "left" | "centre" = "left"): void {
+/** A grid label on a plate; it gives way to the detailed square's label. */
+function gridLabel(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  at: ScreenPoint,
+  palette: Palette,
+  align: "left" | "centre",
+  avoid: Box | null,
+): void {
   const w = ctx.measureText(text).width + 8;
   const x = align === "centre" ? at.x - w / 2 : at.x;
   const y = at.y - 9;
+  if (avoid && overlaps(avoid, { x, y, width: w, height: 18 })) return;
   plateRect(ctx, x, y, w, 18, palette.plate);
   ctx.fillStyle = palette.ink2;
   ctx.textBaseline = "middle";
@@ -492,13 +517,22 @@ function labelFeatures(input: DrawInput, taken: Box[], plates: (() => void)[]): 
   }
 }
 
+/** The label's box for this frame, or null (a lesson, labels off, or no edge on screen). */
+function detailLabelFor(input: DrawInput, rect: Box): Box | null {
+  if (input.compact || input.detailLabel === false) return null;
+  const { ctx, palette } = input;
+  ctx.font = `400 12px ${palette.font}`;
+  const w = Math.ceil(ctx.measureText(DETAIL_LABEL).width) + 16;
+  return detailLabelBox(rect, w, input.area ?? { x: 0, y: 0, width: input.width, height: input.height });
+}
+
 /**
  * The detailed square's edge: a 1 px Control Edge hairline (the panels' edge token) along the
  * relief image's extent, which is also the lookup grids' extent, with its label. It follows
  * the square, not the 80°S ring: the 80 m data fill the whole square, and the ring is already
  * drawn as a latitude circle.
  */
-function drawDetailBorder(input: DrawInput, rect: Box, taken: Box[], plates: (() => void)[]): void {
+function drawDetailBorder(input: DrawInput, rect: Box, box: Box | null, taken: Box[], plates: (() => void)[]): void {
   const { ctx, palette } = input;
   ctx.save();
   ctx.strokeStyle = palette.line;
@@ -507,10 +541,6 @@ function drawDetailBorder(input: DrawInput, rect: Box, taken: Box[], plates: (()
   const y = Math.round(rect.y) + 0.5;
   ctx.strokeRect(x, y, Math.round(rect.width) - 1, Math.round(rect.height) - 1);
   ctx.restore();
-  if (input.compact || input.detailLabel === false) return;
-  ctx.font = `400 12px ${palette.font}`;
-  const w = Math.ceil(ctx.measureText(DETAIL_LABEL).width) + 16;
-  const box = detailLabelBox(rect, w, { width: input.width, height: input.height });
   if (!box) return;
   taken.push(box);
   plates.push(() => {

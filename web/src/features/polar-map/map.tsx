@@ -543,10 +543,11 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
       compact: lesson,
       marker,
       detailLabel: detailLabelOn(props.readouts, props.detailLabel),
+      area: frame,
       context: context.status === "ready" ? { layers: context.layers, alpha: contextAlpha } : null,
     });
     for (const listener of frameListeners.current) listener();
-  }, [view, box.width, box.height, dpr, pins, features, props.showFeatureNames, marker, relief4k.status, relief8k.status, overlay, overlayImage?.status, opacity, fontsReady, halfWidthM, lesson, context, contextAlpha, props.readouts, props.detailLabel]);
+  }, [view, box.width, box.height, dpr, pins, features, props.showFeatureNames, marker, relief4k.status, relief8k.status, overlay, overlayImage?.status, opacity, fontsReady, halfWidthM, lesson, context, contextAlpha, props.readouts, props.detailLabel, frame]);
 
   // The projector for things drawn over the map (`onProjector`).
   const frameListeners = useRef(new Set<() => void>());

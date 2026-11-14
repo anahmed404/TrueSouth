@@ -455,7 +455,7 @@ describe("pins and labels keep their screen size", () => {
 });
 
 describe("the detailed square's border and label", () => {
-  const box = { width: 1440, height: 900 };
+  const box = { x: 0, y: 0, width: 1440, height: 900 };
 
   it("follows the relief image's extent exactly, at every zoom", () => {
     for (const view of VIEWS) {
@@ -471,7 +471,22 @@ describe("the detailed square's border and label", () => {
     const rect = { x: 461, y: 135, width: 446, height: 446 };
     expect(detailLabelBox(rect, 170, box)).toEqual({ x: 461, y: 111, width: 170, height: 20 });
     // Zoomed in: the same size, kept on screen along the edge.
-    expect(detailLabelBox({ x: -4000, y: 200, width: 9000, height: 9000 }, 170, box)).toEqual({ x: 8, y: 176, width: 170, height: 20 });
+    expect(detailLabelBox({ x: -4000, y: 200, width: 9000, height: 9000 }, 170, box)).toEqual({ x: 4, y: 176, width: 170, height: 20 });
+  });
+
+  it("keeps the label inside the free space when the top edge touches the view bar", () => {
+    const area = { x: 280, y: 120, width: 800, height: 500 };
+    expect(detailLabelBox({ x: 461, y: 135, width: 446, height: 446 }, 170, area))
+      .toEqual({ x: 465, y: 139, width: 170, height: 20 });
+    // When only the bottom edge is in the free space, the label moves inside it too.
+    expect(detailLabelBox({ x: 461, y: -200, width: 446, height: 816 }, 170, area))
+      .toEqual({ x: 465, y: 592, width: 170, height: 20 });
+  });
+
+  it("omits a label that cannot fit in the free space", () => {
+    const rect = { x: 0, y: 0, width: 446, height: 446 };
+    expect(detailLabelBox(rect, 170, { x: 0, y: 0, width: 160, height: 360 })).toBeNull();
+    expect(detailLabelBox(rect, 170, { x: 0, y: 0, width: 360, height: 24 })).toBeNull();
   });
 
   it("moves the label under the bottom edge when the top is off screen, and drops it when neither shows", () => {
