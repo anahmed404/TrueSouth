@@ -1732,6 +1732,20 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Academy
 
+#### 2026-11-14 · A12 · The team proposal
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-sonnet-5-5 — wrote `docs/submission/proposal.md`, the team's
+  proposal in the organisers' template, from the repository's own submission files, specs and
+  validation data; checked each reference by fetching its DOI record (Crossref) or the
+  publisher's or NASA's page, and counted the words of each section by script. No browser was
+  opened and no test suite was run. The team gave the team name, the four members' names and
+  their responsibilities; nothing else about a person was written. A human has not read it.
+- **State:** built, not verified
+- **Changed:** `docs/submission/proposal.md`, this entry
+- **Notes:** Four optional slots for a line on each member's background are marked
+  `[optional: ...]` and listed in a comment at the top of the file. The two Horizons
+  references that could not be checked (Giorgini et al. 1996; the DE421 report) were left out.
+
 #### 2026-11-14 · A11b · Submission materials brought up to date
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-sonnet-5-5 — rewrote the six files in `docs/submission/`
