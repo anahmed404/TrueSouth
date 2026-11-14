@@ -54,22 +54,19 @@ State as of **2026-11-14**.
   from 80°S to 60°S, a smooth Moon north of 60°S; a queue with position and plain error
   messages. It needs NASA's prepared terrain maps for the terrain tiers; without them the
   app says custom sites are not available.
-- Mission Control: the five camera views, the **Compare** window, CSV and JSON export,
+- Mission Control: the five camera views, the **Compare** window (the selected sites on one
+  landing date, or two sites on two landing dates), CSV and JSON export,
   QuickMap and Moon Trek links, the **Share** link, the timeline and countdowns, and the
   "Add site" picker with "Enter coordinates".
 - Academy lessons 1 to 4 with real worked examples and KaTeX cards, and a plain-language
   entry for every term.
+- Close-up ground from NASA's 5 m maps under the lander in Local terrain and Lander's eye,
+  at the 16 sites those maps cover. It is used for drawing only; the results still come
+  from the 80 m map.
 - The validation page (`/validation`) and the Docker build.
 
-**Not built, or out of scope for the deadline:**
-
-- Academy lessons 5 to 8 (the path shows "Not written yet").
-- A blocker ring and slope or height colour overlays on the 3D ground. Close-up ground
-  from NASA's 5 m maps is in progress: the data for 16 sites is built, the drawing is not
-  merged yet.
-- Official Artemis region outlines on the Polar map (a ScienceBase login is needed).
-- The "compute for my dates" sensitivity grid.
-- Luna's final art. Her drawings are placeholders.
+**Next steps:** more Academy lessons (the path shows lessons 5 to 8 as "Not written yet")
+and the official Artemis region outlines on the Polar map.
 
 ## Run it
 

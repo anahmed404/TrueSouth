@@ -49,9 +49,11 @@ each integration checkpoint.
 
 ## Science
 
-### S2c · The fixture's Academy numbers come from the fixture's own series
+#### 2026-11-14 · S2c · The fixture's Academy numbers come from the fixture's own series
 
-Built, not verified. Added a synthetic Academy story site and computed its examples with the real builder. The 720-hour story month has a 2.19° highest Sun and Earth visible 62.5% of the time. The full-grid fixture is about 7.6 MB.
+- **State:** verified (the fixture built by Codex and connected to the Academy's tests by Claude Opus, who played lessons 1 to 4 on the fixture and on the real data; the three expected-to-fail markers removed; on the tree merged with main 733a521: 472 Python tests (1 skipped), 2,907 web tests, typecheck and build all exit 0; `data/derived/` unchanged)
+
+Added a synthetic Academy story site and computed its examples with the real builder. The 720-hour story month has a 2.19° highest Sun and Earth visible 62.5% of the time. The full-grid fixture is about 7.6 MB.
 
 AI use: Codex assisted with implementation and tests.
 
