@@ -1,6 +1,7 @@
 import type { FreeSpace } from "../../../app/scene";
 import { MOON_RADIUS_M, CAP_HALF_WIDTH_M } from "../../../lib/geo";
 import { add, clamp, cross, dot, len, mul, norm, perpendicular, slerp, sub, type V3 } from "./vec";
+import { DRAWN_EARTH_RADIUS, EARTH_FARTHEST_KM, drawnDistance } from "./proportions";
 
 /**
  * The camera rig's logic, without WebGL (docs/features/system-view.md, "Camera").
@@ -119,37 +120,76 @@ function extents(subjects: Subjects, right: V3, up: V3): { halfX: number; halfY:
 }
 
 /**
- * Home: from under the south pole, looking up the Moon's axis, turned so that Earth and the
- * Sun sit either side of the Moon. The line between them is laid across the free space's
- * longer side (side by side on a laptop, above and below on a phone), and the camera backs
- * off until all three fit.
+ * The opening view (the team lead, 2026-11-14): the Moon in the middle of the free space as
+ * the subject, Earth whole beside it, the Sun far outside. Scene units are Moon radii.
+ *
+ * - The camera looks up the Moon's axis from under the south pole, turned so that the
+ *   Moon's 0° meridian, the direction Earth always lies in to within libration (about 8°),
+ *   points along the free space's longer side: Earth sits to the left of the Moon on a
+ *   laptop, above it on a phone. Left, because the sight-line labels sit to the right of the
+ *   short "To Earth" mark, so they never reach Earth.
+ * - It leans `tiltDeg` away from Earth's side, so Earth is always a little further from the
+ *   camera than the Moon (it reads as behind, and is never "in front" by proportions.ts,
+ *   bodyInFront); the south pole stays near the middle of the Moon's disc.
+ * - It does not depend on the hour, so scrubbing time never moves it.
+ * - `earthReach` (Earth's centre at its farthest, plus its drawn radius) must fit along the
+ *   long side; `across` is the room needed across it: Earth's swing with libration, its
+ *   radius and its label below it.
+ * - Earth is whole inside the free space in every layout, never a slice behind or between
+ *   panels: at 1024 × 768 with the panels open that puts the Moon at about 45 px (Earth
+ *   needs 4.04 Moon radii of the 188 px half-width). `minMoonPx` only guards free spaces
+ *   smaller than any of the four layouts tested.
  */
-export function homePose(subjects: Subjects, space: FreeSpace): Pose {
+export const OPENING = {
+  earthReach: drawnDistance(EARTH_FARTHEST_KM) + DRAWN_EARTH_RADIUS,
+  across: 2.1,
+  margin: 1.03,
+  tiltDeg: 12,
+  minMoonPx: 30,
+} as const;
+
+/** The camera distance at which the Moon's radius is `px` pixels in a window `viewportHeight` tall. */
+export function distanceForMoonPx(px: number, viewportHeight: number, fovDeg = SPACE_FOV): number {
+  const k = viewportHeight / (2 * Math.tan((fovDeg * Math.PI) / 360) * Math.max(px, 1e-6));
+  return Math.sqrt(1 + k * k);
+}
+
+/**
+ * Home: the opening view described at OPENING. At true scale (no Sun drawn) it frames the
+ * Moon and Earth at its real distance, as it always has.
+ */
+export function homePose(drawn: Subjects, space: FreeSpace): Pose {
   const look: V3 = [0, 1, 0];
-  const e = subjects.earth.centre;
-  const s = subjects.sun?.centre ?? [0, 0, 0];
-  let across: V3 = [e[0] - s[0], 0, e[2] - s[2]];
-  if (len(across) < 0.25) {
-    // Earth and the Sun nearly line up as seen from under the pole: put them to one side.
-    const mid: V3 = [e[0] + s[0], 0, e[2] + s[2]];
-    across = len(mid) > 1e-6 ? mid : [1, 0, 0];
-  }
-  // Try the Earth–Sun line across the screen, then up the screen; keep whichever gives the
-  // larger Moon. right × look = up for a camera looking down its −z with +y up.
-  const a = norm(across);
-  const b = norm(cross(a, look));
-  let best: Pose | null = null;
-  let bestDistance = Infinity;
-  for (const right of [a, b]) {
-    const up = norm(cross(right, look));
-    const { halfX, halfY } = extents(subjects, right, up);
-    const distance = fitDistance(halfX, halfY, SPACE_FOV, space);
-    if (distance < bestDistance - 1e-9) {
-      bestDistance = distance;
-      best = { pos: mul(look, -distance), look, up, fov: SPACE_FOV };
+  if (!drawn.sun) {
+    // True scale: Earth across the free space's longer side, the camera backed off to fit it.
+    const e = drawn.earth.centre;
+    const across: V3 = len([e[0], 0, e[2]]) > 1e-6 ? [e[0], 0, e[2]] : [1, 0, 0];
+    const a = norm(across);
+    const b = norm(cross(a, look));
+    let best: Pose | null = null;
+    let bestDistance = Infinity;
+    for (const right of [a, b]) {
+      const up = norm(cross(right, look));
+      const { halfX, halfY } = extents(drawn, right, up);
+      const distance = fitDistance(halfX, halfY, SPACE_FOV, space);
+      if (distance < bestDistance - 1e-9) {
+        bestDistance = distance;
+        best = { pos: mul(look, -distance), look, up, fov: SPACE_FOV };
+      }
     }
+    return best as Pose;
   }
-  return best as Pose;
+  // Earth to the left (screen up is −z, so screen right is −x) or, on a tall screen, at the top
+  // (screen up is +x, Earth's side).
+  const left = { up: [0, 0, -1] as V3, distance: fitDistance(OPENING.earthReach, OPENING.across, SPACE_FOV, space, OPENING.margin) };
+  const top = { up: [1, 0, 0] as V3, distance: fitDistance(OPENING.across, OPENING.earthReach, SPACE_FOV, space, OPENING.margin) };
+  const pick = top.distance < left.distance - 1e-9 ? top : left;
+  const distance = Math.min(pick.distance, distanceForMoonPx(OPENING.minMoonPx, space.viewport.height));
+  // Lean away from Earth's side (scene −x) by tiltDeg, still looking at the Moon's centre.
+  const t = (OPENING.tiltDeg * Math.PI) / 180;
+  const pos: V3 = [-distance * Math.sin(t), -distance * Math.cos(t), 0];
+  const tilted: V3 = [Math.sin(t), Math.cos(t), 0];
+  return { pos, look: tilted, up: perpendicular(pick.up, tilted), fov: SPACE_FOV };
 }
 
 /** "From Earth" and "From the Sun": looking back at the Moon along that body's direction. */
