@@ -807,7 +807,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   build, and by eye at 1440 × 900, 1024 × 768 and 390 × 844 (default picks, one site at two
   dates, the pickers open, "Use this date", a copied link reopened in a fresh browser); a
   human has not reviewed it yet
-- **State:** built, not verified
+- **State:** verified (reviewed by Cursor (grok-4.7): approve with fixes; 60 cases on fixture and real data matched the scoring engine, the Sites mode and Python; its must-fix (the summary said all four are NO-GO when a column had no result) and one can-follow (picked dates clamped again when the mission changes) fixed by the orchestrator; on the tree merged with main ccb1389: 471 Python tests (1 skipped), 2,834 web tests with 3 expected to fail on the fixture, typecheck and build all exit 0. Not yet tried by the team)
 - **Changed:** `web/src/features/mission-control/compare/` (the new mode, its tests; the
   table takes an optional head, last row and best column; columns have a key and a date),
   `web/src/features/mission-control/share/share-link.ts` (adds `cmp` while the mode shows),
