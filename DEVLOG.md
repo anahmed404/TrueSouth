@@ -2024,6 +2024,23 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## Academy
 
+#### 2026-11-14 · A13 · A 7-slide deck outline and a video script
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-sonnet-5-5 — wrote `docs/submission/slides.md` (seven slides:
+  title, on-slide text, picture, speaker notes) and `docs/submission/video-script.md` (a
+  2-minute shot table with cuts to 60 and 30 seconds, and a "Before you record" list),
+  from the submission texts, `demo-script.md` and `validation.json`. Checked by the agent
+  by reading the files, counting words by script, and checking that the named captures
+  exist in `docs/design/c2/` and that the on-screen labels exist in the source. It ran no
+  tests, no server and no browser. No AI-generated images.
+- **State:** built, not verified (not read by a reviewer; no one has recorded the video or
+  built the deck from it; the timings are not rehearsed against a clock)
+- **Changed:** `docs/submission/slides.md`, `docs/submission/video-script.md`
+- **Notes:** The deck and the video say nothing about Compare's second mode (open pull
+  request #116) and call the 5 m close-up ground "in progress". Most captures in
+  `docs/design/c2/` predate today's changes or show other dates, so slides 1, 4 and 6 name
+  new captures to take. Spoken words: 194 (2 minutes), 127 (60 seconds), 60 (30 seconds).
+
 #### 2026-11-14 · A4b · The lessons' panels show the real thing
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — audited lessons 1 to 4 for stand-ins and
