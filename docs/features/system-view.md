@@ -28,10 +28,12 @@ Prototype and designer's notes:
   real relief.
 - **Earth,** with NASA's Blue Marble texture, placed in its true direction from the Moon.
   It turns once every 23.934 h of the clock. The turning is decoration; nothing reads from
-  it.
-- **The Sun,** drawn in code: a small disc with a short warm edge that ends by 1.8 disc
-  radii. It is a light source, and an arrow marks it at the edge of the screen when it is
-  off screen.
+  it. When Earth stands between the camera and the Moon (for example "From Earth"), it
+  fades to a faint ghost so the Moon behind it shows, and it is hidden while the camera is
+  inside it.
+- **The Sun,** drawn in code: a disc with a short warm edge that ends by 1.8 disc radii. It
+  is a light source. An arrow marks the Sun, and Earth, at the edge of the free space when
+  that body is off screen.
 - **Site pins** for every selected site. The focused site's pin has a Moonlight ring and a
   name plate.
 - **Two sight-lines** from the focused site: one toward the Sun, one toward Earth.
@@ -61,21 +63,34 @@ Prototype and designer's notes:
 All of it is a photograph of space under a flat interface. The scene's shading and shadows
 are decoration.
 
-## Saying the distances are squeezed
+## Saying the sizes and distances are not to scale
 
 No line on the scene says it (the team lead removed the "Distances not to scale" plate,
-2026-11-14). The view's About text says distances are squeezed by default and every
-direction is true (`system_view` in `web/src/lib/explain.ts`), and the "True scale" button's
-description says what it switches.
+2026-11-14). The view's About text says, in one sentence, that sizes and distances are
+not to scale (Earth and the Sun drawn much closer than life, the Sun much smaller), that
+every direction is true, and that "True scale" shows the real proportions (`system_view` in `web/src/lib/explain.ts`). The "True scale"
+button's description says what it switches.
 
 ## Scale
 
 Real distances cannot fit on a screen: Earth is about 110 Moon-diameters away and the Sun
-about 400 times further.
+about 390 times further. Earth is 3.67 times the Moon across and the Sun 109 times Earth.
 
-- **Default: compressed.** Every direction and angle is correct. Earth and the Sun are
-  drawn closer than life, both squeezed to 2.5 Moon radii from the Moon, so they share the
-  frame with it.
+- **Default: a schematic that keeps the order** (the team lead's request, 2026-11-14: the
+  Moon must not look bigger than Earth and the Sun, and the Sun must look much further
+  away than Earth). Every direction is true: Earth and the Sun sit along the directions in
+  `system.bin`. Only drawn sizes and drawn distances are compressed, by one rule, the cube
+  root, so the order of sizes and of distances can never invert:
+  - drawn radius = (true radius ÷ Moon radius)^⅓ Moon radii: Moon 1, Earth 1.54, Sun 7.37;
+  - drawn distance = 0.75 × (true distance ÷ Moon radius)^⅓ Moon radii: Earth about 4.5
+    (4.42 at perigee to 4.62 at apogee, following the series), the Sun about 33, so the Sun
+    is drawn 7.3 times further than Earth.
+  - The constants live in one place, `web/src/features/three/scene/proportions.ts`, with
+    the true values beside them.
+  - With these, no two bodies ever touch, and a sight-line from any site on the Moon, drawn
+    along its true direction, points into the drawn Earth's and the drawn Sun's discs.
+- **True scale toggle.** Earth moves to its real distance at its real size. The camera
+  pulls back to fit both. The Sun stays a direction arrow, labelled with its distance.
 - **True scale toggle.** Earth moves to its real distance at its real size. The camera
   pulls back to fit both. The Sun stays a direction arrow, labelled with its distance.
 
@@ -152,8 +167,12 @@ re-encoded. Sizes are from the prototype; they are budgets for the real files.
 
 ## Camera
 
-- **Home:** from under the south pole, turned so that Earth and the Sun sit either side of
-  the Moon.
+- **Home (the first load):** from under the south pole, with the Moon and Earth side by
+  side across the free space's longer side, the Moon on one side and Earth on the other,
+  both in frame and as large as they fit. The Sun is too far to share that frame: its arrow
+  at the edge of the free space and the "To the Sun" sight-line point to it, and a zoom out
+  or "From the Sun" brings it in. The System view zooms out to 600 Moon radii (900 at true
+  scale), far enough to see all three bodies.
 - **One rule for every drag, "grab the globe":** the surface under the pointer moves with
   the pointer (drag right and the surface moves right), on both axes, in the System view,
   Local terrain and Lander's eye. In a tilted view the ground nearest the viewer is the
@@ -179,7 +198,8 @@ re-encoded. Sizes are from the prototype; they are budgets for the real files.
 - **Slide (pan):** right-drag, Shift-drag or two-finger drag. The globe turns under the
   camera about the Moon's centre, so the height above the surface does not change.
 - **Zoom:** scroll or pinch, toward the pointer: the surface point under the pointer stays
-  fixed on screen. Down to 60 km from the surface.
+  fixed on screen. Down to 60 km from the surface, out to 600 Moon radii (900 at true
+  scale).
 - **Double-click or double-tap** a spot on the Moon: the camera centres it and moves in to
   about half the distance, looking straight down. On empty space: back to the preset's
   framing, level.

@@ -192,7 +192,7 @@ void main() {
 }`;
 
 const earthFragment = `${LOGDEPTH_F}
-uniform sampler2D uMap; uniform float uLoaded; uniform vec3 uSun, uRim;
+uniform sampler2D uMap; uniform float uLoaded, uAlpha; uniform vec3 uSun, uRim;
 varying vec3 vO; varying vec3 vN; varying vec3 vW;
 void main() {
   #include <logdepthbuf_fragment>
@@ -209,7 +209,7 @@ void main() {
   vec3 col = alb * smoothstep(-.08, .3, ndl) * 1.25 + alb * .006;
   float rim = pow(1. - max(dot(n, v), 0.), 3.) * smoothstep(-.15, .35, ndl);
   col += uRim * rim * .35;
-  gl_FragColor = vec4(col, 1.);
+  gl_FragColor = vec4(col, uAlpha);
   #include <colorspace_fragment>
 }`;
 
@@ -219,8 +219,11 @@ export function earthMaterial(blank: THREE.Texture, rim: THREE.Color) {
     uLoaded: { value: 0 },
     uSun: { value: new THREE.Vector3(1, 0, 0) },
     uRim: { value: rim },
+    uAlpha: { value: 1 },
   };
-  const material = new THREE.ShaderMaterial({ uniforms, vertexShader: earthVertex, fragmentShader: earthFragment });
+  // Transparent so Earth can fade while it covers the Moon (proportions.ts, earthOpacity).
+  // Drawn after the Moon, with depth writes on, at full opacity it looks as before.
+  const material = new THREE.ShaderMaterial({ uniforms, vertexShader: earthVertex, fragmentShader: earthFragment, transparent: true });
   return { material, uniforms };
 }
 

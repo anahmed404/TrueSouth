@@ -2,7 +2,8 @@ import * as THREE from "three";
 import type { CameraViewId } from "../../../app/scene";
 import type { DecodedApron, DecodedTerrain } from "../../../data";
 import { sceneImageUrl } from "../../../data";
-import { EARTH_RADIUS_KM, MOON_RADIUS_M, SQUEEZED_DISTANCE, SQUEEZED_SUN_RADIUS, SUN_RADIUS_KM, type ApronGrid } from "../../../lib/geo";
+import { EARTH_RADIUS_KM, MOON_RADIUS_M, SUN_RADIUS_KM, type ApronGrid } from "../../../lib/geo";
+import { DRAWN_SUN_RADIUS, drawnDistance, earthOpacity } from "./proportions";
 import { altitudeOf, type SiteFrame } from "./camera";
 import { apronGeometry, apronUpGrid, patchGeometry, patchOutline, patchUpGrid, smoothGroundGeometry, type GroundSite } from "./ground";
 import { GroundLook } from "./ground-material";
@@ -542,10 +543,14 @@ export class World {
     this.earthMesh.rotation.set(0, (inputs.hourIndex / 23.934) * Math.PI * 2, 0);
     anchors.earth.copy(this.earthMesh.position);
     anchors.earthRadius = earthRadius;
+    // A faint ghost while Earth stands in front of the Moon (proportions.ts); hidden from inside.
+    const earthAlpha = earthOpacity(camera.position.toArray() as V3, { centre: this.earthMesh.position.toArray() as V3, radius: earthRadius });
+    this.earth.uniforms.uAlpha.value = earthAlpha;
+    if (earthAlpha <= 0.001) this.earthMesh.visible = false;
 
-    const sunFar = new THREE.Vector3(...inputs.sunDir).multiplyScalar(SQUEEZED_DISTANCE);
+    const sunFar = new THREE.Vector3(...inputs.sunDir).multiplyScalar(drawnDistance(inputs.sunDistKm));
     this.sunMesh.position.lerpVectors(sunFar, sunNear, near);
-    const sunRadius = lerp(SQUEEZED_SUN_RADIUS, sunNearDistance * (SUN_RADIUS_KM / inputs.sunDistKm), near);
+    const sunRadius = lerp(DRAWN_SUN_RADIUS, sunNearDistance * (SUN_RADIUS_KM / inputs.sunDistKm), near);
     this.sun.uniforms.uExt.value = lerp(1.8, 1.5, near);
     this.sunMesh.scale.setScalar(sunRadius * this.sun.uniforms.uExt.value);
     this.sunMesh.quaternion.copy(camera.quaternion);

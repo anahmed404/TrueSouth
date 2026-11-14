@@ -110,8 +110,8 @@ export function Overlay(props: OverlayProps) {
   const moreRef = useRef<HTMLSpanElement>(null);
   const sightRefs = { sun: useRef<HTMLDivElement>(null), earth: useRef<HTMLDivElement>(null) };
   const bodyRefs = { sun: useRef<HTMLDivElement>(null), earth: useRef<HTMLDivElement>(null) };
-  const markerRef = useRef<HTMLDivElement>(null);
-  const arrowRef = useRef<SVGSVGElement>(null);
+  const markerRefs = { sun: useRef<HTMLDivElement>(null), earth: useRef<HTMLDivElement>(null) };
+  const arrowRefs = { sun: useRef<SVGSVGElement>(null), earth: useRef<SVGSVGElement>(null) };
   const landerRef = useRef<HTMLDivElement>(null);
   const footRef = useRef<HTMLDivElement>(null);
 
@@ -230,16 +230,18 @@ export function Overlay(props: OverlayProps) {
         if (visible) settle(el, s.x - el.offsetWidth / 2, s.y + r + 8);
       }
 
-      // The Sun's edge marker, in the System view, when the Sun is off screen (or only a
-      // direction, at true scale).
-      const marker = markerRef.current;
-      if (marker) {
+      // Edge markers, in the System view, for the Sun and Earth when off screen (the Sun also
+      // when it is only a direction, at true scale). Earth faded in front of the Moon is on
+      // screen, so it has no marker.
+      for (const key of ["sun", "earth"] as const) {
+        const marker = markerRefs[key].current;
+        if (!marker) continue;
         let on = false;
         if (!small && anchors.bodies && p.view === "system") {
-          const sunPoint = anchors.sun ?? cam.clone().add(anchors.sunDirection.clone().multiplyScalar(1_000));
-          const s = project(sunPoint, camera, W, H);
+          const point = key === "sun" ? (anchors.sun ?? cam.clone().add(anchors.sunDirection.clone().multiplyScalar(1_000))) : anchors.earth;
+          const s = project(point, camera, W, H);
           const inside = s.front && s.x > fs.x && s.x < fs.x + fs.width && s.y > fs.y && s.y < fs.y + fs.height;
-          const asDirection = !anchors.sun;
+          const asDirection = key === "sun" && !anchors.sun;
           if (!inside || asDirection) {
             on = true;
             const cx = fs.x + fs.width / 2;
@@ -257,7 +259,8 @@ export function Overlay(props: OverlayProps) {
               mx = cx + dx * k;
               my = cy + dy * k;
             }
-            if (arrowRef.current) arrowRef.current.style.transform = `rotate(${Math.atan2(dy, dx)}rad)`;
+            const arrow = arrowRefs[key].current;
+            if (arrow) arrow.style.transform = `rotate(${Math.atan2(dy, dx)}rad)`;
             settle(marker, mx - marker.offsetWidth / 2, my - marker.offsetHeight / 2);
           }
         }
@@ -368,10 +371,17 @@ export function Overlay(props: OverlayProps) {
           {view === "panorama" && sight ? bodyLabel("sun", sight.sunEl, sight.sunFrac, sight.sunClear) : "Sun"}
         </span>
       </div>
-      <div ref={markerRef} className="plate scene-label scene-label-row scene-marker" aria-hidden="true">
+      <div ref={markerRefs.sun} className="plate scene-label scene-label-row scene-marker" aria-hidden="true">
         <BodyIcon body="sun" size={14} />
         <span className="scene-label-main">{trueScale && props.sunDistKm !== null ? `Sun, ${formatDistance(props.sunDistKm)} away` : "Sun"}</span>
-        <svg ref={arrowRef} className="scene-marker-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+        <svg ref={arrowRefs.sun} className="scene-marker-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path d="M3 8h9M9 4.5 12.5 8 9 11.5" />
+        </svg>
+      </div>
+      <div ref={markerRefs.earth} className="plate scene-label scene-label-row scene-marker" aria-hidden="true">
+        <BodyIcon body="earth" size={14} />
+        <span className="scene-label-main">Earth</span>
+        <svg ref={arrowRefs.earth} className="scene-marker-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
           <path d="M3 8h9M9 4.5 12.5 8 9 11.5" />
         </svg>
       </div>

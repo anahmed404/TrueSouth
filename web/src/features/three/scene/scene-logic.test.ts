@@ -25,6 +25,7 @@ import {
   type Subjects,
 } from "./camera";
 import { groupPins, moreSitesLine } from "./pins";
+import { DRAWN_EARTH_RADIUS, drawnSun } from "./proportions";
 import { bodyLabel, formatSignedDeg, sightGood, sightLabel, sightState } from "./sight";
 import { cross, dot, len, norm, sub } from "./vec";
 
@@ -67,31 +68,47 @@ describe("the camera keeps its subject in the free space", () => {
     expect(folded).toBeLessThan(open);
   });
 
+  // The drawn bodies (proportions.ts): Earth about 4.5 Moon radii out, the Sun about 33.
+  const earth = drawnSun([1, 0, 0], 384_400); // the same rule as Earth's distance, along +x
   const subjects: Subjects = {
-    earth: { centre: [2.5, 0, 0], radius: 0.4 },
-    sun: { dir: [-1, 0, 0], centre: [-2.5, 0, 0], radius: 0.12 },
+    earth: { centre: earth.centre, radius: DRAWN_EARTH_RADIUS },
+    sun: { dir: [-1, 0, 0], ...drawnSun([-1, 0, 0], 149_600_000) },
   };
+  const inside = (p: { x: number; y: number }, fs: FreeSpace) =>
+    p.x > fs.x && p.x < fs.x + fs.width && p.y > fs.y && p.y < fs.y + fs.height;
 
-  it("System view: the Moon is centred in the free space, and Earth and the Sun fit beside it", () => {
-    for (const fs of [space(336, 120, 728, 560), space(16, 100, 1408, 720), space(8, 150, 374, 480, 390, 844)]) {
+  it("System view home: the Moon and Earth side by side in the free space, the Sun out of frame", () => {
+    for (const fs of [space(336, 120, 728, 560), space(16, 100, 1408, 720), space(288, 160, 392, 280, 1024, 768), space(8, 150, 374, 480, 390, 844)]) {
       const pose = homePose(subjects, fs);
-      const moon = project(pose, [0, 0, 0], fs);
-      expect(moon.x).toBeCloseTo(freeCentre(fs).x, 6);
-      expect(moon.y).toBeCloseTo(freeCentre(fs).y, 6);
-      for (const body of [subjects.earth.centre, subjects.sun!.centre]) {
-        const p = project(pose, body, fs);
-        expect(p.x).toBeGreaterThan(fs.x);
-        expect(p.x).toBeLessThan(fs.x + fs.width);
-        expect(p.y).toBeGreaterThan(fs.y);
-        expect(p.y).toBeLessThan(fs.y + fs.height);
+      const right = norm(cross(pose.up, pose.look));
+      const up = norm(pose.up);
+      // Every limb of the Moon and of Earth is inside the free space.
+      for (const [centre, radius] of [[[0, 0, 0], 1], [subjects.earth.centre, subjects.earth.radius]] as const) {
+        for (const edge of [right, up]) {
+          for (const sign of [1, -1]) {
+            const limb: [number, number, number] = [0, 1, 2].map((i) => centre[i]! + sign * radius * edge[i]!) as [number, number, number];
+            expect(inside(project(pose, limb, fs), fs)).toBe(true);
+          }
+        }
       }
+      // The Sun's disc is not: it is marked at the edge instead.
+      expect(inside(project(pose, subjects.sun!.centre, fs), fs)).toBe(false);
       // From under the south pole, looking up the axis.
       expect(pose.look).toEqual([0, 1, 0]);
       expect(pose.pos[1]).toBeLessThan(-1);
     }
   });
 
-  it("System view: a tall phone free space puts Earth and the Sun above and below the Moon", () => {
+  it("System view home: on a laptop, the Moon is still large (at least 70 px across its radius with the panels open)", () => {
+    const fs = space(336, 120, 728, 560);
+    const pose = homePose(subjects, fs);
+    const moon = project(pose, [0, 0, 0], fs);
+    const limb = project(pose, [0, 0, 1], fs);
+    const rim = project(pose, [1, 0, 0], fs);
+    expect(Math.max(Math.hypot(limb.x - moon.x, limb.y - moon.y), Math.hypot(rim.x - moon.x, rim.y - moon.y))).toBeGreaterThan(70);
+  });
+
+  it("System view home: a tall phone free space puts Earth above or below the Moon", () => {
     const fs = space(8, 150, 374, 480, 390, 844);
     const pose = homePose(subjects, fs);
     const e = project(pose, subjects.earth.centre, fs);

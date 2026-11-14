@@ -3,6 +3,7 @@ import type { CameraViewId, FreeSpace } from "../../../app/scene";
 import { MOON_RADIUS_M } from "../../../lib/geo";
 import { easeInOutCubic, lerpPose, viewOffset, type Pose, type SiteFrame } from "./camera";
 import { focusPose, hitMoon, lookOf, orbitSystem, panSystem, rayThrough, systemPivot, zoomSystem } from "./navigate";
+import { SYSTEM_MAX_ALTITUDE, TRUE_SCALE_MAX_ALTITUDE } from "./proportions";
 import { slipLightBlend, slipOrbit, slipZoom } from "./slip";
 import { clamp, smooth, type V3 } from "./vec";
 
@@ -333,7 +334,7 @@ export class Rig {
     if (this.mode === "system") {
       // Without a pointer, toward the pivot's point of interest, which moves continuously.
       const toward = systemPivot(c.position, lookOf(c), this.focus).surface.normalize();
-      zoomSystem(c, factor, this.trueScale ? 900 : 40, ndc, toward);
+      zoomSystem(c, factor, this.trueScale ? TRUE_SCALE_MAX_ALTITUDE : SYSTEM_MAX_ALTITUDE, ndc, toward);
       return;
     }
     if (this.style === "centre") {
