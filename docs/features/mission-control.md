@@ -24,8 +24,12 @@ A new visitor lands on the System view with a working default: profile `im2_athe
 polar sites, landing date 2028-03-01. Nothing is empty on first load. The Slip Planner is
 one click away on the view bar.
 
-Step 2 also takes typed coordinates: "Your own coordinates" in the add-site picker
+Step 2 also takes typed coordinates: "Enter coordinates" in the add-site picker
 computes a custom site on the server ([`polar-map.md`](polar-map.md), "Custom sites").
+"Enter coordinates" is an outlined full-width row with a crosshair at the top of the picker,
+closed by default so the catalog is not pushed down; one click opens the form with focus in
+the latitude field. When the server has no custom sites the row still shows, with "Not
+available on this server" under its label.
 Out of scope for the deadline: "compute for my dates"; its spec stays in
 [`polar-map.md`](polar-map.md).
 

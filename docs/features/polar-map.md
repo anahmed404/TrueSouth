@@ -125,7 +125,7 @@ map is flat, and the globe lives in the [System view](system-view.md).
 Built: the server is PR #80, the web side PR #92. Formats
 are in [`../data-contracts.md`](../data-contracts.md), "API messages".
 
-1. The user types a latitude and east longitude under "Your own coordinates" in the
+1. The user types a latitude and east longitude under "Enter coordinates" in the
    add-site picker, or clicks "Compute this site" on the map.
 2. The app calls `POST /api/sites/custom`. The row appears in the sites rail at once,
    "Computing terrain for your site…", with its coordinates, its place in the queue, the

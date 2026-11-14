@@ -433,6 +433,15 @@
     min-height: 0;
   }
 
+  /*
+    The countdown cards never set the strip's height: size containment makes the column take
+    the timeline's row height, so the strip is the same height at every hour. The cards are
+    built to fit it (timeline.css, "Countdown cards").
+  */
+  .strip-countdowns {
+    contain: size;
+  }
+
   /* The timeline's head reads its own width: the landing date keeps its room first. */
   .strip-timeline {
     container: strip / inline-size;
