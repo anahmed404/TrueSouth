@@ -5,35 +5,48 @@ The prompt that drives the orchestrator is [`orchestrator-prompt.md`](orchestrat
 
 ## Now
 
-- **Submission day, 2026-11-14.** Every major feature is on `main` (5a5fd84, #87). What is
-  left is fixes from the team lead's testing, four small pull requests in review, and the
-  submission texts.
+- **Submission day, 2026-11-14.** Every major feature is on `main` (f071a09, #102). What is
+  left: three fixes from the team lead's testing (below), the deploy to the server, and the
+  team lead's own submission decisions.
 - **On `main`:** the space-first shell; the 3D scene (the System view turns freely over the
-  poles, real stars, quality stages for slow machines); the flat Polar map (pin nudge,
-  "New site here?", "Compute this site"); the Slip Planner as a camera view; Local terrain
-  and the Lander's eye with relief, drawn shadows and texture; the Lander's eye horizon
-  chart, collapsed by default; the Compare window with CSV and JSON export, share and
-  confirmed QuickMap and Moon Trek links; custom coordinates (API and entry form); 25 sites
-  (20 listed and 5 best-lit variants, decision 0012); the landing date and "Next GO" in the
-  bottom strip; Academy lessons 1 to 4 playable; the validation page; Docker; the math
-  review (docs/reviews/a9-math-review.md); submission drafts (docs/submission/, stale).
-- **Last full check on `main`:** 425 Python tests (1 skipped: the real-map test), 2,317 web
+  poles, real stars, quality stages for slow machines, the middle mouse button turns the
+  camera); the flat Polar map with the rest of the Moon around its detailed square (pin
+  nudge, "New site here?", "Compute this site"); the Slip Planner as a camera view; Local
+  terrain and the Lander's eye with relief, drawn shadows and texture; the Lander's eye
+  horizon chart, collapsed by default; the Compare window (one-row header with the date;
+  the bottom strip folds while it is open; CSV and JSON export; share; QuickMap and Moon
+  Trek links); custom coordinates (API with queue position and error codes; an "Enter
+  coordinates" row); 25 sites (20 catalog sites and 5 best-lit variants, decision 0012); the
+  landing date and "Next GO" in a bottom strip that keeps one height; Academy lessons 1 to
+  4, with lessons 1, 2 and 4 complete (drag the Sun, drag Earth, sketch the skyline); the
+  validation page; Docker; the production deploy files (nginx, Let's Encrypt, a trusted
+  proxy setting; decision 0017; `docs/deploy.md`); the math review; the submission texts
+  (`docs/submission/`, current as of #102).
+- **Last full check on `main`:** 458 Python tests (1 skipped: the real-map test), 2,465 web
   tests, typecheck and build.
+- **The catalog reproduces.** `uv run truesouth build-sites --generated-utc
+  2026-11-13T00:00:00Z` on the real data recomputed all 25 sites on 2026-11-14 and left
+  `data/derived/` byte-for-byte unchanged.
 - **Servers running for the team lead (do not stop; children use other ports):** the dev
-  server on 5173 from the main checkout (it follows `git pull`), the API on 8000 (uvicorn,
-  needed for custom sites in development), Docker project `truesouth-s13` on 8080. After a
-  batch of merges: `docker compose -p truesouth-s13 up -d --build`.
+  server on 5173 from the main checkout (it follows `git merge --ff-only origin/main`), the
+  API on 8000 (uvicorn, needed for custom sites in development; restart it after an API
+  change), Docker project `truesouth-s13` on 8080. After a batch of merges:
+  `docker compose -p truesouth-s13 up -d --build`.
+- **The team lead tests from another computer over the LAN** (a laptop at 125 % display
+  scaling, the Docker build on port 8080). Bugs seen there may not show on this machine.
 - **The machine is the limit.** At most 6 or 7 children at once (the team lead, 2026-11-14,
   after 12 to 14 at once exhausted CPU and memory). Tell every child: each suite once,
   nothing in parallel, no dev server or browser left running. Drive C filled completely
-  once that night: remove finished worktrees as packages merge (clean, and on GitHub).
-- **Providers:** all four work. Claude usage ran out once for under an hour and cut four
-  children off mid-task; the team lead restored it with a banked reset. Children commit and
-  push as they go for this reason.
+  once: remove finished worktrees as packages merge (clean, and on GitHub); 39 were
+  removed on 2026-11-14.
+- **Providers:** all four work. Claude usage ran out once for under an hour; an Antigravity
+  child stalled once for over an hour with no commit (it was stopped and the work restarted
+  on another model). Children commit and push as they go for this reason.
 - **Task ids:** `task_status` needs the full id, which starts
   `node:delegated-task:command%3Amcp%3A…`. A message to a finished child's thread starts a
   new run in the same worktree with its context, which is the cheapest way to send review
-  findings back.
+  findings back. Thread ids changed prefix after the machine restarted: list threads to get
+  the current id rather than reusing an old one.
 
 ## Running now
 
@@ -41,13 +54,9 @@ Each child works in its own worktree and opens a pull request. Seven is the limi
 
 | Task | Branch or PR | Provider, model | State |
 | :--- | :--- | :--- | :--- |
-| Team lead's fixes: the bottom strip keeps one height while scrubbing; the middle mouse button turns the camera; "Enter coordinates" reads as a button; a black box beside the folded sites rail (not reproduced so far) | `mc/testing-feedback-3` | Claude Code, `claude-opus-5-5` | finishing; pull request not opened yet |
-| The Moon drawn around the Polar map's square, with a border on the square | `three/t7b-polar-map-context` | Claude Code, `claude-opus-5-5` | finishing; pull request not opened yet |
-| Compare: one-row header with the date; the strip folds while Compare is open | `mc/mc9b-compare-space` | Claude Code, `claude-opus-5-5` | final checks; pull request not opened yet |
-| Submission texts brought up to date | `docs/a11b-submission-update` | Claude Code, `claude-sonnet-5-5` | restarted from nothing |
-| Review of the scoring boundary fix and the science document clarifications | #93, #94 | Antigravity, `gemini-4-hydrogen` | running |
-| Review of the Academy's drag and sketch steps | #95 | Codex, `gpt-6.1-terra` | running |
-| Review of the API status follow-ups and validation fields | #96 | Cursor, `grok-4.7` | running |
+| The black box beside the folded sites rail: a capture the team lead runs on their own machine, four test links, a redraw when a popover opens, popovers moved out of the rail | `mc/black-box-rail-overlays` | Claude Code, `claude-opus-5-5` | running |
+| A custom site's ground sits below the Moon's surface in Local terrain, joined to nothing | `three/t3b-custom-site-ground` | Claude Code, `claude-opus-5-5` | running |
+| System view: Earth and the Sun should read larger and farther than the Moon | `three/system-view-proportions` | Claude Code, `claude-opus-5-5` | running |
 
 ## Site placement: decided
 
@@ -66,28 +75,34 @@ for the listed point and the variant, including the large gaps at `de_gerlache_r
 
 ## What to do next
 
-1. **Merge what is open, in this order when their reviews return:** #93 (scoring boundary;
-   no status changed across 273,875 results) before #94 (science document); #96 (its full
-   Python suite has not had a clean run: two failures were fixed and only re-run alone);
-   #95 (the Academy steps). Then the three team-lead fixes as their pull requests open,
-   each with a review from another provider.
-2. **Rebuild Docker** after each batch, and tell the team lead what to try.
-3. **Owed by the orchestrator:**
-   - A full catalog rebuild check after #80: `uv run truesouth build-sites` on the real
-     data must leave `git status` clean. About 40 minutes of heavy computing, because #80
-     changed the science package's fingerprint and so emptied the placement cache. Run it
-     when few children are active.
-   - The status board at the top of `DEVLOG.md`.
-4. **Small follow-ups not yet assigned:** Local terrain says a custom site's apron "could
-   not be loaded" though it never has one (the data layer has no "none" state; a scene
-   change); QuickMap and Moon Trek links are in Compare but not in the focused-site panel;
-   the Academy's `drop-pin` step is a holding form (lessons 5 to 8 are out of scope); the
-   validation page still quotes G2's diagnostic from prose and can read the new fields once
-   #96 merges; contract validators for the profile rules (math review, B8).
-5. **Submission:** when the texts are updated, read them against the app once. Only the
-   team lead can settle: the repository is private and has no licence file (judges need a
-   public link or a zip); the live link; the backup video; whether to apply
-   docs/submission/README-proposed.md; why the data covers six years.
+1. **The three running fixes:** each returns as a pull request; send each to a reviewer
+   from another provider, merge, rebuild Docker, and tell the team lead what to try. All
+   three touch `web/src/features/three/scene/`; each was told which files the others own,
+   so merge the first approved and have the others merge `main`.
+2. **The black box is not reproduced on this machine** (four attempts, including a real
+   GPU-composited browser tab). Measured from the team lead's screenshot: it has the
+   scene's clear colour (`--space`, `#0b0b0c`), runs from the app bar's bottom edge to the
+   "Add a site" popover's top, from the rail to the popover's content edge, and grows when a
+   row is hovered. Leading theory, unproven: the scene renders on demand, and on that
+   machine's GPU the part of the canvas recomposited under a new popover comes back empty.
+   The fix must be confirmed by the team lead on their machine.
+3. **Deploy**, only on the team lead's word: the target and the method are in
+   `docs/deploy.md`; the server is reachable and bare (Ubuntu 24.04, 2 vCPU, 3.8 GB RAM,
+   Docker not installed). Needed first: ports 80 and 443 open in the cloud firewall, and
+   the team lead's answer on a contact email for Let's Encrypt (never send their email
+   anywhere unasked). Build the image on this machine and load it on the server. Unproven
+   until run there: certificate issue and renewal, the visitor's address reaching the app,
+   a terrain job's memory.
+4. **Small follow-ups not yet assigned:** QuickMap and Moon Trek links are in Compare but
+   not in the focused-site panel; the Academy's `drop-pin` step is a holding form (lessons
+   5 to 8 are out of scope); the validation page still quotes G2's diagnostic from prose
+   and can read `g2_diagnostics`; contract validators for the profile rules (math review,
+   B8); `.webmanifest` is served as `application/octet-stream`.
+5. **Submission:** the texts are current (#102) and the demo was performed on the running
+   build with its numbers recomputed, but never rehearsed against a clock. Only the team
+   lead can settle: the repository is private and has no licence file (judges need a
+   public link or a zip); the live link (after the deploy); the backup video; whether to
+   apply docs/submission/README-proposed.md; why the data covers six years.
 6. **If the team lead reports a bug from testing:** assign it at once to the child that
    built that part (a message to its thread), and pause a lower-priority child if that
    would exceed seven.
@@ -117,6 +132,16 @@ for the listed point and the variant, including the large gaps at `de_gerlache_r
   seven children the Python suite takes four to seven minutes, not one.
 - **The team lead judges by using the app.** Keep the dev server and Docker current,
   say what to try after each merge, and show a screenshot when one exists.
+- **Measure a screenshot before theorising from it.** For the black box the orchestrator
+  read a screenshot by eye, concluded the box was the rail's background, and briefed a
+  fix on that. Sampling the pixels showed the scene's clear colour and different edges.
+  Sample colours and edges first; note the device pixel ratio.
+- **A reviewer who performs the thing finds what a reader cannot.** The submission
+  texts' author never opened the app; the reviewer who clicked through the demo and
+  recomputed its numbers found a false spoken claim and a wrong date. The deploy
+  files' reviewer ran the stack and found three faults that reading had passed.
+- **Codex sometimes writes "?" for "·" in a DEVLOG heading** even when told not to.
+  Check the heading before `mark_verified.py`.
 - **Read each check's exit code directly.** Piping a check into `grep` or `tail` hid a
   typecheck failure and a broken change was merged (#18, fixed by #19). Use
   `cmd > log 2>&1; echo exit=$?`.
@@ -280,10 +305,10 @@ Ids are from [`../build-plan.md`](../build-plan.md). Anything not listed is not 
 
 | Track | Verified | In review | In progress |
 | :--- | :--- | :--- | :--- |
-| Science (S0–S16) | S0 to S9, S10 (health, static files, custom sites), S12 and S12b, S13, S15a and S15b, S16 | #93 (score boundary), #94 (science document), #96 (API status, validation fields) | — |
-| Mission Control (MC0–MC11) | MC0 to MC7, MC9, the shell feedback, custom coordinates and variant labels | — | strip height, middle mouse, Enter coordinates; Compare header |
-| 3D and Map (T0–T8) | T0, T1, T2, T3, T7, scene polish | — | the Moon around the Polar map's square |
-| Academy (A0–A11) | A0, A1, A2, A4, A5 (lessons 1 to 4), A7, A8 (validation page), A9 (math review), A11 (drafts) | #95 (A3: drag and sketch steps) | A11b (submission texts) |
+| Science (S0–S16) | S0 to S9, S10 (health, static files, custom sites, status and error codes), S12 to S12c, S13 and S13b (deploy files; not yet run on a server), S15a and S15b, S16, S2b (exact scoring at boundaries) | — | — |
+| Mission Control (MC0–MC11) | MC0 to MC7, MC9 and MC9b, the shell feedback (three rounds), custom coordinates and variant labels | — | popovers leave the rail, and the black box |
+| 3D and Map (T0–T8) | T0, T1, T2, T3, T7 and T7b, scene polish | — | a custom site's ground (T3b); System view proportions |
+| Academy (A0–A11) | A0 to A5 (lessons 1 to 4; 1, 2 and 4 complete), A7, A8 (validation page), A9 (math review), A11 and A11b (submission texts) | — | — |
 | Design | Everything picked; see Design choices | — | — |
 
 Out of scope for the deadline: T8's "compute for my dates", S10's job queue, S11 (the
@@ -295,13 +320,14 @@ An unanswered question takes the orchestrator's recommendation.
 
 | Question | Asked at | Blocks | Running meanwhile |
 | :--- | :--- | :--- | :--- |
-| The repository is private and has no licence file. Judges need a public link or a zip. | 2026-11-13, three times | the submission | everything |
-| The live demo link and the backup video. | 2026-11-13 | the submission | everything |
+| Deploy now, or after the three open fixes? Ports 80 and 443 open on the server? A contact email for Let's Encrypt, or none? | 2026-11-14 | the deploy and the live link | everything |
+| The repository is private and has no licence file. Judges need a public link or a zip. | 2026-11-13, several times | the submission | everything |
+| The backup video. | 2026-11-13 | the submission | everything |
 | Apply docs/submission/README-proposed.md? The real README still says "No application code exists yet". | 2026-11-13 | nothing | — |
+| The black box: is the testing computer a laptop with built-in graphics, and does the box vanish when the scene moves (wheel over the Moon)? | 2026-11-14 | confirming that fix | the fix itself |
 | "Slip +7 d" and "+14 d" moved into the date picker to fit the window's end on one row. Back in the strip (at the cost of a second row)? | 2026-11-14 | nothing; left as built | — |
-| The black box beside the folded sites rail: window size, which panels were open, browser. Two children could not reproduce it. | 2026-11-14 | that fix | everything else |
 | Delete the stray `default` file a Docker child wrote under `~/.docker/contexts/meta/`? | 2026-11-13 | nothing | — |
-| Links for the five retagged profile values; Luna's reference photos; the Artemis region outlines. | 2026-11-13 | nothing; shown as assumed, a placeholder, and not drawn | — |
+| Links for the five retagged profile values; Luna's reference photos; the Artemis region outlines; why the data covers six years. | 2026-11-13 | nothing; shown as assumed, a placeholder, not drawn, and an open item | — |
 
 ## Design choices
 
@@ -327,6 +353,8 @@ An unanswered question takes the orchestrator's recommendation.
 | Testing, 2026-11-14 | Polar map | **The rest of the Moon shows around the detailed square, and the square has a border.** | "It's just a square and everything else around it is black". |
 | Testing, 2026-11-14 | Compare | **No description or summary sentence; the date beside the title; the table gets the space** (the strip folds while Compare is open). | "this data is useless… remove it"; "the table is barely visible". |
 | Testing, 2026-11-14 | Add site | **Typed coordinates must be obvious:** an "Enter coordinates" row that looks like a control. | The team lead could not find the folded text toggle. |
+| Testing, 2026-11-14 | System view | **Earth and the Sun read larger and farther than the Moon** in the default arrangement; directions stay true; "True scale" unchanged. In progress. | "The Moon looks like it's bigger than both of them… we should make it look a bit more realistic". |
+| Testing, 2026-11-14 | Local terrain | **A custom site's ground joins the Moon around it.** No invented terrain. In progress. | "The landing site square appears to be under the Moon's surface with no connected terrain to it". |
 | C2 | Skyline sketch XP | **Scored on closeness:** a closer sketch earns more XP. docs/academy/overview.md needs the rule written down beside the 10/5/2 rule for answers. | The team lead took the recommendation on 2026-11-13. |
 
 The shell, start screen and shared components are built in this look (MC4a, #34).
