@@ -136,9 +136,11 @@ function extents(subjects: Subjects, right: V3, up: V3): { halfX: number; halfY:
  *   long side; `across` is the room needed across it: Earth's swing with libration, its
  *   radius and its label below it.
  * - Earth is whole inside the free space in every layout, never a slice behind or between
- *   panels: at 1440 × 900 with the panels open that puts the Moon at about 80 px, and at
- *   1024 × 768 at about 38 px (Earth needs about 4.8 Moon radii of the half-width: 396 px and
- *   188 px). `minMoonPx` only guards free spaces smaller than any of the four layouts tested.
+ *   panels: at 1440 × 900 with the panels open that puts the Moon at about 71 px, and at
+ *   1024 × 768 at about 34 px (Earth needs about 5.4 Moon radii of the half-width: 396 px and
+ *   188 px). `across` (2.3, was 2.1 before Earth was drawn the Moon's size) keeps Earth's
+ *   label inside at 1024 × 768 with the panels folded. `minMoonPx` only guards free spaces
+ *   smaller than any of the four layouts tested.
  */
 /** How far the opening view leans away from Earth's side, in degrees. */
 const OPENING_TILT_DEG = 15;
@@ -146,7 +148,7 @@ const OPENING_TILT_DEG = 15;
 export const OPENING = {
   // Seen with the lean, Earth's centre is cos(tilt) as far to the side.
   earthReach: drawnDistance(EARTH_FARTHEST_KM) * Math.cos((OPENING_TILT_DEG * Math.PI) / 180) + DRAWN_EARTH_RADIUS,
-  across: 2.1,
+  across: 2.3,
   margin: 1.03,
   tiltDeg: OPENING_TILT_DEG,
   minMoonPx: 30,
