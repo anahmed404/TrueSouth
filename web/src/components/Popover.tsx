@@ -23,8 +23,11 @@ type PopoverProps = {
   align?: "start" | "end";
   /** Width in px on a wide screen. A phone gets the window width less 16 px each side. */
   width?: number;
-  /** Open under the trigger (the default), or above it, for a trigger at the foot of the window. */
-  placement?: "below" | "above";
+  /**
+   * Open under the trigger (the default), or above it, for a trigger at the foot of the
+   * window. `auto` takes the side with more room when it opens.
+   */
+  placement?: "below" | "above" | "auto";
   className?: string;
   /**
    * Opens it from code. A trigger that leaves `popoverTarget` off its button is then not a
@@ -63,7 +66,8 @@ export function Popover({ label, trigger, children, align = "start", width = 360
     left = Math.min(Math.max(left, MARGIN), viewW - MARGIN - w);
     panel.style.width = `${w}px`;
     panel.style.left = `${left}px`;
-    if (placement === "above") {
+    const above = placement === "above" || (placement === "auto" && rect.top > viewH - rect.bottom);
+    if (above) {
       panel.style.top = "auto";
       panel.style.bottom = `${viewH - rect.top + GAP}px`;
       panel.style.maxHeight = `${Math.max(rect.top - GAP - MARGIN, 160)}px`;
