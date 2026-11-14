@@ -1,3 +1,4 @@
+import { metricColumn } from "./drag-body";
 import { hasExample, resolveValue, type WorkedExamples } from "./placeholders";
 import { clockwiseWidthDeg } from "./skyline-score";
 import type { GoalSpec, Lesson, Step } from "./types";
@@ -54,6 +55,27 @@ function checkTolerance(problems: string[], goal: GoalSpec, where: string): void
   if (!("tolerance" in goal) || goal.tolerance === undefined) return;
   if (!Number.isFinite(goal.tolerance) || goal.tolerance < 0) {
     problems.push(`${where} has a negative or non-finite tolerance`);
+  }
+}
+
+/**
+ * A goal's second condition is read from a stored series column at the dragged hour, so its
+ * metric must be one the series has and its value a number. Only a drag-body step may carry
+ * one: no other attempt has the values to check it.
+ */
+function checkAlso(problems: string[], step: Step, check: LessonCheck, where: string): void {
+  const goal = "goal" in step ? step.goal : undefined;
+  if (!goal || "comparedTo" in goal || !goal.also) return;
+  if (step.kind !== "drag-body") {
+    problems.push(`${where} has a second goal condition, which only a drag-body step can check`);
+    return;
+  }
+  if (metricColumn(goal.also.metric) === null) {
+    problems.push(`${where} has a second goal condition on a metric the series does not store: ${goal.also.metric}`);
+  }
+  const value = resolveValue(goal.also.value, check.examples).value;
+  if (value !== null && (typeof value !== "number" || !Number.isFinite(value))) {
+    problems.push(`${where} has a second goal condition whose value is not a finite number`);
   }
 }
 
@@ -140,6 +162,7 @@ export function validateLesson(lesson: Lesson, check: LessonCheck): readonly str
     }
     if (step.kind === "drop-pin" && step.map.aside) pushPanel(problems, check.panels, step.map.aside, where);
     if (step.kind === "draw-skyline") checkWindow(problems, step, check);
+    checkAlso(problems, step, check, where);
     if (step.kind === "drag-body" || step.kind === "drop-pin") {
       if (step.kind === "drop-pin" && step.goal) checkTolerance(problems, step.goal, where);
       if (step.kind === "drag-body") checkTolerance(problems, step.goal, where);

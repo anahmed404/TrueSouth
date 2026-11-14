@@ -42,7 +42,7 @@ import {
   type SkylineVertex,
   type TrackPoint,
 } from "./geometry";
-import { bodyAt, labelDetail, labelTitle, missionDay, skylineReading, tickTime, type BodyId, type BodyNow, type ChartSeries } from "./readings";
+import { BODY_NAME, bodyAt, heightWords, labelDetail, labelTitle, missionDay, skylineReading, tickTime, type BodyId, type BodyNow, type ChartSeries } from "./readings";
 
 export type ChartWindow = { from: number; to: number };
 
@@ -71,7 +71,16 @@ export type ChartProps = {
   showLabels: boolean;
   /** The text alternative: the answer in words. */
   label: string;
+  /**
+   * What the line at the horizon is. `skyline` (the default) is the site's stored skyline.
+   * `level` is a level line at 0° that an Academy lesson draws in place of the terrain: the
+   * chart then shows nothing that depends on terrain (no disc fraction, no in-view words,
+   * no blocker) and names the line "Level ground, 0°".
+   */
+  ground?: ChartGround;
 };
+
+export type ChartGround = "skyline" | "level";
 
 // ── The static layer's geometry ──────────────────────────────────────────────
 
@@ -403,7 +412,8 @@ export function placeLabels(
 
 type Cursor = { kind: "sky"; azDeg: number; px: number; py: number; keyboard: boolean } | { kind: "tick"; tick: Tick; px: number; py: number };
 
-function Readout({
+export function Readout({
+  ground = "skyline",
   cursor,
   scales,
   skyline,
@@ -421,6 +431,7 @@ function Readout({
   landingHour: number | null;
   utcOfHour: (hour: number) => string | null;
   marked: boolean;
+  ground?: ChartGround;
 }) {
   const width = Math.min(232, scales.frame.width - 16);
   const right = cursor.px > scales.frame.width / 2;
@@ -430,6 +441,37 @@ function Readout({
   const narrow = scales.frame.width < NARROW_PX;
   const style = narrow ? undefined : { left, top: scales.frame.top + 4, width };
   const className = narrow ? "pano-readout pano-readout-inline" : "pano-readout";
+
+  if (cursor.kind === "tick" && ground === "level") {
+    // Level ground: only what is true whatever the terrain, the hour, azimuth and elevation.
+    const now = series ? bodyAt(series, cursor.tick.body, cursor.tick.hour) : null;
+    const utc = utcOfHour(cursor.tick.hour);
+    return (
+      <div className={className} style={style}>
+        <p className="pano-readout-title">{cursor.tick.body === "sun" ? "Sun's path" : "Earth's path"}</p>
+        <p className="pano-readout-big">{landingHour !== null ? missionDay(cursor.tick.hour, landingHour) : "—"}</p>
+        {now ? (
+          <dl>
+            <dt>Time</dt>
+            <dd>{utc ? tickTime(utc) : "—"}</dd>
+            <dt>Azimuth</dt>
+            <dd>{formatBearing(now.azDeg)}</dd>
+            <dt>Elevation</dt>
+            <dd>{formatNumber(now.elDeg, 2)}°</dd>
+          </dl>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (cursor.kind === "sky" && ground === "level") {
+    return (
+      <div className={className} style={style}>
+        <p className="pano-readout-title">{LEVEL_NAME}</p>
+        <p className="pano-readout-big">{formatBearing(cursor.azDeg)}</p>
+      </div>
+    );
+  }
 
   if (cursor.kind === "tick") {
     const now = series ? bodyAt(series, cursor.tick.body, cursor.tick.hour) : null;
@@ -496,6 +538,9 @@ function Readout({
 
 // ── The chart ────────────────────────────────────────────────────────────────
 
+/** The name of the level line a lesson draws in place of the terrain. */
+export const LEVEL_NAME = "Level ground, 0°";
+
 const DRAG_PX = 4;
 const TICK_HIT_PX = 9;
 const ZOOM_STEP = 1.15;
@@ -519,6 +564,7 @@ function cssId(raw: string): string {
 
 export function HorizonChart(props: ChartProps) {
   const { scales, skyline, series, window, hour, radii, maskDeg, marker, onMark, onCentreChange, onZoom, onResetZoom } = props;
+  const level = props.ground === "level";
   const { frame } = scales;
   const uid = cssId(useId());
   const clipPlot = `pano-plot-${uid}`;
@@ -632,7 +678,7 @@ export function HorizonChart(props: ChartProps) {
       case "Enter":
       case " ":
         event.preventDefault();
-        markAt(start);
+        if (!level) markAt(start);
         if (!cursor) az = start;
         break;
       case "Escape":
@@ -721,18 +767,20 @@ export function HorizonChart(props: ChartProps) {
             data-align={box.alignRight ? "end" : "start"}
             aria-hidden="true"
           >
-            <span className="pano-label-title">{labelTitle(box.now)}</span>
-            <span className="pano-label-detail">{labelDetail(box.now)}</span>
+            <span className="pano-label-title">{level ? BODY_NAME[box.now.body] : labelTitle(box.now)}</span>
+            <span className="pano-label-detail">{level ? heightWords(box.now.elDeg) : labelDetail(box.now)}</span>
           </div>
         ))}
 
         <p id={hintId} className="sr-only">
-          Left and right arrows move a cursor along the skyline and read it out; with Shift they move one skyline bin.
-          Enter marks the blocker under the cursor. Up and down change the vertical stretch, and 0 resets it. Drag to turn
-          the view.
+          {level ? LEVEL_HINT : SKYLINE_HINT}
         </p>
         <p className="sr-only" aria-live="polite">
-          {cursor?.kind === "sky" && cursor.keyboard && skyline ? keyboardAnnouncement(skyline, cursor.azDeg, props.features) : ""}
+          {cursor?.kind === "sky" && cursor.keyboard && skyline
+            ? level
+              ? `Azimuth ${formatBearing(cursor.azDeg)}, ${LEVEL_NAME}.`
+              : keyboardAnnouncement(skyline, cursor.azDeg, props.features)
+            : ""}
         </p>
       </div>
       {cursor ? (
@@ -745,11 +793,18 @@ export function HorizonChart(props: ChartProps) {
           landingHour={props.landingHour}
           utcOfHour={props.utcOfHour}
           marked={marked}
+          ground={props.ground}
         />
       ) : null}
     </>
   );
 }
+
+const SKYLINE_HINT =
+  "Left and right arrows move a cursor along the skyline and read it out; with Shift they move one skyline bin. Enter marks the blocker under the cursor. Up and down change the vertical stretch, and 0 resets it. Drag to turn the view.";
+
+const LEVEL_HINT =
+  "Left and right arrows move a cursor along the level ground and read out its azimuth. Up and down change the vertical stretch, and 0 resets it. Drag to turn the view.";
 
 function keyboardAnnouncement(skyline: SkylineArrays, azDeg: number, features: readonly Feature[]): string {
   const r = skylineReading(skyline, azDeg, features);
