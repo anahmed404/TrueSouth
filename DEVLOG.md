@@ -1273,7 +1273,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   a headless Chrome with hardware WebGL (RTX 2060) against its own API (port 8123, the main
   checkout's `data/prepared` read-only) and dev server (port 5198); no AI-generated imagery;
   a human has not reviewed it yet
-- **State:** built, not verified (2,499 web tests, 438 Python tests (1 skipped), typecheck and build pass)
+- **State:** built, not verified (after the review fixes: 2,521 web tests, typecheck and build pass; Python unchanged and not rerun; first round: 438 Python tests, 1 skipped)
 - **Changed:** `web/src/features/three/scene/custom-apron.ts` and its test (new);
   `world.ts` (`setGround` builds the apron for a custom site; the height map is read once);
   `plates.ts` and its test (`apronLoadState`, the "surroundings" plate); `scene-root.tsx`
