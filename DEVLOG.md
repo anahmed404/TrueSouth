@@ -1490,6 +1490,48 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
     Planner snaps the camera's aim onto the sites' centre (about 90 px vertical) before it
     turns; it was there before the fix too.
 
+#### 2026-11-14 · System view · Earth a little smaller and farther, so the Moon leads
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — retuned the constants in
+  `web/src/features/three/scene/proportions.ts` (Earth's drawn size and its own distance law;
+  the Sun's law unchanged) and the opening pose in `camera.ts` (lean), updated their vitest
+  tests (run over the real `data/derived/system.bin`) and the spec — checked by the agent with
+  the vitest suite, typecheck, build, and by eye in Chrome with hardware WebGL (RTX 2060) at
+  1440 × 900 and 1024 × 768 against `main` (bbc6df0) run side by side, with the True-scale
+  toggle sampled frame by frame both ways; a human has not reviewed it
+- **State:** verified (reviewed by Cursor (grok-4.7): approve with two can-follow notes; the Sun's drawn distance equal to main at all 52,584 hours, Earth 0.77 to 0.82 times the Moon on screen, the opening's guarantees recomputed in four layouts, no drawn body over the Moon at 1,093 sampled cameras; on the tree merged with main 0fe9217: 471 Python tests (1 skipped), 2,651 web tests, typecheck and build all exit 0. Follow-up queued: fade Earth while it is outside the free space during the True-scale flight)
+- **Changed:** `web/src/features/three/scene/proportions.ts`, `camera.ts` (the opening's lean
+  and fit), `proportions.test.ts`, `scene-logic.test.ts`, `docs/features/system-view.md`,
+  `docs/design/c2/built-system-earth-tune-*.png`, this entry; `world.ts` untouched
+- **Notes:**
+  - **Earth's size:** drawn 0.83 Moon radii (was 1.005), now smaller than the Moon by the
+    team's choice; Earth stays smaller than the Sun, and "True scale" is unchanged. In the
+    opening it shows 0.80 times the Moon at 1440 × 900 and 0.81 at 1024 × 768.
+  - **Earth's distance:** its own law, 0.4125 × (d ÷ Moon radius)^0.385: 3.20 to 3.37 Moon
+    radii out (was 2.89 to 3.04). Not 3.5: the Moon's size wins, and at 1024 × 768 the Moon
+    would drop below 45 px past about 3.37 at apogee. The lean went from 12° to 15°, so Earth
+    sits a little deeper than the Moon; the opening's fit now counts Earth's sideways reach as
+    projected under the lean.
+  - **The Sun:** exactly as before (0.372 × the same power, radius 3.5; 29.3 to 29.8 Moon
+    radii), tested hour by hour. A log-log segment between 1 and 100 million km joins the two
+    laws, so a further body is always drawn further. The Sun is 8.7 to 9.3 times Earth's
+    distance (never under 8); the orbit margin (the Sun's nearest surface over the diameter
+    of the circle the Moon traces around Earth) is at least 3.35.
+  - **Opening, measured in the app** (Moon / Earth, landing date, panels open): 1440 × 900
+    94.2 / 74.9 px (`main` 95.2 / 92.9); 1024 × 768 44.7 / 36.4 px (`main` 45.1 / 44.8). From
+    the test layouts the Moon is 94.4 and 44.7 px.
+  - **One claim changed:** a "To Earth" mark from a site far from the line to Earth now passes
+    just beside Earth's smaller disc (within one Moon radius of its centre), where before it
+    passed through it. The Sun's disc is still hit from every site. In the opening it points
+    at Earth on screen.
+  - **True-scale toggle, by eye, from the opening at both sizes, both ways:** about 315 frames
+    per toggle; Earth glides between 3.34 and 228.7 Moon radii at most 5.7 % of its distance
+    per frame, never hidden; the Moon never leaves the frame; the Sun hides only at the end of
+    the way in. Mid-flight in, the view turns to true scale's framing and Earth passes below
+    the free space for a moment (it shows at the timeline's top edge) before landing in frame.
+  - The sampled-camera test of the "not drawn in front of the Moon" rule (4,000 cameras, both
+    scale modes) and the "From Earth" / "From the Sun" series test pass with these constants.
+
 #### 2026-11-14 · System view proportions · Earth and the Sun read larger and farther than the Moon
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — wrote `proportions.ts` (drawn sizes and
