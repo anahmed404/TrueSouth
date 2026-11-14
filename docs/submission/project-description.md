@@ -19,7 +19,7 @@ files; it is not merged, so no text here mentions a live site.
 
 ## One sentence
 
-TrueSouth tells mission planners and learners whether a lunar landing date works, by scoring sunlight and Earth contact at 25 catalog sites, or at coordinates you type.
+TrueSouth tells mission planners and learners whether a lunar landing date works, by scoring sunlight and Earth contact at 20 catalog sites and 5 best-lit variants, or at coordinates you type.
 
 ## Short summary
 

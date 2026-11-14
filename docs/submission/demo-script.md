@@ -56,16 +56,19 @@ asked.
 
 ## The three-minute script
 
-Timings add up to 3:00. About 400 spoken words.
+Timings add up to 3:00. About 320 spoken words: a little over two minutes of speech,
+which leaves about 40 seconds for the clicks. Not yet rehearsed against a clock.
 
 ### 1. The Moon and the sites (0:00 to 0:20)
 
 - **Open:** link A. The **System view** fills the window.
 - **You see:** the Moon, Earth, the Sun and the stars. The "Selected sites" rail on the left
-  lists four sites; Connecting Ridge is GO and the other three are NO-GO.
+  lists four sites; Connecting Ridge is GO and the other three are NO-GO. (The rail
+  remembers whether it was folded: if it shows only four status lamps, press "Show the
+  sites rail" at its top before you start.)
 - **Say:** "This is the Moon's south pole. The Sun never climbs more than about two degrees
-  there. It skims the horizon. Pip, our lander, can only land where the Sun and Earth are
-  both in view for its ten-day stay. Everything here is built from NASA's real terrain and
+  there. It skims the horizon. Pip, our lander, needs sunlight and contact with Earth for
+  nearly all of its ten-day stay. Everything here is built from NASA's real terrain and
   positions."
 - **Do:** drag the Moon over a pole to show it turns freely.
 - **If something fails:** a still picture appears in place of the 3D Moon. Keep going; the
@@ -77,7 +80,8 @@ Timings add up to 3:00. About 400 spoken words.
   a spot (a status lamp inside a ring that fills to its score), with a strip per site in
   the bottom panel and an "Any site" strip above them.
 - **Click:** the landing date at the left of the bottom panel (it reads `2028-01-01 00:00
-  UTC`). In the box that opens, press **+14 d**, then **Slip +7 d**. Press Escape.
+  UTC`). In the box that opens, in the row labelled "Slip", press **+14 d**, then **+7 d**.
+  Press Escape.
 - **You see:** the spots and strips update at once. A plate says "Slipped +21 d, 01 Jan →
   22 Jan 2028. 1 of 4 sites changed. No site is GO or CAUTION on this date." Connecting
   Ridge's spot shows "was GO".
@@ -96,7 +100,7 @@ Timings add up to 3:00. About 400 spoken words.
   one-line reason for the Sun and for Earth, with a **Why?** button. Press it: the box that
   opens ("Why is it dark?", and "Why is there no link?" for Earth) names the terrain that
   hides the Sun and gives its bearing, distance and height.
-- **Say:** "Three rules break. For 119 hours in a row Earth is below the horizon, so Pip
+- **Say:** "Three rules break. For 119 hours in a row Pip is out of contact with Earth and
   cannot call home. The twelve-hour limit is our estimate, and the screen says so. We tag
   every estimate, and we never show one as published. And the Sun is up by half a degree,
   but a ridge hides it."
@@ -157,9 +161,10 @@ Timings add up to 3:00. About 400 spoken words.
 
 ## If there is time
 
-- **Apollo 11** (link G): Lander's eye at Apollo 11 on 2028-01-06, five days after the
-  landing date. The Sun is 65° up and Earth 59°. A plate says "No terrain data for Apollo
-  11. This is the smooth Moon." Say: "Near the equator both are high. At the pole both hug
+- **Apollo 11** (link G): Lander's eye at Apollo 11 on 2028-01-08, five days after the
+  3 January landing date in the link. The Sun is 65° up and Earth 59°. A plate says "No
+  terrain data for Apollo 11, so its horizon is flat: the Moon there is a smooth sphere."
+  Say: "Near the equator both are high. At the pole both hug
   the horizon. Away from the poles we treat the Moon as a smooth ball, and the screen says
   so."
 - **Your own coordinates:** in the "Selected sites" rail press **Add site**, then **Enter
@@ -174,7 +179,7 @@ Use link A, then:
 | Time | Do | Say |
 | :--- | :--- | :--- |
 | 0:00 to 0:10 | Link A | "Landing at the Moon's south pole is hard: the Sun skims the horizon. TrueSouth tells a planner whether a landing date works." |
-| 0:10 to 0:30 | Click **Slip Planner**, press the landing date, **+14 d**, **Slip +7 d** | "Pip's launch slips three weeks. Connecting Ridge turns NO-GO: Earth is out of sight for 119 hours." |
+| 0:10 to 0:30 | Click **Slip Planner**, press the landing date, then **+14 d** and **+7 d** in the "Slip" row | "Pip's launch slips three weeks. Connecting Ridge turns NO-GO: it is out of contact with Earth for 119 hours." |
 | 0:30 to 0:40 | Press **Next GO** | "Five days later, it is GO again." |
 | 0:40 to 0:50 | Click **Lander's eye** | "This is Pip's horizon at two metres up, with live countdowns." |
 | 0:50 to 1:00 | Open `/validation` | "Our Sun and Earth directions match NASA's Horizons within 0.0061 degrees. A planning aid, not flight certification." |
