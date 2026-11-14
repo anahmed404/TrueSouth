@@ -109,5 +109,28 @@
     "source_url": "",
     "terrain_tier": "sphere",
     "variant_of": null
+  },
+  {
+    "description": "Synthetic fixture; not a real lunar site.",
+    "elevation_m": 0.0,
+    "group": "sunlit_peak",
+    "has_closeup": false,
+    "id": "fixture_story",
+    "lat_deg": -89.4,
+    "lon_deg": 222.0,
+    "moontrek_url": "https://trek.nasa.gov/moon/",
+    "name": "Fixture Story",
+    "nearby_sun": null,
+    "offset_m": null,
+    "outcome": null,
+    "quickmap_url": "https://quickmap.lroc.asu.edu/",
+    "slope": {
+      "baseline_m": 160.0,
+      "deg": 3.0,
+      "source": "synthetic fixture"
+    },
+    "source_url": "",
+    "terrain_tier": "core80",
+    "variant_of": null
   }
 ]

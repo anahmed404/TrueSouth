@@ -49,6 +49,12 @@ each integration checkpoint.
 
 ## Science
 
+### S2c ? The fixture's Academy numbers come from the fixture's own series
+
+Built, not verified. Added a synthetic Academy story site and computed its examples with the real builder. The 720-hour story month has a 2.19? highest Sun and Earth visible 62.5% of the time. The full-grid fixture is about 7.6 MB.
+
+AI use: Codex assisted with implementation and tests.
+
 #### 2026-11-14 · S8b · Close-up ground from NASA's 5 m site maps
 - **Who:** Codex implementation sub-agent
 - **AI use:** Codex implemented bounded NASA window ingestion, atomic close-up refresh,

@@ -380,7 +380,7 @@ def _require(value, rule):
     return value
 
 
-def _load(root):
+def _load(root, story_site_id=STORY_SITE_ID):
     manifest = Manifest.model_validate_json((root / 'manifest.json').read_bytes())
     if manifest.time_grid.step_s != 3600:
         raise ValueError('worked examples need an hourly time grid')
@@ -390,9 +390,9 @@ def _load(root):
     if profile is None:
         raise ValueError(f'{STORY_PROFILE_ID} is not in profiles.json')
     by_id = {site.id: site for site in sites}
-    story = by_id.get(STORY_SITE_ID)
+    story = by_id.get(story_site_id)
     if story is None or story.variant_of is not None:
-        raise ValueError(f'{STORY_SITE_ID} is not a catalog site in sites.json')
+        raise ValueError(f'{story_site_id} is not a catalog site in sites.json')
     count = manifest.time_grid.count
     system = read_system(root / 'system.bin', count)
     return manifest, sites, by_id, story, profile, system
@@ -405,11 +405,11 @@ def _site_arrays(root, site_id, count, bins):
     return series, skyline
 
 
-def _sweeps(root, sites, profile, count, bins_for):
+def _sweeps(root, sites, profile, count, bins_for, story_site_id=STORY_SITE_ID):
     """One slip sweep per polar catalog site, plus the story site if it is not already included."""
     chosen = [site for site in sites if is_polar_catalog(site)]
-    if all(site.id != STORY_SITE_ID for site in chosen):
-        chosen.append(next(site for site in sites if site.id == STORY_SITE_ID))
+    if all(site.id != story_site_id for site in chosen):
+        chosen.append(next(site for site in sites if site.id == story_site_id))
     results = {}
     for site in chosen:
         _bins = bins_for(site.id)
@@ -419,10 +419,10 @@ def _sweeps(root, sites, profile, count, bins_for):
     return results
 
 
-def build_examples(root):
+def build_examples(root, *, story_site_id=STORY_SITE_ID):
     """Read a derived tree and return the validated worked examples. Raise MissingSelection to write nothing."""
     root = root if hasattr(root, 'joinpath') else __import__('pathlib').Path(root)
-    manifest, sites, by_id, story, profile, system = _load(root)
+    manifest, sites, by_id, story, profile, system = _load(root, story_site_id)
     count = manifest.time_grid.count
     start = parse_utc(manifest.time_grid.start_utc)
     observer_m = manifest.observer_height_m
@@ -435,8 +435,8 @@ def build_examples(root):
             raise ValueError(f'{site_id}: metadata belongs to {meta.site_id}')
         return meta.skyline.bins
 
-    sweeps = _sweeps(root, sites, profile, count, bins_for)
-    story_series, story_sweep, _story_slope = sweeps[STORY_SITE_ID]
+    sweeps = _sweeps(root, sites, profile, count, bins_for, story_site_id)
+    story_series, story_sweep, _story_slope = sweeps[story_site_id]
     year = indexes_in_year(start, count, STORY_YEAR)
     midnights = indexes_in_year(start, count, STORY_YEAR, midnight=True)
     landing = _require(story_landing_index(midnights, story_sweep), RULE_STORY_LANDING)
@@ -447,11 +447,11 @@ def build_examples(root):
     year_mask = np.zeros(count, dtype=bool)
     year_mask[year] = True
 
-    story_bins = bins_for(STORY_SITE_ID)
-    _series, story_sky = _site_arrays(root, STORY_SITE_ID, count, story_bins)
+    story_bins = bins_for(story_site_id)
+    _series, story_sky = _site_arrays(root, story_site_id, count, story_bins)
 
     lesson2 = None
-    for site_id in lesson2_site_order(STORY_SITE_ID, sites):
+    for site_id in lesson2_site_order(story_site_id, sites):
         site = by_id.get(site_id)
         if site is None:
             continue
@@ -586,7 +586,7 @@ def build_examples(root):
         'l8.region_overlap.site_id': overlap_site,
         'l8.region_overlap.region_name': None,
         'l8.region_overlap.overlaps': None,
-        'story.site_id': STORY_SITE_ID,
+        'story.site_id': story_site_id,
         'story.profile_id': STORY_PROFILE_ID,
         'story.landing_utc': at(landing),
         'story.month_end_utc': format_utc(hour_at(start, landing + STORY_MONTH_HOURS)),
