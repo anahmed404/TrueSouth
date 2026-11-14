@@ -24,7 +24,8 @@ from truesouth.constants import (MOON_RADIUS_M, OBSERVER_HEIGHT_M, SKYLINE_BINS,
 from truesouth.contracts import (Manifest, TimeGrid, Site, Sites, SiteMeta,
                                  SeriesLayout, SeriesMeta, SkylineLayout, MeshMeta)
 from truesouth.dem import DemStore, site_tier
-from truesouth.derived_io import write_series, write_skyline, read_series, read_skyline, write_terrain, read_terrain
+from truesouth.derived_io import (write_series, write_skyline, read_series, read_skyline,
+                                 write_terrain, read_terrain, write_closeup, read_closeup)
 from truesouth.ephemeris import load_global
 from truesouth.series import build_series
 from truesouth.skyline import compute_skyline
@@ -40,6 +41,8 @@ def add_arguments(parser):
                         help='catalog ids to build (default: all). '
                              'An <id>_best_lit id selects that catalog site and refreshes its variant')
     parser.add_argument('--force', action='store_true', help='recompute even current sites')
+    parser.add_argument('--closeups-only', action='store_true',
+                        help='refresh drawing meshes atomically, preserving every existing science artifact')
     parser.add_argument('--generated-utc',
                         help='manifest timestamp ending in Z; default: current UTC time. '
                              'This is the only clock time stored in the dataset.')
@@ -125,6 +128,12 @@ def _files_current(target, site, newest_input):
             if meta.terrain is None or not terrain.is_file() or terrain.stat().st_mtime_ns < newest_input:
                 return False
             read_terrain(terrain, meta.terrain.size)
+        if site.has_closeup != (meta.closeup is not None):
+            return False
+        if meta.closeup is not None:
+            read_closeup(target/'closeup.bin', meta.closeup.size)
+        elif (target/'closeup.bin').exists():
+            return False
         return (meta.site_id == site.id and meta.skyline.bins == SKYLINE_BINS
                 and files[1].stat().st_size == TIME_GRID_COUNT*8*2
                 and files[2].stat().st_size == SKYLINE_BINS*5*4)
@@ -212,24 +221,34 @@ def _derive(site_id, lat, lon, store, global_data, skyline=None, series=None, *,
     return tier, ground, slope, mesh, skyline, series, meta
 
 
-def _stage_site(target, meta, series, skyline, mesh, *, site=None, publish=None, cancelled=None):
+def _stage_site(target, meta, series, skyline, mesh, *, site=None, publish=None, cancelled=None,
+                closeup=None, reuse=None):
     if cancelled and cancelled():
         raise InterruptedError('site build interrupted')
     target.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(dir=target.parent, prefix='.'+target.name+'.'))
     try:
         _write_model(staging/'meta.json', meta)
-        write_series(staging/'series.bin', series.columns)
-        write_skyline(staging/'skyline.bin', dict(zip(SkylineLayout().arrays, skyline.arrays, strict=True)),
-                      SKYLINE_BINS)
+        if reuse is not None:
+            for name in ('series.bin', 'skyline.bin', 'terrain.bin'):
+                if (reuse/name).is_file():
+                    shutil.copyfile(reuse/name, staging/name)
+        else:
+            write_series(staging/'series.bin', series.columns)
+            write_skyline(staging/'skyline.bin', dict(zip(SkylineLayout().arrays, skyline.arrays, strict=True)),
+                          SKYLINE_BINS)
         if mesh is not None:
             write_terrain(staging/'terrain.bin', mesh.arrays, mesh.size)
+        if closeup is not None:
+            write_closeup(staging/'closeup.bin', closeup.arrays, closeup.size)
         # Validate the serialized artifacts before publishing any of them.
         SiteMeta.model_validate_json((staging/'meta.json').read_bytes())
         read_series(staging/'series.bin', TIME_GRID_COUNT)
         read_skyline(staging/'skyline.bin', SKYLINE_BINS)
-        if mesh is not None:
-            read_terrain(staging/'terrain.bin', mesh.size)
+        if meta.terrain is not None:
+            read_terrain(staging/'terrain.bin', meta.terrain.size)
+        if meta.closeup is not None:
+            read_closeup(staging/'closeup.bin', meta.closeup.size)
         if site is not None:
             _write_model(staging/'site.json', site)
         if cancelled and cancelled():
@@ -272,7 +291,7 @@ def _record(site, tier, ground, slope, nearby):
 
 
 def build_site(site, store, global_data, target, *, tier=None, site_entry=False,
-               publish=None, cancelled=None, parts=None, nearby=None):
+               publish=None, cancelled=None, parts=None, nearby=None, closeup=None, existing=None):
     """Shared one-site derivation, record and atomic publication.
 
     The catalog may supply parts derived before placement was evaluated, so its
@@ -281,12 +300,22 @@ def build_site(site, store, global_data, target, *, tier=None, site_entry=False,
     """
     if cancelled and cancelled():
         raise InterruptedError('site build interrupted')
+    if existing is not None:
+        meta = SiteMeta.model_validate_json((Path(target)/'meta.json').read_bytes())
+        meta = meta.model_copy(update={'closeup':MeshMeta(size=closeup.size, window_km=closeup.window_km) if closeup else None})
+        derived = existing.model_copy(update={'has_closeup':closeup is not None})
+        _stage_site(Path(target), meta, None, None, None, closeup=closeup, reuse=Path(target),
+                    site=derived if site_entry else None, publish=publish, cancelled=cancelled)
+        return derived
     if parts is None:
         parts = _derive(site.id, site.lat_deg, site.lon_deg, store, global_data, tier=tier)
     tier, ground, slope, mesh, skyline, series, meta = parts
     derived = _record(site, tier, ground, slope, nearby)
+    if closeup is not None:
+        derived = derived.model_copy(update={'has_closeup':True})
+        meta = meta.model_copy(update={'closeup':MeshMeta(size=closeup.size, window_km=closeup.window_km)})
     _stage_site(Path(target), meta, series, skyline, mesh,
-                site=derived if site_entry else None, publish=publish, cancelled=cancelled)
+                site=derived if site_entry else None, publish=publish, cancelled=cancelled, closeup=closeup)
     return derived
 
 
@@ -307,6 +336,8 @@ def run(args):
 
     all_sites = catalog.load_sites()
     selected = _select(all_sites, args.only)
+    if getattr(args, 'closeups_only', False):
+        return _refresh_closeups(selected, args)
     # Validate the complete catalog before changing any output.
     catalog.load_profiles()
     catalog.load_features()
@@ -332,7 +363,6 @@ def run(args):
     if core.is_file() and any(_qualifies(site) for site in selected):
         cache = CandidateCache(store, global_data, paths.prepared_dir(), output/'system.bin',
                                compute_skyline, build_series)
-    print('Close-up meshes are not built yet; has_closeup=false and closeup=null.')
     print('Quickmap and Moon Trek links use documented home pages; exact site link formats await MC9.')
     for site in selected:
         started = perf_counter()
@@ -359,7 +389,9 @@ def run(args):
         nearby = None if placement is None else placement.nearby_sun
         if parts is not None:
             tier, ground, slope, mesh, skyline, series, meta = parts
-            derived = build_site(site, store, global_data, target, parts=parts, nearby=nearby)
+            from truesouth.closeups import mesh_for_site
+            close = mesh_for_site(paths.prepared_dir()/'closeups', site, store.core, ground)
+            derived = build_site(site, store, global_data, target, parts=parts, nearby=nearby, closeup=close)
             built[site.id] = derived
             _write_index(index, built)
             print(f'{site.id}: built in {perf_counter()-started:.6f} s; tier={tier}; ground_m={ground}')
@@ -381,7 +413,12 @@ def run(args):
                     skyline=winner.skyline, series=winner.series)
                 record = Site(**{**fields, 'nearby_sun': nearby}, terrain_tier=tier, has_closeup=False,
                               elevation_m=ground, slope=slope, quickmap_url=QUICKMAP_URL, moontrek_url=MOONTREK_URL)
-                _stage_site(variant_target, meta, series, skyline, mesh)
+                from truesouth.closeups import mesh_for_site
+                close = mesh_for_site(paths.prepared_dir()/'closeups', record, store.core, ground)
+                if close is not None:
+                    record = record.model_copy(update={'has_closeup':True})
+                    meta = meta.model_copy(update={'closeup':MeshMeta(size=close.size, window_km=close.window_km)})
+                _stage_site(variant_target, meta, series, skyline, mesh, closeup=close)
                 built[fields['id']] = record
                 _write_index(index, built)
                 print(f"{fields['id']}: built in {perf_counter()-variant_started:.6f} s; "
@@ -406,3 +443,30 @@ def run(args):
     for name in ('profiles.json', 'features.json', 'artemis_regions.json'):
         _atomic_bytes(output/name, (paths.catalog_dir()/name).read_bytes())
     _write_model(output/'manifest.json', manifest)
+
+
+def _refresh_closeups(selected, args):
+    """Use the shared builder with byte-for-byte reuse of existing science files."""
+    from truesouth.closeups import mesh_for_site
+    from truesouth.dem import PreparedMap
+    output = paths.derived_dir()
+    index = output/'sites.json'
+    built = {s.id:s for s in Sites.model_validate_json(index.read_bytes()).root}
+    wanted = {s.id for s in selected}
+    records = [s for s in built.values() if s.id in wanted or s.variant_of in wanted]
+    core_path = paths.prepared_dir()/'LDEM_80S_80MPP_ADJ.npy'
+    core = PreparedMap(core_path) if core_path.exists() else None
+    if core is None:
+        raise ValueError('Prepared core80 map is required for close-up agreement checks')
+    # Refuse the worst possible addition before writing any binary.
+    potential = sum((paths.prepared_dir()/'closeups'/f'{s.id}.npy').is_file() for s in records)
+    if potential*257*257*4*4 > 20_000_000:
+        raise ValueError('Close-up artifacts would exceed the 20 MB repository limit; stop and report')
+    for site in records:
+        target = output/'sites'/site.id
+        _recover_site(target)
+        close = mesh_for_site(paths.prepared_dir()/'closeups', site, core, site.elevation_m)
+        built[site.id] = build_site(site, None, None, target, closeup=close, existing=site)
+        _write_index(index, built)
+        print(f'{site.id}: closeup={close is not None}; existing science files reused')
+    # Existing manifest is deliberately untouched, including generated_utc.

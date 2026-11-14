@@ -49,6 +49,20 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-14 · S8b · Close-up ground from NASA's 5 m site maps
+- **Who:** Codex implementation sub-agent
+- **AI use:** Codex implemented bounded NASA window ingestion, atomic close-up refresh,
+  synthetic geometry/regression tests and documentation; automated checks below,
+  human review pending.
+- **State:** built, not verified
+- **Changed:** `science/`, close-up drawing artifacts and availability metadata,
+  architecture, data-contract explanations and science conventions. No contract change.
+- **Notes:** All 27 published surface-map extents inspected; 16 candidate points
+  (variants counted separately). Native 5 m crops only; full TIFFs are not retained.
+  Synthetic close-up and atomic refresh tests: 10 passed. Final coverage, measured
+  agreement, retained disk sizes and full check results will be added here before PR.
+  NASA slope TIFFs were not downloaded; custom sites receive no close-up.
+
 #### 2026-11-14 · S13b · production deploy files
 - **Who:** Codex implementation agent
 - **AI use:** Codex built the deployment files, trusted-proxy handling, tests and runbook; automated checks run locally, human review pending.

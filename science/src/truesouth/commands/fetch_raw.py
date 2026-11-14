@@ -105,9 +105,17 @@ def add_arguments(parser):
     parser.add_argument('--check-only', action='store_true', help='check URLs and sizes without downloading')
 
 def run(args):
-    files = [f for f in FILES if not args.group or f.group in args.group]
+    groups = args.group or ['terrain', 'closeup', 'slope', 'visibility', 'texture']
+    files = [f for f in FILES if f.group in groups and f.group != 'closeup']
     try:
         with httpx.Client(verify=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT), follow_redirects=True, timeout=httpx.Timeout(60, connect=30)) as client:
+            if 'closeup' in groups:
+                from truesouth import paths
+                from truesouth.closeups import discover, fetch_closeups
+                from truesouth.contracts import Sites
+                sites = Sites.model_validate_json((paths.derived_dir()/'sites.json').read_bytes()).root
+                fetch_closeups(client, discover(client), sites, raw_dir()/'closeups',
+                               paths.prepared_dir()/'closeups', check_only=args.check_only)
             sizes = check(client, files)
             if not args.check_only:
                 for item in files:

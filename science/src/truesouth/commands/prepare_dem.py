@@ -4,7 +4,8 @@ from truesouth.paths import prepared_dir, raw_dir
 
 
 def add_arguments(parser):
-    pass
+    parser.add_argument('--group', choices=['terrain', 'closeup'], default='terrain',
+                        help='closeup crops are already prepared by fetch-raw --group closeup')
 
 
 def run(args):
@@ -14,6 +15,21 @@ def run(args):
     work package (S8), so they are skipped here. Partly downloaded `.part` files are ignored.
     One refused map does not stop the others; the step exits non-zero if any was refused.
     """
+    if args.group == 'closeup':
+        import json
+        from truesouth.closeups import window_covered
+        from truesouth.dem import PreparedMap
+        index = prepared_dir()/'closeups/index.json'
+        if not index.is_file():
+            raise SystemExit('Run fetch-raw --group closeup first; it prepares crops before discarding each source.')
+        state = json.loads(index.read_text())
+        for key, entry in state['sites'].items():
+            if entry['covered']:
+                terrain = PreparedMap(index.parent/f'{key}.npy')
+                if not window_covered(terrain, *state['centres'][key]):
+                    raise SystemExit(f'{key}: crop no longer covers its complete window; refetch')
+            print(f"{key}: {entry['reason']}")
+        return
     rasters = sorted(p for p in raw_dir().rglob('*') if p.is_file() and p.suffix.lower() in ('.tif', '.tiff'))
     maps = [p for p in rasters if p.name.upper().startswith('LDEM_')]
     skipped = [p for p in rasters if p.name.lower().endswith('_surf.tif')]
