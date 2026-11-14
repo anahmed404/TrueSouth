@@ -262,10 +262,10 @@ $$E_{max} \approx 90° - |\varphi| + 1.54°$$
 above the local level. The rule ignores the terrain, the observer's height (which lowers
 the horizon, section 4) and the Sun's disc, whose radius is about 0.27°. It estimates
 the best-season maximum. A given month can reach less. At Connecting
-Ridge ($\varphi = -89.4555°$) it gives 2.08°, while the stored topocentric
-maximum is 2.13°. The difference comes mainly from the changing apparent
-sub-solar latitude reaching ±1.59°; the full calculation also uses the site's
-actual height above the reference sphere.
+Ridge ($\varphi = -89.4555°$) it gives 2.08°, while the highest Sun in the stored
+series there is 2.10°. The two differ because the apparent sub-solar latitude reaches
+±1.59°, not exactly 1.54°, and because the full calculation (section 3.2) works from
+the site's own position and height.
 
 **Earth's off-centre shift.** Section 3.2 subtracts the site's position from the body's.
 For Earth this moves its direction, compared with the direction from the Moon's centre,

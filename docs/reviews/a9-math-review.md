@@ -235,7 +235,11 @@ corresponding infinite-distance elevation.
 **Evidence:** at Connecting Ridge's −89.4555 degrees the teaching rule gives
 **2.0845 degrees**; the six-year zero-ground-height topocentric maximum is
 **2.131334005655 degrees**, a difference of +0.046834005655 degrees. This is
-reasonable for a rule explicitly described as approximate. At latitude 0,
+reasonable for a rule explicitly described as approximate.
+
+**Correction, 2026-11-14 (from the review of the follow-up):** 2.131334° was computed at
+longitude 0°, not at Connecting Ridge (222.6192° E). At the site the highest stored Sun
+elevation is 2.10° (recomputed: 2.100990°). The finding stands: the rule is an estimate. At latitude 0,
 the same rule gives **91.54 degrees**. An elevation cannot exceed 90 degrees.
 The best-season idealized equatorial maximum is 90 degrees; a fixed-longitude
 hourly sample over the stored six years reaches 89.847733254679 degrees.
@@ -423,7 +427,8 @@ run, with the implementation free to use this equivalent optimized method.
 
 Section 4, line 282, uses “polar” where it means very close to the pole. At
 Connecting Ridge the stated teaching estimate is already 2.0845 degrees; the
-stored six-year direction reaches 2.131334 degrees. At 80 degrees south,
+stored six-year direction reaches 2.10 degrees at the site (2.131334 degrees was at
+longitude 0°; see the correction under B6). At 80 degrees south,
 section 3.4's same approximate rule gives 11.54 degrees. The text does not
 drive any result, so the numeric effect is zero. Say the Sun stays low near
 the pole and link to section 3.4 rather than giving a universal 1–2-degree
