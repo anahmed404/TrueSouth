@@ -18,7 +18,8 @@ import {
   type MeshData,
 } from "./closeup-ground";
 import { GROUND_LOD_STEPS, patchRim, type GroundLod, type GroundLodStep, type GroundSite } from "./ground";
-import { GroundLook } from "./ground-material";
+import { CLOSEUP_GRAIN_DEFAULT, closeupGrainFromQuery, GroundLook } from "./ground-material";
+import { GRAIN_SLOPE } from "./ground-relief";
 import { groundSourcePlate, sceneContent, type PlateInput } from "./plates";
 import { World, type WorldSite } from "./world";
 
@@ -203,10 +204,19 @@ describe("the invented texture", () => {
     expect(shader).toContain("float depth = 2. * rad * .02;");
   });
 
-  it("inside a real close-up: no dimples, and the fine grain only when asked for (off by default)", () => {
+  it("inside a real close-up: no dimples; the fine grain on by default, and the address can turn it off", () => {
     expect(shader).toContain("float invented = 1. - inClose;");
     expect(shader).toContain("float fine = mix(1., uCloseGrain, inClose);");
-    expect(look.uniforms.uCloseGrain.value).toBe(0);
+    expect(CLOSEUP_GRAIN_DEFAULT).toBe(true);
+    expect(closeupGrainFromQuery("")).toBe(true);
+    expect(closeupGrainFromQuery("?ground-closeup-grain=off")).toBe(false);
+    expect(closeupGrainFromQuery("?ground-closeup-grain=on")).toBe(true);
+    expect(look.uniforms.uCloseGrain.value).toBe(1);
+  });
+
+  it("the grain stays under about a degree of slope: at the poles the Sun is only a few degrees up", () => {
+    expect(GRAIN_SLOPE).toBeLessThanOrEqual(0.015);
+    expect(shader).toContain("#define GRAIN_SLOPE");
   });
 
   it("the shadow march reads the close-up's heights first", () => {

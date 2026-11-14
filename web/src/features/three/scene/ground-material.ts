@@ -7,6 +7,8 @@ import {
   CAP_HALF_WIDTH,
   CORE_HALF_WIDTH,
   GRAIN_FADE,
+  GRAIN_OCTAVE_FADE,
+  GRAIN_SLOPE,
   PATCH_BLEND_KM,
   SUN_ANGULAR_RADIUS,
   earthLitFraction,
@@ -166,6 +168,10 @@ vec4 hash4(vec2 cell, float seed) {
 float fade(float foot, float cell) {
   return 1. - smoothstep(${f(GRAIN_FADE.lo, 4)} * cell, ${f(GRAIN_FADE.hi, 4)} * cell, foot);
 }
+#define GRAIN_SLOPE ${f(GRAIN_SLOPE, 4)}
+float grainFade(float foot, float L) {
+  return 1. - smoothstep(${f(GRAIN_OCTAVE_FADE.lo, 4)} * L, ${f(GRAIN_OCTAVE_FADE.hi, 4)} * L, foot);
+}
 // Dimples in one size band: (∂h/∂E, ∂h/∂N, 0, light left by their own edge). Very shallow,
 // sparse bowls (depth 0.02 of the diameter, no rim, no rocks): enough to break up a smooth
 // slope at a few metres, too shallow and too few to read as craters you could walk to.
@@ -225,12 +231,12 @@ vec4 grain(vec2 p, float foot, vec2 sd, float tanEl, float inClose) {
   mat2 t1 = mat2(.8, .6, -.6, .8), t2 = mat2(.28, .96, -.96, .28);
   #if GROUND_GRAIN > 1
   w = fade(foot, 1.) * invented; if (w > 0.) { cr = dimples(p, 1., 23., .06, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w * .4)); }
-  w = fade(foot, .6) * fine; if (w > 0.) { vec3 g = grainOctave(p, .6, .003, 53., t1); acc.xyz += w * vec3(g.xy, g.z * .03); }
-  w = fade(foot, .15) * fine; if (w > 0.) { vec3 g = grainOctave(p, .15, .0012, 59., t2); acc.xyz += w * vec3(g.xy, g.z * .03); }
-  w = fade(foot, .04) * fine; if (w > 0.) { vec3 g = grainOctave(p, .04, .0005, 61., t1); acc.xy += w * g.xy; }
+  w = grainFade(foot, .6) * fine; if (w > 0.) { vec3 g = grainOctave(p, .6, .6 * GRAIN_SLOPE, 53., t1); acc.xyz += w * vec3(g.xy, g.z * .05); }
+  w = grainFade(foot, .15) * fine; if (w > 0.) { vec3 g = grainOctave(p, .15, .15 * GRAIN_SLOPE, 59., t2); acc.xyz += w * vec3(g.xy, g.z * .04); }
+  w = grainFade(foot, .04) * fine; if (w > 0.) { vec3 g = grainOctave(p, .04, .04 * GRAIN_SLOPE, 61., t1); acc.xyz += w * vec3(g.xy, g.z * .03); }
   #else
   w = fade(foot, 1.) * invented; if (w > 0.) { cr = dimples(p, 1., 23., .06, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w * .4)); }
-  w = fade(foot, .4) * fine; if (w > 0.) { vec3 g = grainOctave(p, .4, .002, 53., t1); acc.xyz += w * vec3(g.xy, g.z * .03); }
+  w = grainFade(foot, .4) * fine; if (w > 0.) { vec3 g = grainOctave(p, .4, .4 * GRAIN_SLOPE, 53., t1); acc.xyz += w * vec3(g.xy, g.z * .05); }
   #endif
   return acc;
 }
@@ -422,12 +428,29 @@ export function groundRuntime(
   };
 }
 
+/** Whether the fine grain is drawn inside a real close-up when the address does not say. */
+export const CLOSEUP_GRAIN_DEFAULT = true;
+
+/** The address as the page was opened: the app tidies it before this module loads. */
+function launchSearch(): string {
+  if (typeof window === "undefined") return "";
+  const entry = typeof performance !== "undefined" ? performance.getEntriesByType?.("navigation")[0] : undefined;
+  try {
+    return entry ? new URL(entry.name).search : window.location.search;
+  } catch {
+    return window.location.search;
+  }
+}
+const LAUNCH_SEARCH = launchSearch();
+
 /**
- * Whether a very fine grain is drawn inside a real close-up. Off by default: the 5 m map has
- * its own relief. The address can turn it on for comparing (`?ground-closeup-grain=on`).
+ * Whether the fine grain is drawn inside a real close-up (docs/features/local-terrain.md,
+ * "Near-ground texture"). The address can set it for comparing: `?ground-closeup-grain=off`
+ * or `=on`.
  */
-export function closeupGrainFromQuery(search: string = typeof location !== "undefined" ? location.search : ""): boolean {
-  return new URLSearchParams(search).get("ground-closeup-grain") === "on";
+export function closeupGrainFromQuery(search: string = LAUNCH_SEARCH): boolean {
+  const value = new URLSearchParams(search).get("ground-closeup-grain");
+  return value === "on" ? true : value === "off" ? false : CLOSEUP_GRAIN_DEFAULT;
 }
 
 /** How strong earthshine is drawn at full Earth, against the Sun's 1. Far above the real ratio, so night stays faintly readable. */

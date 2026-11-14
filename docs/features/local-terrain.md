@@ -166,8 +166,13 @@ are in `ground-relief.ts` and tested.
    by chance in patches; its own shadow is drawn at 40 % strength. It is a bump on the lighting
    and a slight change of albedo only; it never moves the ground or the skyline; and each
    size fades out as it shrinks to a few pixels, so it shows only close to the camera.
-   Inside a real close-up there is nothing made up at all: no dimples, and no grain unless
-   asked for (`?ground-closeup-grain=on`, kept for comparing).
+   The grain is value noise in three octaves (60, 15 and 4 cm), each with a slope of about
+   1 % of its wavelength, so typically under a degree: at the poles the Sun stays within a
+   few degrees of the horizon, and a steeper grain turns into black spots. Each octave stays
+   until its wavelength spans about two pixels. Inside a real close-up nothing is made up
+   but the grain: no dimples. Without it, the 5 m map's ground within a few tens of metres
+   of Lander's eye is a smooth plane, which reads as plastic; `?ground-closeup-grain=off`
+   shows that version, for comparing.
 4. **Tone.** A grey albedo from the Moon's colour map, its range narrowed; a lunar
    photometric function (Lommel–Seeliger and Lambert mixed by phase angle, with the
    brightening when looking down-Sun); and a faint fill from sunlit ground nearby and from
