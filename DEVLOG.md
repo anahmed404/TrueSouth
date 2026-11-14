@@ -1490,7 +1490,7 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
   `closeup.bin` of three sites, and by eye in Chrome (RTX 2060) at 1440 × 900 and
   1024 × 768 against `main` run side by side; reviewed by Codex (gpt-6.1-terra), whose
   must-fix items are addressed below; a human has not reviewed it
-- **State:** built, not verified (on the tree merged with main 23d3a1b: install, 2,809 web
+- **State:** verified (reviewed by Codex (gpt-6.1-terra): registration recomputed on five real sites (the right way round, centre coincident, RMS 0.9 to 2.6 m against the patch), the join covered at every detail level, three mutations caught; its three must-fix items (a NaN close-up accepted, a false plate sentence, the file fetched outside the ground views) and one more fixed by the author with tests, not re-reviewed; on the tree merged with main a358ea2: 471 Python tests (1 skipped), 2,901 web tests with 3 expected to fail on the fixture, typecheck and build all exit 0. The team lead chose the real look for Lander's eye from captures)
   tests, typecheck and build all exit 0; pytest not run, no Python changed)
 - **Changed:** `web/src/features/three/scene/closeup-ground.ts` (new), `ground.ts`,
   `ground-material.ts`, `ground-relief.ts`, `plates.ts`, `scene-root.tsx`, `world.ts` (local:
