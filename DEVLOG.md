@@ -54,7 +54,7 @@ each integration checkpoint.
 - **AI use:** Codex implemented bounded NASA window ingestion, atomic close-up refresh,
   synthetic geometry/regression tests and documentation; automated checks below,
   human review pending.
-- **State:** built, not verified
+- **State:** verified (reviewed by Cursor (grok-4.7): approve; as-is orientation wins at all 16 sites against every flip and rotation, zero shift against the 80 m patch, every existing derived blob byte-identical, certificate checks intact; on the tree merged with main 59556f5: 471 Python tests (1 skipped), 2,649 web tests, typecheck and build all exit 0. Follow-up: pin a mesh vertex at more than one longitude in the tests)
 - **Changed:** `science/`, close-up drawing artifacts and availability metadata,
   architecture, data-contract explanations and science conventions. No contract change.
 - **Result:** 16 accepted meshes, 1,056,784 bytes each, **16,908,544 bytes** added.
