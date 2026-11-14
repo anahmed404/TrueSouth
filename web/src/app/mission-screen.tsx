@@ -27,6 +27,7 @@ import {
   shortcutPanel,
   toggleShellPanel,
   viewBarFitsBetween,
+  viewBarInTopRow,
   NO_WINDOW_FOLD,
   stripFolded,
   toggleStrip,
@@ -243,7 +244,8 @@ function MissionShell() {
   const railCollapsed = phone ? false : layout.sitesRail.collapsed;
   const focusCollapsed = phone ? !focusSheet : layout.focusPanel.collapsed;
   const timelineFolded = phone ? false : stripFolded(layout, windowFold);
-  const topSpans = !phone && !viewBarFitsBetween(viewportWidth, layout);
+  const viewsInTop = viewBarInTopRow(viewportWidth, phone);
+  const topSpans = !phone && !viewsInTop && !viewBarFitsBetween(viewportWidth, layout);
   const placement = windowPlacement(viewportWidth, layout, phone);
 
   // The layout state, read when the free space is measured.
@@ -285,6 +287,7 @@ function MissionShell() {
   const watched = [topRef, strip, footRef, windowRef, regions.focusPanel, regions.sitesRail];
   const measureKey = [
     phone,
+    viewsInTop,
     layout.sitesRail.collapsed,
     layout.focusPanel.collapsed,
     timelineFolded,
@@ -296,6 +299,8 @@ function MissionShell() {
   const freeSpace = useFreeSpace(readShell, watched, measureKey);
 
   const scenario = useScenario(selectScenario);
+  // The view bar: in the app bar's row on a wide window, else on its own row below it.
+  const viewBar = <ViewBar state={state} onPick={pick} windowButtons={windowButtons} />;
 
   // ── The Slip Planner: spots over the scene, landing dates in the timeline's slot ──
   const slip = state.camera === "slip";
@@ -309,7 +314,7 @@ function MissionShell() {
     <div
       ref={shellRef}
       className="mc"
-      data-top={topSpans ? "span" : "between"}
+      data-top={viewsInTop ? "appbar" : topSpans ? "span" : "between"}
       data-rail={railCollapsed ? "collapsed" : "open"}
       data-focus={focusCollapsed ? "collapsed" : "open"}
       data-timeline={timelineFolded ? "folded" : "open"}
@@ -318,9 +323,9 @@ function MissionShell() {
       data-window-place={placement}
     >
       <h1 className="sr-only">Mission Control</h1>
-      <TopBar />
+      <TopBar middle={viewsInTop ? viewBar : null} />
 
-      <ViewBar state={state} onPick={pick} windowButtons={windowButtons} />
+      {viewsInTop ? null : viewBar}
       <ViewNotices ref={topRef} />
 
       <SitesRail

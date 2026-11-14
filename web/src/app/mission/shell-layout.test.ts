@@ -10,7 +10,11 @@ import {
   setShellPanel,
   OVERLAY_SELECTOR,
   foldAnnouncement,
+  VIEW_BAR_IN_TOP_ROW_MIN,
   viewBarFitsBetween,
+  viewBarInTopRow,
+  topRowMinWidth,
+  topRowNameRoom,
   shortcutPanel,
   toggleShellPanel,
   type ShellLayout,
@@ -140,6 +144,33 @@ describe("foldAnnouncement", () => {
     expect(foldAnnouncement("sitesRail", true)).toBe("Sites rail folded.");
     expect(foldAnnouncement("focusPanel", false)).toBe("Focused-site panel open.");
     expect(foldAnnouncement("timeline", true)).toBe("Timeline folded.");
+  });
+});
+
+describe("viewBarInTopRow (M14)", () => {
+  it("puts the view bar in the app bar's row from 1,280 px wide", () => {
+    expect(viewBarInTopRow(1920, false)).toBe(true);
+    expect(viewBarInTopRow(1440, false)).toBe(true);
+    expect(viewBarInTopRow(VIEW_BAR_IN_TOP_ROW_MIN, false)).toBe(true);
+    expect(VIEW_BAR_IN_TOP_ROW_MIN).toBe(1280);
+  });
+
+  it.each([1366, 1439, 1440, 1599, 1600, 1920])("leaves the longest preset name its full width at %i px", (width) => {
+    // "Artemis crewed landing" is about 173 px wide; with the label at 1,440 px it had 88 px.
+    expect(topRowNameRoom(width)).toBeGreaterThanOrEqual(173);
+  });
+
+  it.each([1280, 1366, 1439, 1440, 1599, 1600, 1920])("fits at %i px with the longest profile name truncated, nothing overlapping", (width) => {
+    // The name ("Custom, based on Artemis crewed landing") truncates to TOP_ROW_PARTS.nameMin
+    // at worst; every other piece keeps its width.
+    expect(viewBarInTopRow(width, false)).toBe(true);
+    expect(topRowMinWidth(width)).toBeLessThanOrEqual(width);
+  });
+
+  it("keeps its own row below 1,280 px, and on a phone", () => {
+    expect(viewBarInTopRow(1279, false)).toBe(false);
+    expect(viewBarInTopRow(1024, false)).toBe(false);
+    expect(viewBarInTopRow(1440, true)).toBe(false);
   });
 });
 

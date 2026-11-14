@@ -157,6 +157,99 @@
     padding: 4px;
   }
 
+  /*
+    On a wide window (from 1,280 px, viewBarInTopRow) the view bar sits in the app bar's
+    row, centred in the gap between the brand and the profile: the same 44 px height, top
+    and card as its neighbours, so the scene gets the row below. Narrower, it keeps its row.
+  */
+  /* Never narrower than the view bar it holds: the profile card gives way instead. */
+  .shell-top-spacer {
+    display: flex;
+    justify-content: center;
+  }
+
+  .shell-top .view-bar {
+    flex: none;
+    height: 44px;
+    margin-top: 0;
+    pointer-events: auto;
+  }
+
+  /*
+    The profile card is the row's one flexible piece. As the row narrows it sheds, in order:
+    the "Mission profile" label (below 1,600 px, below), then the profile's name, which
+    truncates with an ellipsis (the full name is the button's title and accessible name).
+    The label goes first, below 1,600 px, so a preset's name is never cut to keep the label.
+    The duration and its sourced or assumed tag always stay. Nothing wraps or overlaps.
+  */
+  .mc[data-top="appbar"] .shell-top .field-profile {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .mc[data-top="appbar"] .shell-top .field-profile > :not(.field-trigger),
+  .mc[data-top="appbar"] .shell-top .field-label,
+  .mc[data-top="appbar"] .shell-top .field-icon {
+    flex: none;
+  }
+
+  .mc[data-top="appbar"] .shell-top .field-trigger {
+    flex: 0 1 auto;
+  }
+
+  /* TOP_ROW_PARTS.nameMin in shell-layout.ts: a truncated name keeps a few letters. */
+  .mc[data-top="appbar"] .shell-top .field-value-clip {
+    min-width: 48px;
+    white-space: nowrap;
+  }
+
+  /*
+    Below 1,600 px the profile card drops its "Mission profile" label (the name stays, and
+    the button's accessible name keeps the label): with the label, "Artemis crewed landing"
+    would be cut at 1,440 px.
+  */
+  @media (max-width: 1599px) {
+    .mc[data-top="appbar"] .shell-top .field-profile .field-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
+
+  /*
+    1,280 px to 1,439 px: the row only fits compacted further. Share shows its icon (as
+    below 1,200 px) and each tab gives up 4 px of padding.
+  */
+  @media (max-width: 1439px) {
+    .mc[data-top="appbar"] .shell-top .share-button .share-word {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .mc[data-top="appbar"] .shell-top .share-button {
+      width: 44px;
+      min-width: 0;
+      padding: 0;
+      justify-content: center;
+    }
+
+    .mc[data-top="appbar"] .view-bar-item {
+      padding-left: 8px;
+    }
+
+    /* The current tab's underline starts where its text now starts. */
+    .mc[data-top="appbar"] .view-bar-item[aria-current="true"]::after {
+      left: 8px;
+    }
+  }
+
   .view-bar-item {
     position: relative;
     display: inline-flex;
