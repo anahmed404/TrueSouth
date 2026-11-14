@@ -393,3 +393,71 @@ function mulberry32(seed: number): () => number {
     return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
   };
 }
+
+describe("stable scoring boundaries", () => {
+  it.each([0.7, 7000 * 0.0001])("gives every identical one-hour A1 window 70 and GO (%s)", (fraction) => {
+    const samples = series(Array(16).fill(fraction), Array(16).fill(1), Array(16).fill(1));
+    const mission = profile({ duration_days: 1 / 24, weights: { slope: 0, power: 1, comms: 0 } });
+    const sweep = slipSweep(samples, mission, null);
+    const first = evaluate(samples, mission, 0, null);
+    for (let hour = 0; hour < 16; hour++) {
+      const result = evaluate(samples, mission, hour, null);
+      expect(result?.score).toBe(70);
+      expect(result?.status).toBe("GO");
+      expect(result).toStrictEqual(first);
+      expect(evaluationAt(sweep, mission, hour)).toStrictEqual(first);
+    }
+  });
+
+  it.each([7, 83, 2026])("preserves identical window bits after long prefixes (seed %s)", (seed) => {
+    const random = mulberry32(seed);
+    const n = 37;
+    const window = series(
+      Array.from({ length: n }, () => Math.floor(random() * 10001) * 0.0001),
+      Array.from({ length: n }, () => (Math.floor(random() * 401) - 100) * 0.01),
+      Array.from({ length: n }, () => (Math.floor(random() * 701) - 200) * 0.01),
+    );
+    const mission = profile({ duration_days: n / 24, max_dark_h: 17, max_blackout_h: 11,
+      ops_sun_el_min_deg: 1, weights: { slope: 3, power: 7, comms: 2 } });
+    const expected = evaluate(window, mission, 0, 6);
+    const bits = (value: unknown) => new Uint8Array(new Float64Array([Number(value)]).buffer);
+    for (const offset of [0, 1, 15, 1024, 50000]) {
+      const shifted: Series = {
+        sun_frac: [...Array(offset).fill(1), ...Array.from(window.sun_frac)],
+        sun_el: [...Array(offset).fill(90), ...Array.from(window.sun_el)],
+        earth_clear: [...Array(offset).fill(90), ...Array.from(window.earth_clear)],
+      };
+      const result = evaluate(shifted, mission, offset, 6);
+      expect(result).toStrictEqual(expected);
+      expect(bits(result?.metrics.sunFractionMean)).toEqual(bits(expected?.metrics.sunFractionMean));
+      expect(bits(result?.score)).toEqual(bits(expected?.score));
+      expect(evaluationAt(slipSweep(shifted, mission, 6), mission, offset)).toStrictEqual(expected);
+    }
+  });
+
+  it("does not let residue flip a veto or utility breakpoint", () => {
+    const samples = series([0.7, 0], [1, 0], [2, 2]);
+    const mission = profile({ duration_days: 2 / 24, max_dark_h: 1 - 2e-13, max_blackout_h: 1 - 2e-13,
+      landing_sun_el_min_deg: 2 + 2e-13, landing_sun_el_max_deg: 2 - 2e-13 });
+    const result = evaluate(samples, mission, 0, 10 + 2e-13)!;
+    expect(Object.values(result.vetoes).some((veto) => veto.triggered)).toBe(false);
+    expect(result.utilities).toEqual({ slope: 0, power: 0, comms: 0 });
+    expect(evaluate(samples, mission, 0, 10 + 2e-11)?.vetoes.slope.triggered).toBe(true);
+    expect(evaluate(series([1, 1]), profile({ duration_days: 2 / 24 }), 0, 5 + 2e-13)?.utilities.slope).toBe(1);
+    expect(evaluate(series([0.7]), profile({ duration_days: 1 / 24, max_dark_h: 2e-13 }), 0, 5)?.utilities.power).toBe(0.7);
+    const flags = hourFlags(series([0.5], [1], [2]), profile({ min_sun_fraction: 0.5 + 2e-13,
+      ops_sun_el_min_deg: 2 + 2e-13, antenna_mask_deg: 1 + 2e-13 }));
+    expect(Array.from(flags.lit)).toEqual([1]);
+    expect(Array.from(flags.link)).toEqual([1]);
+    expect(countdowns(series([0.5, 0], [1, 0]), profile({ min_sun_fraction: 0.5 + 2e-13 }), 0).sunset).toBe(0);
+  });
+
+  it("returns exactly 70 through all three weights", () => {
+    const mission = profile({ duration_days: 1 / 24, relay_available: true, slope_ideal_deg: 0,
+      weights: { slope: 1, power: 1, comms: 1 } });
+    const result = evaluate(series([0.6]), mission, 0, 5)!;
+    expect(result.utilities).toEqual({ slope: 0.5, power: 0.6, comms: 1 });
+    expect(result.score).toBe(70);
+    expect(result.status).toBe("GO");
+  });
+});

@@ -181,5 +181,6 @@ describe("checkReport", () => {
     for (const word of ["NaN", "undefined", "null", "Infinity"]) {
       expect(render(real).includes(word), `real file: ${word}`).toBe(false);
     }
-  });
+    // It renders every case and the real file: about 5 s on a loaded machine, so 20 s, not 5.
+  }, 20_000);
 });

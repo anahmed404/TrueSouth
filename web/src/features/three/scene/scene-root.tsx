@@ -576,7 +576,7 @@ function Scene3D(props: SceneProps) {
       tabIndex={0}
       role="application"
       aria-roledescription="3D scene"
-      aria-label="The Sun, Earth and Moon. Drag to turn, right-drag, Shift-drag or drag with two fingers to slide, scroll or pinch to zoom, double-click to centre a spot. With the scene focused, arrow keys turn, Shift and the arrow keys slide, and plus and minus zoom."
+      aria-label="The Sun, Earth and Moon. Drag or middle-drag to turn, right-drag, Shift-drag or drag with two fingers to slide, scroll or pinch to zoom, double-click to centre a spot. With the scene focused, arrow keys turn, Shift and the arrow keys slide, and plus and minus zoom."
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -586,6 +586,14 @@ function Scene3D(props: SceneProps) {
       onKeyDown={onKeyDown}
       onContextMenu={(event) => {
         if (!(event.target as HTMLElement).closest("button, a, input, .scene-plate-interactive")) event.preventDefault();
+      }}
+      // The middle button drags like the left (pointers.ts): over the scene the browser's own
+      // middle click must not act, no auto-scroll (Windows), paste (Linux) or new tab.
+      onMouseDown={(event) => {
+        if (event.button === 1 && !(event.target as HTMLElement).closest("button, a, input, .scene-plate-interactive")) event.preventDefault();
+      }}
+      onAuxClick={(event) => {
+        if (event.button === 1 && !(event.target as HTMLElement).closest("button, a, input, .scene-plate-interactive")) event.preventDefault();
       }}
     >
       {focusedId ? <FocusedSiteData key={focusedId} siteId={focusedId} profile={scenario.profile} onData={onData} /> : null}

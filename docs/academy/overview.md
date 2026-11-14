@@ -98,6 +98,28 @@ Every step is one of eight kinds. Each is a React component that takes typed pro
 Interactions reuse Mission Control's panels: the Lander's eye view, the timeline, the
 polar map, the Slip Planner and the 3D views.
 
+**How `drag-body` and `draw-skyline` play** (work package A3):
+
+- `drag-body` shows the Lander's eye horizon chart for the step's site and hours, with only
+  the named body drawn. The learner drags the body along its stored path (or the time bar
+  under the chart), or focuses it and uses ← → (an hour), Shift (a day), Home and End.
+  The readout shows the hour (UTC), the body's elevation and, for a disc-fraction goal,
+  the disc fraction. "Check" sends the series' value for the goal's metric at that hour;
+  hint, reveal and XP follow the rules above. After a right answer or a reveal, a dashed
+  ring marks the answer's hour on the chart and the time bar. A `flat` or `smooth` scene
+  draws the ground level at 0°; the values still come from the series.
+- `draw-skyline` shows an empty horizon frame for the step's window with the Sun at the
+  scene's hour. The learner draws one line left to right (one height per degree, so it
+  cannot double back), or Tabs to nine points and moves them with ↑ ↓ (Shift for larger
+  steps). "Start again" clears it. "Done" lays the real skyline (solid) over the sketch
+  (dashed), with a legend, and scores it by the closeness rule.
+- If the site's data does not load, either step shows a plain message, the step's reveal
+  line and "Continue", for no XP, not counted for the stars.
+- Their generic words ("Check", "Done", "Start again", "Time", "Disc fraction", "Found it",
+  "Marked on the chart", "Real skyline", "Your sketch", the level-ground note and the key
+  hints) are step chrome, in `web/src/features/academy/lesson/` and `step-view.ts`, not
+  lesson text.
+
 ## How lessons are written
 
 - Each lesson is a TypeScript file, `lessons/<id>.ts`, exporting a typed `Lesson`.

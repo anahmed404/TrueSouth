@@ -44,12 +44,10 @@ export const lesson4 = {
       panel: "LandersEye",
       scene: month,
       readout: ["highest {{example.l4.earth_el_max_deg}}°", "lowest {{example.l4.earth_el_min_deg}}°"],
-      goal: { metric: "earth_el_deg", op: "==", value: "{{example.l4.earth_el_max_deg}}" },
+      // Within half the series' stored step of 0.01°: the hours that read as the highest.
+      goal: { metric: "earth_el_deg", op: "==", value: "{{example.l4.earth_el_max_deg}}", tolerance: 0.005 },
       answerLabel: "{{example.l4.earth_el_max_deg}}°",
-      preview: {
-        says: "Soon you'll drag Earth through a month here, to find its highest moment. For now, here's what you would find.",
-        reveal: range,
-      },
+      preview: { reveal: range },
     },
     {
       id: "l4-up",

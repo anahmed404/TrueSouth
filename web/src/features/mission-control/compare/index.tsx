@@ -1,5 +1,6 @@
 import { ArrowUpRight, Download } from "lucide-react";
-import { memo, useCallback, useLayoutEffect, useMemo, useState } from "react";
+import { memo, useCallback, useContext, useId, useLayoutEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import type { MissionProfile, Site } from "../../../contracts/generated";
 import type { PanelProps } from "../../../app/panel";
 import { Button } from "../../../components/Button";
@@ -10,6 +11,7 @@ import { StatusBadge, StatusLamp } from "../../../components/StatusLamp";
 import { useSites } from "../../../data/hooks";
 import { saveTextFile } from "../../../lib/export";
 import { scoreTitle } from "../../../app/mission/rules";
+import { WindowHeaderSlot } from "../../../app/mission/floating-window";
 import { useScenarioStore } from "../../../app/mission/scenario-context";
 import { SettingsTag } from "../../../app/mission/settings-tag";
 import { NO_RESULT_TEXT, useSiteStatus, type SiteStatus } from "../../../app/mission/site-status";
@@ -22,12 +24,14 @@ import {
   slopeSources,
   statusCells,
   summarySentence,
+  NOT_RANKED_NOTE,
+  TOO_FEW_SITES,
   type Cell,
   type ColumnView,
   type MetricRow,
   type StatusCell,
 } from "./model";
-import { CHOSEN_TAG, CHOSEN_TIP, NOT_RANKED_NOTE, isVariant } from "./site-wording";
+import { CHOSEN_TAG, CHOSEN_TIP, isVariant } from "../../../app/mission/site-labels";
 import "./compare.css";
 
 /** How many times the table has rendered. For the test that a scrub does not re-render it. */
@@ -151,28 +155,40 @@ const CompareBody = memo(function CompareBody({ profile, siteIds, landingUtc, fo
     saveTextFile(scenarioFileName(scenario), scenarioJson(columns, scenario, new Date()), "application/json");
   };
 
+  // The window's header holds the landing date and the exports, beside the title; the
+  // summary sentence is the table's accessible description (docs/features/compare.md).
+  const headerSlot = useContext(WindowHeaderSlot);
+  const head = (
+    <>
+      <p className="cmp-date">
+        <span className="sr-only">Landing </span>
+        <time className="tabular" dateTime={landingUtc}>
+          {formatUtc(landingUtc)}
+        </time>
+      </p>
+      {columns.length > 0 ? (
+        <div className="cmp-actions">
+          <Button icon={<Download size={14} strokeWidth={1.8} aria-hidden="true" />} onClick={saveCsv} disabled={loading}>
+            Export CSV
+          </Button>
+          <Button icon={<Download size={14} strokeWidth={1.8} aria-hidden="true" />} onClick={saveJson} disabled={loading}>
+            Export JSON
+          </Button>
+        </div>
+      ) : null}
+    </>
+  );
+
   return (
     <div className="cmp">
       {siteIds.map((siteId) => (
         <StatusProbe key={siteId} siteId={siteId} profile={profile} landingUtc={landingUtc} onStatus={onStatus} />
       ))}
-      <div className="cmp-bar">
-        <p className="cmp-summary" aria-live="polite">
-          {summary}
-        </p>
-        {columns.length > 0 ? (
-          <div className="cmp-actions">
-            <Button icon={<Download size={14} strokeWidth={1.8} aria-hidden="true" />} onClick={saveCsv} disabled={loading}>
-              Export CSV
-            </Button>
-            <Button icon={<Download size={14} strokeWidth={1.8} aria-hidden="true" />} onClick={saveJson} disabled={loading}>
-              Export JSON
-            </Button>
-          </div>
-        ) : null}
-      </div>
+      {headerSlot ? createPortal(head, headerSlot) : <div className="cmp-bar">{head}</div>}
+      {columns.length === 0 ? <p className="cmp-empty">{summary}</p> : null}
       {columns.length > 0 ? (
         <CompareTable
+          summary={summary}
           columns={columns}
           rows={rows}
           statuses={statuses}
@@ -187,6 +203,8 @@ const CompareBody = memo(function CompareBody({ profile, siteIds, landingUtc, fo
 });
 
 type TableProps = {
+  /** The one-line answer, read to assistive technology as the table's description. */
+  summary?: string;
   columns: readonly ColumnView[];
   rows: readonly MetricRow[];
   statuses: readonly (StatusCell | null)[];
@@ -197,13 +215,19 @@ type TableProps = {
 };
 
 /** The table itself. Exported for tests, which draw it with known columns. */
-export const CompareTable = memo(function CompareTable({ columns, rows, statuses, profile, landingUtc, focusedSiteId, onFocusSite }: TableProps) {
+export const CompareTable = memo(function CompareTable({ summary, columns, rows, statuses, profile, landingUtc, focusedSiteId, onFocusSite }: TableProps) {
   compareRenders.count += 1;
   const sources = slopeSources(columns);
+  const summaryId = useId();
   return (
     <>
+      {summary ? (
+        <p id={summaryId} className="sr-only" aria-live="polite">
+          {summary}
+        </p>
+      ) : null}
       <div className="cmp-scroll" role="region" aria-label="Comparison table" tabIndex={0}>
-        <table className="cmp-table" data-columns={columns.length}>
+        <table className="cmp-table" data-columns={columns.length} aria-describedby={summary ? summaryId : undefined}>
           <caption className="sr-only">
             Selected sites compared for {profile.name}, landing {formatUtc(landingUtc)}. One column per site; the best value in a row
             is marked “best”.
@@ -253,6 +277,7 @@ export const CompareTable = memo(function CompareTable({ columns, rows, statuses
         </table>
       </div>
       <p className="cmp-foot">
+        {columns.length === 1 ? `${TOO_FEW_SITES} ` : null}
         A tie for best marks every tied site.
         {columns.some((column) => isVariant(column.site)) ? ` ${NOT_RANKED_NOTE}` : null}
         {sources.length > 0 ? ` Slope from ${sources.join("; ")}.` : null}
@@ -295,7 +320,9 @@ function SiteHeader({ column, focused, onFocusSite }: { column: ColumnView; focu
       {column.chosenBy ? (
         <span className="cmp-meta">
           <NoteTag label={CHOSEN_TAG} text={CHOSEN_TIP} dotted />
-          <span className="cmp-meta-line">{column.chosenBy}</span>
+          <span className="cmp-meta-line" title={column.chosenBy}>
+            {column.chosenBy}
+          </span>
         </span>
       ) : null}
     </th>

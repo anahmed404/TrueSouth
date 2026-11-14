@@ -24,8 +24,12 @@ A new visitor lands on the System view with a working default: profile `im2_athe
 polar sites, landing date 2028-03-01. Nothing is empty on first load. The Slip Planner is
 one click away on the view bar.
 
-Step 2 also takes typed coordinates: "Your own coordinates" in the add-site picker
+Step 2 also takes typed coordinates: "Enter coordinates" in the add-site picker
 computes a custom site on the server ([`polar-map.md`](polar-map.md), "Custom sites").
+"Enter coordinates" is an outlined full-width row with a crosshair at the top of the picker,
+closed by default so the catalog is not pushed down; one click opens the form with focus in
+the latitude field. When the server has no custom sites the row still shows, with "Not
+available on this server" under its label.
 Out of scope for the deadline: "compute for my dates"; its spec stays in
 [`polar-map.md`](polar-map.md).
 
@@ -140,11 +144,15 @@ Compare follows these rules. The Slip Planner is a camera view and does not.
 - A window is a solid panel with the popover shadow, centred horizontally, between the
   view bar and the timeline. It is at most 1,120 px wide. On a phone it fills the screen.
 - It has a title, a one-sentence description and a close button. It opens with a 180 ms
-  rise and fade (none under reduced motion).
+  rise and fade (none under reduced motion). Compare keeps its description for assistive
+  technology only, and puts its landing date and exports in the header's row
+  ([`compare.md`](compare.md)).
 - It has `role="dialog"` and `aria-modal="false"`. It is not modal: the app bar, the side
   panels and the timeline stay usable, and the scene stays visible around it.
 - **The timeline stays visible** below the window, and the scrubber keeps driving the
-  windows' content where it depends on the current time.
+  windows' content where it depends on the current time. Compare folds it to its one row
+  while it is open and restores it on close, so the table gets the height
+  ([`compare.md`](compare.md), "Room for the table"); that fold is never saved.
 - **Escape closes it,** and focus returns to the button that opened it. The close button
   does the same.
 - Opening a window does not change the camera or the selected view.

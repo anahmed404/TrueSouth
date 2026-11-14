@@ -32,8 +32,10 @@ import { useFeatures, useMapLookup, useMapsMeta, useSites } from "../../data";
 import { polarStereoForward, polarStereoInverse, polarStereoScale, wrapLongitude } from "../../lib/geo";
 import { useEvaluation } from "../../lib/scoring";
 import { releaseMapImage, useMapImage } from "./assets";
+import { tierHint } from "../../app/mission/custom-site-form";
+import { releaseContext, useMoonContext } from "./context";
 import { drawMap, readPalette, type Marker, type Palette } from "./draw";
-import { onMap, pinAt, placePins, type PinState, type PlacedPin } from "./pins";
+import { onContext, pinAt, placePins, type PinState, type PlacedPin } from "./pins";
 import {
   AVERAGE_CAVEAT,
   CHOSEN_TAG,
@@ -54,6 +56,7 @@ import { scaleBar } from "./takeover";
 import {
   DEFAULT_HALF_WIDTH_M,
   clampView,
+  fitRectOf,
   fitView,
   latLonToScreen,
   reliefLevel,
@@ -90,6 +93,11 @@ export type MapCoreProps = {
    */
   onRequestSite?: (latDeg: number, lonDeg: number) => void;
   /**
+   * Optional: a strip at the foot of `frame`, in CSS pixels, that the map fits above (Mission
+   * Control passes the scene's controls strip, so the flat map opens at the globe's scale).
+   */
+  fitFootPx?: number;
+  /**
    * Optional: the sites to place, in place of the whole catalog (for example only the selected
    * sites). Selection and focus still come from the scenario.
    */
@@ -116,6 +124,13 @@ export type MapCoreProps = {
    * the map (the Slip Planner with 3D off). Default true.
    */
   readouts?: boolean;
+  /**
+   * Optional: whether the detailed square's border carries its label ("Detailed terrain ·
+   * 80 m map"). The border is always drawn. Default: on when `readouts` is on, off when it is
+   * off, so a caller drawing its own labels over the map (the Slip Planner's spots) is not
+   * crowded.
+   */
+  detailLabel?: boolean;
 };
 
 /** Where a place is on the map's screen now, in CSS pixels from the map box's top left. */
@@ -138,6 +153,8 @@ const OVERLAY_TINT: Record<OverlayId, keyof Palette> = { sunlight: "sun", earthv
 const KEY_PAN_PX = 60;
 const KEY_MOVE_PX = 8;
 const SHARP_RELIEF = "hillshade_8k.webp";
+/** The context around the square fades in over this long, once it is ready. */
+const CONTEXT_FADE_MS = 400;
 /** How long the map stays zoomed out before it lets the 8K relief go. */
 const SHARP_RELEASE_MS = 20_000;
 const KEY_NUDGE_M = 100;
@@ -225,7 +242,9 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
     () => props.frame ?? { x: 0, y: 0, width: box.width, height: box.height },
     [props.frame?.x, props.frame?.y, props.frame?.width, props.frame?.height, box.width, box.height],
   );
-  const fit = useMemo(() => fitView({ rect: frame, boxHeight: box.height }, halfWidthM), [frame, box.height, halfWidthM]);
+  // The map fits, and centres, above the strip its controls sit in (when one is given).
+  const fitRect = useMemo(() => fitRectOf(frame, props.fitFootPx ?? 0), [frame, props.fitFootPx]);
+  const fit = useMemo(() => fitView({ rect: fitRect, boxHeight: box.height }, halfWidthM), [fitRect, box.height, halfWidthM]);
   const viewRef = useRef<MapView>(props.openAt ?? fit);
   const [view, setView] = useState<MapView>(viewRef.current);
   const userMoved = useRef(false);
@@ -240,6 +259,28 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
   const [wantSharp, setWantSharp] = useState(false);
   const relief8k = useMapImage(wantSharp ? SHARP_RELIEF : null);
   const firstPaint = relief4k.status === "ready" || relief4k.status === "error";
+
+  // The rest of the Moon around the square: built once after the first paint (in a lesson
+  // box only used when this session already has it), then faded in, or shown at once with
+  // reduced motion.
+  const context = useMoonContext(firstPaint && !lesson);
+  const [contextAlpha, setContextAlpha] = useState(() => (context.status === "ready" ? 1 : 0));
+  useEffect(() => {
+    if (context.status !== "ready") return;
+    if (reduceMotion) {
+      setContextAlpha(1);
+      return;
+    }
+    let raf = 0;
+    const start = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / CONTEXT_FADE_MS);
+      setContextAlpha((current) => Math.max(current, t));
+      if (t < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [context.status, reduceMotion]);
   const [ownOverlay, setOverlay] = useState<OverlayId | "none">("none");
   const [ownOpacity, setOpacity] = useState(0.65);
   const outsideOverlay = props.overlay !== undefined;
@@ -286,7 +327,7 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
   const pinsRef = useRef<PlacedPin[]>(pins);
   pinsRef.current = pins;
   const offMap = useMemo(
-    () => (sites ? scenario.siteIds.map((id) => siteById(id)).filter((s): s is Site => Boolean(s) && !onMap(s as Site, halfWidthM)) : []),
+    () => (sites ? scenario.siteIds.map((id) => siteById(id)).filter((s): s is Site => Boolean(s) && !onContext(s as Site)) : []),
     [sites, scenario.siteIds, siteById, halfWidthM],
   );
 
@@ -403,12 +444,12 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
       const inside = at.x > frame.x + 24 && at.x < frame.x + frame.width - 24 && at.y > frame.y + 24 && at.y < frame.y + frame.height - 24;
       if (inside && v.k >= minK) return;
       const k = Math.max(v.k, minK);
-      const centre = { x: frame.x + frame.width / 2, y: frame.y + frame.height / 2 };
+      const centre = { x: fitRect.x + fitRect.width / 2, y: fitRect.y + fitRect.height / 2 };
       // Put the point at the centre, at scale k: the pole moves with the zoom about the point.
       const f = k / v.k;
       animateTo({ k, x: centre.x - (at.x - v.x) * f, y: centre.y - (at.y - v.y) * f });
     },
-    [frame, animateTo],
+    [frame, fitRect, animateTo],
   );
 
   // A newly focused site that is off screen slides into view.
@@ -416,7 +457,7 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
   useEffect(() => {
     if (lastFocused.current === focusedId) return;
     lastFocused.current = focusedId;
-    if (!focusedSite || !onMap(focusedSite, halfWidthM)) return;
+    if (!focusedSite || !onContext(focusedSite)) return;
     bringIntoView(focusedSite.lat_deg, focusedSite.lon_deg);
   }, [focusedId]);
 
@@ -443,6 +484,7 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
       releaseMapImage(SHARP_RELIEF);
       releaseMapImage("sunlight_4k.webp");
       releaseMapImage("earthvis_4k.webp");
+      releaseContext();
     },
     [],
   );
@@ -500,9 +542,12 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
       features: props.showFeatureNames === false ? [] : (features ?? []),
       compact: lesson,
       marker,
+      detailLabel: detailLabelOn(props.readouts, props.detailLabel),
+      area: frame,
+      context: context.status === "ready" ? { layers: context.layers, alpha: contextAlpha } : null,
     });
     for (const listener of frameListeners.current) listener();
-  }, [view, box.width, box.height, dpr, pins, features, props.showFeatureNames, marker, relief4k.status, relief8k.status, overlay, overlayImage?.status, opacity, fontsReady, halfWidthM, lesson]);
+  }, [view, box.width, box.height, dpr, pins, features, props.showFeatureNames, marker, relief4k.status, relief8k.status, overlay, overlayImage?.status, opacity, fontsReady, halfWidthM, lesson, context, contextAlpha, props.readouts, props.detailLabel, frame]);
 
   // The projector for things drawn over the map (`onProjector`).
   const frameListeners = useRef(new Set<() => void>());
@@ -617,7 +662,7 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
   const zoomBy = useCallback(
     (factor: number) => {
       userMoved.current = true;
-      const centre = { x: frame.x + frame.width / 2, y: frame.y + frame.height / 2 };
+      const centre = { x: fitRect.x + fitRect.width / 2, y: fitRect.y + fitRect.height / 2 };
       animateTo(zoomTowards(viewRef.current, factor, centre, zoomExtent(fit)));
     },
     [animateTo, frame, fit],
@@ -682,9 +727,9 @@ export const MapCore = memo(function MapCore(props: MapCoreProps) {
     } else if ((event.key === "Enter" || event.key === " ") && props.readouts !== false) {
       event.preventDefault();
       if (readoutRef.current?.kind === "point" || readoutRef.current?.kind === "nudge") return;
-      const centre = { x: frame.x + frame.width / 2, y: frame.y + frame.height / 2 };
+      const centre = { x: fitRect.x + fitRect.width / 2, y: fitRect.y + fitRect.height / 2 };
       setReadout({ kind: "point", at: screenToLatLon(centre.x, centre.y, viewRef.current) });
-    } else if ((event.key === "n" || event.key === "N") && props.readouts !== false && focusedSite && onMap(focusedSite, halfWidthM)) {
+    } else if ((event.key === "n" || event.key === "N") && props.readouts !== false && focusedSite && onContext(focusedSite)) {
       event.preventDefault();
       startNudge(focusedSite.id);
     } else if (event.key === "Escape" && readoutRef.current) {
@@ -948,6 +993,25 @@ export function requestSiteAt(at: Point, onRequestSite: ((latDeg: number, lonDeg
   onRequestSite(at.latDeg, wrapLongitude(at.lonDeg));
 }
 
+/** Whether the detailed square's label shows: `detailLabel` if given, else when readouts are on. */
+export function detailLabelOn(readouts: boolean | undefined, detailLabel: boolean | undefined): boolean {
+  return detailLabel ?? readouts !== false;
+}
+
+/**
+ * What "Compute this site" will use at a latitude, by the server's documented tiers
+ * (docs/architecture.md, "The API"; `tierHint` in the sites package): the 80 m terrain map
+ * at or south of 80°S, the 240 m map at or south of 60°S, a smooth Moon anywhere else.
+ */
+export function computeTierLine(latDeg: number): string {
+  const tier = tierHint(latDeg);
+  if (tier === "core80") return "TrueSouth computes it from NASA's 80 m terrain map.";
+  // The 240 m tier is set by latitude, and the detailed square's corners reach 75.9°S: a point
+  // can be on this tier and still inside the square. Whether it is outside is the lookup's to say.
+  if (tier === "wide240") return "TrueSouth computes it from NASA's 240 m terrain map.";
+  return "Outside our terrain maps: TrueSouth computes it on a smooth Moon, with no mountains.";
+}
+
 export function ReadoutCard(props: ReadoutCardProps) {
   const { readout, view, frame, siteById, valueAt, gridsReady } = props;
   const ref = useRef<HTMLElement>(null);
@@ -1024,9 +1088,12 @@ export function ReadoutCard(props: ReadoutCardProps) {
           )}
           <p className="pm-card-note">{AVERAGE_CAVEAT}</p>
           {props.onRequestSite ? (
-            <div className="pm-card-actions">
-              <Button onClick={() => requestSiteAt(at, props.onRequestSite)}>Compute this site</Button>
-            </div>
+            <>
+              <p className="pm-card-line">{computeTierLine(at.latDeg)}</p>
+              <div className="pm-card-actions">
+                <Button onClick={() => requestSiteAt(at, props.onRequestSite)}>Compute this site</Button>
+              </div>
+            </>
           ) : null}
         </>
       );
@@ -1082,9 +1149,12 @@ export function ReadoutCard(props: ReadoutCardProps) {
                 </p>
               ) : null}
               {props.onRequestSite && moved >= 1 ? (
-                <div className="pm-card-actions">
-                  <Button onClick={() => requestSiteAt(at, props.onRequestSite)}>Compute this point</Button>
-                </div>
+                <>
+                  <p className="pm-card-line">{computeTierLine(at.latDeg)}</p>
+                  <div className="pm-card-actions">
+                    <Button onClick={() => requestSiteAt(at, props.onRequestSite)}>Compute this point</Button>
+                  </div>
+                </>
               ) : null}
             </>
           )}

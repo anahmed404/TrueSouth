@@ -1,5 +1,6 @@
 import { Antenna, ArrowRight, Sun, X } from "lucide-react";
 import type { MouseEvent } from "react";
+import { useLiveValue, type LiveValue } from "../live-value";
 
 /** Antenna with a slash: Pip has no link to Earth. */
 function AntennaOff() {
@@ -37,6 +38,13 @@ export function PipMeters({ power, link }: { power?: number; link?: boolean }) {
   );
 }
 
+/** Pip's meters, with the power following a live value when there is one. Only this re-renders with it. */
+function LivePipMeters({ pip, live }: { pip: { power?: number; link?: boolean } | null; live: LiveValue<number | null> }) {
+  const power = useLiveValue(live);
+  if (power === null && !pip) return <span />;
+  return <PipMeters power={power ?? pip?.power} link={pip?.link} />;
+}
+
 type LessonTopBarProps = {
   title: string;
   stepIndex: number;
@@ -44,12 +52,14 @@ type LessonTopBarProps = {
   /** The current step is answered, so its segment is done. */
   answered: boolean;
   pip: { power?: number; link?: boolean } | null;
+  /** Pip's power while a step drives it live (the dragged Sun's disc fraction), or null. */
+  livePower?: LiveValue<number | null>;
   onClose: () => void;
   onSkip: (event: MouseEvent<HTMLAnchorElement>) => void;
 };
 
 /** Close, progress, "Step n of N", Pip's meters and the skip link. */
-export function LessonTopBar({ title, stepIndex, stepCount, answered, pip, onClose, onSkip }: LessonTopBarProps) {
+export function LessonTopBar({ title, stepIndex, stepCount, answered, pip, livePower, onClose, onSkip }: LessonTopBarProps) {
   const doneCount = stepIndex + (answered ? 1 : 0);
   return (
     <header className="ac-lt">
@@ -76,7 +86,7 @@ export function LessonTopBar({ title, stepIndex, stepCount, answered, pip, onClo
         </span>
       </div>
       <div className="ac-lt-b">
-        {pip ? <PipMeters power={pip.power} link={pip.link} /> : <span />}
+        {livePower ? <LivePipMeters pip={pip} live={livePower} /> : pip ? <PipMeters power={pip.power} link={pip.link} /> : <span />}
         <a className="ac-quiet" href="/mission" onClick={onSkip}>
           Skip to Mission Control
           <ArrowRight aria-hidden="true" />

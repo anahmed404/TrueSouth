@@ -4,10 +4,34 @@
  * turns the commands it returns into calls on the camera rig.
  *
  * A gesture ends on pointer up, pointer cancel, lost pointer capture, the window losing focus
- * or the tab being hidden, and, for a mouse, on a move with no button held (the button was
- * released outside the window). After any of these, no pointer is remembered, so the view
- * never turns with no button down and the next touch never counts as a pinch.
+ * or the tab being hidden, and, for a mouse, on a move with no button held, or with the
+ * button that started it no longer held (it was released outside the window, or while
+ * another button was down). After any of these, no pointer is remembered, so the view never
+ * turns with no button down and the next touch never counts as a pinch.
+ *
+ * Mouse buttons: the left button turns; the middle button (the wheel pressed) does what
+ * `MIDDLE_BUTTON_DRAG` says, turning by default, so it works like the left button in every
+ * view; the right button slides; Shift with the left or middle button slides. A middle click
+ * without a drag does nothing (no double-click centring). The back and forward buttons are
+ * ignored.
  */
+
+/**
+ * What a middle-button drag does: "turn" like the left button, or "slide" like the right
+ * button. One line to flip if the team prefers the middle button to slide the view.
+ */
+export const MIDDLE_BUTTON_DRAG: "turn" | "slide" = "turn";
+
+/** `PointerEvent.button` values, and each one's bit in `PointerEvent.buttons`. */
+const LEFT = 0;
+const MIDDLE = 1;
+const RIGHT = 2;
+const BUTTON_BIT: Record<number, number> = { [LEFT]: 1, [MIDDLE]: 4, [RIGHT]: 2 };
+
+/** Whether a drag started with `button` slides rather than turns. */
+function slides(button: number, shift: boolean): boolean {
+  return button === RIGHT || shift || (button === MIDDLE && MIDDLE_BUTTON_DRAG === "slide");
+}
 
 export type PointerKind = "mouse" | "touch" | "pen";
 
@@ -49,9 +73,11 @@ export class PointerTracker {
   }
 
   down(id: number, x: number, y: number, kind: PointerKind, button: number, shift: boolean, now: number): Command[] {
+    // Only the left, middle and right mouse buttons drag; back and forward do nothing here.
+    if (kind === "mouse" && BUTTON_BIT[button] === undefined) return [];
     this.points.set(id, { x, y, kind });
     if (this.points.size === 1) {
-      this.gesture = { button, pan: button === 2 || shift };
+      this.gesture = { button, pan: slides(button, shift) };
       this.tap = { x, y, t: now, moved: false };
       return [{ type: "begin" }];
     }
@@ -61,12 +87,14 @@ export class PointerTracker {
 
   /**
    * A move of pointer `id` to (x, y). `buttons` is the pointer event's `buttons` (for a mouse,
-   * 0 means no button is held any more: the drag ends here).
+   * 0, or a mask without the button that started the drag, means that button is no longer
+   * held: the drag ends here).
    */
   move(id: number, x: number, y: number, buttons: number, shift: boolean): Command[] {
     const previous = this.points.get(id);
     if (!previous) return [];
-    if (previous.kind === "mouse" && buttons === 0) {
+    const bit = BUTTON_BIT[this.gesture?.button ?? LEFT] ?? 1;
+    if (previous.kind === "mouse" && (buttons === 0 || (this.points.size === 1 && (buttons & bit) === 0))) {
       this.end(id);
       this.lastTap = null;
       return [];
@@ -91,7 +119,7 @@ export class PointerTracker {
     if (!g) return [];
     const dx = x - previous.x;
     const dy = y - previous.y;
-    const pan = g.button === 2 || shift;
+    const pan = slides(g.button, shift);
     const out: Command[] = [];
     if (g.pan && !pan) out.push({ type: "begin" }); // back from sliding to turning: a fresh turn
     g.pan = pan;
@@ -102,8 +130,14 @@ export class PointerTracker {
   /** Pointer `id` lifted at (x, y). May report a double tap. */
   up(id: number, x: number, y: number, now: number): Command[] {
     if (!this.points.has(id)) return [];
+    const button = this.gesture?.button ?? LEFT;
     const out = this.end(id);
     if (this.points.size > 0) return out;
+    // A middle click is not a tap: it never centres a spot, and it ends any double click.
+    if (button === MIDDLE) {
+      this.lastTap = null;
+      return out;
+    }
     // A double click or double tap: two short taps close together.
     const t = this.tap;
     if (t.moved || now - t.t > TAP_MS) {
