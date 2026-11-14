@@ -224,13 +224,12 @@ vec4 grain(vec2 p, float foot, vec2 sd, float tanEl, float inClose) {
   float fine = mix(1., uCloseGrain, inClose);
   mat2 t1 = mat2(.8, .6, -.6, .8), t2 = mat2(.28, .96, -.96, .28);
   #if GROUND_GRAIN > 1
-  w = fade(foot, 3.) * invented; if (w > 0.) { cr = dimples(p, 3., 17., .08, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
-  w = fade(foot, 1.) * invented; if (w > 0.) { cr = dimples(p, 1., 23., .1, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
+  w = fade(foot, 1.) * invented; if (w > 0.) { cr = dimples(p, 1., 23., .06, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w * .4)); }
   w = fade(foot, .6) * fine; if (w > 0.) { vec3 g = grainOctave(p, .6, .003, 53., t1); acc.xyz += w * vec3(g.xy, g.z * .03); }
   w = fade(foot, .15) * fine; if (w > 0.) { vec3 g = grainOctave(p, .15, .0012, 59., t2); acc.xyz += w * vec3(g.xy, g.z * .03); }
   w = fade(foot, .04) * fine; if (w > 0.) { vec3 g = grainOctave(p, .04, .0005, 61., t1); acc.xy += w * g.xy; }
   #else
-  w = fade(foot, 2.) * invented; if (w > 0.) { cr = dimples(p, 2., 23., .1, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w)); }
+  w = fade(foot, 1.) * invented; if (w > 0.) { cr = dimples(p, 1., 23., .06, sd, tanEl); acc.xyz += w * cr.xyz; acc.w = min(acc.w, mix(1., cr.w, w * .4)); }
   w = fade(foot, .4) * fine; if (w > 0.) { vec3 g = grainOctave(p, .4, .002, 53., t1); acc.xyz += w * vec3(g.xy, g.z * .03); }
   #endif
   return acc;
