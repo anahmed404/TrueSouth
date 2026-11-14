@@ -8,7 +8,7 @@ import { decodeSystem } from "../../../data/decode/index.ts";
 import { parseManifest } from "../../../data/parse.ts";
 import { bodyDirections, type SystemHour } from "../../../lib/geo";
 import { ORBIT_SEGMENTS, orbitCircle, orbitSegments, type Solid } from "./orbits";
-import { DRAWN_SUN_RADIUS, discInsideSpace, drawnEarth, drawnSun } from "./proportions";
+import { DRAWN_SUN_RADIUS, discInsideSpace, discLeaving, drawnEarth, drawnSun } from "./proportions";
 import type { V3 } from "./vec";
 
 /** Every hour of the real series (data/derived/system.bin). */
@@ -207,6 +207,18 @@ describe("Earth during the True-scale glide (Cursor's note on #111)", () => {
     expect(discInsideSpace(c, { centre: [0, 0, 0], radius: 1 }, space)).toBe(true);
     expect(discInsideSpace(c, { centre: [0, 0, 6], radius: 1 }, space)).toBe(false); // off the side of the free space
     expect(discInsideSpace(c, { centre: [0, 0, 0], radius: 1 }, null)).toBe(true);
+  });
+
+  it("looks ahead: a disc heading for the edge fast enough to cross it within the fade counts as leaving, so the fade ends first", () => {
+    const inside = { x: 684, y: 480, r: 40 }; // bottom at 520, the free space's at 555
+    expect(discLeaving(null, inside, 0, space, 180)).toBe(false);
+    // 0.66 px/ms downward (as measured): 120 px in 180 ms, past the edge: leaving now.
+    expect(discLeaving({ x: 684, y: 469, r: 40 }, inside, 16.7, space, 180)).toBe(true);
+    // Slow (0.05 px/ms): not yet.
+    expect(discLeaving({ x: 684, y: 479.2, r: 40 }, inside, 16.7, space, 180)).toBe(false);
+    // Outside, or behind the camera: leaving.
+    expect(discLeaving(inside, { x: 684, y: 540, r: 40 }, 16.7, space, 180)).toBe(true);
+    expect(discLeaving(inside, null, 16.7, space, 180)).toBe(true);
   });
 
   it("fades Earth out while its disc is outside the free space mid-glide, and not otherwise", async () => {

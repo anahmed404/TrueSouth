@@ -3,7 +3,7 @@ import type { CameraViewId } from "../../../app/scene";
 import type { DecodedApron, DecodedTerrain } from "../../../data";
 import { isCustomSiteId, sceneImageUrl } from "../../../data";
 import { EARTH_RADIUS_KM, MOON_RADIUS_M, SUN_RADIUS_KM, type ApronGrid } from "../../../lib/geo";
-import { DRAWN_SUN_RADIUS, bodyInFront, discInsideSpace, earthDuringScale, sunDuringScale } from "./proportions";
+import { DRAWN_SUN_RADIUS, bodyInFront, discLeaving, earthDuringScale, screenDisc, sunDuringScale, type ScreenDisc } from "./proportions";
 import { OrbitLines } from "./orbits";
 import type { FreeSpace } from "../../../app/scene";
 import { altitudeOf, type SiteFrame } from "./camera";
@@ -148,6 +148,8 @@ export class World {
   /** The System view's faint orbit lines (orbits.ts). */
   readonly orbits: OrbitLines;
   private readonly orbitFade = { hidden: false, alpha: 1, at: 0 };
+  /** Earth's disc on screen at the last frame of the True-scale glide, to see where it is heading. */
+  private earthOnScreen: { disc: ScreenDisc | null; at: number } | null = null;
   private readonly earthFade = { hidden: false, alpha: 1, at: 0 };
   private readonly sunFade = { hidden: false, alpha: 1, at: 0 };
 
@@ -636,8 +638,21 @@ export class World {
     const inFront = inputs.bodies && near < 0.5 && bodyInFront(camAt, earthBody, inView(camera as THREE.PerspectiveCamera, earthBody), this.earthFade.hidden);
     // While the True-scale glide carries Earth, it fades whenever its disc leaves the free space,
     // so it never shows over the timeline or a panel's edge.
-    const gliding = this.scaleBlend > 0 && this.scaleBlend < 1 && near < 0.5;
-    const earthHide = inFront || (gliding && inputs.bodies && !discInsideSpace(camera as THREE.PerspectiveCamera, earthBody, this.freeSpace));
+    // It fades early enough (looking twice FADE_MS ahead at its speed on screen) to be gone
+    // before it crosses the edge.
+    const gliding = this.scaleBlend > 0 && this.scaleBlend < 1 && near < 0.5 && inputs.bodies && this.freeSpace !== null;
+    let leaving = false;
+    if (gliding) {
+      const now = performance.now();
+      const disc = screenDisc(camera as THREE.PerspectiveCamera, earthBody, this.freeSpace!.viewport);
+      const last = this.earthOnScreen;
+      // Twice the fade time ahead: the flight's ease is still speeding up when Earth leaves.
+      leaving = discLeaving(last ? last.disc : null, disc, last ? now - last.at : 0, this.freeSpace!, 2 * FADE_MS);
+      this.earthOnScreen = { disc, at: now };
+    } else {
+      this.earthOnScreen = null;
+    }
+    const earthHide = inFront || leaving;
     anchors.earthInFront = earthHide;
     const earthAlpha = this.stepFade(this.earthFade, earthHide);
     this.earth.uniforms.uAlpha.value = earthAlpha;

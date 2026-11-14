@@ -1452,6 +1452,48 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## 3D and Map
 
+#### 2026-11-14 · System view orbits · Faint orbit lines for the Moon and Earth
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — wrote `orbits.ts` (the two circles and the line
+  object), a small hook in `world.ts`, the True-scale glide fade (`proportions.ts`,
+  `screenDisc`, `discInside`, `discLeaving`), one line in `scene-root.tsx`, the About sentence,
+  the spec text and `orbits.test.ts` (run over the real `data/derived/system.bin`) — checked
+  by the agent with the vitest suite (a mutation removing the glide fade fails it), typecheck,
+  build, and by eye in Chrome with hardware WebGL (RTX 2060) at 1440 × 900 and 1024 × 768
+  against `main` (1c3b3b6) run side by side, with the True-scale toggle sampled frame by
+  frame; a human has not reviewed it
+- **State:** built, not verified
+- **Changed:** `web/src/features/three/scene/orbits.ts` and `orbits.test.ts` (new),
+  `world.ts` (construct, place and fade the lines; Earth's glide fade), `proportions.ts`
+  (screen-disc helpers; a comment on the distance curve's joins), `scene-root.tsx` (one line:
+  the free space to the world), `web/src/lib/explain.ts` (`system_view`),
+  `docs/features/system-view.md`, `docs/design/c2/built-system-orbits-*.png`, this entry
+- **Notes:**
+  - **The lines:** the Moon's orbit is the circle centred on the drawn Earth through the
+    Moon's centre; Earth's orbit is the circle centred on the drawn Sun through Earth's centre.
+    Each lies in the plane through its two bodies that is nearest the Moon's equator; Earth
+    and the Sun stay within about 7° of that plane, so it is always defined and turns at most
+    0.2° from one hour to the next over the whole series (tested). Drawings at the schematic
+    distances, not computed orbits; the About text says "Sizes, distances and orbit lines are
+    not to scale" (263 characters).
+  - **Look:** the Ridge Line grey (`--terrain-rim`) mixed 32 % into Night, opaque one-pixel
+    lines drawn first without depth writes, so every body, guide, sight-line and label covers
+    them; the parts inside the Moon or Earth are left out, so they stop at the limbs. No
+    dashes, labels or controls.
+  - **Where:** the System view only; they fade (180 ms) on the flight to any other view and
+    with the camera's descent to the ground. At true scale the Moon's orbit stays (a circle of
+    221 Moon radii through the Moon about Earth); Earth's orbit is hidden, since the Sun is
+    only a direction there.
+  - **Cost:** two `LineSegments` of 256 segments (512 vertices each), one fixed buffer each,
+    rewritten only when the bodies' drawn places change (the hour, or the True-scale glide);
+    at rest nothing is rewritten and no frame is asked for (tested; 0 frames in 1.2 s at rest
+    in the browser).
+  - **Cursor's note on #111:** during the True-scale glide Earth now fades whenever its disc is
+    outside the free space, or would be at its current speed on screen within 360 ms (twice the
+    fade, since the flight's ease still accelerates when Earth leaves). Sampled every frame
+    both ways at both sizes: Earth outside the free space on 46 to 67 frames per toggle, shown
+    on none of them; fully back at the end. The join note needs no change; a comment says so.
+
 #### 2026-11-14 · System view · Earth a little smaller and farther, so the Moon leads
 - **Who:** Claude Code agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — retuned the constants in

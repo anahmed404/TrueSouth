@@ -195,6 +195,45 @@ export function bodyInFront(camera: readonly [number, number, number], body: Bod
   return nearer && bodyAngle * slack > moonAngle && inView;
 }
 
+/** A body's disc on screen: its centre and radius in window pixels. */
+export type ScreenDisc = { x: number; y: number; r: number };
+
+/**
+ * A body's disc as `camera` draws it, in window pixels (the camera's frustum spans the window;
+ * its view offset only moves the principal point), or null when it is not in front of the
+ * camera. `viewport` is the window's size.
+ */
+export function screenDisc(camera: THREE.PerspectiveCamera, body: BodyPlacement, viewport: { width: number; height: number }): ScreenDisc | null {
+  const centre = new THREE.Vector3(...body.centre);
+  const distance = centre.distanceTo(camera.position);
+  if (distance <= body.radius) return null;
+  const look = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  if (centre.clone().sub(camera.position).dot(look) <= body.radius) return null;
+  const p = centre.project(camera);
+  const focal = viewport.height / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  return {
+    x: ((p.x + 1) / 2) * viewport.width,
+    y: ((1 - p.y) / 2) * viewport.height,
+    r: 1.05 * focal * Math.tan(Math.asin(Math.min(1, body.radius / distance))),
+  };
+}
+
+/** Whether a whole disc lies inside the free space `space`. */
+export function discInside(disc: ScreenDisc, space: FreeSpace): boolean {
+  return disc.x - disc.r >= space.x && disc.x + disc.r <= space.x + space.width && disc.y - disc.r >= space.y && disc.y + disc.r <= space.y + space.height;
+}
+
+/**
+ * Whether a disc moving from `previous` to `now` over `dtMs` is outside the free space, or will
+ * be within `leadMs` at that speed: so a fade of `leadMs` finishes before it crosses the edge.
+ */
+export function discLeaving(previous: ScreenDisc | null, now: ScreenDisc | null, dtMs: number, space: FreeSpace, leadMs: number): boolean {
+  if (!now || !discInside(now, space)) return true;
+  if (!previous || !(dtMs > 0)) return false;
+  const k = leadMs / dtMs;
+  return !discInside({ x: now.x + (now.x - previous.x) * k, y: now.y + (now.y - previous.y) * k, r: now.r + (now.r - previous.r) * k }, space);
+}
+
 /**
  * Whether a body's whole disc, as `camera` draws it, lies inside the free space `space`
  * (window pixels). The camera's frustum spans the window (its view offset only moves the
@@ -203,17 +242,6 @@ export function bodyInFront(camera: readonly [number, number, number], body: Bod
  */
 export function discInsideSpace(camera: THREE.PerspectiveCamera, body: BodyPlacement, space: FreeSpace | null): boolean {
   if (!space) return true;
-  const centre = new THREE.Vector3(...body.centre);
-  const distance = centre.distanceTo(camera.position);
-  if (distance <= body.radius) return false;
-  const look = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-  if (centre.clone().sub(camera.position).dot(look) <= body.radius) return false;
-  const p = centre.project(camera);
-  const width = space.viewport.width;
-  const height = space.viewport.height;
-  const x = ((p.x + 1) / 2) * width;
-  const y = ((1 - p.y) / 2) * height;
-  const focal = height / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-  const r = 1.05 * focal * Math.tan(Math.asin(Math.min(1, body.radius / distance)));
-  return x - r >= space.x && x + r <= space.x + space.width && y - r >= space.y && y + r <= space.y + space.height;
+  const disc = screenDisc(camera, body, space.viewport);
+  return Boolean(disc) && discInside(disc!, space);
 }
