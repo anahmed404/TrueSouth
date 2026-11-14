@@ -49,6 +49,12 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-14 ? S12c ? G2 diagnostics
+- **Who:** Codex implementation agent
+- **AI use:** Codex added structured G2 evidence and ran the real-data validation; human review pending.
+- **State:** built, not verified (tests and generated artifacts pending).
+- **Measured:** Raw azimuth maximum 0.08235604530386809? at apollo11/sun 2031-10-14T01:00:00Z; 28 site/body hours exceed 0.02?. Full sky maximum 0.006029212608512336? and elevation maximum 0.006006374416962501?. Removing the new diagnostics object leaves the real report structurally identical to origin/main.
+
 #### 2026-11-14 ? S10c ? Custom-site status and errors
 - **Who:** Codex implementation agent
 - **AI use:** Codex implemented queue positions, error codes, contracts, documentation and regression tests; human review pending.

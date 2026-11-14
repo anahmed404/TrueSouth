@@ -248,7 +248,7 @@ The catalog grid is 161 × 161 over a 300 km square centred on the site. Points 
 
 Described in [`validation.md`](validation.md) and
 [`academy/lessons.md`](academy/lessons.md). A gate leaves `passed` and `measured` null
-together when `validate` did not measure it. `samples` is then 0, and `detail` says
+together when `validate` did not measure it. Optional nullable `g2_diagnostics` records `raw_azimuth_max_deg`, `raw_azimuth_hours_over_limit`, `sky_max_deg`, and `elevation_max_deg`; each maximum has a corresponding `raw_azimuth_location`, `sky_location`, or `elevation_location` with `site_id`, `body`, and UTC `utc`. The raw compass difference is diagnostic; sky separation is the full direction separation and the gate separately uses the azimuth sky angle and elevation. `samples` is then 0, and `detail` says
 where that gate is checked. G10 and G11 are written that way.
 
 ## API messages

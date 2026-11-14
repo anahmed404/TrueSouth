@@ -1,4 +1,25 @@
 {
+  "g2_diagnostics": {
+    "raw_azimuth_max_deg": 0.08235604530386809,
+    "raw_azimuth_location": {
+      "site_id": "apollo11",
+      "body": "sun",
+      "utc": "2031-10-14T01:00:00Z"
+    },
+    "raw_azimuth_hours_over_limit": 28,
+    "sky_max_deg": 0.006029212608512336,
+    "sky_location": {
+      "site_id": "apollo11",
+      "body": "earth",
+      "utc": "2027-01-07T22:00:00Z"
+    },
+    "elevation_max_deg": 0.006006374416962501,
+    "elevation_location": {
+      "site_id": "apollo11",
+      "body": "earth",
+      "utc": "2027-02-06T15:00:00Z"
+    }
+  },
   "generated_utc": "2026-11-13T00:00:00Z",
   "gates": [
     {

@@ -31,7 +31,7 @@ own ephemeris service. If it cannot be met, follow the fallback in
 G2 compares directions on the sky, not raw compass bearings
 ([`decisions/0011`](decisions/0011-g2-compares-directions-on-the-sky.md)). A compass
 bearing has no meaning for a body that is almost straight overhead or underfoot, so the
-raw azimuth difference is reported beside the gate as a stated limit and is not gated.
+raw azimuth difference is reported beside the gate in `g2_diagnostics` and is not gated. This object records raw azimuth, full sky separation and elevation maxima with their site, body and UTC, plus the number of site-and-body hours above the limit.
 Measured on 2026-11-13: directions agree within 0.0060° everywhere; the raw azimuth
 difference exceeds 0.02° at 28 hours in six years, all for the Sun at Apollo 11 within
 0.52° of the zenith or nadir, and reaches 0.082°.
