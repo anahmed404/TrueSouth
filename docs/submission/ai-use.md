@@ -53,9 +53,9 @@ the DEVLOG "AI use" lines themselves name `gemini-3.8-flash` once.
 - **Tests.** Python science code has pytest tests against known geometry. TypeScript
   scoring code has vitest tests against a shared fixture of 76 cases, so it matches the
   Python reference to 1e-9. The orchestrator's rule was to run both suites before every
-  merge. The last full run recorded in `DEVLOG.md` (the "MC testing feedback 3" entry, on
-  the tree merged with `a35133f`) shows **438 Python tests** (1 skipped) and **2,465 web
-  tests** passing, with typecheck and the production build. This package ran no tests.
+  merge. As of 2026-11-14, `docs/orchestration/status.md` records the last full check on
+  `main` as **458 Python tests** (1 skipped: the real-map test) and **2,465 web tests**
+  passing, with typecheck and the build. This package ran no tests.
 - **Validation gates.** Eleven gates (G1 to G11) and 59 reported comparisons against NASA's
   own maps and self-convergence checks. Gate G2 compares our Sun and Earth directions with
   JPL Horizons at 2,103,360 points. The results, including the 5 comparisons outside their
@@ -152,5 +152,5 @@ here with the tool's name. Nothing in the repository says what the video is made
   not yet checked it are not counted.
 - **"At least 26".** DEVLOG State lines that contain "reviewed by" followed by Codex,
   Cursor, Gemini, Antigravity or the orchestrator.
-- **Tests.** The last recorded full run in `DEVLOG.md`, as named above. The counts have
-  moved with every merge; the status file's older line (425 and 2,317) is stale.
+- **Tests.** The last full check recorded in `docs/orchestration/status.md`, as of
+  2026-11-14. The counts move with every merge, so see that file for the current figures.
