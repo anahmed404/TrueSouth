@@ -49,6 +49,13 @@ each integration checkpoint.
 
 ## Science
 
+#### 2026-11-14 · S13b · production deploy files
+- **Who:** Codex implementation agent
+- **AI use:** Codex built the deployment files, trusted-proxy handling, tests and runbook; automated checks run locally, human review pending.
+- **State:** verified (reviewed by Cursor (grok-4.7): request changes, eight findings, all fixed by the author with evidence and read by the orchestrator; on the tree merged with main 69bb26e: 458 Python tests (1 skipped), 2,465 web tests, typecheck and build all exit 0. Not yet run on a real server: certificate issue and renewal, the visitor address on Ubuntu, and a terrain job's memory are unverified)
+- **Changed:** production Compose, deploy scripts and nginx configuration, API and tests, architecture, deployment runbook and decision 0017.
+- **Notes:** Merged main and addressed PR review: strict trusted-proxy CIDRs, mapped addresses and client logging; host refusal, nginx health, fixed app address and proxy-verified updates; JavaScript gzip and runbook fixes. Ran Compose config, isolated bootstrap/TLS, host, health, container recreation, gzip/weak ETag and failure-path checks, `sh -n`, ShellCheck, pytest (458 passed, one skipped), frozen pnpm install, web tests (2465 passed), typecheck and build. Docker Desktop logged the bridge gateway; real Ubuntu visitor addressing and peak terrain-job memory remain unverified. No real certificate or deployment was attempted. Local `system.bin` was 1,262,016 bytes; gzip was 1,030,332 bytes.
+
 #### 2026-11-14 · S10c review · Consistent queue positions
 - **Who:** Codex implementation agent
 - **AI use:** Codex fixed the POST response contract, added test-client coverage and updated the contract documentation; human review pending.

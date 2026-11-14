@@ -258,32 +258,9 @@ pnpm --dir web dev
 
 ### Production (Docker)
 
-Build and run without startup downloads:
-
-```bash
-docker compose -p truesouth-s10b up -d --build
-docker compose -p truesouth-s10b down
-```
-
-Node 22 builds with pnpm 11.10.0, the frozen lockfile and unchanged release-age policy.
-Python 3.12 installs the API and science runtime from uv.lock. Rasterio belongs to the
-science prepare extra (and development dependencies); only prepare_map imports it.
-The final image therefore needs no rasterio or GDAL. The non-root process serves port
-8080 with committed derived data. There is no init service or startup network request.
-
-Compose mounts ./data/prepared read-only and a named custom-cache volume at
-/app/data/cache. TRUESOUTH_PREPARED_HOST selects an existing map directory;
-TRUESOUTH_IMAGE can name an isolated test image. Without the prepared mount the
-container starts, serves the catalog, and explains missing polar maps with HTTP 503.
-API overrides TRUESOUTH_PREPARED, TRUESOUTH_DERIVED, TRUESOUTH_CACHE and
-TRUESOUTH_WEB_DIST are supported. Otherwise prepared and cache follow
-TRUESOUTH_DATA_ROOT, while committed derived data stays in the checkout.
-
-/api/health is the health check: HTTP 200 means the process answered, and its status
-field describes catalog completeness. Client routes return index.html; missing data
-and unknown API URLs remain real 404s.
-
-Development does not use this image. The commands in the previous section are unchanged.
+The image serves the web app, API and committed derived data. Prepared maps are optional
+for catalog use. For deployment, TLS, renewal, resource limits and recovery, see the
+[production runbook](deploy.md).
 
 ## Frontend structure
 
@@ -341,10 +318,16 @@ address history or storage reservation.
 
 ### Client addresses and reverse proxies
 
-The client address is the socket peer address exposed in the ASGI scope, never an
-X-Forwarded-For value read by the application. Production starts uvicorn with
-`--no-proxy-headers`; use that flag in development and other deployments too. The
-application provides no trusted-proxy configuration. All people behind one reverse
-proxy therefore share that proxy's six-per-hour limit. Changing X-Forwarded-For or
-Forwarded headers cannot reset it. Do not enable uvicorn proxy-header processing for
-this service without separately implementing and reviewing trusted-proxy support.
+The rate limit uses the socket peer address by default. `TRUESOUTH_TRUSTED_PROXIES`
+is an optional comma-separated list of IP addresses or CIDR ranges. Only when the
+socket peer matches that list does the API use the rightmost `X-Forwarded-For`
+entry, provided it is a valid IP address; a missing or malformed entry falls back to
+the peer. An untrusted peer cannot change its limit using forwarded headers.
+Networks must have no host bits set and be at least /24 (IPv4) or /64 (IPv6);
+invalid, empty list entries and broader networks fail startup. IPv4-mapped IPv6 peers,
+forwarded addresses and mapped IPv6 networks are normalized to IPv4 before matching
+and applying the prefix bound. Configure only proxies under your control.
+The API logs the rate-limit address for each custom-site submission.
+The production nginx overwrites the header
+with its connection's remote address. Keep uvicorn's `--no-proxy-headers` enabled;
+uvicorn must not rewrite the socket peer before this check.
