@@ -112,7 +112,9 @@ the top it covered Earth, which Lander's eye centres). It is always shown: the L
 **The full text is one hover, focus or click away** (the team lead found the full sentences
 cluttered the view, 2026-11-14). The line is a button with an info mark and `aria-expanded`;
 hovering it with a mouse, focusing it with the keyboard, or clicking or tapping it opens the
-full text above it; Escape or a second click closes it. The full text is, in order: what the
+full text above it. A click or tap keeps it open; a second click closes it, and so does
+Escape while the line has keyboard focus. Opened by hover alone, it closes when the pointer
+leaves. The full text is, in order: what the
 drawn ground is made from (for a listed site, for example "The shape of the ground nearest
 the lander comes from NASA's close-up DEM of this site, with squares 5 metres across."), the
 series' sentence, and the decoration sentence:
@@ -122,9 +124,11 @@ series' sentence, and the decoration sentence:
 > drawing differs, the series is right.
 
 When the series says dark, the series' sentence reads "The series says: dark. Sun disc
-fraction 0.12 above the skyline." Without the series it is left out. The ground-source line
-no longer has a plate of its own at the top; other plates (loading, errors, a custom site's
-surroundings) keep theirs.
+fraction 0.12 above the skyline." Without the series it is left out. Where the line folds,
+the ground-source sentence no longer has a plate of its own at the top; other plates
+(loading, errors, a custom site's surroundings) keep theirs. In a free space too small to
+fold (under 360 by 140 px) the older short plate "Shadows and ground texture are
+illustrative." is shown at the foot instead, and the ground-source plate stays at the top.
 
 The drawn shadow at the lander can differ from the series, and that is expected: the
 drawing marches over the 20 km patch and the 300 km terrain around it, at 80 m and 1.9 km,
