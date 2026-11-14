@@ -61,6 +61,9 @@ const entries = {
   custom_site: {
     text: "A site you create by clicking the polar map or typing a latitude and east longitude. TrueSouth works it out on request, so it takes a moment to appear.",
   },
+  custom_site_surroundings: {
+    text: "Around a custom site, the ground beyond the nearest few kilometres is drawn from a coarse height map of the whole Moon, so it shows only large hills and craters.",
+  },
   latitude: {
     text: "How far a place is north or south of the Moon's equator, in degrees. South is negative, so the south pole is at minus 90.",
   },

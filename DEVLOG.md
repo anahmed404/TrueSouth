@@ -1312,6 +1312,87 @@ Every one of the 65 proposed keys has a definition, source arrays, availability,
 
 ## 3D and Map
 
+#### 2026-11-14 · T3b · A custom site's ground joins the Moon
+- **Who:** Claude Code agent, for the orchestrator
+- **AI use:** Claude Code, claude-opus-5-5 — measured the fault, wrote `custom-apron.ts`
+  and its tests, the apron state and the plate line in `plates.ts`, the explanation in
+  `explain.ts`, the hook in `world.ts` and the spec; captured before and after pictures in
+  a headless Chrome with hardware WebGL (RTX 2060) against its own API (port 8123, the main
+  checkout's `data/prepared` read-only) and dev server (port 5198); no AI-generated imagery;
+  a human has not reviewed it yet
+- **State:** verified (reviewed twice by Codex (gpt-6.1-terra): its own rim probe measures 0.5 to 2.6 mm at full detail (13 to 23 m before), no hole or overlap at the corners, catalog heights identical to main away from the rim; the two moving-state findings of the re-check were then fixed by the author with tests at every detail level and every globe mesh, not re-reviewed; on the tree merged with main 36010d2: 458 Python tests (1 skipped), 2,589 web tests, typecheck and build all exit 0. Not yet tried by the team lead)
+- **Changed:** `web/src/features/three/scene/custom-apron.ts` and its test (new);
+  `world.ts` (`setGround` builds the apron for a custom site; the height map is read once);
+  `plates.ts` and its test (`apronLoadState`, the "surroundings" plate); `scene-root.tsx`
+  (one line: the apron state comes from `apronLoadState`); `web/src/lib/explain.ts`
+  (`custom_site_surroundings`, outside this track's folders: the text the plate shows);
+  `docs/features/local-terrain.md` ("States"); `docs/design/c2/built-custom-site-ground-*.png`;
+  this entry
+- **Notes:**
+  - The cause, measured: a custom site's patch is placed at the site's true ground height
+    (`elevation_m`; the 11 cached custom sites range from −3,188 m to +1,394 m), but the
+    globe is a plain sphere at the reference radius. A catalog site's apron eases from the
+    true heights down to that sphere and fills the 140 km disc the globe stops drawing
+    around the site once the ground is in. A custom site has no apron (the API makes none),
+    so its 20 km patch sat alone in that hole, kilometres above or below the globe; zoomed
+    out, the hole closes and the globe covers it again.
+  - The fix: the browser builds the custom site's apron from the patch's own heights and the
+    global height map it already loads for the globe (LOLA, 4 pixels a degree), joined at
+    the patch's edge with no step and eased to the reference sphere at its outer edge; one
+    quiet plate line says the surroundings are coarse. No terrain is invented, and the
+    series still decides lit or dark (decision 0015).
+  - Checked: the 80 m tier at −2,603 m and +261 m, the 240 m tier (72° S 10° E) and the
+    smooth tier (20° N 30° E), in Local terrain close and zoomed out and in Lander's eye, at
+    1440 × 900 and 1024 × 768; Connecting Ridge takes the unchanged path; the quality
+    governor's stages coarsen the new apron while moving and restore it at rest.
+  - Seen, not changed: in Lander's eye at a smooth-tier site (also the catalog's Apollo 11)
+    the camera looks toward Earth or the Sun, tens of degrees up, so the picture shows sky
+    only; that is the camera's framing (`rig.ts`), not the ground.
+  - Review fixes (Codex review of #105), 2026-11-14:
+    - The drawn mesh separated at the patch's edge (the apron's cells crossed the rim with
+      the points under the patch lowered 30 m): measured on the drawn triangles about
+      25.5 m below the patch at every height and tier. Now the apron's full-detail cells stop
+      at its first ring beyond the patch and a strip joins that ring to the patch's own rim
+      points (with the patch's normals): 0.0015 m (`ground-join.test.ts`, tolerance 0.25 m).
+      Same code path for catalog aprons (a flat test apron: 77 m before, 0.006 m after);
+      Connecting Ridge's pictures are unchanged at this scale.
+    - Found while retaking the pictures: `readGlobalHeights` read the image's size after
+      closing the ImageBitmap, which then reports 0 × 0, so every far height was NaN and
+      the apron fell to the site's own height, a cliff of up to 2.4 km at the rim (the
+      first round's pictures were taken with the earlier loader and were right). Fixed and
+      tested with a bitmap that zeroes its size on close.
+    - The global height map has an explicit state (idle, loading, ready, failed); a failure
+      is shown in plain words, not cached, and retried on the next visit to the view.
+    - The outer edge: no fight was seen in a nudge test at grazing views (the pixels that
+      flip under a 0.17 m camera nudge stay the same with the globe hidden), but by the
+      numbers one could happen near the globe's own vertices (0.25 m apart against a depth
+      step of about 1 m); the apron's and smooth ground's edge now ends 150 m below the
+      sphere, pinned by a test.
+    - The ground's key is checked before the apron is built.
+    - Seen, not changed: at grazing angles a thin broken line of drawn shadow can follow a
+      crest-like rim; it is decoration (gone with shadows off), not a gap.
+  - Re-check fixes (Codex re-check of #105), 2026-11-14:
+    - The join at every level: while moving, the patch and the apron share one step (2 or
+      4), and each level now has its own strip to the patch's edge as that level draws it.
+      Tested at every level on a ridge and a flat patch at −2,600, 0 and +1,400 m on both
+      tiers (0.25 m); removing the coarse strips fails 25 of 46 cases.
+    - The globe keeps its finest mesh while ground is drawn (`globeSegments` in
+      `World.setMoonSegments`): the coarser meshes the governor picks while moving lie 262 m
+      to 4.2 km inside the sphere, deeper than the ground's edge. Tested for every selectable
+      count, on the finest mesh's own triangles and through `World`; checked by eye at the
+      90 km zoom limit and in Lander's eye, at rest and with moving simulated (globe asked for
+      64 segments, ground at stage 3), for Connecting Ridge and a custom site: no slit or step.
+    - Reading the global height map fails after 20 s if it never settles (then retried on
+      the next visit); a late answer is ignored. Tested.
+    - Connecting Ridge before and after, close and at the zoom limit: identical by eye; 0.05 %
+      and 0.01 % of pixels differ by more than 24 grey levels.
+  - For the API later, so a custom site looks like a catalog site: the same apron the
+    catalog has, made by the same step (`build-scene-assets`): `aprons/<site_id>.bin`,
+    161 × 161 heights over 300 km at the 80 m or 240 m map's resolution where it covers
+    (uint16, (h + 12,000) × 2, 51.8 kB), listed in a custom site's metadata (for example
+    `apron: { file, rows, columns, window_m }` in its `meta.json`, or served at
+    `/api/custom/{id}/apron.bin`), so the browser stops using the coarse global map.
+
 #### 2026-11-14 · T7b · The Moon around the Polar map's detailed square
 - **Who:** implementation agent, for the orchestrator
 - **AI use:** Claude Code, claude-opus-5-5 — built the context reprojection, border,

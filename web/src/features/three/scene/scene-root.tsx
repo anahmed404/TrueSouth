@@ -37,7 +37,8 @@ import {
   type SiteFrame,
 } from "./camera";
 import { Overlay, type OverlayBus, type Preset, type LookToward } from "./overlay";
-import { decorationDisclosure, sceneContent, seriesSunAnswer, type LoadState } from "./plates";
+import { useSurroundings } from "./custom-apron";
+import { apronLoadState, decorationDisclosure, sceneContent, seriesSunAnswer, type LoadState } from "./plates";
 import { southPolePose } from "./navigate";
 import { Rig } from "./rig";
 import { sightState, type SightState } from "./sight";
@@ -174,8 +175,7 @@ function FocusedSiteData({
   // "not available" is a failed load when the scene's metadata lists an apron for the site,
   // and "none" when it lists none: a custom site has a patch but never an apron, by design.
   const apronListed = sceneMeta.status === "ready" ? sceneMeta.data.aprons.some((a) => a.site_id === siteId) : true;
-  const apronState: LoadState | "none" =
-    apron.status === "ready" ? (apron.data === "not available" ? (apronListed ? "error" : "none") : "ready") : loadState(apron.status);
+  const apronState = apronLoadState(apron.status, apron.data, apronListed);
   useEffect(() => {
     onData({
       siteId,
@@ -389,6 +389,8 @@ function Scene3D(props: SceneProps) {
           ? "ready"
           : "error"
         : "loading";
+  // A custom site's surroundings come from the global height map; retried on each visit (custom-apron.ts).
+  const surroundings = useSurroundings((view === "terrain" || view === "panorama") && focusReady?.states.apron === "none");
   const content = useMemo(
     () =>
       sceneContent({
@@ -400,8 +402,9 @@ function Scene3D(props: SceneProps) {
         terrain: focusReady?.states.terrain ?? "loading",
         apron: focusReady?.states.apron ?? "loading",
         sun: seriesSunAnswer(focusReady?.series, focusReady?.flags, hourIndex),
+        surroundings,
       }),
-    [view, trueScale, systemState, worldSite, focusReady?.states.series, focusReady?.states.terrain, focusReady?.states.apron, focusReady?.series, focusReady?.flags, hourIndex],
+    [view, trueScale, systemState, worldSite, focusReady?.states.series, focusReady?.states.terrain, focusReady?.states.apron, focusReady?.series, focusReady?.flags, hourIndex, surroundings],
   );
 
   const inputs = useMemo((): WorldInputs => {
