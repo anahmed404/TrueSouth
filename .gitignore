@@ -31,3 +31,6 @@ Thumbs.db
 
 # Browser-tool logs written while taking screenshots
 .playwright-mcp/
+
+# The design skill's live-preview state: holds a local session token
+.impeccable/
